@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Mage Arena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -222,6 +222,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   position:absolute;left:0;right:0;bottom:0;height:14%;
   background:repeating-linear-gradient(90deg,#15131f 0 18px,#1c1a28 18px 36px);
   box-shadow:0 -10px 30px rgba(0,0,0,.6) inset;
+  pointer-events:none;
 }
 .city-topbar{
   position:absolute;top:0;left:0;right:0;
@@ -326,6 +327,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 #combatCanvas{
   position:absolute;inset:0;width:100%;height:100%;
   background:#08060c;
+  touch-action:none;
 }
 .hud{position:absolute;inset:0;pointer-events:none;z-index:10;}
 .hud *{pointer-events:auto;}
@@ -390,6 +392,50 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 .hud-mechanic .mech-label{font-size:11px;color:var(--muted);margin-bottom:2px;}
 
 .combo-hint{position:absolute;bottom:140px;left:50%;transform:translateX(-50%);font-size:11px;color:#ffd866;opacity:.85;text-align:center;}
+
+/* ---------- VIRTUAL JOYSTICK (mobile movement) ---------- */
+.joystick-zone{
+  position:absolute;left:18px;bottom:18px;width:120px;height:120px;
+  touch-action:none;
+}
+.joystick-base{
+  position:absolute;inset:0;border-radius:50%;
+  background:rgba(20,18,40,.35);
+  border:2px solid rgba(160,150,255,.35);
+  box-shadow:0 0 14px rgba(120,100,255,.15) inset;
+}
+.joystick-stick{
+  position:absolute;left:50%;top:50%;width:48px;height:48px;
+  margin:-24px 0 0 -24px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#bcb4ff,#5a4fb0);
+  border:2px solid rgba(255,255,255,.45);
+  box-shadow:0 0 14px rgba(140,120,255,.6);
+  transition:transform .04s linear;
+}
+/* ---------- BLOCK BUTTON (Earth mage) ---------- */
+.block-btn{
+  position:absolute;right:18px;bottom:18px;width:62px;height:62px;
+  border-radius:50%;font-size:24px;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #886600;background:rgba(10,10,20,.8);
+  touch-action:none;-webkit-tap-highlight-color:transparent;
+}
+.block-btn.blocking{border-color:#ffd866;box-shadow:0 0 16px #ffd866;transform:scale(.92);}
+@media (max-width:700px){
+  .joystick-zone{left:10px;bottom:10px;width:104px;height:104px;}
+  .joystick-stick{width:42px;height:42px;margin:-21px 0 0 -21px;}
+  .block-btn{right:10px;bottom:10px;width:54px;height:54px;font-size:20px;}
+  /* stack potion bar above spell bar so both fit above the joystick/block button */
+  .hud-bottom{
+    flex-direction:column-reverse;align-items:center;
+    bottom:122px;gap:6px;
+  }
+  .spell-btn{width:50px;height:50px;font-size:20px;border-radius:8px;}
+  .potion-btn{width:38px;height:38px;font-size:15px;}
+  .hud-mechanic{bottom:228px;width:200px;}
+  .combo-hint{bottom:264px;font-size:9.5px;}
+  .boss-dialogue{bottom:300px;width:88vw;font-size:13px;}
+}
 
 /* center-screen big text events */
 .center-banner{
@@ -617,6 +663,12 @@ button:disabled{opacity:.4;cursor:not-allowed;}
       </div>
 
       <div class="combo-hint" id="comboHint"></div>
+
+      <div class="joystick-zone" id="joystickZone">
+        <div class="joystick-base"></div>
+        <div class="joystick-stick" id="joystickStick"></div>
+      </div>
+      <div class="block-btn hidden" id="btnBlock">🛡️</div>
 
       <div class="hud-bottom">
         <div class="potionbar" id="potionBar"></div>
@@ -1809,6 +1861,7 @@ let combatRAF=null;
 
 const keys={};
 const mouse={x:0,y:0};
+const joystick={active:false,dx:0,dy:0,id:null};
 
 function resizeCanvas(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
@@ -1867,6 +1920,7 @@ function startCombat(mode){
   };
   buildSpellBar();
   buildPotionBar();
+  $('btnBlock').classList.toggle('hidden',cls.id!=='earth');
   $('diffBadge').textContent=G.difficulty.toUpperCase();
   $('bossBarWrap').classList.remove('active');
   // mode setup
@@ -2032,8 +2086,57 @@ window.addEventListener('keyup',e=>{
   if(k==='tab'){ openSpellMenu(false); }
   if(k===' ' && CB && CB.cls.id==='earth'){ CB.player.blocking=false; }
 });
-canvas.addEventListener('mousemove',e=>{ mouse.x=e.clientX;mouse.y=e.clientY; });
-canvas.addEventListener('mousedown',e=>{ if(CB&&!CB.over){ mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0); } });
+canvas.addEventListener('pointermove',e=>{ mouse.x=e.clientX;mouse.y=e.clientY; });
+canvas.addEventListener('pointerdown',e=>{ if(CB&&!CB.over){ mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0); } });
+
+/* ---------------- VIRTUAL JOYSTICK (mobile movement) ---------------- */
+(function(){
+  const zone=$('joystickZone'),stick=$('joystickStick');
+  const maxR=36;
+  function setStick(dx,dy){ stick.style.transform=`translate(${dx}px,${dy}px)`; }
+  function update(e){
+    const rect=zone.getBoundingClientRect();
+    const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+    let dx=e.clientX-cx, dy=e.clientY-cy;
+    const d=Math.hypot(dx,dy)||1;
+    const cl=Math.min(d,maxR);
+    dx=dx/d*cl; dy=dy/d*cl;
+    setStick(dx,dy);
+    joystick.dx=dx/maxR; joystick.dy=dy/maxR;
+  }
+  zone.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    joystick.active=true; joystick.id=e.pointerId;
+    try{ zone.setPointerCapture(e.pointerId); }catch(err){}
+    update(e);
+  });
+  zone.addEventListener('pointermove',e=>{
+    if(!joystick.active||e.pointerId!==joystick.id)return;
+    e.preventDefault();
+    update(e);
+  });
+  function release(e){
+    if(e.pointerId!==joystick.id)return;
+    joystick.active=false; joystick.dx=0; joystick.dy=0; joystick.id=null;
+    setStick(0,0);
+  }
+  zone.addEventListener('pointerup',release);
+  zone.addEventListener('pointercancel',release);
+})();
+
+/* ---------------- BLOCK BUTTON (Earth mage, touch equivalent of Space) ---------------- */
+(function(){
+  const btn=$('btnBlock');
+  function setBlock(on){
+    if(!CB||CB.cls.id!=='earth')return;
+    CB.player.blocking=on;
+    btn.classList.toggle('blocking',on);
+  }
+  btn.addEventListener('pointerdown',e=>{ e.preventDefault(); setBlock(true); });
+  btn.addEventListener('pointerup',e=>{ e.preventDefault(); setBlock(false); });
+  btn.addEventListener('pointercancel',()=>setBlock(false));
+  btn.addEventListener('pointerleave',()=>setBlock(false));
+})();
 
 function openSpellMenu(open){
   if(!CB)return;
@@ -2085,15 +2188,20 @@ function updatePlayer(dt,rawDt){
   p.stamina=clamp(p.stamina+3*rawDt,0,p.maxstamina);
   // cursed eye perma damage applied to maxhp display only via permaDmg
   // movement
-  let mvx=0,mvy=0;
-  if(keys['w']||keys['arrowup'])mvy-=1;
-  if(keys['s']||keys['arrowdown'])mvy+=1;
-  if(keys['a']||keys['arrowleft'])mvx-=1;
-  if(keys['d']||keys['arrowright'])mvx+=1;
+  let mvx=0,mvy=0,moveMag=1;
+  if(joystick.active&&(joystick.dx||joystick.dy)){
+    mvx=joystick.dx;mvy=joystick.dy;
+    moveMag=clamp(Math.hypot(mvx,mvy),0,1);
+  }else{
+    if(keys['w']||keys['arrowup'])mvy-=1;
+    if(keys['s']||keys['arrowdown'])mvy+=1;
+    if(keys['a']||keys['arrowleft'])mvx-=1;
+    if(keys['d']||keys['arrowright'])mvx+=1;
+  }
   const canMove=p.casting<=0 && !p.blocking;
   if(canMove&&(mvx||mvy)){
     const len=Math.hypot(mvx,mvy)||1;
-    let spd=s.speed*16;
+    let spd=s.speed*16*moveMag;
     p.x=clamp(p.x+mvx/len*spd*dt,20,CB.w-20);
     p.y=clamp(p.y+mvy/len*spd*dt,20,CB.h-20);
     if(mvx!==0)p.facing=mvx>0?1:-1;
@@ -3180,17 +3288,47 @@ function render(){
 }
 
 function renderArena(w,h){
-  // dark stone floor
-  ctx.fillStyle='#0c0a12';
-  ctx.fillRect(0,0,w,h);
-  // stone tile texture
   const t=CB.time;
+  // ---- Sword & Sandals style gladiator pit ----
+  // outer colosseum stone wall
+  const wallGrad=ctx.createLinearGradient(0,0,0,h);
+  wallGrad.addColorStop(0,'#3c2e22');
+  wallGrad.addColorStop(1,'#1a130d');
+  ctx.fillStyle=wallGrad;
+  ctx.fillRect(0,0,w,h);
+  // sandy fighting-pit floor (inset from the wall)
+  const bx=Math.min(56,w*0.06), by=Math.min(56,h*0.07);
+  const fx=bx, fy=by, fw=w-bx*2, fh=h-by*2;
+  const floorGrad=ctx.createLinearGradient(0,fy,0,fy+fh);
+  floorGrad.addColorStop(0,'#caa467');
+  floorGrad.addColorStop(1,'#9a7a48');
+  ctx.fillStyle=floorGrad;
+  ctx.fillRect(fx,fy,fw,fh);
+  // raked-sand rings
   ctx.save();
-  ctx.globalAlpha=0.5;
-  const ts=90;
-  ctx.strokeStyle='#15121f';ctx.lineWidth=2;
-  for(let x=0;x<w;x+=ts){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke(); }
-  for(let y=0;y<h;y+=ts){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke(); }
+  ctx.globalAlpha=0.12;
+  ctx.strokeStyle='#7a5c34';ctx.lineWidth=2;
+  for(let r=50;r<Math.max(fw,fh);r+=70){ ctx.beginPath();ctx.arc(w/2,h/2,r,0,7);ctx.stroke(); }
+  ctx.restore();
+  // sand grain speckles (cached so they don't flicker frame-to-frame)
+  if(!CB._sand){ CB._sand=[]; for(let i=0;i<130;i++)CB._sand.push({x:rand(fx,fx+fw),y:rand(fy,fy+fh),r:rand(1,2.6),a:rand(.05,.16)}); }
+  for(const sp of CB._sand){ ctx.save();ctx.globalAlpha=sp.a;ctx.fillStyle='#6b4f28';ctx.beginPath();ctx.arc(sp.x,sp.y,sp.r,0,7);ctx.fill();ctx.restore(); }
+  // crowd silhouettes packed into the wall bands (cached)
+  if(!CB._crowd){
+    CB._crowd=[];
+    const rowsY=[by*0.35,by*0.7,h-by*0.35,h-by*0.7];
+    for(const cy of rowsY){
+      for(let x=10;x<w-10;x+=14){
+        CB._crowd.push({x:x+rand(-3,3),y:cy+rand(-4,4),r:rand(2.5,4.5),c:pick(['#5a4a6a','#4a5a6a','#6a4a4a','#5a5a4a','#7a6a55'])});
+      }
+    }
+  }
+  ctx.save();
+  for(const c of CB._crowd){
+    const bob=Math.sin(t*2+c.x*0.1)*1.2;
+    ctx.globalAlpha=0.85;ctx.fillStyle=c.c;
+    ctx.beginPath();ctx.arc(c.x,c.y+bob,c.r,0,7);ctx.fill();
+  }
   ctx.restore();
   // glowing arcane runes (static-ish, pulsing)
   if(!CB._runes){ CB._runes=[]; for(let i=0;i<5;i++)CB._runes.push({x:rand(0.15,0.85)*w,y:rand(0.2,0.8)*h,r:rand(40,80),seed:rand(0,7)}); }
@@ -3574,7 +3712,12 @@ function buildSpellBar(){
       const mc=masteryClass(sid); if(mc)btn.classList.add(mc);
       btn.innerHTML=`<span class="key">${i+1}</span>${sp.icon}<div class="cd-overlay hidden"></div>`;
       btn.title=sp.name;
-      btn.onclick=()=>{ mouse.x=CB.player.x+200*CB.player.facing;mouse.y=CB.player.y; castSpellSlot(i); };
+      btn.onclick=()=>{
+        const ne=nearestEnemy();
+        if(ne){ mouse.x=ne.x;mouse.y=ne.y; }
+        else { mouse.x=CB.player.x+200*CB.player.facing;mouse.y=CB.player.y; }
+        castSpellSlot(i);
+      };
     } else { btn.classList.add('empty');btn.innerHTML=`<span class="key">${i+1}</span>`; }
     bar.appendChild(btn);
   }
