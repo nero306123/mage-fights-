@@ -437,6 +437,48 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   .boss-dialogue{bottom:300px;width:88vw;font-size:13px;}
 }
 
+/* ---------- TURN-BASED DUEL CONTROLS ---------- */
+.spell-btn .rngmark{position:absolute;bottom:1px;right:4px;font-size:11px;color:#9fa8d8;opacity:.8;}
+.spell-btn.tb-unavail{opacity:.4;filter:grayscale(.5);}
+.spell-btn.tb-oor{border-color:#aa6644;box-shadow:0 0 8px rgba(200,90,40,.5);opacity:.7;}
+.turn-controls{
+  position:absolute;left:0;right:0;bottom:10px;z-index:25;
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  padding:0 12px;pointer-events:none;
+}
+.turn-controls>*{pointer-events:auto;}
+.tc-btn{
+  width:70px;height:70px;border-radius:16px;font-size:30px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid #5a5a9a;background:rgba(14,12,28,.85);color:#cfd0ff;
+  -webkit-tap-highlight-color:transparent;user-select:none;
+}
+.tc-btn:active{transform:scale(.92);}
+.tc-btn:disabled{opacity:.3;}
+.tc-center{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:170px;}
+.tc-turn{font-family:'Cinzel',serif;font-weight:700;font-size:15px;letter-spacing:1px;color:#ffd866;text-shadow:0 0 8px rgba(0,0,0,.8);}
+.tc-pips{font-size:11px;color:#bdb6ff;letter-spacing:1px;}
+.tc-pips .pip{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 1px;background:#2a2a44;border:1px solid #55557f;vertical-align:middle;}
+.tc-pips .pip.on{background:#ffd866;border-color:#ffd866;box-shadow:0 0 6px #ffd866;}
+.tc-end{
+  padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;
+  border:2px solid #886600;background:linear-gradient(180deg,#3a2e10,#1a1408);color:#ffd866;
+}
+.tc-end:disabled{opacity:.35;}
+.tb-mode .hud-bottom{bottom:92px;}
+.tb-mode .joystick-zone,.tb-mode .block-btn,.tb-mode .hud-mechanic,.tb-mode .combo-hint{display:none!important;}
+@media (max-width:700px){
+  .tb-mode .hud-bottom{flex-direction:row;flex-wrap:wrap;justify-content:center;bottom:96px;gap:6px;}
+  .tc-btn{width:58px;height:58px;font-size:24px;border-radius:13px;}
+  .tc-center{min-width:130px;}
+  .tc-turn{font-size:13px;}
+  .tc-end{padding:6px 12px;font-size:11px;}
+}
+@media (max-height:520px){
+  .tb-mode .hud-bottom{bottom:78px;}
+  .tc-btn{width:52px;height:52px;font-size:22px;}
+}
+
 /* center-screen big text events */
 .center-banner{
   position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);
@@ -546,14 +588,39 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 }
 
 /* ---------- GAME MODE SELECT ---------- */
+/* landscape-first: keep the three modes side-by-side, shrink instead of stacking */
 .mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
-@media (max-width:760px){.mode-grid{grid-template-columns:1fr;}}
 .mode-card{--glow:#5a5acc;text-align:center;cursor:pointer;padding:18px;transition:transform .2s;}
 .mode-card:hover{transform:translateY(-4px);}
 .mode-card.locked{opacity:.45;cursor:not-allowed;}
 .mode-card .micon{font-size:38px;margin-bottom:6px;}
+@media (max-width:760px){
+  .mode-grid{gap:8px;margin:10px 0;}
+  .mode-card{padding:9px 6px;}
+  .mode-card h3{font-size:14px;margin:2px 0;}
+  .mode-card .micon{font-size:26px;margin-bottom:2px;}
+  .mode-card .muted{font-size:10px;line-height:1.3;}
+}
+@media (max-height:520px){
+  .mode-grid{margin:8px 0;}
+  .mode-card{padding:7px 6px;}
+  .mode-card .micon{font-size:22px;}
+}
 .diff-grid{display:flex;gap:10px;justify-content:center;margin-top:12px;}
 .diff-btn.active{border-color:var(--gold);box-shadow:0 0 12px var(--gold);}
+
+/* ---------- rotate-to-landscape hint (portrait phones) ---------- */
+#rotateHint{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:radial-gradient(circle at 50% 40%,#1a1430,#070510);
+  color:#ffd866;text-align:center;align-items:center;justify-content:center;
+  flex-direction:column;gap:18px;padding:30px;font-family:'Cinzel',serif;
+}
+#rotateHint .ricon{font-size:64px;animation:rotateSpin 2.4s ease-in-out infinite;}
+#rotateHint .rmsg{font-size:20px;}
+#rotateHint .rsub{font-size:13px;color:#cfc7ff;font-family:system-ui,sans-serif;}
+@keyframes rotateSpin{0%,40%{transform:rotate(0);}60%,100%{transform:rotate(90deg);}}
+@media (max-width:900px) and (orientation:portrait){ #rotateHint{display:flex;} }
 
 /* small util */
 .flexrow{display:flex;align-items:center;gap:8px;}
@@ -563,6 +630,11 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 </style>
 </head>
 <body>
+<div id="rotateHint">
+  <div class="ricon">📱</div>
+  <div class="rmsg">Obróć telefon poziomo</div>
+  <div class="rsub">Mage Arena gra się w trybie poziomym ⚔️</div>
+</div>
 <div id="app">
 
   <!-- ================= TITLE SCREEN ================= -->
@@ -712,59 +784,59 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 const CLASSES = {
   fire:{
     id:'fire',name:'Fire Mage',emoji:'🔥',c1:'#ff4400',c2:'#ff8800',
-    base:{hp:80,mana:100,sp:15,speed:7,stamina:8,def:4,crit:8,hit:90,dodge:3,learning:1},
+    base:{hp:80,mana:100,sp:15,speed:7,stamina:8,def:4,crit:8,hit:90,dodge:3,learning:4},
     passive:{name:'Burning',desc:'30% on-hit chance to apply Burn (8 dmg/sec, 3s, stacks ×3).'},
     mech:{name:'Combustion Meter',desc:'Fills when a Burning enemy dies. At 3 stacks → RELEASE: screen-wide explosion, 150 dmg to all.',max:3},
-    spells:['fireball','flame_wave','scorching_ray','inferno','fire_storm','phoenix_flame','meteor','dragons_breath'],
+    spells:['fireball','flame_wave','scorching_ray','inferno','fire_storm','phoenix_flame','meteor','dragons_breath','ember_dart','fire_lash','cinder_storm','flame_ward','blazing_comet','heat_surge','supernova'],
   },
   ice:{
     id:'ice',name:'Ice Mage',emoji:'❄️',c1:'#00ccff',c2:'#ffffff',
-    base:{hp:90,mana:110,sp:12,speed:6,stamina:10,def:6,crit:5,hit:88,dodge:4,learning:1},
+    base:{hp:90,mana:110,sp:12,speed:6,stamina:10,def:6,crit:5,hit:88,dodge:4,learning:4},
     passive:{name:'Frost',desc:'25% Slow (−40% speed, 3s) | 5% Freeze (stun 1.5s).'},
     mech:{name:'Absolute Zero Charge',desc:'Freezing enemies fills bar. Full → screen freezes 3s, all enemies +50% dmg taken.',max:100},
-    spells:['ice_shard','frost_nova','ice_lance','blizzard','glacial_spike','permafrost','ice_wall','absolute_zero'],
+    spells:['ice_shard','frost_nova','ice_lance','blizzard','glacial_spike','permafrost','ice_wall','absolute_zero','frost_dart','ice_spear','cold_snap','frozen_armor','hailstorm','frost_mend','winter_end'],
   },
   necro:{
     id:'necro',name:'Necromancer',emoji:'💀',c1:'#6600cc',c2:'#00ff44',
-    base:{hp:70,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:85,dodge:2,learning:1},
+    base:{hp:70,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:85,dodge:2,learning:5},
     passive:{name:'Soul Harvest',desc:'30% capture chance on kill (20% bosses). Stash persists between rounds.'},
     mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 30% HP in Lich Form — all spells free 10s.',max:100},
-    spells:['shadow_ball','soul_explosion','spawn_all','spawn_shadow','soul_barrier','death_nova','bone_shield','void_rift'],
+    spells:['shadow_ball','soul_explosion','spawn_all','spawn_shadow','soul_barrier','death_nova','bone_shield','void_rift','bone_spear','soul_siphon','grave_chill','shadow_ward','night_terror','dark_mend','oblivion'],
   },
   water:{
     id:'water',name:'Water Mage',emoji:'💧',c1:'#00ffcc',c2:'#0066ff',
-    base:{hp:95,mana:130,sp:10,speed:7,stamina:12,def:5,crit:5,hit:87,dodge:5,learning:1},
+    base:{hp:95,mana:130,sp:10,speed:7,stamina:12,def:5,crit:5,hit:87,dodge:5,learning:4},
     passive:{name:'Tidal Flow',desc:'Mana regen +50%, healing spells +25% HP.'},
     mech:{name:'Tide Gauge',desc:'Fills when healed or hit. Release: TIDAL SURGE — heal 60% HP + slow all enemies 5s.',max:100},
-    spells:['water_bolt','healing_rain','tidal_wave','aqua_shield','whirlpool','torrent','oceans_wrath','tsunami'],
+    spells:['water_bolt','healing_rain','tidal_wave','aqua_shield','whirlpool','torrent','oceans_wrath','tsunami','aqua_dart','water_lance','riptide','bubble_ward','maelstrom','soothing_tide','abyssal_crush'],
   },
   earth:{
     id:'earth',name:'Earth Mage',emoji:'🪨',c1:'#886600',c2:'#44aa00',
-    base:{hp:130,mana:80,sp:11,speed:4,stamina:15,def:12,crit:4,hit:85,dodge:2,learning:1},
+    base:{hp:130,mana:80,sp:11,speed:4,stamina:15,def:12,crit:4,hit:85,dodge:2,learning:3},
     passive:{name:'Stone Skin',desc:'−10 flat dmg reduction, melee spells 15% stun chance (1s).'},
     mech:{name:'Tectonic Charge',desc:'Taking hits charges bar. Release: EARTHQUAKE — massive AoE knockback + screen shake.',max:100},
-    spells:['rock_throw','earthen_spike','mud_trap','earthquake','boulder_crush','stone_wall','geomancy','mountains_wrath'],
+    spells:['rock_throw','earthen_spike','mud_trap','earthquake','boulder_crush','stone_wall','geomancy','mountains_wrath','pebble_shot','stone_spear','tremor','granite_ward','rockslide','earth_mend','cataclysm'],
   },
   wind:{
     id:'wind',name:'Wind Mage',emoji:'🌪️',c1:'#dddddd',c2:'#ffff88',
-    base:{hp:80,mana:100,sp:13,speed:12,stamina:9,def:4,crit:10,hit:92,dodge:15,learning:1},
+    base:{hp:80,mana:100,sp:13,speed:12,stamina:9,def:4,crit:10,hit:92,dodge:15,learning:4},
     passive:{name:'Evasion',desc:'15% base dodge, movement speed +25%.'},
     mech:{name:'Gale Stacks',desc:'Each dodge adds a stack (max 5). Release all 5: TORNADO — pull all enemies to center.',max:5},
-    spells:['wind_slash','gale_blade','air_burst','cyclone','tornado','tempest','thunder_clap','hurricane'],
+    spells:['wind_slash','gale_blade','air_burst','cyclone','tornado','tempest','thunder_clap','hurricane','breeze_dart','razor_gust','updraft','wind_ward','storm_call','zephyr_mend','wind_maelstrom'],
   },
   essence:{
     id:'essence',name:'Essence Mage',emoji:'✨',c1:'#ffd866',c2:'#ff66cc',rainbow:true,
-    base:{hp:90,mana:110,sp:13,speed:8,stamina:10,def:6,crit:7,hit:88,dodge:5,learning:2},
+    base:{hp:90,mana:110,sp:13,speed:8,stamina:10,def:6,crit:7,hit:88,dodge:5,learning:6},
     passive:{name:'Attunement',desc:'Spells deal +20% dmg to an enemy\'s weakness.'},
     mech:{name:'Prismatic Charge',desc:'Hitting weaknesses fills bar. Release: SINGULARITY NOVA — rainbow explosion hitting every weakness.',max:100},
-    spells:['essence_bolt','prismatic_ray','aura_burst','mana_surge','elemental_fusion','arcane_nova','pure_energy','singularity'],
+    spells:['essence_bolt','prismatic_ray','aura_burst','mana_surge','elemental_fusion','arcane_nova','pure_energy','singularity','spark_dart','prism_lance','aura_pulse','ward_of_light','chromatic_burst','essence_mend','cosmos'],
   },
   power:{
     id:'power',name:'Power Mage',emoji:'⚡',c1:'#9900ff',c2:'#ffffff',
-    base:{hp:85,mana:120,sp:18,speed:6,stamina:8,def:5,crit:6,hit:88,dodge:3,learning:1},
+    base:{hp:85,mana:120,sp:18,speed:6,stamina:8,def:5,crit:6,hit:88,dodge:3,learning:4},
     passive:{name:'Overcharge',desc:'20% chance a spell deals 200% dmg (costs double mana).'},
     mech:{name:'Overload Meter',desc:'Each Overcharge fills it. Full → ABSOLUTE POWER 10s: every spell auto-Overcharges.',max:100},
-    spells:['force_blast','power_surge','void_lance','energy_drain','arcane_explosion','dominate','mind_crush','absolute_power'],
+    spells:['force_blast','power_surge','void_lance','energy_drain','arcane_explosion','dominate','mind_crush','absolute_power','jolt','shock_lance','discharge','force_ward','thunderstorm','siphon_life','annihilate'],
   },
 };
 const CLASS_ORDER=['fire','ice','necro','water','earth','wind','essence','power'];
@@ -846,6 +918,71 @@ const SPELLS={
   dominate:{name:'Dominate',icon:'👁️',el:'power',kind:'beam',cost:34,dmg:48,cd:4,desc:'Dominate your foe\'s mind.'},
   mind_crush:{name:'Mind Crush',icon:'🧠',el:'power',kind:'projectile',cost:38,dmg:60,cd:4,speed:520,status:'thunder',desc:'Crush the enemy\'s mind.'},
   absolute_power:{name:'Absolute Power',icon:'⚡',el:'power',kind:'aoe',cost:60,dmg:78,cd:8,radius:280,status:'thunder',desc:'Absolute, unchallenged power.'},
+  // ===== EXPANDED GRIMOIRE (Nauka unlocks) =====
+  // FIRE +7
+  ember_dart:{name:'Ember Dart',icon:'🔸',el:'fire',kind:'projectile',cost:11,dmg:30,cd:0.5,speed:560,status:'burn',desc:'A swift mote of living flame.'},
+  fire_lash:{name:'Fire Lash',icon:'🪢',el:'fire',kind:'beam',cost:18,dmg:30,cd:1.3,status:'burn',desc:'A whip of searing fire.'},
+  cinder_storm:{name:'Cinder Storm',icon:'🎆',el:'fire',kind:'aoe',cost:34,dmg:42,cd:4,radius:210,status:'burn',desc:'A swirling storm of cinders.'},
+  flame_ward:{name:'Flame Ward',icon:'🔥',el:'fire',kind:'self',cost:28,dmg:0,cd:8,shield:75,desc:'A mantle of fire shields you.'},
+  blazing_comet:{name:'Blazing Comet',icon:'☄️',el:'fire',kind:'projectile',cost:34,dmg:56,cd:3,speed:460,status:'burn',desc:'A comet wreathed in flame.'},
+  heat_surge:{name:'Heat Surge',icon:'♨️',el:'fire',kind:'self',cost:26,dmg:0,cd:7,heal:38,desc:'Channel inner fire to mend wounds.'},
+  supernova:{name:'Supernova',icon:'💥',el:'fire',kind:'aoe',cost:58,dmg:80,cd:8,radius:280,status:'burn',desc:'Become a dying star.'},
+  // ICE +7
+  frost_dart:{name:'Frost Dart',icon:'🔹',el:'ice',kind:'projectile',cost:10,dmg:27,cd:0.5,speed:580,status:'slow',desc:'A needle of frozen air.'},
+  ice_spear:{name:'Ice Spear',icon:'🥢',el:'ice',kind:'projectile',cost:17,dmg:43,cd:1.2,speed:640,status:'slow',desc:'A hurled spear of solid ice.'},
+  cold_snap:{name:'Cold Snap',icon:'🌬️',el:'ice',kind:'aoe',cost:26,dmg:32,cd:3,radius:190,status:'freeze',desc:'A sudden bite of deep cold.'},
+  frozen_armor:{name:'Frozen Armor',icon:'🧊',el:'ice',kind:'self',cost:28,dmg:0,cd:8,shield:85,desc:'Encase yourself in glacial plate.'},
+  hailstorm:{name:'Hailstorm',icon:'🌨️',el:'ice',kind:'aoe',cost:40,dmg:44,cd:5,radius:230,status:'slow',desc:'A barrage of jagged hail.'},
+  frost_mend:{name:'Frost Mend',icon:'❄️',el:'ice',kind:'self',cost:26,dmg:0,cd:7,heal:42,desc:'Soothing frost knits flesh.'},
+  winter_end:{name:"Winter's End",icon:'🏔️',el:'ice',kind:'aoe',cost:58,dmg:74,cd:8,radius:280,status:'freeze',desc:'The final, killing cold.'},
+  // NECRO +7
+  bone_spear:{name:'Bone Spear',icon:'🦴',el:'shadow',kind:'projectile',cost:12,dmg:32,cd:0.6,speed:520,desc:'A spear of jagged bone.'},
+  soul_siphon:{name:'Soul Siphon',icon:'🩸',el:'shadow',kind:'beam',cost:20,dmg:32,cd:1.4,drain:true,desc:'Drain life through a thread of shadow.'},
+  grave_chill:{name:'Grave Chill',icon:'🪦',el:'shadow',kind:'aoe',cost:28,dmg:38,cd:3,radius:190,desc:'The cold of the tomb spreads out.'},
+  shadow_ward:{name:'Shadow Ward',icon:'🌑',el:'shadow',kind:'self',cost:28,dmg:0,cd:8,shield:80,desc:'Bound souls turn aside harm.'},
+  night_terror:{name:'Night Terror',icon:'👁️',el:'shadow',kind:'aoe',cost:40,dmg:50,cd:5,radius:220,desc:'Manifest the fear of the dark.'},
+  dark_mend:{name:'Dark Mend',icon:'🖤',el:'shadow',kind:'self',cost:26,dmg:0,cd:7,heal:46,desc:'Stitch wounds with stolen life.'},
+  oblivion:{name:'Oblivion',icon:'⚫',el:'shadow',kind:'aoe',cost:58,dmg:78,cd:8,radius:280,desc:'Unmake all that stands before you.'},
+  // WATER +7
+  aqua_dart:{name:'Aqua Dart',icon:'🔹',el:'water',kind:'projectile',cost:10,dmg:27,cd:0.5,speed:560,desc:'A darting jet of water.'},
+  water_lance:{name:'Water Lance',icon:'🌊',el:'water',kind:'projectile',cost:17,dmg:42,cd:1.2,speed:620,desc:'A piercing lance of pressurized water.'},
+  riptide:{name:'Riptide',icon:'🌀',el:'water',kind:'aoe',cost:28,dmg:38,cd:3,radius:200,status:'slow',desc:'A dragging undertow.'},
+  bubble_ward:{name:'Bubble Ward',icon:'🫧',el:'water',kind:'self',cost:26,dmg:0,cd:8,shield:72,desc:'A shimmering sphere of water.'},
+  maelstrom:{name:'Maelstrom',icon:'🌊',el:'water',kind:'aoe',cost:40,dmg:48,cd:5,radius:230,status:'slow',desc:'A churning vortex of the deep.'},
+  soothing_tide:{name:'Soothing Tide',icon:'💧',el:'water',kind:'self',cost:30,dmg:0,cd:6,heal:52,desc:'Healing waters wash over you.'},
+  abyssal_crush:{name:'Abyssal Crush',icon:'🌑',el:'water',kind:'aoe',cost:58,dmg:74,cd:8,radius:280,status:'slow',desc:'The crushing weight of the abyss.'},
+  // EARTH +7
+  pebble_shot:{name:'Pebble Shot',icon:'🔘',el:'earth',kind:'projectile',cost:10,dmg:28,cd:0.6,speed:460,desc:'A rapid sling of stones.'},
+  stone_spear:{name:'Stone Spear',icon:'⛏️',el:'earth',kind:'projectile',cost:17,dmg:42,cd:1.2,speed:420,desc:'A spear of sharpened rock.'},
+  tremor:{name:'Tremor',icon:'〰️',el:'earth',kind:'aoe',cost:26,dmg:34,cd:3,radius:180,melee:true,status:'mud',desc:'The ground shudders underfoot.'},
+  granite_ward:{name:'Granite Ward',icon:'🧱',el:'earth',kind:'self',cost:30,dmg:0,cd:9,shield:110,desc:'Raise an unyielding granite shell.'},
+  rockslide:{name:'Rockslide',icon:'🏔️',el:'earth',kind:'aoe',cost:40,dmg:50,cd:5,radius:230,melee:true,desc:'A cascade of crushing stone.'},
+  earth_mend:{name:'Earth Mend',icon:'🌿',el:'earth',kind:'self',cost:28,dmg:0,cd:7,heal:48,desc:'Draw vitality from the living earth.'},
+  cataclysm:{name:'Cataclysm',icon:'🌋',el:'earth',kind:'aoe',cost:58,dmg:82,cd:8,radius:280,melee:true,desc:'Split the world asunder.'},
+  // WIND +7
+  breeze_dart:{name:'Breeze Dart',icon:'🍃',el:'wind',kind:'projectile',cost:8,dmg:24,cd:0.4,speed:700,status:'wind',desc:'A cutting sliver of wind.'},
+  razor_gust:{name:'Razor Gust',icon:'🌬️',el:'wind',kind:'projectile',cost:16,dmg:37,cd:1,speed:740,status:'wind',desc:'A gust honed to an edge.'},
+  updraft:{name:'Updraft',icon:'💨',el:'wind',kind:'aoe',cost:24,dmg:32,cd:2.5,radius:180,status:'wind',desc:'A sudden lifting blast.'},
+  wind_ward:{name:'Wind Ward',icon:'🌀',el:'wind',kind:'self',cost:26,dmg:0,cd:7,shield:62,desc:'A whirling barrier of air.'},
+  storm_call:{name:'Storm Call',icon:'⛈️',el:'wind',kind:'aoe',cost:40,dmg:48,cd:5,radius:230,status:'thunder',desc:'Summon the gathering storm.'},
+  zephyr_mend:{name:'Zephyr Mend',icon:'🪶',el:'wind',kind:'self',cost:24,dmg:0,cd:7,heal:40,desc:'A restoring breath of clean air.'},
+  wind_maelstrom:{name:'Tempest Maw',icon:'🌪️',el:'wind',kind:'aoe',cost:58,dmg:70,cd:8,radius:300,status:'wind',desc:'A devouring vortex of storm.'},
+  // ESSENCE +7
+  spark_dart:{name:'Spark Dart',icon:'✨',el:'essence',kind:'projectile',cost:10,dmg:29,cd:0.5,speed:580,desc:'A glittering prismatic spark.'},
+  prism_lance:{name:'Prism Lance',icon:'🌈',el:'essence',kind:'projectile',cost:17,dmg:42,cd:1.2,speed:620,desc:'A lance of refracted light.'},
+  aura_pulse:{name:'Aura Pulse',icon:'💫',el:'essence',kind:'aoe',cost:28,dmg:40,cd:3,radius:190,desc:'A pulse of pure essence.'},
+  ward_of_light:{name:'Ward of Light',icon:'🔆',el:'essence',kind:'self',cost:28,dmg:0,cd:8,shield:74,desc:'A radiant barrier of light.'},
+  chromatic_burst:{name:'Chromatic Burst',icon:'🎇',el:'essence',kind:'aoe',cost:40,dmg:52,cd:5,radius:230,desc:'An explosion of every hue.'},
+  essence_mend:{name:'Essence Mend',icon:'🌟',el:'essence',kind:'self',cost:30,dmg:0,cd:6,heal:50,desc:'Restore yourself with raw essence.'},
+  cosmos:{name:'Cosmos',icon:'🌌',el:'essence',kind:'aoe',cost:58,dmg:80,cd:8,radius:300,desc:'Call upon the weight of the stars.'},
+  // POWER +7
+  jolt:{name:'Jolt',icon:'⚡',el:'power',kind:'projectile',cost:12,dmg:32,cd:0.5,speed:640,status:'thunder',desc:'A crackling bolt of force.'},
+  shock_lance:{name:'Shock Lance',icon:'🔱',el:'power',kind:'projectile',cost:17,dmg:44,cd:1.2,speed:680,status:'thunder',desc:'A lance of raw current.'},
+  discharge:{name:'Discharge',icon:'🔌',el:'power',kind:'aoe',cost:28,dmg:42,cd:3,radius:200,status:'thunder',desc:'Release stored energy outward.'},
+  force_ward:{name:'Force Ward',icon:'🛡️',el:'power',kind:'self',cost:28,dmg:0,cd:8,shield:74,desc:'A humming wall of force.'},
+  thunderstorm:{name:'Thunderstorm',icon:'⛈️',el:'power',kind:'aoe',cost:40,dmg:54,cd:5,radius:230,status:'thunder',desc:'Call down chained lightning.'},
+  siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,desc:'Tear energy from your foe to heal.'},
+  annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
 };
 
 // element display colors (for projectiles / particles / combos)
@@ -967,7 +1104,30 @@ const ARENA_EVENTS=[
   {id:'windfall',icon:'💰',name:'WINDFALL',desc:'Gold drops tripled'},
 ];
 
-const STAT_LABELS={hp:'HP',mana:'Mana',sp:'Spell Power',speed:'Speed',stamina:'Stamina',def:'Defense',crit:'Crit %',hit:'Hit %',dodge:'Dodge %',learning:'Learning'};
+const STAT_LABELS={hp:'HP',mana:'Mana',sp:'Spell Power',speed:'Speed',stamina:'Stamina',def:'Defense',crit:'Crit %',hit:'Hit %',dodge:'Dodge %',learning:'Nauka (Knowledge)'};
+
+// ---------- NAUKA: how many of a class's 15 spells you know ----------
+// 0 nauka -> 1 spell known. each point of nauka unlocks one more, capped at 15.
+function knownSpellCount(){
+  const s=(typeof CB!=='undefined'&&CB&&CB.stats)?CB.stats:computeStats();
+  return clamp(1+Math.floor(s.learning||0),1,15);
+}
+function knownSpells(){
+  const cls=CLASSES[G.classId];
+  return cls.spells.slice(0,knownSpellCount());
+}
+function isSpellKnown(sid){ return knownSpells().includes(sid); }
+const MAX_LOADOUT=7;
+// range of a spell in pixels (turn-based duel positioning)
+function spellRange(sp){
+  if(!sp) return 400;
+  if(sp.kind==='self') return 99999;
+  if(sp.kind==='beam') return 540;
+  if(sp.kind==='projectile') return sp.melee?200:680;
+  if(sp.kind==='aoe') return sp.melee?190:360;
+  if(sp.kind==='summon') return 720;
+  return 420;
+}
 
 /* ============================================================
    =======================  STATE  ============================
@@ -1348,7 +1508,7 @@ function confirmClass(cid){
   G=freshSave();
   G.classId=cid;
   // default loadout = first 5 spells
-  G.loadout=CLASSES[cid].spells.slice(0,5);
+  G.loadout=CLASSES[cid].spells.slice(0,MAX_LOADOUT);
   G.gold=150;
   G.statPoints=10; // 10 to distribute at start
   refreshBounties(true);
@@ -1663,7 +1823,7 @@ function openCharacterScreen(){
   const s=computeStats();
   // stat allocation section
   let allocRows='';
-  const allocStats=['hp','mana','sp','speed','stamina','def','crit','hit','dodge'];
+  const allocStats=['hp','mana','sp','speed','stamina','def','crit','hit','dodge','learning'];
   for(const k of allocStats){
     const extra=G.allocated[k]||0;
     allocRows+=`<div class="stat-line"><span>${STAT_LABELS[k]} <span class="muted">(${s[k]}${(k==='crit'||k==='hit'||k==='dodge')?'%':''})</span></span>
@@ -1676,28 +1836,39 @@ function openCharacterScreen(){
     const r=G.relics[i]?RELICS[G.relics[i]]:null;
     return `<div class="item-card panel" style="--glow:#ffd866;min-height:auto;">${r?`<div class="item-icon">${r.icon}</div><span class="iname">${r.name}</span><div class="istats">${r.desc}</div><button data-unrelic="${i}" style="padding:2px 8px;font-size:11px;">Unequip</button>`:'<div class="muted center-text">empty relic slot</div>'}</div>`;
   }).join('');
-  // spell loadout slots
+  // spell loadout slots (7)
   let slotHtml='';
-  for(let i=0;i<5;i++){
+  for(let i=0;i<MAX_LOADOUT;i++){
     const sid=G.loadout[i];const sp=sid?SPELLS[sid]:null;
     slotHtml+=`<div class="spell-slot ${sp?'':'empty'} ${sp?masteryClass(sid):''}" data-slot="${i}" ${sp?'title="'+sp.name+'"':''}>${sp?sp.icon:'＋'}</div>`;
   }
-  // full spell list with mastery
+  // full spell list with mastery — Nauka gates which spells are KNOWN
+  const known=knownSpells();
   let spellListHtml='';
-  cls.spells.forEach(sid=>{
+  cls.spells.forEach((sid,idx)=>{
     const sp=SPELLS[sid];const m=G.masteries[sid]||{uses:0};
     const tier=masteryTier(m.uses);
     const nextThresh=[10,50,200,200][tier];
     const pct=tier>=3?100:clamp(m.uses/nextThresh*100,0,100);
     const inLoadout=G.loadout.includes(sid);
+    const isKnown=known.includes(sid);
+    if(!isKnown){
+      spellListHtml+=`<div class="spell-list-item locked" style="opacity:.5;">
+        <div class="sicon">🔒</div>
+        <div class="sinfo"><div class="sname">${sp.name}</div>
+        <div class="muted">Requires Nauka ${idx} — raise Knowledge to learn</div></div></div>`;
+      return;
+    }
+    const rng=spellRange(sp);
+    const rngTxt=sp.kind==='self'?'self':(rng>=600?'long range':rng>=320?'mid range':'short range');
     spellListHtml+=`<div class="spell-list-item ${masteryClass(sid)}" draggable="true" data-spell="${sid}">
       <div class="sicon">${sp.icon}</div>
       <div class="sinfo">
         <div class="sname">${sp.name} ${tier>0?`<span class="gold-text">${TIER_NAMES[tier]}</span>`:''}${m.path?` <span class="muted">[Path ${m.path}]</span>`:''}</div>
-        <div class="muted">${sp.cost} mana • ${sp.dmg||0} dmg • ${m.uses} uses</div>
+        <div class="muted">${sp.cost} mana • ${sp.dmg||0} dmg • ${rngTxt} • ${m.uses} uses</div>
         <div class="mastery-bar"><div class="mastery-bar-fill" style="width:${pct}%"></div></div>
       </div>
-      <div>${inLoadout?'<span class="muted" style="font-size:10px;">equipped</span>':`<button data-add="${sid}" style="padding:2px 8px;font-size:11px;" ${G.loadout.length<5?'':'disabled'}>+</button>`}
+      <div>${inLoadout?'<span class="muted" style="font-size:10px;">equipped</span>':`<button data-add="${sid}" style="padding:2px 8px;font-size:11px;" ${G.loadout.length<MAX_LOADOUT?'':'disabled'}>+</button>`}
       ${tier>=3&&!m.path?`<button data-path="${sid}" style="padding:2px 6px;font-size:10px;">⚒ Path</button>`:''}</div>
     </div>`;
   });
@@ -1726,7 +1897,7 @@ function openCharacterScreen(){
       <div class="spell-loadout">${slotHtml}</div>
     </div>
   </div>
-  <h3 class="gold-text" style="margin-top:10px;">Spellbook &amp; Mastery</h3>
+  <h3 class="gold-text" style="margin-top:10px;">Spellbook &amp; Mastery — <span class="muted" style="font-size:13px;">know ${known.length}/15 spells (Nauka ${s.learning|0}), equip up to ${MAX_LOADOUT}</span></h3>
   <div style="max-height:240px;overflow-y:auto;">${spellListHtml}</div>`;
   const ov=openModal('👤 Character',body,cls.c1);
   wireCharacterScreen(ov);
@@ -1739,7 +1910,7 @@ function wireCharacterScreen(ov){
     G.statPoints--;saveGame();ov.remove();openCharacterScreen();
   });
   ov.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
-    if(G.loadout.length>=5)return;G.loadout.push(b.dataset.add);saveGame();ov.remove();openCharacterScreen();
+    if(G.loadout.length>=MAX_LOADOUT)return;G.loadout.push(b.dataset.add);saveGame();ov.remove();openCharacterScreen();
   });
   ov.querySelectorAll('[data-unrelic]').forEach(b=>b.onclick=()=>{
     G.relics.splice(+b.dataset.unrelic,1);saveGame();ov.remove();openCharacterScreen();
@@ -1820,9 +1991,9 @@ function openModeSelect(){
   selectedMode=null;
   const bossUnlocked=G.normalWins>=10;
   const modes=[
-    {id:'normal',icon:'⚔️',name:'Normal',desc:'Waves of 1–4 enemies. Earn XP &amp; gold.',locked:false},
-    {id:'boss',icon:'👹',name:'Boss Fight',desc:bossUnlocked?'Turn-based duel with the Chaos Mage.':'Unlocks after 10 Normal wins ('+G.normalWins+'/10)',locked:!bossUnlocked},
-    {id:'endless',icon:'♾️',name:'Endless Dungeon',desc:'Infinite waves, arena events, mini-bosses. Best: Wave '+G.endlessBest,locked:false},
+    {id:'normal',icon:'⚔️',name:'Duel',desc:'Turn-based duel vs a rival mage. Earn XP &amp; gold.',locked:false},
+    {id:'boss',icon:'👹',name:'Boss Duel',desc:bossUnlocked?'Face a powerful master mage.':'Unlocks after 10 wins ('+G.normalWins+'/10)',locked:!bossUnlocked},
+    {id:'endless',icon:'♾️',name:'Gauntlet',desc:'Endless rivals, each tougher. Best round: '+G.endlessBest,locked:false},
   ];
   const grid=$('modeGrid');grid.innerHTML='';
   modes.forEach(m=>{
@@ -1868,7 +2039,15 @@ function resizeCanvas(){
   canvas.width=window.innerWidth*dpr;
   canvas.height=window.innerHeight*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  if(CB){CB.w=window.innerWidth;CB.h=window.innerHeight;}
+  if(CB){
+    CB.w=window.innerWidth;CB.h=window.innerHeight;
+    if(CB.tb){
+      CB.groundY=Math.round(CB.h*0.74);
+      CB._sand=null;CB._crowd=null;
+      if(CB.player){CB.player.y=CB.player.baseY=CB.groundY;CB.player.x=clamp(CB.player.x,CB.w*0.08,CB.w*0.92);}
+      if(CB.foe){CB.foe.y=CB.foe.baseY=CB.groundY;CB.foe.x=clamp(CB.foe.x,CB.w*0.08,CB.w*0.92);}
+    }
+  }
 }
 window.addEventListener('resize',resizeCanvas);
 
@@ -1878,60 +2057,781 @@ function diffMods(){
   return {hp:1,dmg:1,reward:1};
 }
 
+/* ============================================================
+   ============  TURN-BASED MAGE DUEL  (Sword & Sandals) ======
+   1v1 turn-based duels: each turn you may WALK and cast ONE
+   spell. Range matters. Foe is another mage; boss = stronger mage.
+============================================================ */
+
+// roster of rival mages (one of the 8 classes, with a name + flavour)
+const FOE_NAMES=['Varghal','Mordra','Selene','Kael','Brimstone','Nyx','Orin','Vex','Thessaly','Grimm','Ysolde','Caldus','Riven','Mab','Drauven','Sable'];
+const FOE_TITLES=['the Wandering','the Ashen','the Pale','Stormborn','the Cruel','Nightshade','the Adept','the Bitter','of the Veil','Hollow-Eye','the Sly','the Hexer'];
+const BOSS_MAGES=[
+  {name:'The Chaos Mage',classId:'power',c:'#cc33ff',hpMult:2.6,dmgMult:1.35,lines:["You dare challenge me, mortal?","Your magic is a candle to my sun.","Kneel — or be unmade."]},
+  {name:'Pyrrhus the Infernal',classId:'fire',c:'#ff5522',hpMult:2.4,dmgMult:1.3,lines:["I will burn you to cinders.","Ash is all you will leave behind.","Feel the inferno!"]},
+  {name:'Queen Glaciel',classId:'ice',c:'#66ddff',hpMult:2.5,dmgMult:1.25,lines:["You will freeze where you stand.","Winter answers to me alone.","Be still... forever."]},
+  {name:'Mortus the Undying',classId:'necro',c:'#00ff66',hpMult:2.7,dmgMult:1.3,lines:["Death is only the beginning.","Your soul will serve me.","I have died before. Have you?"]},
+];
+
+const TB_VITALITY=1.85; // duels last longer than the old wave HP pools
+function makeMage(side,classId,stats,opts={}){
+  const cls=CLASSES[classId];
+  const vit=opts.isPlayer?TB_VITALITY*1.25:TB_VITALITY;
+  const mhp=Math.round(stats.maxhp*vit);
+  const M={
+    side, classId, cls,
+    x:0,y:0, baseY:0,
+    hp:mhp, maxhp:mhp,
+    mana:stats.maxmana, maxmana:stats.maxmana,
+    manaregen:stats.manaregen||4,
+    sp:stats.sp, crit:stats.crit, hit:stats.hit, dodge:stats.dodge, def:stats.def,
+    speedStat:stats.speed,
+    shield:0, buffs:{}, statuses:{}, statusTags:new Set(),
+    facing:side==='L'?1:-1,
+    move:0, maxMove:0, walkT:0, casting:0, castGlow:0, flash:0, hitTimer:0, bobT:rand(0,6),
+    cooldowns:{}, spells:opts.spells||cls.spells.slice(0, knownForClass(classId)),
+    name:opts.name||cls.name, dmgMult:opts.dmgMult||1, isBoss:opts.isBoss||false,
+    ai:opts.ai||'balanced',
+  };
+  return M;
+}
+function knownForClass(classId){ return clamp(1+Math.floor(CLASSES[classId].base.learning||1),1,15); }
+
+// build a rival mage scaled to the player's progress
+function makeFoe(mode){
+  const lvl=G.level;
+  const d=diffMods();
+  if(mode==='boss'){
+    const b=pick(BOSS_MAGES);
+    const cls=CLASSES[b.classId];
+    const base=cls.base;
+    const tier=1+lvl*0.05;
+    const st={
+      maxhp:Math.round((base.hp*3.4+lvl*14)*b.hpMult*d.hp*tier),
+      maxmana:base.mana+200, manaregen:8,
+      sp:Math.round((base.sp+8+lvl*1.2)*b.dmgMult),
+      crit:base.crit+6, hit:96, dodge:base.dodge+4, def:base.def+6, speed:base.speed+1,
+    };
+    const foe=makeMage('R',b.classId,st,{name:b.name,dmgMult:b.dmgMult*d.dmg*0.62,isBoss:true,ai:'boss',
+      spells:cls.spells.slice(0,12)});
+    foe._color=b.c; foe._lines=b.lines; foe._title='';
+    return foe;
+  }
+  // normal / endless: a rival mage. endless scales by round.
+  const round=mode==='endless'?(CB?CB.round:1):1;
+  const classId=pick(CLASS_ORDER);
+  const cls=CLASSES[classId];
+  const base=cls.base;
+  const scale=1+lvl*0.045+(round-1)*0.16;
+  const st={
+    maxhp:Math.round((base.hp+lvl*7+(round-1)*22)*scale*d.hp),
+    maxmana:base.mana+80, manaregen:6,
+    sp:Math.round((base.sp+lvl*0.7+(round-1)*1.4)),
+    crit:base.crit+2, hit:90, dodge:base.dodge, def:base.def, speed:base.speed,
+  };
+  const known=knownForClass(classId);
+  const foe=makeMage('R',classId,st,{
+    name:pick(FOE_NAMES)+' '+pick(FOE_TITLES),
+    dmgMult:d.dmg*0.7*(1+(round-1)*0.06),
+    ai:'balanced',
+    spells:cls.spells.slice(0,Math.max(4,Math.min(known,8))),
+  });
+  foe._color=cls.c1;
+  return foe;
+}
+
 function startCombat(mode){
   showScreen('combat');
   resizeCanvas();
   const s=computeStats();
   const cls=CLASSES[G.classId];
+  const w=window.innerWidth,h=window.innerHeight;
+  const groundY=Math.round(h*0.74);
   CB={
-    mode,cls,stats:s,
-    w:window.innerWidth,h:window.innerHeight,
-    player:{
-      x:window.innerWidth/2,y:window.innerHeight/2,
-      hp:s.maxhp,maxhp:s.maxhp,mana:s.maxmana,maxmana:s.maxmana,
-      stamina:s.maxstamina,maxstamina:s.maxstamina,
-      shield:0,vx:0,vy:0,radius:18,casting:0,castSpell:null,castTime:0,
-      facing:1,blocking:false,permaDmg:0,
-      buffs:{},        // berserk, freecast, mirror, chaos, absolutePower, lichForm etc
-    },
-    enemies:[],projectiles:[],particles:[],numbers:[],grounds:[],effects:[],summons:[],
-    wave:0,waveActive:false,waveEnemiesLeft:0,
-    timeScale:1,targetTimeScale:1,slowmoTimer:0,
-    spellMenuOpen:false,
-    cooldowns:{},
-    mech:0,           // class mechanic charge
-    mechActive:0,     // duration if active
-    combustion:0,galeStacks:0,
-    overloadActive:0,
+    mode,cls,stats:s,tb:true,
+    w,h, time:0, elapsed:0, shake:0, over:false,
+    groundY,
+    phase:'intro', turn:'player', turnNo:1, round:1, busy:false,
+    selSlot:0,
+    player:null, foe:null,
+    enemies:[], projectiles:[],particles:[],numbers:[],grounds:[],effects:[],summons:[],
+    cooldowns:{},  // alias to player.cooldowns for legacy helpers
+    mech:0, combustion:0, galeStacks:0, overloadActive:0,
     killStreak:0,streakTier:0,streakBuffTimer:0,streakSPmult:1,goldMult:1,
-    lastCastEl:null,lastCastTime:0,
-    storCounter:0,    // storm crystal
-    echoQueue:[],
-    arenaEvent:null,arenaEventData:{},
-    boss:null,bossPhase:1,
-    shake:0,
-    time:0,
-    elapsed:0,
-    darkness:false,
-    // fight stats
+    boss:null, darkness:false, spellMenuOpen:false, timeScale:1,targetTimeScale:1,
     stat:{dmg:0,kills:0,bestStreak:0,crits:0,gold:0,spellUse:{},combos:0,potionsUsed:0,highCombo:'-'},
-    cursedEyeUsed:false,
-    over:false,
   };
+  // PLAYER mage
+  const P=makeMage('L',G.classId,s,{name:'You',spells:G.loadout.filter(Boolean),isPlayer:true});
+  P.x=Math.round(w*0.24); P.y=groundY; P.baseY=groundY; P.facing=1;
+  P.isPlayer=true;
+  CB.player=P;
+  CB.cooldowns=P.cooldowns;
+  // FOE mage
+  const F=makeFoe(mode);
+  F.x=Math.round(w*0.76); F.y=groundY; F.baseY=groundY; F.facing=-1;
+  CB.foe=F; CB.enemies=[F]; CB.boss=mode==='boss'?F:null;
+
   buildSpellBar();
   buildPotionBar();
-  $('btnBlock').classList.toggle('hidden',cls.id!=='earth');
+  tbSetupHUD();
   $('diffBadge').textContent=G.difficulty.toUpperCase();
-  $('bossBarWrap').classList.remove('active');
-  // mode setup
-  if(mode==='boss'){ startBossFight(); }
-  else { nextWave(); }
+
+  // intro
+  showBanner(mode==='boss'?('⚔ '+F.name):'⚔ DUEL', mode==='boss'?'#ff3050':'#ffd866',true);
+  if(mode==='boss' && F._lines){ tbBossLine(pick(F._lines)); }
   lastTS=performance.now();
   if(combatRAF)cancelAnimationFrame(combatRAF);
-  combatLoop(lastTS);
+  tbLoop(lastTS);
+  setTimeout(()=>{ if(CB&&!CB.over) tbStartTurn('player'); }, 800);
 }
 
-/* ---------------- WAVE MANAGEMENT ---------------- */
+/* ---------------- TURN-BASED HUD ---------------- */
+function tbSetupHUD(){
+  $('combatHud').classList.add('tb-mode');
+  // hide real-time-only widgets
+  $('btnBlock').classList.add('hidden');
+  $('joystickZone').classList.add('hidden');
+  $('comboHint').classList.add('hidden');
+  $('mechanicPanel').classList.add('hidden');
+  // foe bar always visible (reuse boss bar wrap)
+  const bw=$('bossBarWrap'); bw.classList.add('active');
+  $('bossName').textContent=CB.foe.name;
+  // build the turn control bar once
+  let tc=$('turnControls');
+  if(!tc){
+    tc=document.createElement('div');
+    tc.id='turnControls';
+    tc.className='turn-controls';
+    tc.innerHTML=`
+      <button class="tc-btn tc-move" id="tcLeft">◀</button>
+      <div class="tc-center">
+        <div class="tc-turn" id="tcTurn">YOUR TURN</div>
+        <div class="tc-pips" id="tcPips"></div>
+        <button class="tc-end" id="tcEnd">End Turn ⏭</button>
+      </div>
+      <button class="tc-btn tc-move" id="tcRight">▶</button>`;
+    $('combatHud').appendChild(tc);
+    $('tcLeft').onclick=()=>tbMove(-1);
+    $('tcRight').onclick=()=>tbMove(1);
+    $('tcEnd').onclick=()=>{ if(CB&&!CB.over&&CB.phase==='player') tbEndTurn('player'); };
+  }
+  tc.classList.remove('hidden');
+}
+function tbBossLine(txt){
+  const el=$('bossDialogue');
+  el.textContent='“'+txt+'”';
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),2600);
+}
+function tbDist(){ return Math.abs(CB.player.x-CB.foe.x); }
+
+/* ---------------- TURN FLOW ---------------- */
+function tbStartTurn(who){
+  if(!CB||CB.over)return;
+  CB.turn=who; CB.phase=who; CB.busy=false;
+  const m=who==='player'?CB.player:CB.foe;
+  const other=who==='player'?CB.foe:CB.player;
+  // regen mana, tick cooldowns, decay buffs/statuses, set move budget
+  m.mana=clamp(m.mana+ (m.manaregen*3) + m.maxmana*0.04, 0, m.maxmana);
+  for(const k in m.cooldowns){ m.cooldowns[k]=Math.max(0,(m.cooldowns[k]||0)-1); }
+  tbDecayBuffs(m);
+  // movement budget scales with speed
+  m.maxMove=Math.round(70+ (m.speedStat||6)*9);
+  if(m.statuses.slow) m.maxMove=Math.round(m.maxMove*0.5);
+  m.move=m.maxMove;
+  m.facing=(other.x>=m.x)?1:-1;
+  if(who==='player'){
+    CB.turnNo++;
+    tbUpdateTurnUI();
+  } else {
+    tbUpdateTurnUI();
+    setTimeout(()=>{ if(CB&&!CB.over) tbEnemyTurn(); }, 650);
+  }
+}
+function tbDecayBuffs(m){
+  for(const k in m.buffs){ if(typeof m.buffs[k]==='number'){ m.buffs[k]-=1; if(m.buffs[k]<=0)delete m.buffs[k]; } }
+  for(const k in m.statuses){ const st=m.statuses[k]; if(st&&st.turns!==undefined){ st.turns-=1; if(st.turns<=0){ delete m.statuses[k]; } } }
+}
+function tbUpdateTurnUI(){
+  const t=$('tcTurn'); if(t){ t.textContent=CB.phase==='player'?'YOUR TURN':"FOE'S TURN"; t.style.color=CB.phase==='player'?'#ffd866':'#ff6688'; }
+  const isP=CB.phase==='player';
+  $('tcLeft').disabled=!isP; $('tcRight').disabled=!isP; $('tcEnd').disabled=!isP;
+  // move pips
+  const pips=$('tcPips');
+  if(pips){
+    const tot=8, filled=CB.player.maxMove>0?Math.round(CB.player.move/CB.player.maxMove*tot):0;
+    let s='';
+    for(let i=0;i<tot;i++) s+=`<span class="pip ${i<filled?'on':''}"></span>`;
+    pips.innerHTML='⤺ '+s;
+  }
+}
+function tbMove(dir){
+  if(!CB||CB.over||CB.phase!=='player'||CB.busy)return;
+  const p=CB.player;
+  if(p.move<=0){ floatNumber(p.x,p.y-70,'no moves left',{miss:true}); return; }
+  const step=Math.min(34,p.move);
+  let nx=p.x+dir*step;
+  const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+  // can't walk through / past the foe
+  if(dir>0 && nx>CB.foe.x-58) nx=CB.foe.x-58;
+  if(dir<0 && nx<CB.foe.x+58 && p.x>CB.foe.x) nx=Math.max(nx,CB.foe.x+58);
+  nx=clamp(nx,minX,maxX);
+  const used=Math.abs(nx-p.x);
+  if(used<1){ return; }
+  p.move-=used; p.x=nx; p.facing=(CB.foe.x>=p.x)?1:-1; p.walkT=0.32;
+  // dust
+  for(let i=0;i<4;i++)CB.particles.push({x:p.x,y:p.baseY+12,vx:rand(-30,30)-dir*40,vy:rand(-30,-5),life:0.4,maxlife:0.4,r:rand(2,4),color:'#caa467',fade:true,grav:80});
+  tbUpdateTurnUI();
+}
+
+/* ---------------- CASTING ---------------- */
+function tbPlayerCast(slot){
+  if(!CB||CB.over||CB.phase!=='player'||CB.busy)return;
+  const sid=G.loadout[slot]; if(!sid)return;
+  const sp=SPELLS[sid]; if(!sp)return;
+  const p=CB.player;
+  if(p.cooldowns[sid]>0){ floatNumber(p.x,p.y-70,'on cooldown',{miss:true}); return; }
+  let cost=sp.cost;
+  const free=p.buffs.freecast;
+  if(free)cost=0;
+  if(p.mana<cost){ floatNumber(p.x,p.y-70,'not enough mana',{miss:true}); return; }
+  // range check (self spells always ok)
+  const rng=spellRange(sp);
+  if(sp.kind!=='self' && tbDist()>rng){
+    floatNumber(p.x,p.y-70,'out of range — move closer',{miss:true});
+    return;
+  }
+  if(free)delete p.buffs.freecast; else p.mana-=cost;
+  p.cooldowns[sid]=Math.max(1,Math.round(sp.cd<=1?1:sp.cd/1.5));
+  CB.stat.spellUse[sid]=(CB.stat.spellUse[sid]||0)+1;
+  trackMasteryUse(sid);
+  CB.busy=true; CB.phase='anim';
+  tbUpdateTurnUI();
+  tbCast(p, CB.foe, sid, ()=>{ if(CB&&!CB.over) tbEndTurn('player'); });
+}
+
+// universal animated cast: caster -> target, resolves via onDone
+function tbCast(caster, target, sid, onDone){
+  const sp=SPELLS[sid];
+  const el=sp.el;
+  caster.casting=0.45; caster.castGlow=1;
+  const hx=caster.x+caster.facing*16, hy=caster.y-26;
+  spawnCastBurst(hx,hy,el);
+  const dmgBase=()=>tbComputeDmg(caster,sp,sid);
+  const finish=()=>{ caster.casting=0; if(onDone)onDone(); };
+
+  // SELF spells: shield / heal / mana
+  if(sp.kind==='self'){
+    setTimeout(()=>{
+      if(!CB||CB.over)return;
+      if(sp.shield){ caster.shield=(caster.shield||0)+sp.shield; floatNumber(caster.x,caster.y-40,'+'+sp.shield+' shield',{heal:true}); tbAuraBurst(caster,el); }
+      if(sp.heal){ const amt=Math.round(sp.heal*(caster.classId==='water'?1.25:1)); caster.hp=clamp(caster.hp+amt,0,caster.maxhp); floatNumber(caster.x,caster.y-40,'+'+amt,{heal:true}); tbAuraBurst(caster,el); }
+      if(sp.mana){ caster.mana=clamp(caster.mana+sp.mana,0,caster.maxmana); floatNumber(caster.x,caster.y-40,'+'+sp.mana+' mana',{heal:true}); }
+      setTimeout(finish,260);
+    },360);
+    return;
+  }
+  // BEAM: instant line, immediate damage (with drain heal)
+  if(sp.kind==='beam'){
+    setTimeout(()=>{
+      if(!CB||CB.over)return;
+      const tx=target.x, ty=target.y-22;
+      CB.effects.push({type:'beam',x1:hx,y1:hy,x2:tx,y2:ty,life:0.32,maxlife:0.32,color:EL_COLORS[el]});
+      spawnImpact(tx,ty,el,1);
+      const dealt=tbDealDamage(target,dmgBase(),el,{sid});
+      if(sp.drain){ const h=Math.round(dealt*0.5); caster.hp=clamp(caster.hp+h,0,caster.maxhp); floatNumber(caster.x,caster.y-40,'+'+h,{heal:true}); }
+      triggerShake(5);
+      setTimeout(finish,360);
+    },320);
+    return;
+  }
+  // AOE: expanding ring lands on target after travel
+  if(sp.kind==='aoe'){
+    setTimeout(()=>{
+      if(!CB||CB.over)return;
+      const tx=target.x, ty=target.y-10;
+      CB.effects.push({type:'aoe',el,x:tx,y:ty,r:Math.min(sp.radius||180,180),life:0.6,maxlife:0.6,color:EL_COLORS[el]});
+      doShockwave(tx,ty,EL_COLORS[el],1.1);
+      spawnImpact(tx,ty,el,1.3);
+      tbDealDamage(target,dmgBase(),el,{sid});
+      triggerShake(8);
+      setTimeout(finish,420);
+    },360);
+    return;
+  }
+  // SUMMON: conjure shadow ally/allies that strike the foe (1v1 reworking of necro summons)
+  if(sp.kind==='summon'){
+    const count=sp.summonAll?3:1;
+    const per=Math.round((18 + (caster.sp||10)*0.7) * (caster.dmgMult||1) * (caster.isPlayer?masteryDmgMult(sid):1));
+    let remaining=count;
+    const spawnOne=(i)=>{
+      if(!CB||CB.over){ if(--remaining<=0)finish(); return; }
+      const sy=caster.y-70-rand(0,40);
+      const ally={
+        tb:true,summon:true,x:caster.x+caster.facing*10,y:sy,el:'shadow',sid,
+        color:EL_COLORS.shadow,r:11,homing:target,speed:560,trail:[],dmg:per,
+        onHit:()=>{
+          if(CB&&!CB.over){
+            spawnImpact(target.x,target.y-22,'shadow',1.2);
+            tbDealDamage(target,per,'shadow',{sid});
+            triggerShake(6);
+          }
+          if(--remaining<=0)finish();
+        },
+      };
+      ally._safety=setTimeout(()=>{ if(ally._alive!==false){ ally._alive=false; const k=CB.projectiles.indexOf(ally); if(k>=0)CB.projectiles.splice(k,1); if(--remaining<=0&&!CB.over)finish(); } },2200);
+      CB.projectiles.push(ally);
+    };
+    tbAuraBurst(caster,'shadow');
+    for(let i=0;i<count;i++){ setTimeout(()=>spawnOne(i), 240+i*220); }
+    return;
+  }
+  // PROJECTILE: fly from hand to target, impact on arrival
+  const speed=sp.speed||520;
+  const tx=()=>target.x, ty=()=>target.y-22;
+  const proj={
+    tb:true,x:hx,y:hy,el,sid,color:EL_COLORS[el],r:sp.melee?9:7,
+    homing:target, speed, trail:[], dmg:dmgBase(),
+    onHit:()=>{
+      if(!CB||CB.over)return;
+      spawnImpact(target.x,target.y-22,el,1.1);
+      tbDealDamage(target,proj.dmg,el,{sid});
+      triggerShake(6);
+      finish();
+    },
+  };
+  // melee proj: caster lunges
+  if(sp.melee){ caster.walkT=0.3; }
+  CB.projectiles.push(proj);
+  // safety: if projectile somehow lingers, resolve
+  proj._safety=setTimeout(()=>{ if(proj._alive!==false){ proj._alive=false; const i=CB.projectiles.indexOf(proj); if(i>=0)CB.projectiles.splice(i,1); if(!CB.over)finish(); } }, 2000);
+}
+function tbComputeDmg(caster,sp,sid){
+  let d=(sp.dmg||0);
+  d*= 1 + (caster.sp||10)/55;          // spell power scaling
+  d*= (caster.dmgMult||1);
+  if(caster.isPlayer){ d*=masteryDmgMult(sid); if(caster.buffs.berserk)d*=1.4; }
+  // weakness / essence attunement
+  d*=rand(0.92,1.08);
+  return Math.round(d);
+}
+function tbDealDamage(target,dmg,el,opt={}){
+  const attacker=(target===CB.foe)?CB.player:CB.foe;
+  // dodge
+  if(Math.random()*100 < (target.dodge||0)){
+    floatNumber(target.x,target.y-30,'DODGE',{miss:true});
+    return 0;
+  }
+  // crit
+  let crit=Math.random()*100 < (attacker.crit||0);
+  let d=dmg*(crit?2:1);
+  // defense flat reduction
+  d=Math.max(1, d - (target.def||0)*0.5);
+  if(target.classId==='earth' && target===CB.foe) d=Math.max(1,d-6);
+  // status vuln
+  if(target.statuses.vuln) d*=1.5;
+  d=Math.round(d);
+  // shield soak
+  if(target.shield>0){
+    const soak=Math.min(target.shield,d);
+    target.shield-=soak; d-=soak;
+    if(soak>0)floatNumber(target.x+12,target.y-46,'-'+soak+'🛡',{miss:true});
+  }
+  target.hp=clamp(target.hp-d,0,target.maxhp);
+  target.flash=0.3; target.hitTimer=0.3;
+  CB.stat.dmg+=d;
+  if(crit){ CB.stat.crits++; floatNumber(target.x,target.y-34,d+'!',{crit:true,el}); triggerShake(10); }
+  else floatNumber(target.x,target.y-30, ''+d, {el});
+  spawnHitParticles(target.x,target.y-20,el);
+  // apply simple status by spell element
+  tbApplyStatus(target,el,opt.sid);
+  // death check
+  if(target.hp<=0){
+    if(target===CB.foe) tbFoeDefeated();
+    else tbPlayerDown();
+  }
+  return d;
+}
+function safeDodge(){ try{ onPlayerDodge(); }catch(e){} }
+function tbApplyStatus(target,el,sid){
+  const sp=sid?SPELLS[sid]:null;
+  const stt=sp&&sp.status?sp.status:null;
+  if(!stt)return;
+  if(stt==='slow'||stt==='freeze'){ target.statuses.slow={turns:2,val:0.5}; if(stt==='freeze'&&Math.random()<0.4)target.statuses.vuln={turns:2}; }
+  else if(stt==='burn'){ target.statuses.burn={turns:2,dmg:Math.round((sp.dmg||20)*0.18)}; }
+  else if(stt==='mud'){ target.statuses.slow={turns:2,val:0.5}; }
+  else if(stt==='thunder'){ if(Math.random()<0.25)target.statuses.stun={turns:1}; }
+}
+
+/* ---------------- ENEMY AI ---------------- */
+function tbEnemyTurn(){
+  if(!CB||CB.over)return;
+  const f=CB.foe, p=CB.player;
+  // stunned? skip
+  if(f.statuses.stun){ delete f.statuses.stun; floatNumber(f.x,f.y-40,'stunned',{miss:true}); setTimeout(()=>{ tbTickDots(f); if(!CB.over)tbStartTurn('player'); },700); return; }
+  // burn dot
+  tbTickDots(f);
+  if(CB.over)return;
+  // pick best castable spell
+  const choice=tbAIChoose(f);
+  const act=()=>{
+    if(!CB||CB.over)return;
+    if(choice.sid){
+      const sp=SPELLS[choice.sid];
+      f.mana-=sp.cost; f.cooldowns[choice.sid]=Math.max(1,Math.round(sp.cd<=1?1:sp.cd/1.5));
+      CB.busy=true; CB.phase='anim'; tbUpdateTurnUI();
+      tbCast(f,p,choice.sid,()=>{ if(CB&&!CB.over) tbEndTurn('enemy'); });
+    } else {
+      // nothing to cast — end
+      if(!CB.over) tbEndTurn('enemy');
+    }
+  };
+  // movement first (animated), then cast
+  if(choice.moveDir!==0 && f.move>0){
+    tbAnimateFoeMove(choice.moveDir, choice.moveSteps||3, act);
+  } else {
+    setTimeout(act,250);
+  }
+}
+function tbAIChoose(f){
+  const p=CB.player;
+  const dist=tbDist();
+  // heal if low and has a heal/shield self spell available
+  if(f.hp < f.maxhp*0.32){
+    const heal=f.spells.find(sid=>{ const sp=SPELLS[sid]; return sp.kind==='self'&&(sp.heal||sp.shield)&&f.mana>=sp.cost&&!(f.cooldowns[sid]>0); });
+    if(heal && Math.random()<0.7) return {sid:heal,moveDir:0};
+  }
+  // castable damaging spells in (or reachable) range
+  const dmgSpells=f.spells.map(sid=>({sid,sp:SPELLS[sid]}))
+    .filter(o=>o.sp.kind!=='self' && (o.sp.dmg||0)>0 && f.mana>=o.sp.cost && !(f.cooldowns[o.sid]>0));
+  // in range now?
+  const inRange=dmgSpells.filter(o=>dist<=spellRange(o.sp));
+  if(inRange.length){
+    // prefer strongest affordable
+    inRange.sort((a,b)=>(b.sp.dmg||0)-(a.sp.dmg||0));
+    const pickSpell=inRange[Math.random()<0.6?0:Math.floor(rand(0,inRange.length))];
+    // maybe reposition slightly toward player to stay in range
+    return {sid:pickSpell.sid,moveDir:0};
+  }
+  // not in range: move toward player, then cast cheapest ranged if it becomes reachable
+  const reach=dmgSpells.sort((a,b)=>spellRange(b.sp)-spellRange(a.sp))[0];
+  if(reach){
+    const need=dist-spellRange(reach.sp);
+    const steps=Math.min(Math.ceil(need/34)+1, Math.floor(f.move/34));
+    return {sid:reach.sid,moveDir:1,moveSteps:Math.max(1,steps)};
+  }
+  // no mana for anything: approach
+  return {sid:null,moveDir: dist>200?1:0, moveSteps:3};
+}
+function tbAnimateFoeMove(dir,steps,done){
+  const f=CB.foe,p=CB.player;
+  let n=0;
+  const stepOnce=()=>{
+    if(!CB||CB.over)return;
+    if(n>=steps || f.move<=0){ done&&done(); return; }
+    const step=Math.min(34,f.move);
+    let nx=f.x - dir*step; // foe moves toward player (player is to the left)
+    // toward player
+    const toward=(p.x<f.x)?-1:1;
+    nx=f.x+toward*step;
+    if(toward<0 && nx<p.x+58) nx=p.x+58;
+    if(toward>0 && nx>CB.w*0.92) nx=CB.w*0.92;
+    const used=Math.abs(nx-f.x);
+    f.move-=Math.max(used,12); f.x=nx; f.walkT=0.32; f.facing=(p.x>=f.x)?1:-1;
+    for(let i=0;i<3;i++)CB.particles.push({x:f.x,y:f.baseY+12,vx:rand(-30,30),vy:rand(-25,-5),life:0.4,maxlife:0.4,r:rand(2,4),color:'#caa467',fade:true,grav:80});
+    n++;
+    setTimeout(stepOnce,170);
+  };
+  stepOnce();
+}
+function tbTickDots(m){
+  if(m.statuses.burn){
+    const dd=m.statuses.burn.dmg||8;
+    m.hp=clamp(m.hp-dd,0,m.maxhp); floatNumber(m.x,m.y-30,''+dd,{el:'fire'});
+    if(m.hp<=0){ if(m===CB.foe)tbFoeDefeated(); else tbPlayerDown(); }
+  }
+}
+function tbEndTurn(who){
+  if(!CB||CB.over)return;
+  CB.busy=false;
+  // tick the player's burn at end of their turn too
+  if(who==='player') tbTickDots(CB.player);
+  if(CB.over)return;
+  tbStartTurn(who==='player'?'enemy':'player');
+}
+
+/* ---------------- WIN / LOSE ---------------- */
+function tbFoeDefeated(){
+  if(CB.over)return;
+  const f=CB.foe;
+  f.hp=0; f._dead=true;
+  deathBurst(f.x,f.y-20,f.classId==='fire'?'fire':'shadow',32);
+  triggerShake(16);
+  CB.busy=true; CB.phase='win';
+  // rewards
+  const d=diffMods();
+  let gold,xp;
+  if(CB.mode==='boss'){ gold=randInt(180,260); xp=90; }
+  else if(CB.mode==='endless'){ gold=40+CB.round*18; xp=24+CB.round*8; }
+  else { gold=randInt(40,70)+G.level*4; xp=30+G.level*4; }
+  gold=Math.round(gold*d.reward); xp=Math.round(xp*d.reward);
+  CB.stat.gold+=gold; G.gold+=gold; addXP(xp);
+  CB.stat.kills++;
+  floatNumber(f.x,f.y-40,'+'+gold+'g',{gold:true});
+
+  if(CB.mode==='endless'){
+    G.normalWins++; if(CB.round>G.endlessBest)G.endlessBest=CB.round;
+    showBanner('✦ DEFEATED ✦','#ffd866',true);
+    setTimeout(()=>{ if(!CB||CB.over)return; CB.round++; tbNextEndlessFoe(); }, 1500);
+    saveGame();
+    return;
+  }
+  if(CB.mode==='boss'){
+    G.bossDefeats.push({date:new Date().toISOString().slice(0,10),classId:G.classId,time:CB.turnNo});
+    maybeDropRelic(false);
+    if(CB.player.hp<CB.player.maxhp*0.25)bountyProgress('bosslow',1);
+    showBanner('☠ '+f.name+' FALLS ☠','#ffd866',true);
+    flashScreen('rgba(255,216,102,.5)',600);
+    CB.over=true; saveGame();
+    setTimeout(()=>{ afterFightProgress(); enterCity('You bested '+f.name+'!'); },2400);
+    return;
+  }
+  // normal
+  CB.over=true;
+  G.normalWins++;
+  if(CB.stat.potionsUsed===0)bountyProgress('nopotionwin',1);
+  showBanner('✦ VICTORY ✦','#ffd866',true);
+  saveGame();
+  setTimeout(()=>{ afterFightProgress(); enterCity('Victory! +'+CB.stat.gold+'g'); },1800);
+}
+function tbNextEndlessFoe(){
+  if(!CB||CB.over)return;
+  const groundY=CB.groundY;
+  const F=makeFoe('endless');
+  F.x=Math.round(CB.w*0.76); F.y=groundY; F.baseY=groundY; F.facing=-1;
+  CB.foe=F; CB.enemies=[F]; CB.boss=null;
+  $('bossName').textContent=F.name+'  (Round '+CB.round+')';
+  // reset player position a bit and refill some mana
+  CB.player.x=Math.round(CB.w*0.24);
+  CB.player.mana=clamp(CB.player.mana+CB.player.maxmana*0.4,0,CB.player.maxmana);
+  showBanner('ROUND '+CB.round,'#ffd866',true);
+  CB.phase='intro';
+  setTimeout(()=>{ if(CB&&!CB.over) tbStartTurn('player'); }, 900);
+}
+function tbPlayerDown(){
+  if(CB.over)return;
+  const p=CB.player;
+  // phoenix
+  if(G.phoenixTear && !CB._phoenixUsed){
+    CB._phoenixUsed=true;G.phoenixTear=false;
+    p.hp=p.maxhp*0.4; p.shield=0;
+    showBanner('🔥 PHOENIX REVIVAL 🔥','#ff8800',true);
+    flashScreen('rgba(255,150,0,.6)',500); doShockwave(p.x,p.y-20,'#ff8800',1.4);
+    return;
+  }
+  // necro lich
+  if(CB.cls.id==='necro' && !CB._lichUsed && Math.random()<0.3){
+    CB._lichUsed=true; p.hp=p.maxhp*0.35; p.buffs.freecast=true;
+    showBanner('💀 LICH FORM 💀','#00ff44',true); flashScreen('rgba(0,255,68,.4)',500);
+    return;
+  }
+  CB.over=true; CB.phase='lose';
+  deathBurst(p.x,p.y-20,'shadow',30); triggerShake(20);
+  G.xp=Math.max(0,G.xp-Math.round(xpNeeded(G.level)*0.1));
+  if(CB.mode==='endless'&&CB.round>G.endlessBest)G.endlessBest=CB.round;
+  saveGame();
+  setTimeout(()=>showDeathScreen(),1200);
+}
+
+/* ---------------- TB LOOP & RENDER ---------------- */
+function tbLoop(ts){
+  if(!CB||!CB.tb){ return; }
+  combatRAF=requestAnimationFrame(tbLoop);
+  let dt=(ts-lastTS)/1000; lastTS=ts;
+  if(dt>0.05)dt=0.05;
+  CB.time+=dt; CB.elapsed+=dt;
+  // animations
+  if(CB.shake>0)CB.shake=Math.max(0,CB.shake-dt*40);
+  for(const m of [CB.player,CB.foe]){
+    if(!m)continue;
+    if(m.walkT>0)m.walkT-=dt;
+    if(m.casting>0)m.casting-=dt;
+    if(m.castGlow>0)m.castGlow-=dt*2;
+    if(m.flash>0)m.flash-=dt;
+    if(m.hitTimer>0)m.hitTimer-=dt;
+    m.bobT+=dt;
+  }
+  tbUpdateProjectiles(dt);
+  updateParticles(dt);
+  updateNumbers(dt);
+  tbRender();
+  if(!CB.over) tbUpdateHUD();
+}
+function tbUpdateProjectiles(dt){
+  for(let i=CB.projectiles.length-1;i>=0;i--){
+    const pr=CB.projectiles[i];
+    if(pr._alive===false){ CB.projectiles.splice(i,1); continue; }
+    const tgt=pr.homing;
+    const dx=tgt.x-pr.x, dy=(tgt.y-22)-pr.y;
+    const dd=Math.hypot(dx,dy);
+    const stepLen=pr.speed*dt;
+    pr.trail.push({x:pr.x,y:pr.y}); if(pr.trail.length>10)pr.trail.shift();
+    if(dd<=stepLen+10){
+      pr._alive=false; clearTimeout(pr._safety);
+      CB.projectiles.splice(i,1);
+      pr.onHit&&pr.onHit();
+    } else {
+      pr.x+=dx/dd*stepLen; pr.y+=dy/dd*stepLen;
+    }
+  }
+}
+function tbUpdateHUD(){
+  const p=CB.player;
+  $('hpFill').style.width=clamp(p.hp/p.maxhp*100,0,100)+'%';
+  $('hpText').textContent=Math.ceil(Math.max(0,p.hp))+'/'+Math.round(p.maxhp);
+  $('hpBarRow').classList.toggle('pulse-low',p.hp/p.maxhp<0.25);
+  $('manaFill').style.width=clamp(p.mana/p.maxmana*100,0,100)+'%';
+  $('manaText').textContent=Math.ceil(p.mana)+'/'+Math.round(p.maxmana);
+  // stamina row -> repurpose as "Shield"
+  $('stamFill').style.width=clamp((p.shield||0)/Math.max(1,p.maxhp*0.5)*100,0,100)+'%';
+  $('stamText').textContent=Math.round(p.shield||0);
+  const need=xpNeeded(G.level);
+  $('xpFill').style.width=clamp(G.xp/need*100,0,100)+'%';
+  $('xpText').textContent=G.xp+'/'+need;
+  $('lvlText').textContent=G.level; $('goldText').textContent=G.gold;
+  // foe bar
+  $('bossBarFill').style.width=clamp(CB.foe.hp/CB.foe.maxhp*100,0,100)+'%';
+  // spell button cooldowns + affordability + range
+  const btns=document.querySelectorAll('.spell-btn');
+  const dist=tbDist();
+  for(let i=0;i<MAX_LOADOUT;i++){
+    const sid=G.loadout[i];const btn=btns[i];if(!btn)continue;
+    const ov=btn.querySelector('.cd-overlay');
+    if(!sid){ continue; }
+    const sp=SPELLS[sid];
+    const cd=p.cooldowns[sid]||0;
+    if(ov){ if(cd>0){ ov.classList.remove('hidden'); ov.textContent=Math.ceil(cd); } else ov.classList.add('hidden'); }
+    const inRange=sp.kind==='self'||dist<=spellRange(sp);
+    const ok=cd<=0 && p.mana>=sp.cost && (CB.phase==='player') && inRange;
+    btn.classList.toggle('tb-unavail', !ok);
+    btn.classList.toggle('tb-oor', !inRange && CB.phase==='player' && cd<=0 && p.mana>=sp.cost);
+  }
+}
+
+/* ---------------- TB RENDER (side-view duel arena) ---------------- */
+function tbRender(){
+  const w=CB.w,h=CB.h,t=CB.time;
+  ctx.clearRect(0,0,w,h);
+  ctx.save();
+  if(CB.shake>0)ctx.translate(rand(-CB.shake,CB.shake),rand(-CB.shake,CB.shake));
+  tbDrawArena(w,h);
+  // shadows + mages sorted by y (both same ground)
+  tbDrawMageFull(CB.foe);
+  tbDrawMageFull(CB.player);
+  // projectiles
+  tbRenderProjectiles();
+  renderParticles();
+  renderEffectsBelow();
+  renderEffectsAbove();
+  renderNumbers();
+  // range indicator under player when choosing
+  ctx.restore();
+}
+function tbDrawArena(w,h){
+  const t=CB.time, gy=CB.groundY;
+  // sky gradient
+  const sky=ctx.createLinearGradient(0,0,0,gy);
+  sky.addColorStop(0,'#1a1430'); sky.addColorStop(0.6,'#3a2a4a'); sky.addColorStop(1,'#6b4a52');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,w,gy+4);
+  // distant colosseum tiers (parallax bands)
+  for(let b=0;b<3;b++){
+    const yy=gy- (90+b*46), col=['#241c33','#2c2238','#342740'][b];
+    ctx.fillStyle=col; ctx.fillRect(0,yy,w,gy-yy);
+    // arches
+    ctx.fillStyle='rgba(0,0,0,.22)';
+    const aw=70+b*16;
+    for(let x=-20;x<w+aw;x+=aw){ ctx.beginPath(); ctx.arc(x+aw/2,yy+22,aw*0.32,Math.PI,0); ctx.fill(); }
+  }
+  // crowd dots in the stands
+  if(!CB._crowd){
+    CB._crowd=[];
+    for(let row=0;row<3;row++){
+      const yy=gy-(150-row*30);
+      for(let x=12;x<w-8;x+=12) CB._crowd.push({x:x+rand(-3,3),y:yy+rand(-3,3),r:rand(2,3.6),c:pick(['#5a4a6a','#6a4a4a','#4a5a6a','#6a6055','#705a66'])});
+    }
+  }
+  for(const c of CB._crowd){ ctx.save(); ctx.globalAlpha=0.7; ctx.fillStyle=c.c; ctx.beginPath(); ctx.arc(c.x,c.y+Math.sin(t*1.5+c.x*0.1)*0.6,c.r,0,7); ctx.fill(); ctx.restore(); }
+  // torches along the back wall
+  for(let i=0;i<6;i++){
+    const tx=(i+0.5)*(w/6), ty=gy-180;
+    const fl=Math.sin(t*8+i)*0.3+0.7;
+    ctx.save(); ctx.globalAlpha=fl; ctx.fillStyle='#ff8822'; ctx.shadowColor='#ff6600'; ctx.shadowBlur=24;
+    ctx.beginPath(); ctx.ellipse(tx,ty,5,11,0,0,7); ctx.fill(); ctx.restore();
+  }
+  // sandy arena floor
+  const fg=ctx.createLinearGradient(0,gy,0,h);
+  fg.addColorStop(0,'#d8b878'); fg.addColorStop(0.15,'#c4a064'); fg.addColorStop(1,'#8f7040');
+  ctx.fillStyle=fg; ctx.fillRect(0,gy,w,h-gy);
+  // ground line shadow
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(0,gy,w,4);
+  // sand speckle (cached)
+  if(!CB._sand){ CB._sand=[]; for(let i=0;i<120;i++)CB._sand.push({x:rand(0,w),y:rand(gy+6,h),r:rand(1,2.4),a:rand(.05,.16)}); }
+  for(const sp of CB._sand){ ctx.save(); ctx.globalAlpha=sp.a; ctx.fillStyle='#6b4f28'; ctx.beginPath(); ctx.arc(sp.x,sp.y,sp.r,0,7); ctx.fill(); ctx.restore(); }
+  // range hint: when player's turn, draw a soft arc of selected spell reach
+  if(CB.phase==='player' && CB.player){
+    const sid=G.loadout[CB.selSlot]; const sp=sid?SPELLS[sid]:null;
+    if(sp && sp.kind!=='self'){
+      const r=spellRange(sp);
+      ctx.save(); ctx.globalAlpha=0.10; ctx.fillStyle='#ffd866';
+      ctx.beginPath(); ctx.ellipse(CB.player.x,CB.groundY+8,r,26,0,0,7); ctx.fill();
+      ctx.globalAlpha=0.25; ctx.strokeStyle='#ffd866'; ctx.lineWidth=1.5; ctx.setLineDash([6,8]);
+      ctx.beginPath(); ctx.ellipse(CB.player.x,CB.groundY+8,r,26,0,0,7); ctx.stroke(); ctx.setLineDash([]);
+      ctx.restore();
+    }
+  }
+}
+function tbRenderProjectiles(){
+  for(const pr of CB.projectiles){
+    // trail
+    for(let i=0;i<pr.trail.length;i++){
+      const tp=pr.trail[i]; const a=i/pr.trail.length;
+      ctx.save(); ctx.globalAlpha=a*0.5; ctx.fillStyle=pr.color; ctx.shadowColor=pr.color; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(tp.x,tp.y,pr.r*a,0,7); ctx.fill(); ctx.restore();
+    }
+    ctx.save(); ctx.shadowColor=pr.color; ctx.shadowBlur=18;
+    const g=ctx.createRadialGradient(pr.x,pr.y,0,pr.x,pr.y,pr.r+4);
+    g.addColorStop(0,'#fff'); g.addColorStop(0.4,pr.color); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(pr.x,pr.y,pr.r+4,0,7); ctx.fill();
+    ctx.restore();
+  }
+}
+function tbDrawMageFull(m){
+  if(!m||m._dead)return;
+  const t=CB.time;
+  const walk=m.walkT>0?Math.sin((0.32-m.walkT)*40):0;
+  const lean=walk*3*m.facing;
+  const sc=m.isBoss?2.1:1.7;
+  const flashA=m.flash>0?m.flash/0.3:0;
+  // name + small bar above
+  ctx.save();
+  ctx.globalAlpha=m.flash>0?0.6+0.4*Math.sin(t*40):1;
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
+  ctx.restore();
+  // hit flash overlay
+  if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
+  // floating tag
+  ctx.save();
+  ctx.font='bold 12px Cinzel'; ctx.textAlign='center';
+  ctx.fillStyle=m.isPlayer?'#ffd866':(m._color||'#ff8888');
+  ctx.shadowColor='#000'; ctx.shadowBlur=4;
+  const tag=m.isPlayer?'You':(m.isBoss?'👑 '+m.name:m.name);
+  ctx.fillText(tag, m.x, m.y-30-46*sc/1.7);
+  ctx.restore();
+}
+
+/* ---------------- WAVE MANAGEMENT (legacy, unused in TB) ---------------- */
 function nextWave(){
   CB.wave++;
   CB.waveActive=true;
@@ -2073,6 +2973,16 @@ window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   keys[k]=true;
   if(!CB||CB.over) return;
+  if(CB.tb){
+    if(['1','2','3','4','5','6','7'].includes(k)){ castSpellSlot(+k-1); return; }
+    if(k==='arrowleft'||k==='a'){ tbMove(-1); e.preventDefault(); return; }
+    if(k==='arrowright'||k==='d'){ tbMove(1); e.preventDefault(); return; }
+    if(k==='enter'||k===' '){ if(CB.phase==='player')tbEndTurn('player'); e.preventDefault(); return; }
+    if(k==='q') usePotion(0);
+    if(k==='e') usePotion(1);
+    if(k==='r') usePotion(2);
+    return;
+  }
   if(k==='tab'){ e.preventDefault(); openSpellMenu(true); }
   if(['1','2','3','4','5'].includes(k)){ castSpellSlot(+k-1); }
   if(k==='q') usePotion(0);
@@ -2087,7 +2997,7 @@ window.addEventListener('keyup',e=>{
   if(k===' ' && CB && CB.cls.id==='earth'){ CB.player.blocking=false; }
 });
 canvas.addEventListener('pointermove',e=>{ mouse.x=e.clientX;mouse.y=e.clientY; });
-canvas.addEventListener('pointerdown',e=>{ if(CB&&!CB.over){ mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0); } });
+canvas.addEventListener('pointerdown',e=>{ if(CB&&!CB.over&&!CB.tb){ mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0); } });
 
 /* ---------------- VIRTUAL JOYSTICK (mobile movement) ---------------- */
 (function(){
@@ -2234,6 +3144,7 @@ function updatePlayer(dt,rawDt){
 /* ---------------- SPELL CASTING ---------------- */
 function castSpellSlot(slot){
   if(!CB||CB.over)return;
+  if(CB.tb){ CB.selSlot=slot; tbPlayerCast(slot); return; }
   CB._lastSlot=slot;
   const sid=G.loadout[slot];
   if(!sid)return;
@@ -2692,7 +3603,7 @@ function damagePlayer(dmg,isDot){
     if(CB.cls.id==='wind')dodge+=0; // already in base
     if(rand(0,100)<dodge){
       floatNumber(p.x,p.y-30,'dodge!',{miss:true});
-      onPlayerDodge();
+      if(!CB.tb)onPlayerDodge();
       return;
     }
   }
@@ -2717,20 +3628,20 @@ function damagePlayer(dmg,isDot){
     floatNumber(p.x,p.y-30,'-'+final,{playerHit:true});
     if(final>p.maxhp*0.15){ triggerShake(10); flashScreen('rgba(180,0,0,.3)',200); resetStreakOnHit(); }
     // tide gauge fill (water)
-    if(CB.cls.id==='water'){ CB.mech=clamp(CB.mech+final/3,0,100); if(CB.mech>=100)triggerTidalSurge(); }
+    if(!CB.tb && CB.cls.id==='water'){ CB.mech=clamp(CB.mech+final/3,0,100); if(CB.mech>=100)triggerTidalSurge(); }
     // tectonic charge (earth)
-    if(CB.cls.id==='earth'){ CB.mech=clamp(CB.mech+final/3,0,100); if(CB.mech>=100)triggerEarthquake(); }
+    if(!CB.tb && CB.cls.id==='earth'){ CB.mech=clamp(CB.mech+final/3,0,100); if(CB.mech>=100)triggerEarthquake(); }
     // cursed eye perma loss
     if(G.relics.includes('cursed_eye')){ p.maxhp=Math.max(20,p.maxhp-5); }
   }
-  if(p.hp<=0)playerDeath();
+  if(p.hp<=0){ if(CB.tb)tbPlayerDown(); else playerDeath(); }
 }
 function healPlayer(amt,silent){
   const p=CB.player;
   amt=Math.round(amt);
   p.hp=clamp(p.hp+amt,0,p.maxhp);
   if(!silent)floatNumber(p.x,p.y-30,'+'+amt,{heal:true});
-  if(CB.cls.id==='water'){ CB.mech=clamp(CB.mech+amt/4,0,100); if(CB.mech>=100)triggerTidalSurge(); }
+  if(!CB.tb && CB.cls.id==='water'){ CB.mech=clamp(CB.mech+amt/4,0,100); if(CB.mech>=100)triggerTidalSurge(); }
 }
 function onPlayerDodge(){
   if(CB.cls.id==='wind'){ CB.galeStacks=Math.min(5,CB.galeStacks+1); CB.mech=CB.galeStacks/5*100; if(CB.galeStacks>=5)triggerTornado(); }
@@ -3171,6 +4082,12 @@ function spawnImpact(x,y,el,scale){
 function spawnCastBurst(x,y,el){
   const c=EL_COLORS[el]||'#fff';
   for(let i=0;i<16;i++){ const a=rand(0,7),s=rand(40,140); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.5,maxlife:0.5,r:rand(2,4),color:c,fade:true}); }
+}
+function tbAuraBurst(m,el){
+  const c=EL_COLORS[el]||'#fff';
+  CB.effects.push({type:'aoe',el,x:m.x,y:m.y-26,r:60,life:0.5,maxlife:0.5,color:c});
+  for(let i=0;i<18;i++){ const a=rand(0,7),s=rand(60,160); CB.particles.push({x:m.x,y:m.y-26,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,life:rand(0.4,0.8),maxlife:0.8,r:rand(2,5),color:c,fade:true,grav:-20}); }
+  m.castGlow=1;
 }
 function spawnFreezeVfx(e){ e._frozenVfx=1.5; }
 function spawnRockEncase(e){ e._rockVfx=1; }
@@ -3703,21 +4620,19 @@ function pointLineDist(px,py,x1,y1,x2,y2){
 ============================================================ */
 function buildSpellBar(){
   const bar=$('spellBar');bar.innerHTML='';
-  for(let i=0;i<5;i++){
+  for(let i=0;i<MAX_LOADOUT;i++){
     const sid=G.loadout[i];
     const btn=document.createElement('div');
     btn.className='spell-btn';
     if(sid){
       const sp=SPELLS[sid];
       const mc=masteryClass(sid); if(mc)btn.classList.add(mc);
-      btn.innerHTML=`<span class="key">${i+1}</span>${sp.icon}<div class="cd-overlay hidden"></div>`;
-      btn.title=sp.name;
-      btn.onclick=()=>{
-        const ne=nearestEnemy();
-        if(ne){ mouse.x=ne.x;mouse.y=ne.y; }
-        else { mouse.x=CB.player.x+200*CB.player.facing;mouse.y=CB.player.y; }
-        castSpellSlot(i);
-      };
+      const rng=spellRange(sp);
+      const rngIcon=sp.kind==='self'?'◇':(rng>=600?'»':rng>=320?'›':'·');
+      btn.innerHTML=`<span class="key">${i+1}</span>${sp.icon}<span class="rngmark">${rngIcon}</span><div class="cd-overlay hidden"></div>`;
+      btn.title=sp.name+' — '+sp.cost+' mana';
+      btn.onmouseenter=()=>{ if(CB&&CB.tb)CB.selSlot=i; };
+      btn.onclick=()=>{ if(CB&&CB.tb)CB.selSlot=i; castSpellSlot(i); };
     } else { btn.classList.add('empty');btn.innerHTML=`<span class="key">${i+1}</span>`; }
     bar.appendChild(btn);
   }
