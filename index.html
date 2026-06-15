@@ -1646,6 +1646,9 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
     drawRobePattern(ctx,pattern,wide,trim,t);
     ctx.restore();
   }
+  // soft rim-light along the silhouette so the mage reads against dark backdrops
+  ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=glowC;ctx.lineWidth=0.7;ctx.shadowColor=glowC;ctx.shadowBlur=4;
+  robePath();ctx.stroke();ctx.restore();
   // center seam + hem trim (class accent)
   ctx.strokeStyle=trim;ctx.lineWidth=1.4;ctx.globalAlpha=.85;
   ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(0,29);ctx.stroke();
@@ -2410,6 +2413,20 @@ function drawHouse(ctx,b,t,hover){
   ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1.5;ctx.stroke();
   ctx.save();ctx.globalAlpha=.65;ctx.strokeStyle=blend(glow,'#fff',0.1);ctx.lineWidth=2;
   ctx.beginPath();ctx.moveTo(x-7,top+5);ctx.lineTo(x+w/2,top-rfh);ctx.lineTo(x+w+7,top+5);ctx.stroke();ctx.restore();
+  // chimney with drifting smoke
+  const chx=x+w*0.74, chTop=top-rfh*0.5;
+  ctx.fillStyle=blend(look.roof,'#000',0.4);
+  ctx.fillRect(chx-w*0.045,chTop,w*0.09,rfh*0.5);
+  for(let i=0;i<3;i++){
+    const sp=(t*0.15+i*0.34)%1;
+    ctx.save();ctx.globalAlpha=(1-sp)*0.3;ctx.fillStyle='#cdd0dd';
+    ctx.beginPath();ctx.arc(chx+Math.sin(t*1.1+i*2)*3,chTop-sp*22,1.6+sp*4,0,7);ctx.fill();ctx.restore();
+  }
+  // hanging lantern beside the eaves, flickering warmly
+  const lx=x-6, ly=top+h*0.32, flick=0.7+0.3*Math.sin(t*9+x);
+  ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(lx,top+5);ctx.lineTo(lx,ly);ctx.stroke();
+  ctx.save();ctx.shadowColor='#ffb050';ctx.shadowBlur=7*flick;ctx.fillStyle=`rgba(255,180,90,${0.6*flick})`;
+  ctx.beginPath();ctx.arc(lx,ly,2.2,0,7);ctx.fill();ctx.restore();
   // glowing icon medallion
   const cxw=x+w/2, mcy=top+h*0.30, mr=Math.max(12,w*0.20);
   ctx.save();
