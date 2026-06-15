@@ -968,7 +968,7 @@ const SPELLS={
   // ICE
   ice_shard:{name:'Ice Shard',icon:'❄️',el:'ice',kind:'projectile',cost:10,dmg:28,cd:0.5,speed:560,status:'slow',desc:'Sharp crystal shard, frost mist trailing.'},
   frost_nova:{name:'Frost Nova',icon:'💠',el:'ice',kind:'aoe',cost:26,dmg:30,cd:3,radius:170,status:'freeze',desc:'Burst of freezing air.'},
-  ice_lance:{name:'Ice Lance',icon:'🧊',el:'ice',kind:'projectile',cost:16,dmg:40,cd:1.2,speed:640,status:'slow',desc:'A piercing lance of ice.'},
+  ice_lance:{name:'Ice Lance',icon:'🧊',el:'ice',kind:'projectile',cost:16,dmg:42,cd:2.4,speed:640,status:'slow',desc:'A piercing lance of ice.'},
   blizzard:{name:'Blizzard',icon:'🌨️',el:'ice',kind:'aoe',cost:44,dmg:40,cd:6,radius:240,status:'slow',desc:'A devastating snowstorm.'},
   glacial_spike:{name:'Glacial Spike',icon:'🔷',el:'ice',kind:'projectile',cost:30,dmg:55,cd:3,speed:500,status:'freeze',desc:'Massive spike of glacial ice.'},
   permafrost:{name:'Permafrost',icon:'🏔️',el:'ice',kind:'aoe',cost:38,dmg:36,cd:5,radius:200,status:'slow',desc:'Freezes the ground itself.'},
@@ -1017,12 +1017,12 @@ const SPELLS={
   mana_surge:{name:'Mana Surge',icon:'🔵',el:'essence',kind:'self',cost:0,dmg:0,cd:8,mana:60,desc:'Surge of arcane mana.'},
   elemental_fusion:{name:'Elemental Fusion',icon:'⚛️',el:'essence',kind:'aoe',cost:44,dmg:54,cd:5,radius:220,desc:'Fuse all elements at once.'},
   arcane_nova:{name:'Arcane Nova',icon:'🌟',el:'essence',kind:'aoe',cost:40,dmg:48,cd:5,radius:210,desc:'A nova of arcane energy.'},
-  pure_energy:{name:'Pure Energy',icon:'💥',el:'essence',kind:'beam',cost:30,dmg:44,cd:2,desc:'Concentrated pure energy.'},
+  pure_energy:{name:'Pure Energy',icon:'💥',el:'essence',kind:'beam',cost:30,dmg:46,cd:2.4,desc:'A concentrated beam of pure energy — hits hard on a short cooldown.'},
   singularity:{name:'Singularity',icon:'🌌',el:'essence',kind:'aoe',cost:60,dmg:76,cd:8,radius:300,desc:'Collapse reality into a point.'},
   // POWER
   force_blast:{name:'Force Blast',icon:'⚡',el:'power',kind:'projectile',cost:12,dmg:34,cd:0.5,speed:600,status:'thunder',desc:'White-hot energy beam, electric crackle.'},
   power_surge:{name:'Power Surge',icon:'🔌',el:'power',kind:'aoe',cost:30,dmg:42,cd:3,radius:190,status:'thunder',desc:'A surge of raw power.'},
-  void_lance:{name:'Void Lance',icon:'🗡️',el:'power',kind:'projectile',cost:24,dmg:50,cd:2,speed:660,status:'thunder',desc:'A lance of void energy.'},
+  void_lance:{name:'Void Lance',icon:'🗡️',el:'power',kind:'projectile',cost:24,dmg:46,cd:2.6,speed:660,status:'thunder',desc:'A heavy lance of void energy — strikes hard, but needs a moment to recharge.'},
   energy_drain:{name:'Energy Drain',icon:'🩸',el:'power',kind:'beam',cost:18,dmg:30,cd:1.5,drain:true,status:'bleed',desc:'Drain enemy energy to heal — leaves them bleeding.'},
   arcane_explosion:{name:'Arcane Explosion',icon:'💢',el:'power',kind:'aoe',cost:42,dmg:52,cd:5,radius:230,status:'thunder',desc:'A violent arcane explosion.'},
   dominate:{name:'Dominate',icon:'👁️',el:'power',kind:'beam',cost:34,dmg:44,cd:4,status:'weaken',desc:'Seize your foe\'s mind — −35% to their Hit for a few turns.'},
@@ -1039,7 +1039,7 @@ const SPELLS={
   supernova:{name:'Supernova',icon:'💥',el:'fire',kind:'aoe',cost:58,dmg:80,cd:8,radius:280,status:'burn',desc:'Become a dying star.'},
   // ICE +7
   frost_dart:{name:'Frost Dart',icon:'🔹',el:'ice',kind:'projectile',cost:10,dmg:27,cd:0.5,speed:580,status:'slow',desc:'A needle of frozen air.'},
-  ice_spear:{name:'Ice Spear',icon:'🥢',el:'ice',kind:'projectile',cost:17,dmg:43,cd:1.2,speed:640,status:'slow',desc:'A hurled spear of solid ice.'},
+  ice_spear:{name:'Ice Spear',icon:'🥢',el:'ice',kind:'projectile',cost:17,dmg:44,cd:2.4,speed:640,status:'slow',desc:'A hurled spear of solid ice.'},
   cold_snap:{name:'Cold Snap',icon:'🌬️',el:'ice',kind:'aoe',cost:26,dmg:32,cd:3,radius:190,status:'freeze',desc:'A sudden bite of deep cold.'},
   frozen_armor:{name:'Frozen Armor',icon:'🧊',el:'ice',kind:'self',cost:28,dmg:0,cd:8,shield:85,desc:'Encase yourself in glacial plate.'},
   hailstorm:{name:'Hailstorm',icon:'🌨️',el:'ice',kind:'aoe',cost:40,dmg:44,cd:5,radius:230,status:'slow',desc:'A barrage of jagged hail.'},
@@ -1055,7 +1055,7 @@ const SPELLS={
   oblivion:{name:'Oblivion',icon:'⚫',el:'shadow',kind:'aoe',cost:58,dmg:78,cd:8,radius:280,desc:'Unmake all that stands before you.'},
   // WATER +7
   aqua_dart:{name:'Aqua Dart',icon:'🔹',el:'water',kind:'projectile',cost:10,dmg:27,cd:0.5,speed:560,desc:'A darting jet of water.'},
-  water_lance:{name:'Water Lance',icon:'🌊',el:'water',kind:'projectile',cost:17,dmg:42,cd:1.2,speed:620,desc:'A piercing lance of pressurized water.'},
+  water_lance:{name:'Water Lance',icon:'🌊',el:'water',kind:'projectile',cost:17,dmg:44,cd:2.4,speed:620,desc:'A piercing lance of pressurized water.'},
   riptide:{name:'Riptide',icon:'🌀',el:'water',kind:'aoe',cost:28,dmg:38,cd:3,radius:200,status:'slow',desc:'A dragging undertow.'},
   bubble_ward:{name:'Bubble Ward',icon:'🫧',el:'water',kind:'self',cost:26,dmg:0,cd:8,shield:72,desc:'A shimmering sphere of water.'},
   maelstrom:{name:'Maelstrom',icon:'🌊',el:'water',kind:'aoe',cost:40,dmg:48,cd:5,radius:230,status:'slow',desc:'A churning vortex of the deep.'},
@@ -1063,7 +1063,7 @@ const SPELLS={
   abyssal_crush:{name:'Abyssal Crush',icon:'🌑',el:'water',kind:'aoe',cost:58,dmg:74,cd:8,radius:280,status:'slow',desc:'The crushing weight of the abyss.'},
   // EARTH +7
   pebble_shot:{name:'Pebble Shot',icon:'🔘',el:'earth',kind:'projectile',cost:10,dmg:28,cd:0.6,speed:460,desc:'A rapid sling of stones.'},
-  stone_spear:{name:'Stone Spear',icon:'⛏️',el:'earth',kind:'projectile',cost:17,dmg:42,cd:1.2,speed:420,desc:'A spear of sharpened rock.'},
+  stone_spear:{name:'Stone Spear',icon:'⛏️',el:'earth',kind:'projectile',cost:17,dmg:44,cd:2.4,speed:420,desc:'A spear of sharpened rock.'},
   tremor:{name:'Tremor',icon:'〰️',el:'earth',kind:'aoe',cost:26,dmg:34,cd:3,radius:180,melee:true,status:'mud',desc:'The ground shudders underfoot.'},
   granite_ward:{name:'Granite Ward',icon:'🧱',el:'earth',kind:'self',cost:30,dmg:0,cd:9,shield:110,desc:'Raise an unyielding granite shell.'},
   rockslide:{name:'Rockslide',icon:'🏔️',el:'earth',kind:'aoe',cost:40,dmg:50,cd:5,radius:230,melee:true,desc:'A cascade of crushing stone.'},
@@ -1079,7 +1079,7 @@ const SPELLS={
   wind_maelstrom:{name:'Tempest Maw',icon:'🌪️',el:'wind',kind:'aoe',cost:58,dmg:70,cd:8,radius:300,status:'wind',desc:'A devouring vortex of storm.'},
   // ESSENCE +7
   spark_dart:{name:'Spark Dart',icon:'✨',el:'essence',kind:'projectile',cost:10,dmg:29,cd:0.5,speed:580,desc:'A glittering prismatic spark.'},
-  prism_lance:{name:'Prism Lance',icon:'🌈',el:'essence',kind:'projectile',cost:17,dmg:42,cd:1.2,speed:620,desc:'A lance of refracted light.'},
+  prism_lance:{name:'Prism Lance',icon:'🌈',el:'essence',kind:'projectile',cost:17,dmg:44,cd:2.4,speed:620,desc:'A lance of refracted light.'},
   aura_pulse:{name:'Aura Pulse',icon:'💫',el:'essence',kind:'aoe',cost:28,dmg:40,cd:3,radius:190,desc:'A pulse of pure essence.'},
   ward_of_light:{name:'Ward of Light',icon:'🔆',el:'essence',kind:'self',cost:28,dmg:0,cd:8,shield:74,desc:'A radiant barrier of light.'},
   chromatic_burst:{name:'Chromatic Burst',icon:'🎇',el:'essence',kind:'aoe',cost:40,dmg:52,cd:5,radius:230,desc:'An explosion of every hue.'},
@@ -1087,7 +1087,7 @@ const SPELLS={
   cosmos:{name:'Cosmos',icon:'🌌',el:'essence',kind:'aoe',cost:58,dmg:80,cd:8,radius:300,desc:'Call upon the weight of the stars.'},
   // POWER +7
   jolt:{name:'Jolt',icon:'⚡',el:'power',kind:'projectile',cost:12,dmg:32,cd:0.5,speed:640,status:'thunder',desc:'A crackling bolt of force.'},
-  shock_lance:{name:'Shock Lance',icon:'🔱',el:'power',kind:'projectile',cost:17,dmg:44,cd:1.2,speed:680,status:'thunder',desc:'A lance of raw current.'},
+  shock_lance:{name:'Shock Lance',icon:'🔱',el:'power',kind:'projectile',cost:17,dmg:44,cd:2.4,speed:680,status:'thunder',desc:'A lance of raw current.'},
   discharge:{name:'Discharge',icon:'🔌',el:'power',kind:'aoe',cost:28,dmg:42,cd:3,radius:200,status:'thunder',desc:'Release stored energy outward.'},
   force_ward:{name:'Force Ward',icon:'🛡️',el:'power',kind:'self',cost:28,dmg:0,cd:8,shield:74,desc:'A humming wall of force.'},
   thunderstorm:{name:'Thunderstorm',icon:'⛈️',el:'power',kind:'aoe',cost:40,dmg:54,cd:5,radius:230,status:'thunder',desc:'Call down chained lightning.'},
