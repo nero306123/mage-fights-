@@ -1097,8 +1097,8 @@ const SPELLS={
   siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,status:'bleed',desc:'Tear life from your foe to heal — they bleed.'},
   annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
   // ===== NECROMANCER SUMMONER KIT (minions do the fighting) =====
-  necro_summon:{name:'Raise Dead',icon:'🧟',el:'shadow',kind:'minion',cost:34,dmg:0,cd:6,summonBase:1,desc:'Raise shadow-mage minions behind you (more with Shadow Magic). They strike each of your turns and can body-block for you.'},
-  raise_horde:{name:'Raise Horde',icon:'👥',el:'shadow',kind:'minion',cost:50,dmg:0,cd:9,summonBonus:2,desc:'Raise a larger group of minions at once (base + 2). Costly, long cooldown.'},
+  necro_summon:{name:'Raise Dead',icon:'🧟',el:'shadow',kind:'minion',cost:34,dmg:0,cd:9,summonBase:1,desc:'Raise shadow-mage minions behind you (more with Shadow Magic). They strike each of your turns and can body-block for you. Long cooldown (6 turns).'},
+  raise_horde:{name:'Raise Horde',icon:'👥',el:'shadow',kind:'minion',cost:50,dmg:0,cd:12,summonBonus:2,desc:'Raise a larger group of minions at once (base + 2). Costly, very long cooldown.'},
   dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:4,desc:'Heal all your minions to full and permanently boost their damage this duel.'},
   grave_bind:{name:'Grave Bind',icon:'⛓️',el:'shadow',kind:'aoe',cost:26,dmg:8,cd:5,radius:170,status:'bind',desc:'Skeletal hands erupt and lock your foe in place — stunned for 2 turns.'},
 };
@@ -3595,6 +3595,8 @@ function tbEndTurn(who){
 function tbFoeDefeated(){
   if(CB.over)return;
   const f=CB.foe;
+  if(!f||f._dead)return;     // already resolved — stops leftover minion bolts from re-killing (endless multi-skip)
+  f._dead=true;
   // on-kill relics
   if(G.relics.includes('lichs_ring')){ CB.player.mana=CB.player.maxmana; floatNumber(CB.player.x,CB.player.y-50,'mana!',{heal:true}); }
   if(G.relics.includes('necro_pact')){ CB.player.hp=clamp(CB.player.hp+CB.player.maxhp*0.25,0,CB.player.maxhp); floatNumber(CB.player.x,CB.player.y-60,'+'+Math.round(CB.player.maxhp*0.25),{heal:true}); }
@@ -5269,8 +5271,8 @@ function spawnNecroMinions(n){
     const slot=CB.minions.length;
     // spawn BEHIND the necro (away from the foe); they cannot move on their own
     const mx=clamp(p.x - p.facing*(40+slot*24), CB.w*0.05, CB.w*0.95);
-    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:40, maxhp:40,
-      facing:p.facing, dmg:9, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
+    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:42, maxhp:42,
+      facing:p.facing, dmg:10, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
     deathBurst(mx,p.baseY-22,'shadow',10);
     CB.effects.push({type:'shock',x:mx,y:p.baseY-22,r:4,maxr:40,life:0.4,maxlife:0.4,color:'#00ff66'});
   }
@@ -5278,28 +5280,30 @@ function spawnNecroMinions(n){
 // minions act at the start of each of the necromancer's turns — each flings a shadow bolt
 function tbMinionsAct(){
   if(!CB||CB.over||!CB.minions||!CB.minions.length||!CB.foe)return;
+  const tgt=CB.foe;       // lock onto THIS foe; if it dies, leftover bolts fizzle (no endless multi-skip)
   let delay=120;
   for(const m of CB.minions){
     if(m.hp<=0)continue;
     const mm=m;
     setTimeout(()=>{
-      if(!CB||CB.over||mm.hp<=0||!CB.foe||CB.foe._dead)return;
-      mm.castT=0.32; mm.facing=(CB.foe.x>=mm.x)?1:-1;
+      if(!CB||CB.over||mm.hp<=0||CB.foe!==tgt||tgt._dead)return;
+      mm.castT=0.32; mm.facing=(tgt.x>=mm.x)?1:-1;
       const lx=mm.x+mm.facing*10, ly=mm.baseY-30;
-      CB.projectiles.push({tb:true,x:lx,y:ly,el:'shadow',color:'#33ff88',r:5,homing:CB.foe,speed:520,trail:[],dmg:mm.dmg+(mm.dmgBuff||0),
-        onHit:()=>{ if(CB&&!CB.over&&CB.foe){ spawnImpact(CB.foe.x,CB.foe.y-22,'shadow',0.8); tbDealDamage(CB.foe,mm.dmg+(mm.dmgBuff||0),'shadow',{trueHit:true}); } }});
+      CB.projectiles.push({tb:true,x:lx,y:ly,el:'shadow',color:'#33ff88',r:5,homing:tgt,speed:520,trail:[],dmg:mm.dmg+(mm.dmgBuff||0),
+        onHit:()=>{ if(CB&&!CB.over&&CB.foe===tgt&&!tgt._dead){ spawnImpact(tgt.x,tgt.y-22,'shadow',0.8); tbDealDamage(tgt,mm.dmg+(mm.dmgBuff||0),'shadow',{trueHit:true}); } }});
     }, delay);
     delay+=170;
   }
 }
-// a minion soaks a hit aimed at the necromancer when it stands between him and the foe
+// a minion soaks a hit aimed at the necromancer ONLY when it stands strictly
+// between him and the foe (so walking past the foe no longer hides you behind them)
 function minionBlockerFor(player){
   if(!CB.minions||!CB.minions.length||!CB.foe)return null;
-  const foeSide=CB.foe.x>=player.x?1:-1;     // which way the foe is
-  const blockers=CB.minions.filter(m=>m.hp>0 && (foeSide>0 ? m.x>player.x+8 : m.x<player.x-8));
+  const lo=Math.min(player.x,CB.foe.x)+10, hi=Math.max(player.x,CB.foe.x)-10;
+  const blockers=CB.minions.filter(m=>m.hp>0 && m.x>lo && m.x<hi);
   if(!blockers.length)return null;
   // the one nearest the foe takes the blow
-  blockers.sort((a,b)=> foeSide>0 ? b.x-a.x : a.x-b.x);
+  blockers.sort((a,b)=>Math.abs(a.x-CB.foe.x)-Math.abs(b.x-CB.foe.x));
   return blockers[0];
 }
 function damageMinion(m,dmg,el){
