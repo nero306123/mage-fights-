@@ -882,6 +882,47 @@ const CLASSES = {
     mech:{name:'Overload Meter',desc:'Each Overcharge fills it. Full → ABSOLUTE POWER 10s: every spell auto-Overcharges.',max:100},
     spells:['force_blast','power_surge','void_lance','energy_drain','arcane_explosion','dominate','mind_crush','absolute_power','jolt','shock_lance','discharge','force_ward','thunderstorm','siphon_life','annihilate'],
   },
+  // ===== BOSS-ONLY RACES (not player-selectable; used by the campaign) =====
+  acolyte:{ id:'acolyte',name:'Servant Mage',emoji:'🕯️',c1:'#7a7a6a',c2:'#d8d0a0',
+    base:{hp:70,mana:90,sp:9,speed:6,stamina:8,def:4,crit:4,hit:80,dodge:3,learning:5},
+    passive:{name:'Apprentice',desc:'A bound servant of a greater master.'},
+    mech:{name:'Servitude',desc:'Fights without true will.',max:100},
+    spells:['fireball','ice_shard','shadow_ball','water_bolt','rock_throw','wind_slash','scorching_ray','frost_nova'] },
+  warlock:{ id:'warlock',name:'Dark Mage',emoji:'🕷️',c1:'#3a1450',c2:'#cc44ff',
+    base:{hp:92,mana:120,sp:15,speed:7,stamina:9,def:6,crit:8,hit:84,dodge:5,learning:8},
+    passive:{name:'Malice',desc:'Wicked magic that weakens the will.'},
+    mech:{name:'Hex',desc:'Curses sap the strength of foes.',max:100},
+    spells:['shadow_ball','soul_explosion','void_lance','mind_crush','death_nova','dominate','night_terror','force_blast','void_rift','arcane_explosion'] },
+  demon:{ id:'demon',name:'Demon Mage',emoji:'👿',c1:'#7a0e0e',c2:'#ff7722',
+    base:{hp:112,mana:110,sp:16,speed:7,stamina:11,def:8,crit:9,hit:84,dodge:4,learning:9},
+    passive:{name:'Infernal',desc:'Born of fire and shadow.'},
+    mech:{name:'Hellfire',desc:'Flames that never die.',max:100},
+    spells:['fireball','inferno','meteor','shadow_ball','soul_explosion','dragons_breath','fire_storm','death_nova','supernova','void_rift'] },
+  frostlord:{ id:'frostlord',name:'Frost Tyrant',emoji:'🥶',c1:'#1a6a9a',c2:'#cfeeff',
+    base:{hp:118,mana:120,sp:14,speed:5,stamina:13,def:11,crit:6,hit:82,dodge:4,learning:9},
+    passive:{name:'Eternal Winter',desc:'The cold answers to its throne.'},
+    mech:{name:'Deep Freeze',desc:'Locks foes in ice.',max:100},
+    spells:['ice_shard','frost_nova','glacial_spike','blizzard','absolute_zero','ice_lance','permafrost','winter_end','hailstorm','cold_snap'] },
+  stormcaller:{ id:'stormcaller',name:'Storm Lord',emoji:'🌩️',c1:'#caa81e',c2:'#fff3a0',
+    base:{hp:96,mana:120,sp:15,speed:11,stamina:10,def:6,crit:11,hit:88,dodge:10,learning:9},
+    passive:{name:'Thunderous',desc:'Rides the howling gale.'},
+    mech:{name:'Maelstrom',desc:'Storms gather at its call.',max:100},
+    spells:['force_blast','thunder_clap','tempest','wind_slash','cyclone','arcane_explosion','storm_call','tornado','thunderstorm','hurricane'] },
+  bloodmage:{ id:'bloodmage',name:'Blood Mage',emoji:'🩸',c1:'#8a0f24',c2:'#ff5577',
+    base:{hp:104,mana:110,sp:15,speed:7,stamina:10,def:7,crit:10,hit:84,dodge:5,learning:10},
+    passive:{name:'Sanguine',desc:'Power paid for in blood.'},
+    mech:{name:'Hemorrhage',desc:'Wounds that will not close.',max:100},
+    spells:['bone_spear','soul_siphon','energy_drain','siphon_life','death_nova','mind_crush','void_rift','soul_explosion','night_terror','oblivion'] },
+  voidherald:{ id:'voidherald',name:'Void Herald',emoji:'🌑',c1:'#241040',c2:'#b06aff',
+    base:{hp:116,mana:130,sp:17,speed:8,stamina:11,def:9,crit:10,hit:86,dodge:6,learning:12},
+    passive:{name:'Unmaking',desc:'Herald of the space between stars.'},
+    mech:{name:'Collapse',desc:'Reality buckles around it.',max:100},
+    spells:['void_rift','oblivion','singularity','shadow_ball','soul_explosion','essence_bolt','arcane_nova','death_nova','cosmos','annihilate'] },
+  archmage:{ id:'archmage',name:'The Archmage',emoji:'👑',c1:'#caa11e',c2:'#ff66cc',rainbow:true,
+    base:{hp:128,mana:160,sp:20,speed:9,stamina:12,def:10,crit:12,hit:90,dodge:8,learning:15},
+    passive:{name:'Absolute',desc:'Master of every school of magic.'},
+    mech:{name:'Apotheosis',desc:'The pinnacle of mortal magic.',max:100},
+    spells:['essence_bolt','arcane_nova','singularity','cosmos','elemental_fusion','meteor','absolute_zero','annihilate','absolute_power','oblivion','dragons_breath','tsunami'] },
 };
 const CLASS_ORDER=['fire','ice','necro','water','earth','wind','essence','power'];
 
@@ -2698,10 +2739,16 @@ function openModeSelect(){
   showScreen('modeselect');
   selectedMode=null;
   const bossUnlocked=G.normalWins>=10;
+  const total=CAMPAIGN_BOSSES.length;
+  const cIdx=clamp(G.campaign||0,0,total-1);
+  let bossDesc;
+  if(G.campaignWon) bossDesc='👑 GAUNTLET CLEARED ('+total+'/'+total+'). Replay the Archmage anytime.';
+  else if(!bossUnlocked) bossDesc='Unlocks after 10 wins ('+G.normalWins+'/10)';
+  else { const nb=CAMPAIGN_BOSSES[cIdx]; bossDesc='Boss '+(cIdx+1)+'/'+total+' — next: '+CLASSES[nb.race].emoji+' <b>'+nb.name+'</b> <span class="muted">('+CLASSES[nb.race].name+')</span>'; }
   const modes=[
     {id:'normal',icon:'⚔️',name:'Duel',desc:'Turn-based duel vs a rival mage. Earn XP &amp; gold.',locked:false},
-    {id:'boss',icon:'👹',name:'Boss Duel',desc:bossUnlocked?'Face a powerful master mage.':'Unlocks after 10 wins ('+G.normalWins+'/10)',locked:!bossUnlocked},
-    {id:'endless',icon:'♾️',name:'Gauntlet',desc:'Endless rivals, each tougher. Best round: '+G.endlessBest,locked:false},
+    {id:'boss',icon:'👹',name:'The Gauntlet',desc:bossDesc,locked:!bossUnlocked},
+    {id:'endless',icon:'♾️',name:'Endless',desc:'Endless rivals, each tougher. Best round: '+G.endlessBest,locked:false},
   ];
   const grid=$('modeGrid');grid.innerHTML='';
   modes.forEach(m=>{
@@ -2781,6 +2828,24 @@ const BOSS_MAGES=[
   {name:'Mortus the Undying',classId:'necro',c:'#00ff66',hpMult:2.7,dmgMult:1.3,lines:["Death is only the beginning.","Your soul will serve me.","I have died before. Have you?"]},
 ];
 
+// ===== THE GAUNTLET: 13 bosses fought in order. Beat all 13 to win the game. =====
+// each ramps in power and gives escalating XP; several are unique boss-only races.
+const CAMPAIGN_BOSSES=[
+  {name:'Wretch the Servant',  race:'acolyte',   hpMult:1.5, dmgMult:0.85, xp:140, lines:["My master sent me to test you.","P-please, I have no choice...","You will not pass!"]},
+  {name:'Pyrrhus the Infernal',race:'fire',      hpMult:1.8, dmgMult:0.95, xp:200, lines:["I will burn you to cinders.","Ash is all you'll leave behind.","Feel the inferno!"]},
+  {name:'Queen Glaciel',       race:'ice',        hpMult:2.0, dmgMult:1.0,  xp:280, lines:["You'll freeze where you stand.","Winter answers to me alone.","Be still... forever."]},
+  {name:'Sister Sanguine',     race:'bloodmage',  hpMult:2.1, dmgMult:1.05, xp:360, lines:["Your blood sings to me.","Bleed for me, little mage.","I drink deep tonight."]},
+  {name:'Malphas the Wicked',  race:'warlock',    hpMult:2.3, dmgMult:1.1,  xp:460, lines:["Darkness bends to my will.","Your mind is already mine.","Despair — it suits you."]},
+  {name:'Mortus the Undying',  race:'necro',      hpMult:2.4, dmgMult:1.12, xp:560, lines:["Death is only the beginning.","Your soul will serve me.","I have died before. Have you?"]},
+  {name:'Gorehoof the Demon',  race:'demon',      hpMult:2.6, dmgMult:1.18, xp:700, lines:["The pit hungers for you.","I am your reckoning.","BURN IN THE ABYSS!"]},
+  {name:'Tempest Khan',        race:'stormcaller',hpMult:2.7, dmgMult:1.2,  xp:860, lines:["The storm rides with me.","Hear the thunder of your end.","I am the eye and the gale."]},
+  {name:'Terran Mountainheart',race:'earth',      hpMult:3.0, dmgMult:1.18, xp:1040,lines:["The earth will swallow you.","Immovable. Unbreakable.","Fall, and be buried."]},
+  {name:'The Tide Sovereign',  race:'water',      hpMult:3.0, dmgMult:1.22, xp:1240,lines:["You will drown in my depths.","The tide takes all.","Down you go, forever."]},
+  {name:'Voss the Void Herald',race:'voidherald', hpMult:3.3, dmgMult:1.28, xp:1500,lines:["I herald the unmaking.","Between the stars, you are nothing.","Collapse into silence."]},
+  {name:'The Chaos Mage',      race:'power',       hpMult:3.5, dmgMult:1.32, xp:1850,lines:["You dare come this far?","Your magic is a candle to my sun.","Kneel — or be unmade."]},
+  {name:'Aurelian, the Archmage',race:'archmage', hpMult:4.0, dmgMult:1.38, xp:2600,lines:["So. The last trial stands before me.","I have mastered every school of magic.","Witness the summit of power — and fall."]},
+];
+
 const TB_VITALITY=2.7;  // bigger HP pools so duels are a back-and-forth, not a 3-turn blitz
 const DMG_GLOBAL=0.78;  // global spell-damage scale — lower so rounds last longer & choices matter
 function makeMage(side,classId,stats,opts={}){
@@ -2813,19 +2878,22 @@ function makeFoe(mode){
   const lvl=G.level;
   const d=diffMods();
   if(mode==='boss'){
-    const b=pick(BOSS_MAGES);
-    const cls=CLASSES[b.classId];
+    // next boss in the 13-fight gauntlet (clamped; replay the final one once cleared)
+    const idx=clamp(G.campaign||0,0,CAMPAIGN_BOSSES.length-1);
+    const b=CAMPAIGN_BOSSES[idx];
+    const cls=CLASSES[b.race];
     const base=cls.base;
-    const tier=1+lvl*0.05;
+    // scale with the boss's position in the gauntlet so each is a real step up
+    const tier=1+lvl*0.05+idx*0.10;
     const st={
       maxhp:Math.round((base.hp*3.4+lvl*14)*b.hpMult*d.hp*tier),
       maxmana:base.mana+200, manaregen:8,
-      sp:Math.round((base.sp+8+lvl*1.2)*b.dmgMult),
+      sp:Math.round((base.sp+8+lvl*1.2+idx*1.5)*b.dmgMult),
       crit:base.crit+6, hit:88, dodge:base.dodge+4, def:base.def+6, speed:base.speed+1,
     };
-    const foe=makeMage('R',b.classId,st,{name:b.name,dmgMult:b.dmgMult*d.dmg*0.62,isBoss:true,ai:'boss',
-      evaLvl:8+lvl*0.5, spells:cls.spells.slice(0,12)});
-    foe._color=b.c; foe._lines=b.lines; foe._title='';
+    const foe=makeMage('R',b.race,st,{name:b.name,dmgMult:b.dmgMult*d.dmg*0.62,isBoss:true,ai:'boss',
+      evaLvl:8+lvl*0.5+idx*1.2, spells:cls.spells.slice(0,12)});
+    foe._color=cls.c1; foe._lines=b.lines; foe._title=cls.name; foe._campaignIdx=idx; foe._xp=b.xp;
     return foe;
   }
   // normal / endless: a rival mage. endless scales by round.
@@ -3451,7 +3519,7 @@ function tbFoeDefeated(){
   // rewards
   const d=diffMods();
   let gold,xp;
-  if(CB.mode==='boss'){ gold=randInt(180,260); xp=90; }
+  if(CB.mode==='boss'){ gold=randInt(180,260)+(f._campaignIdx||0)*40; xp=f._xp||90; }
   else if(CB.mode==='endless'){ gold=40+CB.round*18; xp=24+CB.round*8; }
   else { gold=randInt(40,70)+G.level*4; xp=30+G.level*4; }
   gold=Math.round(gold*d.reward); xp=Math.round(xp*d.reward);
@@ -3470,9 +3538,17 @@ function tbFoeDefeated(){
     G.bossDefeats.push({date:new Date().toISOString().slice(0,10),classId:G.classId,time:CB.turnNo});
     maybeDropRelic(false);
     if(CB.player.hp<CB.player.maxhp*0.25)bountyProgress('bosslow',1);
+    // advance the campaign if this was the next boss in line
+    const beatIdx=(f._campaignIdx!==undefined)?f._campaignIdx:-1;
+    let finalWin=false;
+    if(beatIdx===(G.campaign||0)){
+      G.campaign=(G.campaign||0)+1;
+      if(G.campaign>=CAMPAIGN_BOSSES.length){ G.campaign=CAMPAIGN_BOSSES.length; if(!G.campaignWon){ G.campaignWon=true; finalWin=true; } }
+    }
     showBanner('☠ '+f.name+' FALLS ☠','#ffd866',true);
     flashScreen('rgba(255,216,102,.5)',600);
     CB.over=true; saveGame();
+    if(finalWin){ setTimeout(()=>{ afterFightProgress(); showCampaignWinScreen(); },2600); return; }
     setTimeout(()=>{ afterFightProgress(); enterCity('You bested '+f.name+'!'); },2400);
     return;
   }
@@ -4986,6 +5062,23 @@ function showDeathScreen(){
     <div>Time survived:</div><div><b>${Math.round(CB.elapsed)}s</b></div>
     <div>Highest combo:</div><div><b>${s.highCombo}</b></div>`;
   $('btnDeathContinue').onclick=()=>{ afterFightProgress(); enterCity('You live to fight another day'); };
+}
+// shown once, after the 13th and final boss falls
+function showCampaignWinScreen(){
+  enterCity('👑 You have conquered the Gauntlet!');
+  const cls=CLASSES[G.classId];
+  const body=`<div style="text-align:center;line-height:1.6;">
+    <div style="font-size:56px;">👑</div>
+    <h2 class="gold-text" style="margin:6px 0;">THE GAUNTLET IS YOURS</h2>
+    <p>You have defeated all <b>${CAMPAIGN_BOSSES.length}</b> master mages — from the lowly Servant Mage to
+    <b style="color:${CLASSES.archmage.c2}">Aurelian, the Archmage</b> himself.</p>
+    <p class="muted">Your name as a <b>${cls.emoji} ${cls.name}</b> will echo through every arena.</p>
+    <p style="margin-top:8px;">The world is yours — keep dueling, brave the Endless, or replay the Archmage whenever you wish.</p>
+    <button id="btnCampaignDone" style="margin-top:14px;background:linear-gradient(180deg,#ffd866,#aa7700);color:#000;">Continue your legend</button>
+  </div>`;
+  const ov=openModal('🏆 Champion of the Arena',body,'#ffd866');
+  flashScreen('rgba(255,216,102,.45)',700);
+  const btn=ov.querySelector('#btnCampaignDone'); if(btn)btn.onclick=()=>closeModal(ov);
 }
 
 /* ---------------- PARTICLES ---------------- */
