@@ -4204,6 +4204,13 @@ function tbDrawArena(w,h){
   const sun=ctx.createRadialGradient(W*0.5,gy-60,10,W*0.5,gy-60,Math.max(W,300)*0.5);
   sun.addColorStop(0,'rgba(255,210,130,0.45)');sun.addColorStop(0.4,'rgba(230,160,90,0.18)');sun.addColorStop(1,'transparent');
   ctx.fillStyle=sun; ctx.fillRect(0,0,W,gy);
+  // a few birds drifting across the dusk sky (loop slowly across the world)
+  for(let i=0;i<4;i++){
+    const period=W+200, bx=((t*22+i*260)%period)-100, by=gy*0.30+Math.sin(t*0.7+i*1.7)*10+i*8;
+    const flap=Math.sin(t*6+i)*3;
+    ctx.save();ctx.globalAlpha=0.4;ctx.strokeStyle='#2a2030';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(bx-5,by);ctx.quadraticCurveTo(bx-2,by-3-flap,bx,by);ctx.quadraticCurveTo(bx+2,by-3-flap,bx+5,by);ctx.stroke();ctx.restore();
+  }
   // distant colosseum tiers (warm sandstone bands)
   for(let b=0;b<3;b++){
     const yy=gy- (90+b*46), col=['#4a3826','#564330','#62503a'][b];
@@ -4222,6 +4229,18 @@ function tbDrawArena(w,h){
     }
   }
   for(const c of CB._crowd){ ctx.save(); ctx.globalAlpha=0.7; ctx.fillStyle=c.c; ctx.beginPath(); ctx.arc(c.x,c.y+Math.sin(t*1.5+c.x*0.1)*0.6,c.r,0,7); ctx.fill(); ctx.restore(); }
+  // waving pennant flags strung along the top tier of the stands
+  const penY=gy-176, penCols=['#b8403a','#3a6db8','#caa24a','#4a9a5a','#8a4ab0'];
+  const nPen=Math.max(8,Math.round(W/95));
+  for(let i=0;i<nPen;i++){
+    const px=(i+0.5)*(W/nPen), col=penCols[i%penCols.length], sway=Math.sin(t*2.2+i*0.6)*2.5;
+    // pole
+    ctx.strokeStyle='rgba(20,14,10,.6)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(px,penY-12);ctx.lineTo(px,penY+4);ctx.stroke();
+    // triangular pennant
+    ctx.fillStyle=col;ctx.globalAlpha=0.9;
+    ctx.beginPath();ctx.moveTo(px,penY-11);ctx.lineTo(px+12,penY-8+sway);ctx.lineTo(px,penY-3);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=1;
+  }
   // torches along the back wall
   const nTorch=Math.max(6,Math.round(W/160));
   for(let i=0;i<nTorch;i++){
