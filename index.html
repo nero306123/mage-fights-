@@ -1197,6 +1197,35 @@ const WEAPONS={
   emberheart_orb:{name:'Emberheart Orb',type:'orb',icon:'🔥',price:1700,stats:{sp:20,mana:60,crit:6},c:'#ff5522'},
 };
 const WEAPON_TIP={oak_branch:'#7adb5a',thunder_rod:'#ffe680',serpent_wand:'#33dd66',bronze_scepter:'#e0a050',tide_pearl:'#55ddee',emberheart_orb:'#ff6a30',staff_embers:'#ff6a30',void_staff:'#aa66ff',worldbreaker:'#ffe680',death_wand:'#88ff66',cosmic_eye:'#88ccff',infinity_orb:'#cc99ff'};
+// per-weapon hand art: shaft colour + tip ornament style. orbs orbit the mage
+// (no shaft); wands are plain Harry-Potter sticks (no glowing core); staves keep
+// a shaft topped by a custom ornament. Missing ids fall back to type defaults.
+const WEAPON_ART={
+  // ---- staves ----
+  apprentice_staff:{tip:'orb',       shaft:'#7a5230', tipC:'#cfe7ff'},
+  staff_embers:    {tip:'flame',     shaft:'#5a3320', tipC:'#ff6a30'},
+  arcane_staff:    {tip:'gem',       shaft:'#5a4a8a', tipC:'#b48bff'},
+  elders_staff:    {tip:'gem',       shaft:'#caa15a', tipC:'#ffe27a'},
+  void_staff:      {tip:'void_eye',  shaft:'#2a1a3a', tipC:'#aa66ff'},
+  worldbreaker:    {tip:'halo_wings',shaft:'#eef0f6', tipC:'#fff2b0'},
+  oak_branch:      {tip:'leaf',      shaft:'#5a7d3a', tipC:'#7adb5a'},
+  thunder_rod:     {tip:'bolt',      shaft:'#caa64a', tipC:'#ffe680'},
+  // ---- wands (plain sticks) ----
+  carved_wand:     {tip:'wand', shaft:'#7a5230'},
+  wand_gales:      {tip:'wand', shaft:'#8a9a6a', tipC:'#bfe6ff'},
+  sharpened_wand:  {tip:'wand', shaft:'#6a5240'},
+  snipers_wand:    {tip:'wand', shaft:'#4a4a4a'},
+  death_wand:      {tip:'wand', shaft:'#22201f', tipC:'#88ff66'},
+  fate_needle:     {tip:'wand', shaft:'#d8d8e0', tipC:'#fff'},
+  serpent_wand:    {tip:'wand', shaft:'#2a5a2a', tipC:'#33dd66'},
+  bronze_scepter:  {tip:'gem',  shaft:'#b07a2a', tipC:'#ffcf8a'},
+  // ---- orbs (orbit the mage) ----
+  cosmic_eye:      {tip:'orbit', tipC:'#88ccff', orb:'eye'},
+  infinity_orb:    {tip:'orbit', tipC:'#cc99ff'},
+  void_orb:        {tip:'orbit', tipC:'#9a66ff', orb:'eye'},
+  emberheart_orb:  {tip:'orbit', tipC:'#ff6a30'},
+  tide_pearl:      {tip:'orbit', tipC:'#55ddee'},
+};
 
 // weapon enchants — bound to one equipped weapon at a time, sold at the Weapon Smith (own idea)
 const ENCHANTS={
@@ -1704,55 +1733,112 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   ctx.beginPath();ctx.moveTo(5,-7);ctx.quadraticCurveTo(sx,sy,hx,hy);ctx.stroke();
   // hand
   ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(hx,hy,2,0,7);ctx.fill();
-  // WEAPON (held in front hand) — shape (staff/wand/orb) follows the equipped weapon
+  // WEAPON — the equipped weapon decides the implement's silhouette & ornament
+  const art=WEAPON_ART[opts.weaponId]||{};
   const wtype=opts.weaponType||'staff';
-  const shaftC=opts.weaponColor||WOOD;
-  let tipx,tipy,footx,footy;
-  if(wtype==='wand'){       // short slender rod
-    tipx=hx+4; tipy=hy-18-raise*4; footx=hx-1; footy=hy+5;
-  } else if(wtype==='orb'){ // stubby grip topped by a hovering orb
-    tipx=hx+3; tipy=hy-11-raise*4; footx=hx-1; footy=hy+2;
-  } else {                  // staff — long shaft (default)
-    tipx=hx+5; tipy=hy-30-raise*4; footx=hx-2; footy=hy+22;
-  }
-  ctx.strokeStyle=shaftC;ctx.lineWidth=wtype==='wand'?2.0:2.4;
-  ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
-  ctx.strokeStyle=shade(shaftC,18);ctx.lineWidth=0.8;
-  ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
-  // tip ornament — crown ring for staves, a faceted gem for wands, a cradle for orbs
+  const tipC=opts.tipC||art.tipC||glowC;
+  let castX=hx, castY=hy;            // where casting motes converge
   if(wtype==='orb'){
-    ctx.strokeStyle=GOLDTRIM;ctx.lineWidth=1.3;
-    ctx.beginPath();ctx.moveTo(tipx-3.6,tipy+3.4);ctx.quadraticCurveTo(tipx,tipy+6.4,tipx+3.6,tipy+3.4);ctx.stroke();
-  } else if(wtype==='wand'){
-    ctx.fillStyle=GOLDTRIM;
-    ctx.save();ctx.translate(tipx,tipy);ctx.rotate(Math.PI/4);ctx.fillRect(-1.6,-1.6,3.2,3.2);ctx.restore();
+    // ORB: no held shaft — a focus orb (with a faint trailing twin) circles the mage
+    const o=drawOrbitOrb(ctx,art,tipC,t,casting,cls);
+    castX=o.x; castY=o.y;
   } else {
-    ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(tipx,tipy,2.6,0,7);ctx.fill();
+    const shaftC=art.shaft||opts.weaponColor||WOOD;
+    let tipx,tipy,footx,footy;
+    if(wtype==='wand'){ tipx=hx+5; tipy=hy-17-raise*4; footx=hx-1; footy=hy+4; }
+    else { tipx=hx+5; tipy=hy-30-raise*4; footx=hx-2; footy=hy+22; }   // staff
+    // shaft (with a slightly lighter highlight pass)
+    ctx.strokeStyle=shaftC;ctx.lineWidth=wtype==='wand'?2.1:2.5;
+    ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
+    ctx.strokeStyle=shade(shaftC,20);ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
+    // wands get a darker wrapped grip near the hand
+    if(wtype==='wand'){ ctx.strokeStyle=shade(shaftC,-34);ctx.lineWidth=2.7;
+      ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(footx+(tipx-footx)*0.3,footy+(tipy-footy)*0.3);ctx.stroke(); }
+    // tip ornament (per-weapon style)
+    const style=art.tip||(wtype==='wand'?'wand':'orb');
+    drawWeaponTip(ctx,style,tipx,tipy,tipC,t,casting,cls);
+    castX=tipx; castY=tipy;
   }
-  // glowing focus orb at tip — magical, intensifies while casting; tinted by equipped weapon
-  const tipC=opts.tipC||glowC;
-  const pulse=0.55+0.25*Math.sin(t*5)+casting*0.6;
-  const baseOrbR=wtype==='orb'?5.6:(wtype==='wand'?2.2:3.2);
-  const orbR=baseOrbR+casting*3.2;
-  ctx.save();ctx.shadowColor=tipC;ctx.shadowBlur=10+casting*22;
-  const og=ctx.createRadialGradient(tipx,tipy-2,0,tipx,tipy-2,orbR+3);
-  og.addColorStop(0,'#fff');og.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:tipC);og.addColorStop(1,'transparent');
-  ctx.globalAlpha=Math.min(1,pulse);ctx.fillStyle=og;
-  ctx.beginPath();ctx.arc(tipx,tipy-2,orbR+3,0,7);ctx.fill();
-  ctx.restore();
-  // orb-type weapons keep tiny motes drifting around the crystal even when idle
-  if(wtype==='orb'){
-    for(let i=0;i<3;i++){ const a=t*2.6+i*(Math.PI*2/3); const rr=orbR+2.5;
-      ctx.save();ctx.globalAlpha=.7;ctx.fillStyle=tipC;ctx.shadowColor=tipC;ctx.shadowBlur=5;
-      ctx.beginPath();ctx.arc(tipx+Math.cos(a)*rr,tipy-2+Math.sin(a)*rr*0.8,1,0,7);ctx.fill();ctx.restore(); }
-  }
-  // charge motes converging on tip while casting
+  // charge motes converging on the focus point while casting
   if(casting>0.15){
     for(let i=0;i<5;i++){ const a=t*4+i*1.3; const rr=(1-casting)*14+8;
       ctx.save();ctx.globalAlpha=casting*0.8;ctx.fillStyle=glowC;ctx.shadowColor=glowC;ctx.shadowBlur=6;
-      ctx.beginPath();ctx.arc(tipx+Math.cos(a)*rr,tipy-2+Math.sin(a)*rr*0.8,1.1,0,7);ctx.fill();ctx.restore(); }
+      ctx.beginPath();ctx.arc(castX+Math.cos(a)*rr,castY+Math.sin(a)*rr*0.8,1.1,0,7);ctx.fill();ctx.restore(); }
   }
   ctx.restore();
+}
+// draws the ornament at a staff/wand tip in the mage's local space
+function drawWeaponTip(ctx,style,x,y,c,t,casting,cls){
+  const pulse=0.55+0.25*Math.sin(t*5)+casting*0.6;
+  const glow=(r,col)=>{ ctx.save();ctx.shadowColor=col;ctx.shadowBlur=10+casting*22;
+    const g=ctx.createRadialGradient(x,y-2,0,x,y-2,r+3);
+    g.addColorStop(0,'#fff');g.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:col);g.addColorStop(1,'transparent');
+    ctx.globalAlpha=Math.min(1,pulse);ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y-2,r+3,0,7);ctx.fill();ctx.restore(); };
+  switch(style){
+    case 'wand': // plain pointed stick — only a faint spark at the very tip while casting
+      if(casting>0.05){ ctx.save();ctx.globalAlpha=casting;ctx.fillStyle='#fff';ctx.shadowColor=c;ctx.shadowBlur=10;
+        ctx.beginPath();ctx.arc(x,y,1.3+casting*1.7,0,7);ctx.fill();ctx.restore(); }
+      break;
+    case 'halo_wings':{ // white staff: golden halo ring + small angel wings + bright core
+      ctx.save();ctx.fillStyle='rgba(255,250,225,0.92)';ctx.shadowColor='#fff2b0';ctx.shadowBlur=8;
+      for(const s of [-1,1]){ ctx.beginPath();ctx.moveTo(x,y+1);
+        ctx.quadraticCurveTo(x+s*10,y-4,x+s*12,y+3);
+        ctx.quadraticCurveTo(x+s*7,y+2.5,x,y+3.4);ctx.closePath();ctx.fill(); }
+      ctx.restore();
+      ctx.save();ctx.strokeStyle='#ffe27a';ctx.shadowColor='#ffe27a';ctx.shadowBlur=10;ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.ellipse(x,y-5.5,4.6,2.0,0,0,7);ctx.stroke();ctx.restore();
+      glow(3.6,'#fff6cf');
+      break; }
+    case 'gem':{ // faceted crystal
+      ctx.save();ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=10+casting*16;ctx.globalAlpha=Math.min(1,pulse+0.2);
+      ctx.beginPath();ctx.moveTo(x,y-5);ctx.lineTo(x+3,y-1);ctx.lineTo(x+1.5,y+3.6);ctx.lineTo(x-1.5,y+3.6);ctx.lineTo(x-3,y-1);ctx.closePath();ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.75)';ctx.beginPath();ctx.moveTo(x,y-5);ctx.lineTo(x+1.3,y-1);ctx.lineTo(x-1.3,y-1);ctx.closePath();ctx.fill();ctx.restore();
+      break; }
+    case 'flame':{ // dancing flame
+      ctx.save();ctx.shadowColor='#ff7a30';ctx.shadowBlur=12;const fl=Math.sin(t*9)*1.4;
+      const fg=ctx.createLinearGradient(x,y+3,x,y-8);fg.addColorStop(0,'#ff3a10');fg.addColorStop(.5,'#ff8a30');fg.addColorStop(1,'#ffe27a');
+      ctx.fillStyle=fg;ctx.beginPath();ctx.moveTo(x-3,y+3);ctx.quadraticCurveTo(x-2+fl,y-3,x,y-8);ctx.quadraticCurveTo(x+2+fl,y-3,x+3,y+3);ctx.quadraticCurveTo(x,y+1,x-3,y+3);ctx.fill();ctx.restore();
+      break; }
+    case 'bolt': // crackling lightning glyph
+      ctx.save();ctx.strokeStyle='#fff6a0';ctx.shadowColor='#ffe680';ctx.shadowBlur=12;ctx.lineWidth=1.7;ctx.lineJoin='miter';
+      ctx.beginPath();ctx.moveTo(x-2,y-6);ctx.lineTo(x+1.6,y-1);ctx.lineTo(x-1.6,y+1);ctx.lineTo(x+2,y+6);ctx.stroke();ctx.restore();
+      glow(2.2,'#ffe680');
+      break;
+    case 'leaf': // budding leaf sprig
+      ctx.save();ctx.fillStyle='#7adb5a';ctx.shadowColor='#7adb5a';ctx.shadowBlur=8;
+      for(const s of [-1,1]){ ctx.beginPath();ctx.ellipse(x+s*2.4,y-1.5,2.6,1.4,s*0.7,0,7);ctx.fill(); }
+      ctx.fillStyle='#c8ffaa';ctx.beginPath();ctx.arc(x,y-4,1.4,0,7);ctx.fill();ctx.restore();
+      break;
+    case 'void_eye': // dark orb with a glowing vertical slit
+      ctx.save();ctx.fillStyle='#15071f';ctx.shadowColor=c;ctx.shadowBlur=14;ctx.beginPath();ctx.arc(x,y-2,3.7,0,7);ctx.fill();
+      ctx.strokeStyle=c;ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(x,y-2,1.1,3.0,0,0,7);ctx.stroke();ctx.restore();
+      break;
+    case 'orb': default: // classic crown ring + glowing focus orb (the default staff tip)
+      ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(x,y,2.6,0,7);ctx.fill();
+      glow(3.2,c);
+      break;
+  }
+}
+// an orb-type weapon: a focus orb circling the mage's torso (no held shaft)
+function drawOrbitOrb(ctx,art,c,t,casting,cls){
+  const cx=0, cy=-4, rad=16+casting*3, a=t*1.8;
+  const ox=cx+Math.cos(a)*rad, oy=cy+Math.sin(a)*rad*0.6;
+  const orbR=4.2+casting*2.6;
+  // trailing after-images
+  for(let i=1;i<=3;i++){ const aa=a-i*0.32, tx=cx+Math.cos(aa)*rad, ty=cy+Math.sin(aa)*rad*0.6;
+    ctx.save();ctx.globalAlpha=0.32/i;ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(tx,ty,orbR*0.6,0,7);ctx.fill();ctx.restore(); }
+  // the orb itself
+  ctx.save();ctx.shadowColor=c;ctx.shadowBlur=12+casting*16;
+  const g=ctx.createRadialGradient(ox,oy,0,ox,oy,orbR+2);
+  g.addColorStop(0,'#fff');g.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:c);g.addColorStop(1,'transparent');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(ox,oy,orbR+2,0,7);ctx.fill();
+  ctx.globalAlpha=0.9;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(ox,oy,orbR*0.4,0,7);ctx.fill();
+  ctx.restore();
+  if(art.orb==='eye'){ ctx.save();ctx.fillStyle='#15294a';ctx.beginPath();ctx.arc(ox,oy,orbR*0.55,0,7);ctx.fill();
+    ctx.fillStyle=c;ctx.shadowColor=c;ctx.shadowBlur=6;ctx.beginPath();ctx.ellipse(ox,oy,orbR*0.18,orbR*0.44,0,0,7);ctx.fill();ctx.restore(); }
+  return {x:ox,y:oy};
 }
 
 function drawMageHead(ctx,classId,look,c1,c2,trim,t,casting){
@@ -2437,7 +2523,7 @@ function drawCity(ctx,W,H,t){
     const eqWeapon=WEAPONS[G.equipWeapon];
     drawMage(ctx, cx, H*0.93, Math.max(1.5,H/210), G.classId, t, {facing:1, casting:0.25+0.2*Math.sin(t*1.1),
       armorKey:G.equipArmor, auraColor:G.auraColor, tipC:WEAPON_TIP[G.equipWeapon]||null,
-      weaponType:eqWeapon?eqWeapon.type:'staff', weaponColor:eqWeapon?eqWeapon.c:null});
+      weaponType:eqWeapon?eqWeapon.type:'staff', weaponColor:eqWeapon?eqWeapon.c:null, weaponId:G.equipWeapon});
   }
   // ---- drifting embers ----
   for(let i=0;i<16;i++){ const ex=(Math.sin(i*12.9+t*0.25)*0.5+0.5)*W; const ey=H - ((t*16+i*47)%(H*0.55)); ctx.globalAlpha=0.35*Math.abs(Math.sin(t*1.3+i)); ctx.fillStyle='#ffb060'; ctx.beginPath();ctx.arc(ex,ey,1.3,0,7);ctx.fill(); }
@@ -4166,7 +4252,8 @@ function tbDrawMageFull(m){
   const eqWeapon=m.isPlayer?WEAPONS[G.equipWeapon]:null;
   const weaponType=eqWeapon?eqWeapon.type:'staff';
   const weaponColor=eqWeapon?eqWeapon.c:null;
-  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,weaponType,weaponColor,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0),auraColor:m.isPlayer?G.auraColor:null});
+  const weaponId=m.isPlayer?G.equipWeapon:null;
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,weaponType,weaponColor,weaponId,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0),auraColor:m.isPlayer?G.auraColor:null});
   ctx.restore();
   // hit flash overlay
   if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
