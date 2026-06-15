@@ -1096,6 +1096,16 @@ const WEAPONS={
   emberheart_orb:{name:'Emberheart Orb',type:'orb',icon:'🔥',price:1700,stats:{sp:20,mana:60,crit:6},c:'#ff5522'},
 };
 const WEAPON_TIP={oak_branch:'#7adb5a',thunder_rod:'#ffe680',serpent_wand:'#33dd66',bronze_scepter:'#e0a050',tide_pearl:'#55ddee',emberheart_orb:'#ff6a30',staff_embers:'#ff6a30',void_staff:'#aa66ff',worldbreaker:'#ffe680',death_wand:'#88ff66',cosmic_eye:'#88ccff',infinity_orb:'#cc99ff'};
+
+// weapon enchants — bound to one equipped weapon at a time, sold at the Weapon Smith (own idea)
+const ENCHANTS={
+  searing:{name:'Searing Edge',icon:'🔥',price:350,c:'#ff5522',
+    desc:'25% chance on hit to set the foe ablaze, dealing burn damage for a few turns.'},
+  leeching:{name:'Leeching Edge',icon:'🩸',price:400,c:'#aa66ff',
+    desc:'Drain 10% of the damage you deal as mana.'},
+  keen:{name:'Keen Edge',icon:'⚡',price:450,c:'#ffe680',
+    desc:'+8% critical hit chance.'},
+};
 const ARMORS={
   cloth_robe:{name:'Cloth Robe',icon:'🧥',price:80,stats:{def:5}},
   arcane_robe:{name:'Arcane Robe',icon:'🌌',price:200,stats:{mana:50,speed:-5}},
@@ -1209,6 +1219,7 @@ function freshSave(){
     familiars:[],            // owned familiar ids
     equipFamiliar:null,      // currently summoned familiar
     auraColor:null,          // custom aura/glow colour override (null = class default)
+    enchants:{},             // weaponId -> enchant id
     bounties:[],             // active bounty states
     bountyTimer:0,           // fights until reset
     specialStock:[],         // current special potion ids in shop
@@ -2089,12 +2100,31 @@ function openWeaponShop(re){
   let tabs={staff:[],wand:[],orb:[]};
   for(const k in WEAPONS) tabs[WEAPONS[k].type].push(k);
   const sec=(type)=>tabs[type].map(k=>buyGearCard(k,WEAPONS[k],'weapon',G.inventory.weapons.includes(k),G.equipWeapon===k)).join('');
+  const curWeapon=G.equipWeapon?WEAPONS[G.equipWeapon]:null;
+  const enchantSection=curWeapon?`<div class="shop-grid">${Object.keys(ENCHANTS).map(k=>{
+      const def=ENCHANTS[k];
+      const active=G.enchants[G.equipWeapon]===k;
+      const btn=active?'<button data-unenchant>Remove</button>':`<button data-enchant="${k}" ${G.gold>=def.price?'':'disabled'}>Enchant ${def.price}g</button>`;
+      return `<div class="item-card panel ${active?'equipped':''}" style="--glow:${active?'#ffd866':def.c}">
+        <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
+        <div class="istats">${def.desc}</div>${btn}</div>`;
+    }).join('')}</div>`:'<div class="muted">Equip a weapon first to enchant it.</div>';
   const body=shopkeeperHeader('weapon')+`
     <h3 class="gold-text">Staffs — balanced</h3><div class="shop-grid">${sec('staff')}</div>
     <h3 class="gold-text">Wands — crit &amp; precision</h3><div class="shop-grid">${sec('wand')}</div>
-    <h3 class="gold-text">Orbs — mana &amp; sustain</h3><div class="shop-grid">${sec('orb')}</div>`;
+    <h3 class="gold-text">Orbs — mana &amp; sustain</h3><div class="shop-grid">${sec('orb')}</div>
+    <h3 class="gold-text">✦ Enchant your ${curWeapon?curWeapon.icon+' '+curWeapon.name:'weapon'}</h3>${enchantSection}`;
   _openShopOv=openModal('⚔️ Weapon Smith',body,'#ff8844');_openShopKind='weapon';
   wireGearButtons(_openShopOv,WEAPONS,'weapon');
+  _openShopOv.querySelectorAll('[data-enchant]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.enchant;const def=ENCHANTS[k];
+    if(G.gold<def.price||!G.equipWeapon)return;
+    G.gold-=def.price; G.enchants[G.equipWeapon]=k;
+    saveGame();openWeaponShop(true);
+  });
+  _openShopOv.querySelectorAll('[data-unenchant]').forEach(b=>b.onclick=()=>{
+    delete G.enchants[G.equipWeapon]; saveGame();openWeaponShop(true);
+  });
   startShopkeeper(_openShopOv,'weapon');
   renderCityTopbar();
 }
@@ -2361,6 +2391,7 @@ function openCharacterScreen(){
     <div>
       <h3 class="gold-text">Equipped</h3>
       <div class="stat-line"><span>Weapon</span><span>${eqW?eqW.icon+' '+eqW.name:'<span class="muted">none</span>'}</span></div>
+      ${eqW&&G.enchants[G.equipWeapon]?`<div class="stat-line"><span>Enchant</span><span>${ENCHANTS[G.enchants[G.equipWeapon]].icon} ${ENCHANTS[G.enchants[G.equipWeapon]].name}</span></div>`:''}
       <div class="stat-line"><span>Armor</span><span>${eqA?eqA.icon+' '+eqA.name:'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Phoenix Tear</span><span>${G.phoenixTear?'🔥 ready':'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Familiar</span><span>${G.equipFamiliar?FAMILIARS[G.equipFamiliar].icon+' '+FAMILIARS[G.equipFamiliar].name:'<span class="muted">none (Alchemist)</span>'}</span></div>
@@ -2993,13 +3024,14 @@ function tbComputeDmg(caster,sp,sid){
 }
 function tbDealDamage(target,dmg,el,opt={}){
   const attacker=(target===CB.foe)?CB.player:CB.foe;
+  const enchant=attacker.isPlayer?G.enchants[G.equipWeapon]:null;
   // dodge
   if(Math.random()*100 < (target.dodge||0)){
     floatNumber(target.x,target.y-30,'DODGE',{miss:true});
     return 0;
   }
-  // crit
-  let crit=Math.random()*100 < (attacker.crit||0);
+  // crit (Keen Edge enchant adds +8% chance)
+  let crit=Math.random()*100 < (attacker.crit||0)+(enchant==='keen'?8:0);
   let d=dmg*(crit?2:1);
   // defense flat reduction
   d=Math.max(1, d - (target.def||0)*0.5);
@@ -3021,6 +3053,18 @@ function tbDealDamage(target,dmg,el,opt={}){
   spawnHitParticles(target.x,target.y-20,el);
   // apply simple status by spell element
   tbApplyStatus(target,el,opt.sid);
+  // Searing Edge: chance to ignite the foe on a successful hit
+  if(enchant==='searing' && d>0 && Math.random()<0.25){
+    target.statuses.burn={turns:2,dmg:Math.round(dmg*0.15)};
+    tbFamiliarFX(target.x,target.y-26,ENCHANTS.searing.c);
+    floatNumber(target.x-10,target.y-44,'🔥',{el:'fire'});
+  }
+  // Leeching Edge: drain mana from the damage you deal
+  if(enchant==='leeching' && d>0){
+    const leech=Math.max(1,Math.round(d*0.10));
+    attacker.mana=clamp(attacker.mana+leech,0,attacker.maxmana);
+    floatNumber(attacker.x,attacker.y-50,'+'+leech+' mana',{heal:true});
+  }
   // death check
   if(target.hp<=0){
     if(target===CB.foe) tbFoeDefeated();
