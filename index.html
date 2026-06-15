@@ -1681,25 +1681,48 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   ctx.beginPath();ctx.moveTo(5,-7);ctx.quadraticCurveTo(sx,sy,hx,hy);ctx.stroke();
   // hand
   ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(hx,hy,2,0,7);ctx.fill();
-  // STAFF shaft (held in front hand)
-  const tipx=hx+5, tipy=hy-30-raise*4;
-  const footx=hx-2, footy=hy+22;
-  ctx.strokeStyle=WOOD;ctx.lineWidth=2.4;
+  // WEAPON (held in front hand) — shape (staff/wand/orb) follows the equipped weapon
+  const wtype=opts.weaponType||'staff';
+  const shaftC=opts.weaponColor||WOOD;
+  let tipx,tipy,footx,footy;
+  if(wtype==='wand'){       // short slender rod
+    tipx=hx+4; tipy=hy-18-raise*4; footx=hx-1; footy=hy+5;
+  } else if(wtype==='orb'){ // stubby grip topped by a hovering orb
+    tipx=hx+3; tipy=hy-11-raise*4; footx=hx-1; footy=hy+2;
+  } else {                  // staff — long shaft (default)
+    tipx=hx+5; tipy=hy-30-raise*4; footx=hx-2; footy=hy+22;
+  }
+  ctx.strokeStyle=shaftC;ctx.lineWidth=wtype==='wand'?2.0:2.4;
   ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
-  ctx.strokeStyle=shade(WOOD,18);ctx.lineWidth=0.8;
+  ctx.strokeStyle=shade(shaftC,18);ctx.lineWidth=0.8;
   ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
-  // tip crown/holder
-  ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(tipx,tipy,2.6,0,7);ctx.fill();
+  // tip ornament — crown ring for staves, a faceted gem for wands, a cradle for orbs
+  if(wtype==='orb'){
+    ctx.strokeStyle=GOLDTRIM;ctx.lineWidth=1.3;
+    ctx.beginPath();ctx.moveTo(tipx-3.6,tipy+3.4);ctx.quadraticCurveTo(tipx,tipy+6.4,tipx+3.6,tipy+3.4);ctx.stroke();
+  } else if(wtype==='wand'){
+    ctx.fillStyle=GOLDTRIM;
+    ctx.save();ctx.translate(tipx,tipy);ctx.rotate(Math.PI/4);ctx.fillRect(-1.6,-1.6,3.2,3.2);ctx.restore();
+  } else {
+    ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(tipx,tipy,2.6,0,7);ctx.fill();
+  }
   // glowing focus orb at tip — magical, intensifies while casting; tinted by equipped weapon
   const tipC=opts.tipC||glowC;
   const pulse=0.55+0.25*Math.sin(t*5)+casting*0.6;
-  const orbR=3.2+casting*3.2;
+  const baseOrbR=wtype==='orb'?5.6:(wtype==='wand'?2.2:3.2);
+  const orbR=baseOrbR+casting*3.2;
   ctx.save();ctx.shadowColor=tipC;ctx.shadowBlur=10+casting*22;
   const og=ctx.createRadialGradient(tipx,tipy-2,0,tipx,tipy-2,orbR+3);
   og.addColorStop(0,'#fff');og.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:tipC);og.addColorStop(1,'transparent');
   ctx.globalAlpha=Math.min(1,pulse);ctx.fillStyle=og;
   ctx.beginPath();ctx.arc(tipx,tipy-2,orbR+3,0,7);ctx.fill();
   ctx.restore();
+  // orb-type weapons keep tiny motes drifting around the crystal even when idle
+  if(wtype==='orb'){
+    for(let i=0;i<3;i++){ const a=t*2.6+i*(Math.PI*2/3); const rr=orbR+2.5;
+      ctx.save();ctx.globalAlpha=.7;ctx.fillStyle=tipC;ctx.shadowColor=tipC;ctx.shadowBlur=5;
+      ctx.beginPath();ctx.arc(tipx+Math.cos(a)*rr,tipy-2+Math.sin(a)*rr*0.8,1,0,7);ctx.fill();ctx.restore(); }
+  }
   // charge motes converging on tip while casting
   if(casting>0.15){
     for(let i=0;i<5;i++){ const a=t*4+i*1.3; const rr=(1-casting)*14+8;
@@ -2357,7 +2380,12 @@ function drawCity(ctx,W,H,t){
   // ---- BUILDINGS ----
   _cityBuildings.forEach((b,i)=>drawHouse(ctx,b,t,i===_cityHover));
   // ---- MAGE in the street ----
-  if(G.classId){ drawMage(ctx, cx, H*0.93, Math.max(1.5,H/210), G.classId, t, {facing:1, casting:0.25+0.2*Math.sin(t*1.1)}); }
+  if(G.classId){
+    const eqWeapon=WEAPONS[G.equipWeapon];
+    drawMage(ctx, cx, H*0.93, Math.max(1.5,H/210), G.classId, t, {facing:1, casting:0.25+0.2*Math.sin(t*1.1),
+      armorKey:G.equipArmor, auraColor:G.auraColor, tipC:WEAPON_TIP[G.equipWeapon]||null,
+      weaponType:eqWeapon?eqWeapon.type:'staff', weaponColor:eqWeapon?eqWeapon.c:null});
+  }
   // ---- drifting embers ----
   for(let i=0;i<16;i++){ const ex=(Math.sin(i*12.9+t*0.25)*0.5+0.5)*W; const ey=H - ((t*16+i*47)%(H*0.55)); ctx.globalAlpha=0.35*Math.abs(Math.sin(t*1.3+i)); ctx.fillStyle='#ffb060'; ctx.beginPath();ctx.arc(ex,ey,1.3,0,7);ctx.fill(); }
   ctx.globalAlpha=1;
@@ -4066,7 +4094,10 @@ function tbDrawMageFull(m){
   ctx.globalAlpha=m.flash>0?0.6+0.4*Math.sin(t*40):1;
   const tipC=m.isPlayer?(WEAPON_TIP[G.equipWeapon]||null):null;
   const armorKey=m.isPlayer?G.equipArmor:null;
-  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0),auraColor:m.isPlayer?G.auraColor:null});
+  const eqWeapon=m.isPlayer?WEAPONS[G.equipWeapon]:null;
+  const weaponType=eqWeapon?eqWeapon.type:'staff';
+  const weaponColor=eqWeapon?eqWeapon.c:null;
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,weaponType,weaponColor,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0),auraColor:m.isPlayer?G.auraColor:null});
   ctx.restore();
   // hit flash overlay
   if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
