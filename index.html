@@ -3189,9 +3189,11 @@ function resizeCanvas(){
     CB.w=window.innerWidth;CB.h=window.innerHeight;
     if(CB.tb){
       CB.groundY=Math.round(CB.h*0.74);
+      CB.worldW=Math.round(CB.w*WORLD_WIDEN);
+      CB.camX=clamp(CB.camX||0,0,Math.max(0,CB.worldW-CB.w));
       CB._sand=null;CB._crowd=null;
-      if(CB.player){CB.player.y=CB.player.baseY=CB.groundY;CB.player.x=clamp(CB.player.x,CB.w*0.08,CB.w*0.92);}
-      if(CB.foe){CB.foe.y=CB.foe.baseY=CB.groundY;CB.foe.x=clamp(CB.foe.x,CB.w*0.08,CB.w*0.92);}
+      if(CB.player){CB.player.y=CB.player.baseY=CB.groundY;CB.player.x=clamp(CB.player.x,tbWorldMinX(),tbWorldMaxX());}
+      if(CB.foe){CB.foe.y=CB.foe.baseY=CB.groundY;CB.foe.x=clamp(CB.foe.x,tbWorldMinX(),tbWorldMaxX());}
     }
   }
 }
@@ -3202,6 +3204,26 @@ function diffMods(){
   if(G.difficulty==='hard') return {hp:1.6,dmg:1.5,reward:1.8};
   return {hp:1,dmg:1,reward:1};
 }
+
+// ---- WIDE ARENA + HORIZONTAL CAMERA ----
+// the world is a little wider than the screen; normally it looks normal, but as a
+// combatant drifts toward a world edge the camera pans horizontally to reveal more
+// ground (it never pans vertically, and only "expands" near the edges).
+const WORLD_WIDEN=1.4;
+function tbWorldMinX(){ return Math.round((CB.worldW||CB.w)*0.05); }
+function tbWorldMaxX(){ return Math.round((CB.worldW||CB.w)*0.95); }
+function tbUpdateCamera(){
+  if(!CB||!CB.tb||!CB.player||!CB.foe){ return; }
+  if(CB.worldW===undefined)CB.worldW=Math.round(CB.w*WORLD_WIDEN);
+  const maxCam=Math.max(0,CB.worldW-CB.w);
+  // follow the midpoint between the duellists so both stay framed
+  let target=clamp((CB.player.x+CB.foe.x)/2 - CB.w/2, 0, maxCam);
+  if(CB.camX===undefined)CB.camX=target;
+  CB.camX += (target-CB.camX)*0.12;
+  if(Math.abs(target-CB.camX)<0.4)CB.camX=target;
+}
+// convert a screen-space pointer X to a world-space X (accounts for the camera pan)
+function tbScreenToWorldX(clientX){ return clientX + (CB&&CB.camX||0); }
 
 /* ============================================================
    ============  TURN-BASED MAGE DUEL  (Sword & Sandals) ======
@@ -3323,6 +3345,7 @@ function startCombat(mode){
   CB={
     mode,cls,stats:s,tb:true,
     w,h, time:0, elapsed:0, shake:0, over:false,
+    worldW:Math.round(w*WORLD_WIDEN), camX:0,   // arena is wider than the screen; camera pans horizontally
     groundY,
     phase:'intro', turn:'player', turnNo:1, round:1, busy:false,
     selSlot:0,
@@ -3334,9 +3357,11 @@ function startCombat(mode){
     boss:null, darkness:false, spellMenuOpen:false, timeScale:1,targetTimeScale:1,
     stat:{dmg:0,kills:0,bestStreak:0,crits:0,gold:0,spellUse:{},combos:0,potionsUsed:0,highCombo:'-'},
   };
-  // PLAYER mage
+  // PLAYER mage — combatants start centered in the (wider) world; camera shows the middle
+  const worldOff=(CB.worldW-w)/2;
+  CB.camX=worldOff;
   const P=makeMage('L',G.classId,s,{name:'You',spells:G.loadout.filter(Boolean),isPlayer:true});
-  P.x=Math.round(w*0.24); P.y=groundY; P.baseY=groundY; P.facing=1;
+  P.x=Math.round(w*0.24+worldOff); P.y=groundY; P.baseY=groundY; P.facing=1;
   P.isPlayer=true;
   // start-of-duel relics
   if(G.relics.includes('titan_core')){ P.maxhp=Math.round(P.maxhp*1.25); P.hp=P.maxhp; }
@@ -3346,7 +3371,7 @@ function startCombat(mode){
   CB.cooldowns=P.cooldowns;
   // FOE mage
   const F=makeFoe(mode);
-  F.x=Math.round(w*0.76); F.y=groundY; F.baseY=groundY; F.facing=-1;
+  F.x=Math.round(w*0.76+worldOff); F.y=groundY; F.baseY=groundY; F.facing=-1;
   CB.foe=F; CB.enemies=[F]; CB.boss=mode==='boss'?F:null;
 
   buildSpellBar();
@@ -3483,7 +3508,7 @@ function tbMove(dir){
   if(p.move<=0){ floatNumber(p.x,p.y-70,'no moves left',{miss:true}); return; }
   const step=Math.min(34,p.move);
   let nx=p.x+dir*step;
-  const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+  const minX=tbWorldMinX(), maxX=tbWorldMaxX();
   // can't walk through / past the foe
   if(dir>0 && nx>CB.foe.x-58) nx=CB.foe.x-58;
   if(dir<0 && nx<CB.foe.x+58 && p.x>CB.foe.x) nx=Math.max(nx,CB.foe.x+58);
@@ -3503,7 +3528,7 @@ function tbJump(dir){
   const COST=28;
   if(p.stamina<COST){ floatNumber(p.x,p.y-70,'too tired',{miss:true}); return; }
   if(p.move<28){ floatNumber(p.x,p.y-70,'no moves left',{miss:true}); return; }
-  const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+  const minX=tbWorldMinX(), maxX=tbWorldMaxX();
   let nx=p.x+dir*82;
   if(dir>0 && nx>CB.foe.x-58 && p.x<CB.foe.x) nx=CB.foe.x-58;
   if(dir<0 && nx<CB.foe.x+58 && p.x>CB.foe.x) nx=CB.foe.x+58;
@@ -3538,7 +3563,7 @@ function tbToggleTeleport(){
 }
 function tbTeleportTo(wx){
   const p=CB.player;
-  const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+  const minX=tbWorldMinX(), maxX=tbWorldMaxX();
   let nx=clamp(wx,minX,maxX);
   if(Math.abs(nx-CB.foe.x)<46) nx=CB.foe.x+(nx<CB.foe.x?-46:46); // don't overlap foe
   nx=clamp(nx,minX,maxX);
@@ -3895,7 +3920,7 @@ function tbAnimateFoeMove(dir,steps,done){
     const toward=(p.x<f.x)?-1:1;
     nx=f.x+toward*step;
     if(toward<0 && nx<p.x+58) nx=p.x+58;
-    if(toward>0 && nx>CB.w*0.92) nx=CB.w*0.92;
+    nx=clamp(nx,tbWorldMinX(),tbWorldMaxX());
     const used=Math.abs(nx-f.x);
     f.move-=Math.max(used,12); f.x=nx; f.walkT=0.32; f.facing=(p.x>=f.x)?1:-1;
     for(let i=0;i<3;i++)CB.particles.push({x:f.x,y:f.baseY+12,vx:rand(-30,30),vy:rand(-25,-5),life:0.4,maxlife:0.4,r:rand(2,4),color:'#caa467',fade:true,grav:80});
@@ -3986,11 +4011,12 @@ function tbNextEndlessFoe(){
   if(!CB||CB.over)return;
   const groundY=CB.groundY;
   const F=makeFoe('endless');
-  F.x=Math.round(CB.w*0.76); F.y=groundY; F.baseY=groundY; F.facing=-1;
+  const worldOff=(CB.worldW-CB.w)/2;
+  F.x=Math.round(CB.w*0.76+worldOff); F.y=groundY; F.baseY=groundY; F.facing=-1;
   CB.foe=F; CB.enemies=[F]; CB.boss=null;
   $('bossName').textContent=F.name+'  (Round '+CB.round+')';
   // reset player position a bit and refill some mana
-  CB.player.x=Math.round(CB.w*0.24);
+  CB.player.x=Math.round(CB.w*0.24+worldOff);
   CB.player.mana=clamp(CB.player.mana+CB.player.maxmana*0.4,0,CB.player.maxmana);
   showBanner('ROUND '+CB.round,'#ffd866',true);
   CB.phase='intro';
@@ -4129,7 +4155,7 @@ function tbDrawMoveRings(){
   ctx.setLineDash([]);
   // teleport aiming: highlight whole arena floor + marker
   if(CB.tpAiming){
-    const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+    const minX=tbWorldMinX(), maxX=tbWorldMaxX();
     ctx.fillStyle='rgba(150,110,230,0.10)';
     ctx.fillRect(minX,CB.groundY-4,maxX-minX,CB.h-CB.groundY+4);
     const ax=clamp(CB.tpAimX||p.x,minX,maxX);
@@ -4149,6 +4175,8 @@ function tbRender(){
   ctx.clearRect(0,0,w,h);
   ctx.save();
   if(CB.shake>0)ctx.translate(rand(-CB.shake,CB.shake),rand(-CB.shake,CB.shake));
+  tbUpdateCamera();
+  ctx.translate(-Math.round(CB.camX||0),0);   // horizontal world pan
   tbDrawArena(w,h);
   tbDrawMoveRings();
   // shadows + mages sorted by y (both same ground)
@@ -4167,35 +4195,37 @@ function tbRender(){
 }
 function tbDrawArena(w,h){
   const t=CB.time, gy=CB.groundY;
+  const W=CB.worldW||w;   // draw the arena across the full (wider) world
   // warm dusk sky gradient (golden/bronze, less neon)
   const sky=ctx.createLinearGradient(0,0,0,gy);
   sky.addColorStop(0,'#2a2236'); sky.addColorStop(0.45,'#6b4a3a'); sky.addColorStop(0.8,'#b07840'); sky.addColorStop(1,'#e0a858');
-  ctx.fillStyle=sky; ctx.fillRect(0,0,w,gy+4);
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,gy+4);
   // hazy setting sun glow on the horizon
-  const sun=ctx.createRadialGradient(w*0.5,gy-60,10,w*0.5,gy-60,Math.max(w,300)*0.5);
+  const sun=ctx.createRadialGradient(W*0.5,gy-60,10,W*0.5,gy-60,Math.max(W,300)*0.5);
   sun.addColorStop(0,'rgba(255,210,130,0.45)');sun.addColorStop(0.4,'rgba(230,160,90,0.18)');sun.addColorStop(1,'transparent');
-  ctx.fillStyle=sun; ctx.fillRect(0,0,w,gy);
+  ctx.fillStyle=sun; ctx.fillRect(0,0,W,gy);
   // distant colosseum tiers (warm sandstone bands)
   for(let b=0;b<3;b++){
     const yy=gy- (90+b*46), col=['#4a3826','#564330','#62503a'][b];
-    ctx.fillStyle=col; ctx.fillRect(0,yy,w,gy-yy);
+    ctx.fillStyle=col; ctx.fillRect(0,yy,W,gy-yy);
     // arches
     ctx.fillStyle='rgba(0,0,0,.22)';
     const aw=70+b*16;
-    for(let x=-20;x<w+aw;x+=aw){ ctx.beginPath(); ctx.arc(x+aw/2,yy+22,aw*0.32,Math.PI,0); ctx.fill(); }
+    for(let x=-20;x<W+aw;x+=aw){ ctx.beginPath(); ctx.arc(x+aw/2,yy+22,aw*0.32,Math.PI,0); ctx.fill(); }
   }
   // crowd dots in the stands
   if(!CB._crowd){
     CB._crowd=[];
     for(let row=0;row<3;row++){
       const yy=gy-(150-row*30);
-      for(let x=12;x<w-8;x+=12) CB._crowd.push({x:x+rand(-3,3),y:yy+rand(-3,3),r:rand(2,3.6),c:pick(['#6a5238','#7a5a3a','#5a4632','#8a6a44','#6e5540'])});
+      for(let x=12;x<W-8;x+=12) CB._crowd.push({x:x+rand(-3,3),y:yy+rand(-3,3),r:rand(2,3.6),c:pick(['#6a5238','#7a5a3a','#5a4632','#8a6a44','#6e5540'])});
     }
   }
   for(const c of CB._crowd){ ctx.save(); ctx.globalAlpha=0.7; ctx.fillStyle=c.c; ctx.beginPath(); ctx.arc(c.x,c.y+Math.sin(t*1.5+c.x*0.1)*0.6,c.r,0,7); ctx.fill(); ctx.restore(); }
   // torches along the back wall
-  for(let i=0;i<6;i++){
-    const tx=(i+0.5)*(w/6), ty=gy-180;
+  const nTorch=Math.max(6,Math.round(W/160));
+  for(let i=0;i<nTorch;i++){
+    const tx=(i+0.5)*(W/nTorch), ty=gy-180;
     const fl=Math.sin(t*8+i)*0.3+0.7;
     ctx.save(); ctx.globalAlpha=fl; ctx.fillStyle='#ff8822'; ctx.shadowColor='#ff6600'; ctx.shadowBlur=24;
     ctx.beginPath(); ctx.ellipse(tx,ty,5,11,0,0,7); ctx.fill(); ctx.restore();
@@ -4203,11 +4233,11 @@ function tbDrawArena(w,h){
   // sandy arena floor
   const fg=ctx.createLinearGradient(0,gy,0,h);
   fg.addColorStop(0,'#d8b878'); fg.addColorStop(0.15,'#c4a064'); fg.addColorStop(1,'#8f7040');
-  ctx.fillStyle=fg; ctx.fillRect(0,gy,w,h-gy);
+  ctx.fillStyle=fg; ctx.fillRect(0,gy,W,h-gy);
   // ground line shadow
-  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(0,gy,w,4);
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.fillRect(0,gy,W,4);
   // sand speckle (cached)
-  if(!CB._sand){ CB._sand=[]; for(let i=0;i<120;i++)CB._sand.push({x:rand(0,w),y:rand(gy+6,h),r:rand(1,2.4),a:rand(.05,.16)}); }
+  if(!CB._sand){ CB._sand=[]; for(let i=0;i<160;i++)CB._sand.push({x:rand(0,W),y:rand(gy+6,h),r:rand(1,2.4),a:rand(.05,.16)}); }
   for(const sp of CB._sand){ ctx.save(); ctx.globalAlpha=sp.a; ctx.fillStyle='#6b4f28'; ctx.beginPath(); ctx.arc(sp.x,sp.y,sp.r,0,7); ctx.fill(); ctx.restore(); }
   // range hint: when player's turn, draw a soft arc of selected spell reach
   if(CB.phase==='player' && CB.player){
@@ -4441,10 +4471,10 @@ window.addEventListener('keyup',e=>{
 canvas.addEventListener('pointermove',e=>{ mouse.x=e.clientX;mouse.y=e.clientY; });
 canvas.addEventListener('pointerdown',e=>{
   if(!CB||CB.over)return;
-  if(CB.tb){ if(CB.tpAiming&&CB.phase==='player'&&!CB.busy){ tbTeleportTo(e.clientX); } return; }
+  if(CB.tb){ if(CB.tpAiming&&CB.phase==='player'&&!CB.busy){ tbTeleportTo(tbScreenToWorldX(e.clientX)); } return; }
   mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0);
 });
-canvas.addEventListener('pointermove',e=>{ if(CB&&CB.tb&&CB.tpAiming){ CB.tpAimX=e.clientX; } });
+canvas.addEventListener('pointermove',e=>{ if(CB&&CB.tb&&CB.tpAiming){ CB.tpAimX=tbScreenToWorldX(e.clientX); } });
 
 /* ---------------- VIRTUAL JOYSTICK (mobile movement) ---------------- */
 (function(){
@@ -5625,7 +5655,7 @@ function spawnNecroMinions(n){
   for(let i=0;i<n && CB.minions.length<MINION_CAP;i++){
     const slot=CB.minions.length;
     // spawn BEHIND the necro (away from the foe); they cannot move on their own
-    const mx=clamp(p.x - p.facing*(40+slot*24), CB.w*0.05, CB.w*0.95);
+    const mx=clamp(p.x - p.facing*(40+slot*24), tbWorldMinX(), tbWorldMaxX());
     CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:63, maxhp:63,
       facing:p.facing, dmg:13, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
     deathBurst(mx,p.baseY-22,'shadow',10);
