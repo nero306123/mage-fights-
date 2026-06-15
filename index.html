@@ -1746,15 +1746,33 @@ function drawShopkeeper(ctx,x,y,scale,type,t){
 
 /* ---- FAMILIARS: small companions that ride along and act each of your turns (own idea) ---- */
 const FAMILIARS={
-  imp:  {name:'Ember Imp',   icon:'😈', price:220, c1:'#ff5522', c2:'#ffcc55',
-    desc:'A cackling fire sprite. Each of your turns it flings a cinder at your foe.',
-    effect:'burn',  amount:7},
-  wisp: {name:'Moon Wisp',   icon:'👻', price:220, c1:'#9eeaff', c2:'#ffffff',
-    desc:'A gentle spirit drifting at your side, knitting your wounds each turn.',
-    effect:'heal',  amount:12},
-  golem:{name:'Pebble Golem',icon:'🗿', price:220, c1:'#9a8460', c2:'#bfe6a0',
-    desc:'A loyal stone construct. It raises a small ward around you each turn.',
-    effect:'shield',amount:9},
+  imp:  {name:'Ember Imp',    icon:'😈', price:240, c1:'#ff5522', c2:'#ffcc55', shape:'imp',
+    desc:'A cackling fire sprite — flings a burning cinder at your foe each turn.',
+    effect:'burn',  amount:9},
+  wisp: {name:'Moon Wisp',    icon:'👻', price:260, c1:'#9eeaff', c2:'#ffffff', shape:'wisp',
+    desc:'A gentle spirit that knits your wounds each turn.',
+    effect:'heal',  amount:14},
+  golem:{name:'Pebble Golem', icon:'🗿', price:240, c1:'#9a8460', c2:'#bfe6a0', shape:'golem',
+    desc:'A loyal construct that raises a small ward around you each turn.',
+    effect:'shield',amount:10},
+  viper:{name:'Venom Viper',  icon:'🐍', price:300, c1:'#33cc66', c2:'#ccff66', shape:'viper',
+    desc:'A coiled serpent that sinks fangs into your foe — leaves them bleeding.',
+    effect:'bleed', amount:6},
+  sprite:{name:'Mana Sprite', icon:'🧚', price:280, c1:'#66aaff', c2:'#cce6ff', shape:'sprite',
+    desc:'A fluttering sprite that channels arcane mana back to you each turn.',
+    effect:'mana',  amount:14},
+  owl:  {name:'Hex Owl',      icon:'🦉', price:320, c1:'#aa77dd', c2:'#ffe08a', shape:'owl',
+    desc:'A spectral owl whose gaze rattles your foe — −Hit each turn.',
+    effect:'weaken',amount:0},
+  drake:{name:'Arcane Drakeling',icon:'🐲', price:400, c1:'#cc66ff', c2:'#ffffff', shape:'drake',
+    desc:'A baby drake that spits a bolt of raw arcane energy each turn.',
+    effect:'nuke',  amount:16},
+  jelly:{name:'Rift Jelly',   icon:'🪼', price:340, c1:'#ff66cc', c2:'#ffd6f2', shape:'jelly',
+    desc:'A drifting jelly that marks your foe — they take +50% damage.',
+    effect:'vuln',  amount:0},
+  frostling:{name:'Frostling',icon:'🧊', price:300, c1:'#88ddff', c2:'#ffffff', shape:'frost',
+    desc:'A shard-spirit that chills your foe — slow + a sliver of ice damage.',
+    effect:'frost', amount:8},
 };
 // small companion drawn floating beside the player — echoes the mage art style at a tiny scale
 function drawFamiliar(ctx,x,y,scale,famId,t){
@@ -1820,6 +1838,64 @@ function drawFamiliar(ctx,x,y,scale,famId,t){
     ctx.beginPath();ctx.moveTo(-4,1);ctx.lineTo(0,-2);ctx.lineTo(4,3);ctx.moveTo(0,4);ctx.lineTo(0,9);ctx.stroke();ctx.restore();
     ctx.fillStyle=def.c2;ctx.shadowColor=def.c2;ctx.shadowBlur=6;
     ctx.beginPath();ctx.rect(-4,-12,2.4,2.4);ctx.rect(1.6,-12,2.4,2.4);ctx.fill();
+  } else if(famId==='viper'){
+    const sw=Math.sin(t*4)*2;
+    const coil=()=>{ ctx.beginPath();ctx.moveTo(-6,15);ctx.quadraticCurveTo(9+sw,11,-4,5);ctx.quadraticCurveTo(-13-sw,-1,3,-6);ctx.stroke(); };
+    ctx.strokeStyle=blend(def.c1,'#000',0.12);ctx.lineWidth=5;coil();
+    ctx.strokeStyle=blend(def.c2,'#fff',0.2);ctx.lineWidth=2;coil();
+    ctx.fillStyle=blend(def.c1,'#000',0.05);ctx.beginPath();ctx.ellipse(4,-8,5,4,0.4,0,7);ctx.fill();
+    ctx.fillStyle='#ffee44';ctx.shadowColor='#ffaa00';ctx.shadowBlur=4;ctx.beginPath();ctx.arc(6,-9,1.1,0,7);ctx.fill();ctx.shadowBlur=0;
+    ctx.strokeStyle='#ff3366';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(8,-8);ctx.lineTo(12+Math.sin(t*8),-8);ctx.stroke();
+  } else if(famId==='sprite'){
+    const flap=Math.sin(t*14)*0.5+0.5;
+    ctx.save();ctx.globalAlpha=.5;const wg=ctx.createLinearGradient(0,-8,0,6);wg.addColorStop(0,'#fff');wg.addColorStop(1,def.c1);ctx.fillStyle=wg;
+    ctx.beginPath();ctx.ellipse(-6,-2,4,7+flap*2,-0.5,0,7);ctx.fill();
+    ctx.beginPath();ctx.ellipse(6,-2,4,7+flap*2,0.5,0,7);ctx.fill();ctx.restore();
+    const bg=ctx.createRadialGradient(0,0,1,0,0,6);bg.addColorStop(0,'#fff');bg.addColorStop(1,def.c1);
+    ctx.fillStyle=bg;ctx.shadowColor=def.c1;ctx.shadowBlur=8;
+    ctx.beginPath();ctx.ellipse(0,1,4,6,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(0,-6,3,0,7);ctx.fill();ctx.shadowBlur=0;
+    for(let i=0;i<3;i++){const a=t*3+i*2.1,r=10+Math.sin(t*3+i)*2;ctx.save();ctx.globalAlpha=.6;ctx.fillStyle=def.c2;ctx.beginPath();ctx.arc(Math.cos(a)*r,Math.sin(a)*r*0.7,1,0,7);ctx.fill();ctx.restore();}
+  } else if(famId==='owl'){
+    const flap=Math.sin(t*7)*3;
+    ctx.fillStyle=blend(def.c1,'#000',0.25);
+    ctx.beginPath();ctx.moveTo(-6,-2);ctx.quadraticCurveTo(-13,2-flap,-8,8);ctx.quadraticCurveTo(-6,6,-5,2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(6,-2);ctx.quadraticCurveTo(13,2-flap,8,8);ctx.quadraticCurveTo(6,6,5,2);ctx.closePath();ctx.fill();
+    const bg=ctx.createLinearGradient(0,-10,0,12);bg.addColorStop(0,blend(def.c1,'#fff',0.2));bg.addColorStop(1,blend(def.c1,'#000',0.3));
+    ctx.fillStyle=bg;ctx.beginPath();ctx.ellipse(0,1,8,10,0,0,7);ctx.fill();
+    ctx.fillStyle=blend(def.c1,'#000',0.35);
+    ctx.beginPath();ctx.moveTo(-6,-8);ctx.lineTo(-3,-14);ctx.lineTo(-2,-7);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(6,-8);ctx.lineTo(3,-14);ctx.lineTo(2,-7);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(-3.2,-3,3,0,7);ctx.arc(3.2,-3,3,0,7);ctx.fill();
+    ctx.fillStyle=def.c2;ctx.shadowColor=def.c2;ctx.shadowBlur=6;ctx.beginPath();ctx.arc(-3.2,-3,1.5,0,7);ctx.arc(3.2,-3,1.5,0,7);ctx.fill();ctx.shadowBlur=0;
+    ctx.fillStyle='#ffaa33';ctx.beginPath();ctx.moveTo(-1.5,-1);ctx.lineTo(1.5,-1);ctx.lineTo(0,2);ctx.closePath();ctx.fill();
+  } else if(famId==='drake'){
+    const flap=Math.sin(t*8)*0.5+0.5;
+    ctx.fillStyle=blend(def.c1,'#000',0.35);
+    ctx.beginPath();ctx.moveTo(-2,-3);ctx.quadraticCurveTo(-15,-10-flap*4,-13,3);ctx.lineTo(-9,0);ctx.lineTo(-7,4);ctx.lineTo(-4,0);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(2,-3);ctx.quadraticCurveTo(15,-10-flap*4,13,3);ctx.lineTo(9,0);ctx.lineTo(7,4);ctx.lineTo(4,0);ctx.closePath();ctx.fill();
+    const bg=ctx.createRadialGradient(-2,-3,1,0,0,11);bg.addColorStop(0,blend(def.c1,'#fff',0.35));bg.addColorStop(1,blend(def.c1,'#000',0.25));
+    ctx.fillStyle=bg;ctx.beginPath();ctx.ellipse(0,3,7,9,0,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(2,-6,5,4,0.3,0,7);ctx.fill();
+    ctx.strokeStyle=blend(def.c1,'#000',0.4);ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(-2,-14);ctx.moveTo(3,-9);ctx.lineTo(3,-14);ctx.stroke();
+    ctx.save();ctx.fillStyle=def.c2;ctx.shadowColor=def.c1;ctx.shadowBlur=8;ctx.globalAlpha=.6+0.3*Math.sin(t*6);ctx.beginPath();ctx.arc(6,-6,2,0,7);ctx.fill();ctx.restore();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(2,-7,1,0,7);ctx.fill();
+  } else if(famId==='jelly'){
+    const pulse=Math.sin(t*3)*0.12+1;
+    ctx.save();ctx.globalAlpha=.35;const gg=ctx.createRadialGradient(0,-2,1,0,-2,14);gg.addColorStop(0,def.c1);gg.addColorStop(1,'transparent');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(0,-2,14,0,7);ctx.fill();ctx.restore();
+    ctx.strokeStyle=def.c1;ctx.lineWidth=1.4;ctx.save();ctx.globalAlpha=.8;
+    for(let i=-2;i<=2;i++){const tx=i*2.4;ctx.beginPath();ctx.moveTo(tx,2);ctx.quadraticCurveTo(tx+Math.sin(t*4+i)*2,10,tx+Math.sin(t*4+i)*3,16);ctx.stroke();}ctx.restore();
+    const bg=ctx.createLinearGradient(0,-12,0,4);bg.addColorStop(0,blend(def.c1,'#fff',0.5));bg.addColorStop(1,blend(def.c1,'#000',0.05));
+    ctx.save();ctx.globalAlpha=.82;ctx.fillStyle=bg;
+    ctx.beginPath();ctx.ellipse(0,-2,9*pulse,8,0,Math.PI,0);ctx.lineTo(9*pulse,-2);ctx.quadraticCurveTo(0,3,-9*pulse,-2);ctx.closePath();ctx.fill();ctx.restore();
+    ctx.fillStyle=def.c2;ctx.shadowColor=def.c2;ctx.shadowBlur=5;ctx.beginPath();ctx.arc(-2.5,-4,1.1,0,7);ctx.arc(2.5,-4,1.1,0,7);ctx.fill();ctx.shadowBlur=0;
+  } else if(famId==='frostling'){
+    const spin=t*1.5;
+    ctx.save();ctx.globalAlpha=.4;const gg=ctx.createRadialGradient(0,0,1,0,0,13);gg.addColorStop(0,def.c1);gg.addColorStop(1,'transparent');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(0,0,13,0,7);ctx.fill();ctx.restore();
+    const bg=ctx.createLinearGradient(0,-11,0,11);bg.addColorStop(0,'#fff');bg.addColorStop(1,blend(def.c1,'#000',0.1));
+    ctx.fillStyle=bg;ctx.strokeStyle=blend(def.c1,'#fff',0.3);ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(0,-11);ctx.lineTo(6,0);ctx.lineTo(0,11);ctx.lineTo(-6,0);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.fillStyle=blend(def.c1,'#fff',0.4);
+    for(let i=0;i<3;i++){const a=spin+i*2.1,r=9;const sx=Math.cos(a)*r,sy=Math.sin(a)*r*0.7;ctx.beginPath();ctx.moveTo(sx,sy-2.5);ctx.lineTo(sx+2,sy);ctx.lineTo(sx,sy+2.5);ctx.lineTo(sx-2,sy);ctx.closePath();ctx.fill();}
+    ctx.fillStyle='#66ccff';ctx.shadowColor='#88ddff';ctx.shadowBlur=5;ctx.beginPath();ctx.arc(-2,-1,1,0,7);ctx.arc(2,-1,1,0,7);ctx.fill();ctx.shadowBlur=0;
   }
   ctx.restore();
 }
@@ -4841,7 +4917,26 @@ function tbApplyFamiliar(){
     tbFamiliarFX(fx,fy,def.c2);
   } else if(def.effect==='burn'){
     tbFamiliarFX(fx,fy,def.c1);
-    if(CB.foe) tbDealDamage(CB.foe,def.amount,'fire',{});
+    if(CB.foe) tbDealDamage(CB.foe,def.amount,'fire',{trueHit:true});
+  } else if(def.effect==='mana'){
+    p.mana=clamp(p.mana+def.amount,0,p.maxmana);
+    floatNumber(fx,fy-12,'+'+def.amount+' mana',{heal:true});
+    tbFamiliarFX(fx,fy,def.c1);
+  } else if(def.effect==='nuke'){
+    tbFamiliarFX(fx,fy,def.c1);
+    if(CB.foe) tbDealDamage(CB.foe,def.amount,'essence',{trueHit:true});
+  } else if(def.effect==='bleed'){
+    tbFamiliarFX(fx,fy,def.c1);
+    if(CB.foe){ CB.foe.statuses.bleed={turns:3,dmg:def.amount}; floatNumber(CB.foe.x,CB.foe.y-44,'🩸',{el:'shadow'}); }
+  } else if(def.effect==='weaken'){
+    tbFamiliarFX(fx,fy,def.c1);
+    if(CB.foe){ CB.foe.statuses.weaken={turns:2,val:18}; floatNumber(CB.foe.x,CB.foe.y-44,'−Hit',{miss:true}); }
+  } else if(def.effect==='vuln'){
+    tbFamiliarFX(fx,fy,def.c1);
+    if(CB.foe){ CB.foe.statuses.vuln={turns:2}; floatNumber(CB.foe.x,CB.foe.y-44,'🎯',{el:'essence'}); }
+  } else if(def.effect==='frost'){
+    tbFamiliarFX(fx,fy,def.c1);
+    if(CB.foe){ CB.foe.statuses.slow={turns:2,val:0.5}; tbDealDamage(CB.foe,def.amount,'ice',{trueHit:true}); }
   }
 }
 
