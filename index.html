@@ -460,6 +460,17 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 .tc-pips{font-size:11px;color:#bdb6ff;letter-spacing:1px;}
 .tc-pips .pip{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 1px;background:#2a2a44;border:1px solid #55557f;vertical-align:middle;}
 .tc-pips .pip.on{background:#ffd866;border-color:#ffd866;box-shadow:0 0 6px #ffd866;}
+.tc-side{display:flex;gap:8px;pointer-events:auto;}
+.tc-jump{font-size:26px;border-color:#3d6a3d;color:#bfe6bf;background:rgba(16,26,16,.85);}
+.tc-row2{display:flex;gap:8px;align-items:center;}
+.tc-tp{
+  padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;
+  border:2px solid #6a3da0;background:linear-gradient(180deg,#241038,#140820);color:#cfa6ff;
+  -webkit-tap-highlight-color:transparent;
+}
+.tc-tp:disabled{opacity:.35;}
+.tc-tp.arming{border-color:#cc99ff;background:linear-gradient(180deg,#3a1860,#241038);box-shadow:0 0 14px #9966ff;animation:tpPulse .8s ease-in-out infinite;}
+@keyframes tpPulse{0%,100%{box-shadow:0 0 8px #9966ff;}50%{box-shadow:0 0 20px #cc99ff;}}
 .tc-end{
   padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;
   border:2px solid #886600;background:linear-gradient(180deg,#3a2e10,#1a1408);color:#ffd866;
@@ -1290,125 +1301,221 @@ function buildStars(container,count=120,dustCount=30){
    ==================  MAGE SPRITE DRAW  ======================
    Stylized robed figures on canvas. Each class unique silhouette.
 ============================================================ */
+// per-class humanoid look (Sword & Sandals style mages)
+const MAGE_LOOK={
+  fire:   {head:'hat',  beard:true,  hatC:'#7a2810'},
+  ice:    {head:'hat',  hatC:'#2a5a78'},
+  necro:  {head:'skull',crown:true,  cape:true},
+  water:  {head:'hood'},
+  earth:  {head:'hat',  beard:true,  stocky:true, hatC:'#4a3a14'},
+  wind:   {head:'hood'},
+  essence:{head:'hood', hidden:true},
+  power:  {head:'hood', hidden:true},
+};
+const SKIN='#d8a878', BRONZE='#6e4f2c', LEATHER='#4a3320', GOLDTRIM='#d8b24a', WOOD='#5a3f22';
+
 function drawMage(ctx,x,y,scale,classId,t,opts={}){
   const cls=CLASSES[classId];
   const c1=cls.c1, c2=cls.c2;
+  const look=MAGE_LOOK[classId]||{head:'hood'};
   const facing=opts.facing||1;       // 1 right, -1 left
   const aura=opts.aura||0;           // 0..1 extra glow
-  const casting=opts.casting||0;     // 0..1 cast charge
-  const bob=Math.sin(t*2.2)*2*scale; // idle bob
+  const casting=opts.casting||0;     // 0..1 cast charge (raises staff + charges tip)
+  const bob=Math.sin(t*2.2)*1.6*scale;
+  // warm, earthy robe — class colour only as accent/trim, not full neon
+  const robeBase=blend(c1,BRONZE,0.58);
+  const robeDark=blend(c1,'#241608',0.55);
+  const trim=cls.rainbow?GOLDTRIM:blend(c2,GOLDTRIM,0.35);
   ctx.save();
   ctx.translate(x,y+bob);
   ctx.scale(scale*facing,scale);
+  ctx.lineJoin='round';ctx.lineCap='round';
 
   // ---- ground shadow ----
-  ctx.save();
-  ctx.globalAlpha=.35;
-  ctx.fillStyle='#000';
-  ctx.beginPath();ctx.ellipse(0,30,16,5,0,0,7);ctx.fill();
-  ctx.restore();
+  ctx.save();ctx.globalAlpha=.32;ctx.fillStyle='#000';
+  ctx.beginPath();ctx.ellipse(0,32,17,5,0,0,7);ctx.fill();ctx.restore();
 
-  // ---- floating elemental particles around body ----
-  const np=6;
-  for(let i=0;i<np;i++){
-    const a=t*1.5 + i*(Math.PI*2/np);
-    const r=18+Math.sin(t*2+i)*4;
-    const px=Math.cos(a)*r, py=Math.sin(a)*r*0.8 - 4;
-    ctx.save();
-    ctx.globalAlpha=.5+0.3*Math.sin(t*3+i);
-    const pc=cls.rainbow?`hsl(${(t*80+i*60)%360},90%,65%)`:(i%2?c2:c1);
-    ctx.fillStyle=pc; ctx.shadowColor=pc; ctx.shadowBlur=8;
-    ctx.beginPath();ctx.arc(px,py,1.6,0,7);ctx.fill();
-    ctx.restore();
+  // ---- subtle floating elemental motes ----
+  for(let i=0;i<4;i++){
+    const a=t*1.2 + i*(Math.PI/2);
+    const r=22+Math.sin(t*1.7+i)*4;
+    const px=Math.cos(a)*r, py=Math.sin(a)*r*0.7 - 6;
+    ctx.save();ctx.globalAlpha=.35+0.25*Math.sin(t*3+i);
+    const pc=cls.rainbow?`hsl(${(t*80+i*60)%360},85%,62%)`:c2;
+    ctx.fillStyle=pc;ctx.shadowColor=pc;ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(px,py,1.4,0,7);ctx.fill();ctx.restore();
   }
-
-  // ---- full element aura (killstreak) ----
   if(aura>0){
-    ctx.save();
-    ctx.globalAlpha=0.25*aura;
-    const g=ctx.createRadialGradient(0,0,4,0,0,34);
+    ctx.save();ctx.globalAlpha=0.22*aura;
+    const g=ctx.createRadialGradient(0,-4,4,0,-4,38);
     g.addColorStop(0,c2);g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,34,0,7);ctx.fill();
-    ctx.restore();
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,-4,38,0,7);ctx.fill();ctx.restore();
   }
 
-  // ---- ROBE (unique silhouette per class) ----
-  const robe=ctx.createLinearGradient(0,-12,0,32);
-  robe.addColorStop(0,c1);robe.addColorStop(1,shade(c1,-40));
-  ctx.fillStyle=robe;
-  ctx.strokeStyle=shade(c2,20);ctx.lineWidth=1.2;
-
+  const wide=look.stocky?1.18:1;
+  // ============ CAPE (behind body, billows backward) ============
+  const sway=Math.sin(t*2.0)*2.2;
+  ctx.save();
+  const capeG=ctx.createLinearGradient(0,-14,0,30);
+  capeG.addColorStop(0,blend(c1,'#000',0.25));capeG.addColorStop(1,robeDark);
+  ctx.fillStyle=capeG;ctx.globalAlpha=.96;
   ctx.beginPath();
-  switch(classId){
-    case 'fire': // flickering jagged hem
-      ctx.moveTo(0,-14);ctx.lineTo(10,-6);ctx.lineTo(11,26);
-      ctx.lineTo(7,22);ctx.lineTo(4,30);ctx.lineTo(0,24);ctx.lineTo(-4,30);
-      ctx.lineTo(-7,22);ctx.lineTo(-11,26);ctx.lineTo(-10,-6);ctx.closePath();break;
-    case 'ice': // sharp crystalline angular
-      ctx.moveTo(0,-15);ctx.lineTo(11,-4);ctx.lineTo(8,14);ctx.lineTo(12,28);
-      ctx.lineTo(0,22);ctx.lineTo(-12,28);ctx.lineTo(-8,14);ctx.lineTo(-11,-4);ctx.closePath();break;
-    case 'necro': // tattered torn hood
-      ctx.moveTo(0,-16);ctx.lineTo(9,-5);ctx.lineTo(10,24);ctx.lineTo(5,18);
-      ctx.lineTo(6,28);ctx.lineTo(1,21);ctx.lineTo(-2,29);ctx.lineTo(-5,20);
-      ctx.lineTo(-10,26);ctx.lineTo(-9,-5);ctx.closePath();break;
-    case 'water': // smooth flowing curves
-      ctx.moveTo(0,-14);ctx.quadraticCurveTo(12,-4,9,14);
-      ctx.quadraticCurveTo(13,28,0,26);ctx.quadraticCurveTo(-13,28,-9,14);
-      ctx.quadraticCurveTo(-12,-4,0,-14);ctx.closePath();break;
-    case 'earth': // bulky wide stocky
-      ctx.moveTo(0,-12);ctx.lineTo(14,-2);ctx.lineTo(15,28);ctx.lineTo(-15,28);
-      ctx.lineTo(-14,-2);ctx.closePath();break;
-    case 'wind': // slim wispy trailing
-      ctx.moveTo(0,-15);ctx.lineTo(8,-6);ctx.lineTo(14,26);ctx.lineTo(2,20);
-      ctx.lineTo(0,30);ctx.lineTo(-2,20);ctx.lineTo(-14,26);ctx.lineTo(-8,-6);ctx.closePath();break;
-    case 'essence': // elegant layered
-      ctx.moveTo(0,-15);ctx.lineTo(10,-5);ctx.lineTo(7,10);ctx.lineTo(11,26);
-      ctx.lineTo(0,21);ctx.lineTo(-11,26);ctx.lineTo(-7,10);ctx.lineTo(-10,-5);ctx.closePath();break;
-    case 'power': // armored angular regal
-      ctx.moveTo(0,-15);ctx.lineTo(12,-7);ctx.lineTo(9,6);ctx.lineTo(12,28);
-      ctx.lineTo(0,23);ctx.lineTo(-12,28);ctx.lineTo(-9,6);ctx.lineTo(-12,-7);ctx.closePath();break;
+  ctx.moveTo(-2,-12);
+  ctx.quadraticCurveTo(-12,-2,-13-sway,16);
+  ctx.quadraticCurveTo(-16-sway,28,-9,30);
+  ctx.lineTo(-2,18);ctx.lineTo(4,-10);ctx.closePath();ctx.fill();
+  if(look.cape){ // necro tattered cape edge
+    ctx.strokeStyle=blend(c2,'#000',0.2);ctx.lineWidth=0.8;ctx.stroke();
   }
-  ctx.fill();ctx.stroke();
-
-  // essence rainbow shimmer overlay
-  if(cls.rainbow){
-    ctx.save();ctx.globalAlpha=.3;ctx.globalCompositeOperation='overlay';
-    const rg=ctx.createLinearGradient(-12,0,12,0);
-    for(let i=0;i<=6;i++) rg.addColorStop(i/6,`hsl(${(t*60+i*60)%360},90%,60%)`);
-    ctx.fillStyle=rg;ctx.fillRect(-15,-15,30,45);ctx.restore();
-  }
-
-  // ---- HOOD / HEAD ----
-  ctx.fillStyle=shade(c1,-25);
-  ctx.beginPath();ctx.arc(0,-16,7,0,7);ctx.fill();
-  // glowing eyes
-  ctx.save();ctx.shadowColor=c2;ctx.shadowBlur=8;ctx.fillStyle=c2;
-  ctx.beginPath();ctx.arc(-2.5,-16,1.3,0,7);ctx.arc(2.5,-16,1.3,0,7);ctx.fill();
   ctx.restore();
 
-  // ---- GLOWING HANDS ----
-  const handGlow=0.6+casting*0.4+Math.sin(t*4)*0.1;
-  const hands=[[-9,6],[9,6]];
-  for(const [hx,hy] of hands){
-    const r=2.4+casting*2.5;
-    ctx.save();
-    ctx.shadowColor=c2;ctx.shadowBlur=10+casting*16;
-    const hg=ctx.createRadialGradient(hx,hy,0,hx,hy,r+2);
-    hg.addColorStop(0,'#fff');hg.addColorStop(.5,c2);hg.addColorStop(1,'transparent');
-    ctx.globalAlpha=handGlow;ctx.fillStyle=hg;
-    ctx.beginPath();ctx.arc(hx,hy,r+2,0,7);ctx.fill();
-    ctx.restore();
-  }
+  // ============ LEGS / BOOTS ============
+  const stride=opts.walk?Math.sin(t*9)*3:0;
+  ctx.fillStyle=LEATHER;
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(-7,16,5,16,2):ctx.rect(-7,16,5,16);ctx.fill();
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(2.5+stride*0.3,16,5,16,2):ctx.rect(2.5,16,5,16);ctx.fill();
+  // boots
+  ctx.fillStyle=shade(LEATHER,-14);
+  ctx.beginPath();ctx.ellipse(-4,31,4.4,2.4,0,0,7);ctx.fill();
+  ctx.beginPath();ctx.ellipse(5+stride*0.3,31,4.4,2.4,0,0,7);ctx.fill();
 
-  // prestige crown cosmetic
-  if(G.prestige>0){
-    ctx.save();ctx.fillStyle='#ffd866';ctx.shadowColor='#ffd866';ctx.shadowBlur=10;
+  // ============ ROBE / TUNIC ============
+  const robe=ctx.createLinearGradient(0,-14,0,30);
+  robe.addColorStop(0,blend(robeBase,'#fff',0.12));robe.addColorStop(0.55,robeBase);robe.addColorStop(1,robeDark);
+  ctx.fillStyle=robe;ctx.strokeStyle=robeDark;ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(-7*wide,-13);
+  ctx.lineTo(7*wide,-13);
+  ctx.lineTo(9*wide,8);
+  ctx.quadraticCurveTo(13*wide,26,11*wide,30);  // flared hem
+  ctx.lineTo(-11*wide,30);
+  ctx.quadraticCurveTo(-13*wide,26,-9*wide,8);
+  ctx.closePath();ctx.fill();ctx.stroke();
+  // center seam + hem trim (class accent)
+  ctx.strokeStyle=trim;ctx.lineWidth=1.4;ctx.globalAlpha=.85;
+  ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(0,29);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-10*wide,29);ctx.quadraticCurveTo(0,33,10*wide,29);ctx.stroke();
+  ctx.globalAlpha=1;
+  // sash / belt
+  ctx.fillStyle=blend(trim,'#000',0.15);
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(-8*wide,9,16*wide,3.4,1.5):ctx.rect(-8*wide,9,16*wide,3.4);ctx.fill();
+  ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(0,10.6,1.8,0,7);ctx.fill();
+
+  // shoulders / chest yoke
+  ctx.fillStyle=blend(robeBase,'#000',0.18);
+  ctx.beginPath();ctx.moveTo(-7.5*wide,-13);ctx.quadraticCurveTo(0,-17,7.5*wide,-13);ctx.lineTo(6,-6);ctx.quadraticCurveTo(0,-9,-6,-6);ctx.closePath();ctx.fill();
+  if(cls.rainbow){ ctx.save();ctx.globalAlpha=.25;ctx.globalCompositeOperation='overlay';
+    const rg=ctx.createLinearGradient(-10,0,10,0);for(let i=0;i<=5;i++)rg.addColorStop(i/5,`hsl(${(t*50+i*70)%360},85%,58%)`);
+    ctx.fillStyle=rg;ctx.fillRect(-12,-14,24,44);ctx.restore(); }
+
+  // ============ BACK ARM (resting) ============
+  ctx.strokeStyle=robeBase;ctx.lineWidth=4.4;
+  ctx.beginPath();ctx.moveTo(-6,-8);ctx.quadraticCurveTo(-11,0,-8,9);ctx.stroke();
+  // back hand
+  ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(-8,10,2,0,7);ctx.fill();
+
+  // ============ HEAD ============
+  drawMageHead(ctx,classId,look,c1,c2,trim,t,casting);
+
+  // ============ FRONT ARM + STAFF (the casting implement) ============
+  const raise=casting;                       // 0 rest .. 1 staff up
+  const sx=8, sy=4 - raise*4;                 // shoulder pivot
+  const hx=11+raise*2, hy=2 - raise*16;       // hand grips staff
+  // front arm sleeve
+  ctx.strokeStyle=blend(robeBase,'#fff',0.06);ctx.lineWidth=4.4;
+  ctx.beginPath();ctx.moveTo(5,-7);ctx.quadraticCurveTo(sx,sy,hx,hy);ctx.stroke();
+  // hand
+  ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(hx,hy,2,0,7);ctx.fill();
+  // STAFF shaft (held in front hand)
+  const tipx=hx+5, tipy=hy-30-raise*4;
+  const footx=hx-2, footy=hy+22;
+  ctx.strokeStyle=WOOD;ctx.lineWidth=2.4;
+  ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
+  ctx.strokeStyle=shade(WOOD,18);ctx.lineWidth=0.8;
+  ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
+  // tip crown/holder
+  ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(tipx,tipy,2.6,0,7);ctx.fill();
+  // glowing focus orb at tip — magical, intensifies while casting
+  const pulse=0.55+0.25*Math.sin(t*5)+casting*0.6;
+  const orbR=3.2+casting*3.2;
+  ctx.save();ctx.shadowColor=c2;ctx.shadowBlur=10+casting*22;
+  const og=ctx.createRadialGradient(tipx,tipy-2,0,tipx,tipy-2,orbR+3);
+  og.addColorStop(0,'#fff');og.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:c2);og.addColorStop(1,'transparent');
+  ctx.globalAlpha=Math.min(1,pulse);ctx.fillStyle=og;
+  ctx.beginPath();ctx.arc(tipx,tipy-2,orbR+3,0,7);ctx.fill();
+  ctx.restore();
+  // charge motes converging on tip while casting
+  if(casting>0.15){
+    for(let i=0;i<5;i++){ const a=t*4+i*1.3; const rr=(1-casting)*14+8;
+      ctx.save();ctx.globalAlpha=casting*0.8;ctx.fillStyle=c2;ctx.shadowColor=c2;ctx.shadowBlur=6;
+      ctx.beginPath();ctx.arc(tipx+Math.cos(a)*rr,tipy-2+Math.sin(a)*rr*0.8,1.1,0,7);ctx.fill();ctx.restore(); }
+  }
+  ctx.restore();
+}
+
+function drawMageHead(ctx,classId,look,c1,c2,trim,t,casting){
+  const eyeGlow=()=>{ ctx.save();ctx.shadowColor=c2;ctx.shadowBlur=7+casting*8;ctx.fillStyle=blend(c2,'#fff',0.3);
+    ctx.beginPath();ctx.arc(-2.4,-17,1.25,0,7);ctx.arc(2.4,-17,1.25,0,7);ctx.fill();ctx.restore(); };
+  if(look.head==='skull'){
+    // skull
+    ctx.fillStyle='#e7e2d0';ctx.strokeStyle='#b9b29a';ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.arc(0,-18,6.4,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-3,-13);ctx.lineTo(-1.6,-9.5);ctx.lineTo(0,-13);ctx.lineTo(1.6,-9.5);ctx.lineTo(3,-13);ctx.fill();// jaw teeth
+    // eye sockets glowing
+    ctx.save();ctx.shadowColor=c2;ctx.shadowBlur=9;ctx.fillStyle=c2;
+    ctx.beginPath();ctx.arc(-2.6,-18.5,1.7,0,7);ctx.arc(2.6,-18.5,1.7,0,7);ctx.fill();ctx.restore();
+    ctx.fillStyle='#3a3a30';ctx.beginPath();ctx.moveTo(-1,-16);ctx.lineTo(1,-16);ctx.lineTo(0,-13.5);ctx.closePath();ctx.fill();// nose
+    if(look.crown){ drawCrown(ctx,-26.5); }
+    return;
+  }
+  // hood (with or without visible face)
+  if(look.head==='hood'){
+    ctx.fillStyle=blend(c1,BRONZE,0.5);ctx.strokeStyle=blend(c1,'#000',0.4);ctx.lineWidth=1;
     ctx.beginPath();
-    ctx.moveTo(-6,-22);ctx.lineTo(-6,-26);ctx.lineTo(-3,-23);ctx.lineTo(0,-28);
-    ctx.lineTo(3,-23);ctx.lineTo(6,-26);ctx.lineTo(6,-22);ctx.closePath();ctx.fill();
-    ctx.restore();
+    ctx.moveTo(-7,-9);ctx.quadraticCurveTo(-9,-24,0,-27);ctx.quadraticCurveTo(9,-24,7,-9);
+    ctx.quadraticCurveTo(0,-13,-7,-9);ctx.closePath();ctx.fill();ctx.stroke();
+    // inner shadow
+    ctx.fillStyle=look.hidden?'#0a0a12':blend(SKIN,'#000',0.35);
+    ctx.beginPath();ctx.ellipse(0,-16.5,4.2,5,0,0,7);ctx.fill();
+    if(look.hidden){ // only glowing eyes
+      ctx.save();ctx.shadowColor=c2;ctx.shadowBlur=8+casting*8;ctx.fillStyle=blend(c2,'#fff',0.4);
+      ctx.beginPath();ctx.ellipse(-2.3,-17,1.1,1.6,0,0,7);ctx.ellipse(2.3,-17,1.1,1.6,0,0,7);ctx.fill();ctx.restore();
+    } else { // dim face + eyes
+      ctx.fillStyle=SKIN;ctx.beginPath();ctx.ellipse(0,-15.5,3,3.6,0,0,7);ctx.fill();
+      ctx.fillStyle='#3a2a1a';ctx.beginPath();ctx.arc(-1.6,-16,0.9,0,7);ctx.arc(1.6,-16,0.9,0,7);ctx.fill();
+    }
+    return;
   }
-
+  // hatted face (classic wizard)
+  // face
+  ctx.fillStyle=SKIN;ctx.strokeStyle=shade(SKIN,-30);ctx.lineWidth=0.6;
+  ctx.beginPath();ctx.arc(0,-15.5,5.6,0,7);ctx.fill();ctx.stroke();
+  // eyes + brow
+  ctx.fillStyle='#3a2a1a';ctx.beginPath();ctx.arc(-2,-16.5,0.95,0,7);ctx.arc(2,-16.5,0.95,0,7);ctx.fill();
+  ctx.strokeStyle='#4a3a2a';ctx.lineWidth=0.8;
+  ctx.beginPath();ctx.moveTo(-3.4,-18);ctx.lineTo(-0.6,-18.4);ctx.moveTo(0.6,-18.4);ctx.lineTo(3.4,-18);ctx.stroke();
+  if(look.beard){
+    ctx.fillStyle='#cfc4b0';
+    ctx.beginPath();ctx.moveTo(-4.6,-13);ctx.quadraticCurveTo(-5,-4,0,-2.5);ctx.quadraticCurveTo(5,-4,4.6,-13);
+    ctx.quadraticCurveTo(0,-10,-4.6,-13);ctx.closePath();ctx.fill();
+  }
+  // wide-brim wizard hat
+  const hatC=look.hatC||blend(c1,BRONZE,0.4);
+  ctx.fillStyle=hatC;ctx.strokeStyle=blend(hatC,'#000',0.4);ctx.lineWidth=0.8;
+  ctx.beginPath();ctx.ellipse(0,-20,10,2.8,0,0,7);ctx.fill();ctx.stroke(); // brim
+  ctx.beginPath();ctx.moveTo(-6,-20.5);ctx.quadraticCurveTo(-2,-38,2,-40);ctx.quadraticCurveTo(3,-30,6,-20.5);ctx.closePath();ctx.fill();ctx.stroke(); // cone (droops forward)
+  // hat band + star
+  ctx.strokeStyle=trim;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(-6,-21);ctx.lineTo(6,-21);ctx.stroke();
+  ctx.save();ctx.fillStyle=GOLDTRIM;ctx.shadowColor=GOLDTRIM;ctx.shadowBlur=5;
+  ctx.beginPath();ctx.arc(0,-23,1.3,0,7);ctx.fill();ctx.restore();
+  if(G.prestige>0) drawCrown(ctx,-42);
+}
+function drawCrown(ctx,yy){
+  ctx.save();ctx.fillStyle=GOLDTRIM;ctx.shadowColor=GOLDTRIM;ctx.shadowBlur=8;
+  ctx.beginPath();
+  ctx.moveTo(-6,yy+4);ctx.lineTo(-6,yy);ctx.lineTo(-3,yy+2.5);ctx.lineTo(0,yy-2.5);
+  ctx.lineTo(3,yy+2.5);ctx.lineTo(6,yy);ctx.lineTo(6,yy+4);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#ff5577';ctx.beginPath();ctx.arc(0,yy+1.5,1,0,7);ctx.fill();
   ctx.restore();
 }
 function shade(hex,amt){
@@ -1419,6 +1526,12 @@ function shade(hex,amt){
   let b=clamp(parseInt(c.slice(4,6),16)+amt,0,255);
   return `rgb(${r|0},${g|0},${b|0})`;
 }
+function _rgb(col){
+  if(col[0]==='r'){ const m=col.match(/\d+/g); return [+m[0],+m[1],+m[2]]; }
+  let c=col.replace('#','');if(c.length===3)c=c.split('').map(x=>x+x).join('');
+  return [parseInt(c.slice(0,2),16),parseInt(c.slice(2,4),16),parseInt(c.slice(4,6),16)];
+}
+function blend(h1,h2,t){ const a=_rgb(h1),b=_rgb(h2); return `rgb(${Math.round(a[0]+(b[0]-a[0])*t)},${Math.round(a[1]+(b[1]-a[1])*t)},${Math.round(a[2]+(b[2]-a[2])*t)})`; }
 
 /* ============================================================
    =================  TITLE & CLASS SELECT  ===================
@@ -2088,7 +2201,8 @@ function makeMage(side,classId,stats,opts={}){
     speedStat:stats.speed,
     shield:0, buffs:{}, statuses:{}, statusTags:new Set(),
     facing:side==='L'?1:-1,
-    move:0, maxMove:0, walkT:0, casting:0, castGlow:0, flash:0, hitTimer:0, bobT:rand(0,6),
+    stamina:100, maxstamina:100, tpcd:0,
+    move:0, maxMove:0, walkT:0, jumpT:0, casting:0, castGlow:0, flash:0, hitTimer:0, bobT:rand(0,6),
     cooldowns:{}, spells:opts.spells||cls.spells.slice(0, knownForClass(classId)),
     name:opts.name||cls.name, dmgMult:opts.dmgMult||1, isBoss:opts.isBoss||false,
     ai:opts.ai||'balanced',
@@ -2204,16 +2318,28 @@ function tbSetupHUD(){
     tc.id='turnControls';
     tc.className='turn-controls';
     tc.innerHTML=`
-      <button class="tc-btn tc-move" id="tcLeft">◀</button>
+      <div class="tc-side">
+        <button class="tc-btn tc-jump" id="tcJumpL" title="Jump back">⤺</button>
+        <button class="tc-btn tc-move" id="tcLeft" title="Walk left">◀</button>
+      </div>
       <div class="tc-center">
         <div class="tc-turn" id="tcTurn">YOUR TURN</div>
         <div class="tc-pips" id="tcPips"></div>
-        <button class="tc-end" id="tcEnd">End Turn ⏭</button>
+        <div class="tc-row2">
+          <button class="tc-tp" id="tcTp" title="Teleport (40 mana, 50 stamina)">🌀 Blink</button>
+          <button class="tc-end" id="tcEnd">End Turn ⏭</button>
+        </div>
       </div>
-      <button class="tc-btn tc-move" id="tcRight">▶</button>`;
+      <div class="tc-side">
+        <button class="tc-btn tc-jump" id="tcJumpR" title="Jump forward">⤻</button>
+        <button class="tc-btn tc-move" id="tcRight" title="Walk right">▶</button>
+      </div>`;
     $('combatHud').appendChild(tc);
     $('tcLeft').onclick=()=>tbMove(-1);
     $('tcRight').onclick=()=>tbMove(1);
+    $('tcJumpL').onclick=()=>tbJump(-1);
+    $('tcJumpR').onclick=()=>tbJump(1);
+    $('tcTp').onclick=()=>tbToggleTeleport();
     $('tcEnd').onclick=()=>{ if(CB&&!CB.over&&CB.phase==='player') tbEndTurn('player'); };
   }
   tc.classList.remove('hidden');
@@ -2235,8 +2361,11 @@ function tbStartTurn(who){
   const other=who==='player'?CB.foe:CB.player;
   // regen mana, tick cooldowns, decay buffs/statuses, set move budget
   m.mana=clamp(m.mana+ (m.manaregen*3) + m.maxmana*0.04, 0, m.maxmana);
+  m.stamina=clamp((m.stamina||0)+38, 0, m.maxstamina);
+  if(m.tpcd>0)m.tpcd--;
   for(const k in m.cooldowns){ m.cooldowns[k]=Math.max(0,(m.cooldowns[k]||0)-1); }
   tbDecayBuffs(m);
+  CB.tpAiming=false;
   // movement budget scales with speed
   m.maxMove=Math.round(70+ (m.speedStat||6)*9);
   if(m.statuses.slow) m.maxMove=Math.round(m.maxMove*0.5);
@@ -2256,15 +2385,22 @@ function tbDecayBuffs(m){
 }
 function tbUpdateTurnUI(){
   const t=$('tcTurn'); if(t){ t.textContent=CB.phase==='player'?'YOUR TURN':"FOE'S TURN"; t.style.color=CB.phase==='player'?'#ffd866':'#ff6688'; }
-  const isP=CB.phase==='player';
-  $('tcLeft').disabled=!isP; $('tcRight').disabled=!isP; $('tcEnd').disabled=!isP;
+  const isP=CB.phase==='player'&&!CB.busy;
+  const p=CB.player;
+  const can=id=>{ const b=$(id); if(b)b.disabled=!isP; };
+  can('tcLeft');can('tcRight');can('tcEnd');
+  const jl=$('tcJumpL'),jr=$('tcJumpR'),tp=$('tcTp');
+  const canJump=isP&&p.stamina>=28&&p.move>=28;
+  if(jl)jl.disabled=!canJump; if(jr)jr.disabled=!canJump;
+  if(tp){ const canTp=isP&&p.tpcd<=0&&p.mana>=40&&p.stamina>=50; tp.disabled=!canTp;
+    tp.textContent=p.tpcd>0?('🌀 '+p.tpcd):'🌀 Blink'; if(!isP)tp.classList.remove('arming'); }
   // move pips
   const pips=$('tcPips');
   if(pips){
-    const tot=8, filled=CB.player.maxMove>0?Math.round(CB.player.move/CB.player.maxMove*tot):0;
+    const tot=8, filled=p.maxMove>0?Math.round(p.move/p.maxMove*tot):0;
     let s='';
     for(let i=0;i<tot;i++) s+=`<span class="pip ${i<filled?'on':''}"></span>`;
-    pips.innerHTML='⤺ '+s;
+    pips.innerHTML=s;
   }
 }
 function tbMove(dir){
@@ -2283,6 +2419,65 @@ function tbMove(dir){
   p.move-=used; p.x=nx; p.facing=(CB.foe.x>=p.x)?1:-1; p.walkT=0.32;
   // dust
   for(let i=0;i<4;i++)CB.particles.push({x:p.x,y:p.baseY+12,vx:rand(-30,30)-dir*40,vy:rand(-30,-5),life:0.4,maxlife:0.4,r:rand(2,4),color:'#caa467',fade:true,grav:80});
+  CB.tpAiming=false;
+  tbUpdateTurnUI();
+}
+// JUMP: a leap ~80px, costs stamina + move budget, arcs over the sand
+function tbJump(dir){
+  if(!CB||CB.over||CB.phase!=='player'||CB.busy)return;
+  const p=CB.player;
+  const COST=28;
+  if(p.stamina<COST){ floatNumber(p.x,p.y-70,'too tired',{miss:true}); return; }
+  if(p.move<28){ floatNumber(p.x,p.y-70,'no moves left',{miss:true}); return; }
+  const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+  let nx=p.x+dir*82;
+  if(dir>0 && nx>CB.foe.x-58 && p.x<CB.foe.x) nx=CB.foe.x-58;
+  if(dir<0 && nx<CB.foe.x+58 && p.x>CB.foe.x) nx=CB.foe.x+58;
+  nx=clamp(nx,minX,maxX);
+  const used=Math.abs(nx-p.x);
+  if(used<2){ return; }
+  p.stamina-=COST; p.move=Math.max(0,p.move-Math.max(40,used*0.6));
+  p.facing=(CB.foe.x>=nx)?1:-1;
+  // animate the arc
+  CB.busy=true; tbUpdateTurnUI();
+  const sx=p.x, dx=nx-sx, dur=0.42; let el=0;
+  for(let i=0;i<6;i++)CB.particles.push({x:sx,y:p.baseY+12,vx:rand(-40,40),vy:rand(-40,-10),life:0.4,maxlife:0.4,r:rand(2,4),color:'#caa467',fade:true,grav:90});
+  const anim=()=>{
+    el+=0.016; const k=clamp(el/dur,0,1);
+    p.x=sx+dx*k;
+    p.y=p.baseY - Math.sin(k*Math.PI)*46;   // arc
+    if(k<1 && CB && !CB.over){ requestAnimationFrame(anim); }
+    else { p.y=p.baseY; for(let i=0;i<8;i++)CB.particles.push({x:p.x,y:p.baseY+12,vx:rand(-60,60),vy:rand(-30,-5),life:0.45,maxlife:0.45,r:rand(2,5),color:'#caa467',fade:true,grav:120}); triggerShake(5); CB.busy=false; CB.tpAiming=false; tbUpdateTurnUI(); }
+  };
+  requestAnimationFrame(anim);
+}
+// TELEPORT: tap Blink, then tap the ground to vanish & reappear there
+function tbToggleTeleport(){
+  if(!CB||CB.over||CB.phase!=='player'||CB.busy)return;
+  const p=CB.player;
+  if(p.tpcd>0){ floatNumber(p.x,p.y-70,'blink on cooldown ('+p.tpcd+')',{miss:true}); return; }
+  if(p.mana<40){ floatNumber(p.x,p.y-70,'need 40 mana',{miss:true}); return; }
+  if(p.stamina<50){ floatNumber(p.x,p.y-70,'too tired to blink',{miss:true}); return; }
+  CB.tpAiming=!CB.tpAiming;
+  const b=$('tcTp'); if(b)b.classList.toggle('arming',CB.tpAiming);
+  if(CB.tpAiming) showBanner('TAP THE GROUND TO BLINK','#aa77ff',false);
+}
+function tbTeleportTo(wx){
+  const p=CB.player;
+  const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+  let nx=clamp(wx,minX,maxX);
+  if(Math.abs(nx-CB.foe.x)<46) nx=CB.foe.x+(nx<CB.foe.x?-46:46); // don't overlap foe
+  nx=clamp(nx,minX,maxX);
+  p.mana-=40; p.stamina-=50; p.tpcd=3; CB.tpAiming=false;
+  const b=$('tcTp'); if(b)b.classList.remove('arming');
+  // vanish burst
+  for(let i=0;i<22;i++){ const a=rand(0,7),s=rand(60,200);CB.particles.push({x:p.x,y:p.baseY-30,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.3,0.6),maxlife:0.6,r:rand(2,5),color:'#aa77ff',fade:true}); }
+  CB.effects.push({type:'shock',x:p.x,y:p.baseY-26,r:6,maxr:60,life:0.4,maxlife:0.4,color:'#aa77ff'});
+  p.x=nx; p.facing=(CB.foe.x>=nx)?1:-1; p.walkT=0.2;
+  // arrival burst
+  for(let i=0;i<22;i++){ const a=rand(0,7),s=rand(40,160);CB.particles.push({x:p.x,y:p.baseY-30,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.3,0.6),maxlife:0.6,r:rand(2,5),color:'#cc99ff',fade:true}); }
+  CB.effects.push({type:'shock',x:p.x,y:p.baseY-26,r:6,maxr:70,life:0.45,maxlife:0.45,color:'#cc99ff'});
+  triggerShake(6);
   tbUpdateTurnUI();
 }
 
@@ -2388,25 +2583,34 @@ function tbCast(caster, target, sid, onDone){
     for(let i=0;i<count;i++){ setTimeout(()=>spawnOne(i), 240+i*220); }
     return;
   }
-  // PROJECTILE: fly from hand to target, impact on arrival
+  // PROJECTILE: wind-up at staff tip, then launch toward target, impact on arrival
   const speed=sp.speed||520;
-  const tx=()=>target.x, ty=()=>target.y-22;
-  const proj={
-    tb:true,x:hx,y:hy,el,sid,color:EL_COLORS[el],r:sp.melee?9:7,
-    homing:target, speed, trail:[], dmg:dmgBase(),
-    onHit:()=>{
-      if(!CB||CB.over)return;
-      spawnImpact(target.x,target.y-22,el,1.1);
-      tbDealDamage(target,proj.dmg,el,{sid});
-      triggerShake(6);
-      finish();
-    },
+  const launch=()=>{
+    if(!CB||CB.over){ finish(); return; }
+    // launch from staff tip
+    const lx=caster.x+caster.facing*27, ly=caster.y-78;
+    spawnCastBurst(lx,ly,el);
+    // muzzle flash + recoil
+    CB.effects.push({type:'shock',x:lx,y:ly,r:4,maxr:34,life:0.3,maxlife:0.3,color:EL_COLORS[el]});
+    if(sp.melee){ caster.walkT=0.3; }
+    const proj={
+      tb:true,x:lx,y:ly,el,sid,color:EL_COLORS[el],r:sp.melee?9:7,
+      homing:target, speed, trail:[], dmg:dmgBase(),
+      onHit:()=>{
+        if(!CB||CB.over)return;
+        spawnImpact(target.x,target.y-22,el,1.2);
+        doShockwave(target.x,target.y-22,EL_COLORS[el],0.7);
+        tbDealDamage(target,proj.dmg,el,{sid});
+        triggerShake(7);
+        finish();
+      },
+    };
+    CB.projectiles.push(proj);
+    proj._safety=setTimeout(()=>{ if(proj._alive!==false){ proj._alive=false; const i=CB.projectiles.indexOf(proj); if(i>=0)CB.projectiles.splice(i,1); if(!CB.over)finish(); } }, 2000);
   };
-  // melee proj: caster lunges
-  if(sp.melee){ caster.walkT=0.3; }
-  CB.projectiles.push(proj);
-  // safety: if projectile somehow lingers, resolve
-  proj._safety=setTimeout(()=>{ if(proj._alive!==false){ proj._alive=false; const i=CB.projectiles.indexOf(proj); if(i>=0)CB.projectiles.splice(i,1); if(!CB.over)finish(); } }, 2000);
+  // wind-up: staff raises & charges (~320ms) before the bolt flies
+  caster.casting=0.45;
+  setTimeout(launch, 340);
 }
 function tbComputeDmg(caster,sp,sid){
   let d=(sp.dmg||0);
@@ -2694,9 +2898,9 @@ function tbUpdateHUD(){
   $('hpBarRow').classList.toggle('pulse-low',p.hp/p.maxhp<0.25);
   $('manaFill').style.width=clamp(p.mana/p.maxmana*100,0,100)+'%';
   $('manaText').textContent=Math.ceil(p.mana)+'/'+Math.round(p.maxmana);
-  // stamina row -> repurpose as "Shield"
-  $('stamFill').style.width=clamp((p.shield||0)/Math.max(1,p.maxhp*0.5)*100,0,100)+'%';
-  $('stamText').textContent=Math.round(p.shield||0);
+  // stamina row (movement resource) — show shield as a suffix when active
+  $('stamFill').style.width=clamp((p.stamina||0)/p.maxstamina*100,0,100)+'%';
+  $('stamText').textContent=Math.round(p.stamina||0)+(p.shield>0?'  🛡'+Math.round(p.shield):'');
   const need=xpNeeded(G.level);
   $('xpFill').style.width=clamp(G.xp/need*100,0,100)+'%';
   $('xpText').textContent=G.xp+'/'+need;
@@ -2720,6 +2924,39 @@ function tbUpdateHUD(){
   }
 }
 
+// concentric movement rings around the player on their turn ("kółka dookoła")
+function tbDrawMoveRings(){
+  if(!CB||CB.phase!=='player'||CB.busy)return;
+  const p=CB.player, t=CB.time, cx=p.x, cy=p.baseY+6;
+  ctx.save();
+  // walk range (inner) — scales with remaining move budget
+  const walkR=clamp(p.move,0,160);
+  ctx.lineWidth=2;
+  ctx.strokeStyle='rgba(216,178,74,0.55)';
+  ctx.setLineDash([6,6]);ctx.lineDashOffset=-t*20;
+  ctx.beginPath();ctx.ellipse(cx,cy,walkR,walkR*0.32,0,0,7);ctx.stroke();
+  // jump range (outer)
+  if(p.stamina>=28){
+    ctx.strokeStyle='rgba(120,200,120,0.4)';
+    ctx.beginPath();ctx.ellipse(cx,cy,82,82*0.30,0,0,7);ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // teleport aiming: highlight whole arena floor + marker
+  if(CB.tpAiming){
+    const minX=Math.round(CB.w*0.08), maxX=Math.round(CB.w*0.92);
+    ctx.fillStyle='rgba(150,110,230,0.10)';
+    ctx.fillRect(minX,CB.groundY-4,maxX-minX,CB.h-CB.groundY+4);
+    const ax=clamp(CB.tpAimX||p.x,minX,maxX);
+    ctx.strokeStyle='rgba(180,140,255,0.9)';ctx.lineWidth=2.5;
+    ctx.setLineDash([4,4]);ctx.lineDashOffset=-t*30;
+    ctx.beginPath();ctx.ellipse(ax,cy,26,9,0,0,7);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.save();ctx.globalAlpha=0.5+0.3*Math.sin(t*6);ctx.fillStyle='#cc99ff';ctx.shadowColor='#cc99ff';ctx.shadowBlur=12;
+    ctx.beginPath();ctx.moveTo(ax,cy-30);ctx.lineTo(ax-5,cy-44);ctx.lineTo(ax+5,cy-44);ctx.closePath();ctx.fill();ctx.restore();
+  }
+  ctx.restore();
+}
+
 /* ---------------- TB RENDER (side-view duel arena) ---------------- */
 function tbRender(){
   const w=CB.w,h=CB.h,t=CB.time;
@@ -2727,6 +2964,7 @@ function tbRender(){
   ctx.save();
   if(CB.shake>0)ctx.translate(rand(-CB.shake,CB.shake),rand(-CB.shake,CB.shake));
   tbDrawArena(w,h);
+  tbDrawMoveRings();
   // shadows + mages sorted by y (both same ground)
   tbDrawMageFull(CB.foe);
   tbDrawMageFull(CB.player);
@@ -2817,7 +3055,7 @@ function tbDrawMageFull(m){
   // name + small bar above
   ctx.save();
   ctx.globalAlpha=m.flash>0?0.6+0.4*Math.sin(t*40):1;
-  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
   ctx.restore();
   // hit flash overlay
   if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
@@ -2975,8 +3213,10 @@ window.addEventListener('keydown',e=>{
   if(!CB||CB.over) return;
   if(CB.tb){
     if(['1','2','3','4','5','6','7'].includes(k)){ castSpellSlot(+k-1); return; }
-    if(k==='arrowleft'||k==='a'){ tbMove(-1); e.preventDefault(); return; }
-    if(k==='arrowright'||k==='d'){ tbMove(1); e.preventDefault(); return; }
+    if(k==='arrowleft'||k==='a'){ e.shiftKey?tbJump(-1):tbMove(-1); e.preventDefault(); return; }
+    if(k==='arrowright'||k==='d'){ e.shiftKey?tbJump(1):tbMove(1); e.preventDefault(); return; }
+    if(k==='w'||k==='arrowup'){ tbJump(CB.player.facing); e.preventDefault(); return; }
+    if(k==='t'){ tbToggleTeleport(); e.preventDefault(); return; }
     if(k==='enter'||k===' '){ if(CB.phase==='player')tbEndTurn('player'); e.preventDefault(); return; }
     if(k==='q') usePotion(0);
     if(k==='e') usePotion(1);
@@ -2997,7 +3237,12 @@ window.addEventListener('keyup',e=>{
   if(k===' ' && CB && CB.cls.id==='earth'){ CB.player.blocking=false; }
 });
 canvas.addEventListener('pointermove',e=>{ mouse.x=e.clientX;mouse.y=e.clientY; });
-canvas.addEventListener('pointerdown',e=>{ if(CB&&!CB.over&&!CB.tb){ mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0); } });
+canvas.addEventListener('pointerdown',e=>{
+  if(!CB||CB.over)return;
+  if(CB.tb){ if(CB.tpAiming&&CB.phase==='player'&&!CB.busy){ tbTeleportTo(e.clientX); } return; }
+  mouse.x=e.clientX;mouse.y=e.clientY; castSpellSlot(CB._lastSlot||0);
+});
+canvas.addEventListener('pointermove',e=>{ if(CB&&CB.tb&&CB.tpAiming){ CB.tpAimX=e.clientX; } });
 
 /* ---------------- VIRTUAL JOYSTICK (mobile movement) ---------------- */
 (function(){
