@@ -264,6 +264,12 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 .modal .close-btn{position:absolute;top:10px;right:10px;}
 .modal h2{text-align:center;color:var(--gold);margin-bottom:14px;}
 .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:10px;}
+.shopkeep{display:flex;align-items:center;gap:14px;margin:2px 0 6px;padding:8px 12px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(40,30,18,.6),rgba(20,14,8,.5));border:1px solid rgba(216,178,74,.25);}
+.sk-canvas{flex:0 0 auto;width:104px;height:120px;}
+.sk-speech{font-family:'MedievalSharp',cursive;font-size:15px;line-height:1.5;color:var(--ac,#ffd866);
+  position:relative;padding:8px 12px;border-radius:10px;background:rgba(0,0,0,.3);border-left:3px solid var(--ac,#ffd866);}
+@media (max-width:560px){ .sk-canvas{width:80px;height:96px;} .sk-speech{font-size:13px;} }
 .item-card{
   --glow:#4a4a7a;
   padding:10px;font-size:12px;position:relative;cursor:pointer;
@@ -1054,7 +1060,15 @@ const WEAPONS={
   void_orb:{name:'Void Orb',type:'orb',icon:'🌑',price:1100,stats:{sp:18,mana:80,manaregen:3}},
   infinity_orb:{name:'Infinity Orb',type:'orb',icon:'♾️',price:2200,stats:{sp:22,mana:120,manaregen:5}},
   cosmic_eye:{name:'Cosmic Eye',type:'orb',icon:'👁️',price:4500,stats:{sp:30,mana:150,manaregen:8}},
+  // newer arsenal
+  oak_branch:{name:'Oak Branch',type:'staff',icon:'🌿',price:180,stats:{sp:7,manaregen:1},c:'#5a7d3a'},
+  thunder_rod:{name:'Thunder Rod',type:'staff',icon:'⚡',price:1500,stats:{sp:30,crit:6,hit:6},c:'#ffd866'},
+  serpent_wand:{name:'Serpent Wand',type:'wand',icon:'🐍',price:1300,stats:{sp:13,crit:14,dodge:5},c:'#33dd66'},
+  bronze_scepter:{name:'Bronze Scepter',type:'wand',icon:'🔱',price:700,stats:{sp:14,hit:8,def:4},c:'#c98a3a'},
+  tide_pearl:{name:'Tide Pearl',type:'orb',icon:'🫧',price:1500,stats:{sp:16,mana:90,manaregen:4,dodge:4},c:'#33ccdd'},
+  emberheart_orb:{name:'Emberheart Orb',type:'orb',icon:'🔥',price:1700,stats:{sp:20,mana:60,crit:6},c:'#ff5522'},
 };
+const WEAPON_TIP={oak_branch:'#7adb5a',thunder_rod:'#ffe680',serpent_wand:'#33dd66',bronze_scepter:'#e0a050',tide_pearl:'#55ddee',emberheart_orb:'#ff6a30',staff_embers:'#ff6a30',void_staff:'#aa66ff',worldbreaker:'#ffe680',death_wand:'#88ff66',cosmic_eye:'#88ccff',infinity_orb:'#cc99ff'};
 const ARMORS={
   cloth_robe:{name:'Cloth Robe',icon:'🧥',price:80,stats:{def:5}},
   arcane_robe:{name:'Arcane Robe',icon:'🌌',price:200,stats:{mana:50,speed:-5}},
@@ -1066,6 +1080,9 @@ const ARMORS={
   dragon_silk:{name:'Dragon Silk',icon:'🐉',price:2000,stats:{def:10,dodge:10,mana:20}},
   void_transcendence:{name:'Void Transcendence',icon:'🌀',price:3000,stats:{sp:40,mana:100,speed:-10}},
   godweave:{name:'Godweave',icon:'👑',price:5500,stats:{sp:30,def:30,mana:50,allpct:5}},
+  travelers_cloak:{name:"Traveler's Cloak",icon:'🧣',price:260,stats:{speed:8,dodge:6}},
+  bronze_plate:{name:'Bronze Plate',icon:'🟫',price:520,stats:{def:24,hp:25,speed:-6}},
+  emberweave_robe:{name:'Emberweave Robe',icon:'🧶',price:1200,stats:{sp:24,crit:6,hp:10}},
 };
 const POTIONS={
   health:{name:'Health Potion',icon:'❤️',price:80,basic:true,effect:'heal',val:50},
@@ -1435,12 +1452,13 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   ctx.beginPath();ctx.moveTo(footx,footy);ctx.lineTo(tipx,tipy);ctx.stroke();
   // tip crown/holder
   ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(tipx,tipy,2.6,0,7);ctx.fill();
-  // glowing focus orb at tip — magical, intensifies while casting
+  // glowing focus orb at tip — magical, intensifies while casting; tinted by equipped weapon
+  const tipC=opts.tipC||c2;
   const pulse=0.55+0.25*Math.sin(t*5)+casting*0.6;
   const orbR=3.2+casting*3.2;
-  ctx.save();ctx.shadowColor=c2;ctx.shadowBlur=10+casting*22;
+  ctx.save();ctx.shadowColor=tipC;ctx.shadowBlur=10+casting*22;
   const og=ctx.createRadialGradient(tipx,tipy-2,0,tipx,tipy-2,orbR+3);
-  og.addColorStop(0,'#fff');og.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:c2);og.addColorStop(1,'transparent');
+  og.addColorStop(0,'#fff');og.addColorStop(.45,cls.rainbow?`hsl(${(t*120)%360},90%,65%)`:tipC);og.addColorStop(1,'transparent');
   ctx.globalAlpha=Math.min(1,pulse);ctx.fillStyle=og;
   ctx.beginPath();ctx.arc(tipx,tipy-2,orbR+3,0,7);ctx.fill();
   ctx.restore();
@@ -1518,6 +1536,78 @@ function drawCrown(ctx,yy){
   ctx.fillStyle='#ff5577';ctx.beginPath();ctx.arc(0,yy+1.5,1,0,7);ctx.fill();
   ctx.restore();
 }
+
+/* ---- SHOPKEEPER NPCs (drawn merchants behind a counter) ---- */
+const SHOPKEEPERS={
+  weapon:{accent:'#ff8844',item:'⚔️',hat:'helm', greet:["Steel and spellwood, finest in the realm!","Pick a weapon worthy of an archmage.","Every staff here has tasted battle."]},
+  armor:{accent:'#44aaff',item:'🛡️',hat:'helm', greet:["Robes woven to turn aside a dragon's breath.","Protection is never a waste of gold.","Wear this and laugh at their spells."]},
+  potion:{accent:'#44ff88',item:'⚗️',hat:'hood', greet:["Fresh brews, bubbling and potent!","A sip now spares a grave later.","Careful — some of these bite back."]},
+  relic:{accent:'#ffd866',item:'💎',hat:'hood', greet:["Relics torn from forgotten tombs...","Power has a price. Hers was steep.","You won't see these wares again."]},
+};
+function drawShopkeeper(ctx,x,y,scale,type,t){
+  const cfg=SHOPKEEPERS[type]||SHOPKEEPERS.weapon;
+  const ac=cfg.accent;
+  const bob=Math.sin(t*1.8)*1.2;
+  ctx.save();ctx.translate(x,y+bob);ctx.scale(scale,scale);ctx.lineJoin='round';ctx.lineCap='round';
+  // body / merchant tunic
+  const tg=ctx.createLinearGradient(0,-18,0,18);tg.addColorStop(0,blend(ac,BRONZE,0.55));tg.addColorStop(1,blend(ac,'#201407',0.6));
+  ctx.fillStyle=tg;
+  ctx.beginPath();ctx.moveTo(-12,-14);ctx.lineTo(12,-14);ctx.lineTo(15,18);ctx.lineTo(-15,18);ctx.closePath();ctx.fill();
+  // apron / sash
+  ctx.fillStyle=blend(ac,'#000',0.2);ctx.fillRect(-6,-10,12,28);
+  ctx.strokeStyle=GOLDTRIM;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-10,2);ctx.lineTo(10,2);ctx.stroke();
+  // arms
+  ctx.strokeStyle=blend(ac,BRONZE,0.55);ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(-9,-9);ctx.quadraticCurveTo(-16,-2,-12,6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(9,-9);ctx.quadraticCurveTo(16,-4,11+Math.sin(t*3)*1.5,2);ctx.stroke();
+  // hands
+  ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(-12,7,2.4,0,7);ctx.arc(11+Math.sin(t*3)*1.5,2.5,2.4,0,7);ctx.fill();
+  // head
+  ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(0,-22,7,0,7);ctx.fill();
+  // beard
+  ctx.fillStyle='#cfc4b0';ctx.beginPath();ctx.moveTo(-5,-20);ctx.quadraticCurveTo(-5,-9,0,-7);ctx.quadraticCurveTo(5,-9,5,-20);ctx.quadraticCurveTo(0,-17,-5,-20);ctx.fill();
+  // eyes
+  ctx.fillStyle='#3a2a1a';ctx.beginPath();ctx.arc(-2.4,-23,1,0,7);ctx.arc(2.4,-23,1,0,7);ctx.fill();
+  // hat / hood
+  if(cfg.hat==='hood'){
+    ctx.fillStyle=blend(ac,'#1a1020',0.45);
+    ctx.beginPath();ctx.moveTo(-8,-22);ctx.quadraticCurveTo(-9,-34,0,-35);ctx.quadraticCurveTo(9,-34,8,-22);ctx.quadraticCurveTo(0,-26,-8,-22);ctx.fill();
+  } else {
+    ctx.fillStyle=blend(ac,'#000',0.35);ctx.strokeStyle=GOLDTRIM;ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(0,-27,9,2.4,0,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-7,-27);ctx.quadraticCurveTo(0,-37,7,-27);ctx.closePath();ctx.fill();
+  }
+  // glowing wares in hand
+  ctx.save();ctx.shadowColor=ac;ctx.shadowBlur=14;ctx.font='15px serif';ctx.textAlign='center';
+  ctx.fillText(cfg.item, 14+Math.sin(t*3)*1.5, 4);ctx.restore();
+  // counter
+  ctx.fillStyle='#4a3320';ctx.fillRect(-26,14,52,12);
+  ctx.fillStyle='#5a4226';ctx.fillRect(-26,12,52,4);
+  ctx.strokeStyle=blend(ac,'#000',0.3);ctx.lineWidth=1;ctx.strokeRect(-26,12,52,14);
+  // a couple coins on the counter
+  ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(-18,15,1.8,0,7);ctx.arc(-14,16,1.8,0,7);ctx.arc(18,15,1.8,0,7);ctx.fill();
+  ctx.restore();
+}
+let _skRAF=null;
+function startShopkeeper(ov,type){
+  const cv=ov.querySelector('.sk-canvas'); if(!cv)return;
+  const c=cv.getContext('2d');
+  const loop=(ts)=>{
+    if(!document.body.contains(ov)){ return; } // modal closed -> stop
+    const t=ts/1000;
+    c.clearRect(0,0,cv.width,cv.height);
+    drawShopkeeper(c,cv.width/2,cv.height-18,1.55,type,t);
+    _skRAF=requestAnimationFrame(loop);
+  };
+  _skRAF=requestAnimationFrame(loop);
+}
+function shopkeeperHeader(type){
+  const cfg=SHOPKEEPERS[type]||SHOPKEEPERS.weapon;
+  const line=cfg.greet[Math.floor(Math.random()*cfg.greet.length)];
+  return `<div class="shopkeep"><canvas class="sk-canvas" width="130" height="150"></canvas>
+    <div class="sk-speech" style="--ac:${cfg.accent}">“${line}”<br><span class="muted" style="font-size:11px">💰 ${G.gold}g in your purse</span></div></div>`;
+}
+
 function shade(hex,amt){
   let c=hex.replace('#','');
   if(c.length===3)c=c.split('').map(x=>x+x).join('');
@@ -1797,20 +1887,22 @@ function openWeaponShop(re){
   let tabs={staff:[],wand:[],orb:[]};
   for(const k in WEAPONS) tabs[WEAPONS[k].type].push(k);
   const sec=(type)=>tabs[type].map(k=>buyGearCard(k,WEAPONS[k],'weapon',G.inventory.weapons.includes(k),G.equipWeapon===k)).join('');
-  const body=`<div class="muted center-text">💰 ${G.gold}g</div>
+  const body=shopkeeperHeader('weapon')+`
     <h3 class="gold-text">Staffs — balanced</h3><div class="shop-grid">${sec('staff')}</div>
     <h3 class="gold-text">Wands — crit &amp; precision</h3><div class="shop-grid">${sec('wand')}</div>
     <h3 class="gold-text">Orbs — mana &amp; sustain</h3><div class="shop-grid">${sec('orb')}</div>`;
-  _openShopOv=openModal('⚔️ Weapon Shop',body,'#ff8844');_openShopKind='weapon';
+  _openShopOv=openModal('⚔️ Weapon Smith',body,'#ff8844');_openShopKind='weapon';
   wireGearButtons(_openShopOv,WEAPONS,'weapon');
+  startShopkeeper(_openShopOv,'weapon');
   renderCityTopbar();
 }
 function openArmorShop(re){
   if(re&&_openShopOv)_openShopOv.remove();
   const cards=Object.keys(ARMORS).map(k=>buyGearCard(k,ARMORS[k],'armor',G.inventory.armors.includes(k),G.equipArmor===k)).join('');
-  _openShopOv=openModal('🧥 Armor Shop',`<div class="muted center-text">💰 ${G.gold}g</div><div class="shop-grid">${cards}</div>`,'#44aaff');
+  _openShopOv=openModal('🧥 Armorer',shopkeeperHeader('armor')+`<div class="shop-grid">${cards}</div>`,'#44aaff');
   _openShopKind='armor';
   wireGearButtons(_openShopOv,ARMORS,'armor');
+  startShopkeeper(_openShopOv,'armor');
   renderCityTopbar();
 }
 function openPotionShop(re){
@@ -1836,12 +1928,13 @@ function openPotionShop(re){
   const specials=G.specialStock.map(card).join('');
   const phoenixCard=card('phoenix');
   const carry=G.potions.map((p,i)=>`<span class="item-card panel" style="--glow:#ffd866;padding:6px 10px;">${POTIONS[p].icon} ${POTIONS[p].name} <button data-drop="${i}" style="padding:2px 6px;font-size:10px;">✕</button></span>`).join('') || '<span class="muted">none</span>';
-  const body=`<div class="muted center-text">💰 ${G.gold}g — carrying ${carried}/3 potions (Phoenix Tear uses a separate slot)</div>
+  const body=shopkeeperHeader('potion')+`<div class="muted center-text">carrying ${carried}/3 potions (Phoenix Tear uses a separate slot)</div>
     <h3 class="gold-text">Basics</h3><div class="shop-grid">${basics}</div>
     <h3 class="gold-text">Special (rotates)</h3><div class="shop-grid">${specials}</div>
     <h3 class="gold-text">Passive Slot</h3><div class="shop-grid">${phoenixCard}</div>
     <h3 class="gold-text">Carried Loadout</h3><div class="flexrow" style="flex-wrap:wrap;gap:8px;">${carry}</div>`;
-  _openShopOv=openModal('🧪 Potion Shop',body,'#44ff88');_openShopKind='potion';
+  _openShopOv=openModal('🧪 Alchemist',body,'#44ff88');_openShopKind='potion';
+  startShopkeeper(_openShopOv,'potion');
   _openShopOv.querySelectorAll('[data-buyp]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.buyp;const def=POTIONS[k];
     if(G.gold<def.price)return;
@@ -3055,7 +3148,8 @@ function tbDrawMageFull(m){
   // name + small bar above
   ctx.save();
   ctx.globalAlpha=m.flash>0?0.6+0.4*Math.sin(t*40):1;
-  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
+  const tipC=m.isPlayer?(WEAPON_TIP[G.equipWeapon]||null):null;
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
   ctx.restore();
   // hit flash overlay
   if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
