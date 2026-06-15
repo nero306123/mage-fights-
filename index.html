@@ -2850,7 +2850,8 @@ const TB_VITALITY=2.7;  // bigger HP pools so duels are a back-and-forth, not a 
 const DMG_GLOBAL=0.78;  // global spell-damage scale — lower so rounds last longer & choices matter
 function makeMage(side,classId,stats,opts={}){
   const cls=CLASSES[classId];
-  const vit=opts.isPlayer?TB_VITALITY*1.25:TB_VITALITY;
+  // bosses already get large pools from makeFoe, so they skip the TB_VITALITY multiplier
+  const vit=opts.isPlayer?TB_VITALITY*1.25:(opts.isBoss?1.0:TB_VITALITY);
   const mhp=Math.round(stats.maxhp*vit);
   const M={
     side, classId, cls,
@@ -2883,10 +2884,9 @@ function makeFoe(mode){
     const b=CAMPAIGN_BOSSES[idx];
     const cls=CLASSES[b.race];
     const base=cls.base;
-    // scale with the boss's position in the gauntlet so each is a real step up
-    const tier=1+lvl*0.05+idx*0.10;
+    // HP scales with the boss's hpMult (its place in the gauntlet) + your level
     const st={
-      maxhp:Math.round((base.hp*3.4+lvl*14)*b.hpMult*d.hp*tier),
+      maxhp:Math.round((base.hp*4.5+lvl*8)*b.hpMult*d.hp),
       maxmana:base.mana+200, manaregen:8,
       sp:Math.round((base.sp+8+lvl*1.2+idx*1.5)*b.dmgMult),
       crit:base.crit+6, hit:88, dodge:base.dodge+4, def:base.def+6, speed:base.speed+1,
