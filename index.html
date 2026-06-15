@@ -828,56 +828,56 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 const CLASSES = {
   fire:{
     id:'fire',name:'Fire Mage',emoji:'🔥',c1:'#ff4400',c2:'#ff8800',
-    base:{hp:80,mana:100,sp:15,speed:7,stamina:8,def:4,crit:8,hit:90,dodge:3,learning:4},
+    base:{hp:80,mana:100,sp:15,speed:7,stamina:8,def:4,crit:8,hit:80,dodge:3,learning:4},
     passive:{name:'Burning',desc:'30% on-hit chance to apply Burn (8 dmg/sec, 3s, stacks ×3).'},
     mech:{name:'Combustion Meter',desc:'Fills when a Burning enemy dies. At 3 stacks → RELEASE: screen-wide explosion, 150 dmg to all.',max:3},
     spells:['fireball','flame_wave','scorching_ray','inferno','fire_storm','phoenix_flame','meteor','dragons_breath','ember_dart','fire_lash','cinder_storm','flame_ward','blazing_comet','heat_surge','supernova'],
   },
   ice:{
     id:'ice',name:'Ice Mage',emoji:'❄️',c1:'#00ccff',c2:'#ffffff',
-    base:{hp:90,mana:110,sp:12,speed:6,stamina:10,def:6,crit:5,hit:88,dodge:4,learning:4},
+    base:{hp:90,mana:110,sp:12,speed:6,stamina:10,def:6,crit:5,hit:78,dodge:4,learning:4},
     passive:{name:'Frost',desc:'25% Slow (−40% speed, 3s) | 5% Freeze (stun 1.5s).'},
     mech:{name:'Absolute Zero Charge',desc:'Freezing enemies fills bar. Full → screen freezes 3s, all enemies +50% dmg taken.',max:100},
     spells:['ice_shard','frost_nova','ice_lance','blizzard','glacial_spike','permafrost','ice_wall','absolute_zero','frost_dart','ice_spear','cold_snap','frozen_armor','hailstorm','frost_mend','winter_end'],
   },
   necro:{
     id:'necro',name:'Necromancer',emoji:'💀',c1:'#6600cc',c2:'#00ff44',
-    base:{hp:70,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:85,dodge:2,learning:5},
+    base:{hp:70,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:76,dodge:2,learning:5},
     passive:{name:'Soul Harvest',desc:'30% capture chance on kill (20% bosses). Stash persists between rounds.'},
     mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 30% HP in Lich Form — all spells free 10s.',max:100},
     spells:['shadow_ball','soul_explosion','spawn_all','spawn_shadow','soul_barrier','death_nova','bone_shield','void_rift','bone_spear','soul_siphon','grave_chill','shadow_ward','night_terror','dark_mend','oblivion'],
   },
   water:{
     id:'water',name:'Water Mage',emoji:'💧',c1:'#00ffcc',c2:'#0066ff',
-    base:{hp:95,mana:130,sp:10,speed:7,stamina:12,def:5,crit:5,hit:87,dodge:5,learning:4},
+    base:{hp:95,mana:130,sp:10,speed:7,stamina:12,def:5,crit:5,hit:78,dodge:5,learning:4},
     passive:{name:'Tidal Flow',desc:'Mana regen +50%, healing spells +25% HP.'},
     mech:{name:'Tide Gauge',desc:'Fills when healed or hit. Release: TIDAL SURGE — heal 60% HP + slow all enemies 5s.',max:100},
     spells:['water_bolt','healing_rain','tidal_wave','aqua_shield','whirlpool','torrent','oceans_wrath','tsunami','aqua_dart','water_lance','riptide','bubble_ward','maelstrom','soothing_tide','abyssal_crush'],
   },
   earth:{
     id:'earth',name:'Earth Mage',emoji:'🪨',c1:'#886600',c2:'#44aa00',
-    base:{hp:130,mana:80,sp:11,speed:4,stamina:15,def:12,crit:4,hit:85,dodge:2,learning:3},
+    base:{hp:130,mana:80,sp:11,speed:4,stamina:15,def:12,crit:4,hit:75,dodge:2,learning:3},
     passive:{name:'Stone Skin',desc:'−10 flat dmg reduction, melee spells 15% stun chance (1s).'},
     mech:{name:'Tectonic Charge',desc:'Taking hits charges bar. Release: EARTHQUAKE — massive AoE knockback + screen shake.',max:100},
     spells:['rock_throw','earthen_spike','mud_trap','earthquake','boulder_crush','stone_wall','geomancy','mountains_wrath','pebble_shot','stone_spear','tremor','granite_ward','rockslide','earth_mend','cataclysm'],
   },
   wind:{
     id:'wind',name:'Wind Mage',emoji:'🌪️',c1:'#dddddd',c2:'#ffff88',
-    base:{hp:80,mana:100,sp:13,speed:12,stamina:9,def:4,crit:10,hit:92,dodge:15,learning:4},
+    base:{hp:80,mana:100,sp:13,speed:12,stamina:9,def:4,crit:10,hit:86,dodge:15,learning:4},
     passive:{name:'Evasion',desc:'15% base dodge, movement speed +25%.'},
     mech:{name:'Gale Stacks',desc:'Each dodge adds a stack (max 5). Release all 5: TORNADO — pull all enemies to center.',max:5},
     spells:['wind_slash','gale_blade','air_burst','cyclone','tornado','tempest','thunder_clap','hurricane','breeze_dart','razor_gust','updraft','wind_ward','storm_call','zephyr_mend','wind_maelstrom'],
   },
   essence:{
     id:'essence',name:'Essence Mage',emoji:'✨',c1:'#ffd866',c2:'#ff66cc',rainbow:true,
-    base:{hp:90,mana:110,sp:13,speed:8,stamina:10,def:6,crit:7,hit:88,dodge:5,learning:6},
+    base:{hp:90,mana:110,sp:13,speed:8,stamina:10,def:6,crit:7,hit:80,dodge:5,learning:6},
     passive:{name:'Attunement',desc:'Spells deal +20% dmg to an enemy\'s weakness.'},
     mech:{name:'Prismatic Charge',desc:'Hitting weaknesses fills bar. Release: SINGULARITY NOVA — rainbow explosion hitting every weakness.',max:100},
     spells:['essence_bolt','prismatic_ray','aura_burst','mana_surge','elemental_fusion','arcane_nova','pure_energy','singularity','spark_dart','prism_lance','aura_pulse','ward_of_light','chromatic_burst','essence_mend','cosmos'],
   },
   power:{
     id:'power',name:'Power Mage',emoji:'⚡',c1:'#9900ff',c2:'#ffffff',
-    base:{hp:85,mana:120,sp:18,speed:6,stamina:8,def:5,crit:6,hit:88,dodge:3,learning:4},
+    base:{hp:85,mana:120,sp:18,speed:6,stamina:8,def:5,crit:6,hit:80,dodge:3,learning:4},
     passive:{name:'Overcharge',desc:'20% chance a spell deals 200% dmg (costs double mana).'},
     mech:{name:'Overload Meter',desc:'Each Overcharge fills it. Full → ABSOLUTE POWER 10s: every spell auto-Overcharges.',max:100},
     spells:['force_blast','power_surge','void_lance','energy_drain','arcane_explosion','dominate','mind_crush','absolute_power','jolt','shock_lance','discharge','force_ward','thunderstorm','siphon_life','annihilate'],
@@ -957,10 +957,10 @@ const SPELLS={
   force_blast:{name:'Force Blast',icon:'⚡',el:'power',kind:'projectile',cost:12,dmg:34,cd:0.5,speed:600,status:'thunder',desc:'White-hot energy beam, electric crackle.'},
   power_surge:{name:'Power Surge',icon:'🔌',el:'power',kind:'aoe',cost:30,dmg:42,cd:3,radius:190,status:'thunder',desc:'A surge of raw power.'},
   void_lance:{name:'Void Lance',icon:'🗡️',el:'power',kind:'projectile',cost:24,dmg:50,cd:2,speed:660,status:'thunder',desc:'A lance of void energy.'},
-  energy_drain:{name:'Energy Drain',icon:'🩸',el:'power',kind:'beam',cost:18,dmg:30,cd:1.5,drain:true,desc:'Drain enemy energy to heal.'},
+  energy_drain:{name:'Energy Drain',icon:'🩸',el:'power',kind:'beam',cost:18,dmg:30,cd:1.5,drain:true,status:'bleed',desc:'Drain enemy energy to heal — leaves them bleeding.'},
   arcane_explosion:{name:'Arcane Explosion',icon:'💢',el:'power',kind:'aoe',cost:42,dmg:52,cd:5,radius:230,status:'thunder',desc:'A violent arcane explosion.'},
-  dominate:{name:'Dominate',icon:'👁️',el:'power',kind:'beam',cost:34,dmg:48,cd:4,desc:'Dominate your foe\'s mind.'},
-  mind_crush:{name:'Mind Crush',icon:'🧠',el:'power',kind:'projectile',cost:38,dmg:60,cd:4,speed:520,status:'thunder',desc:'Crush the enemy\'s mind.'},
+  dominate:{name:'Dominate',icon:'👁️',el:'power',kind:'beam',cost:34,dmg:44,cd:4,status:'weaken',desc:'Seize your foe\'s mind — −35% to their Hit for a few turns.'},
+  mind_crush:{name:'Mind Crush',icon:'🧠',el:'power',kind:'projectile',cost:38,dmg:54,cd:4,speed:520,status:'weaken',desc:'Crush the enemy\'s mind — they fight half-blind.'},
   absolute_power:{name:'Absolute Power',icon:'⚡',el:'power',kind:'aoe',cost:60,dmg:78,cd:8,radius:280,status:'thunder',desc:'Absolute, unchallenged power.'},
   // ===== EXPANDED GRIMOIRE (Nauka unlocks) =====
   // FIRE +7
@@ -980,11 +980,11 @@ const SPELLS={
   frost_mend:{name:'Frost Mend',icon:'❄️',el:'ice',kind:'self',cost:26,dmg:0,cd:7,heal:42,desc:'Soothing frost knits flesh.'},
   winter_end:{name:"Winter's End",icon:'🏔️',el:'ice',kind:'aoe',cost:58,dmg:74,cd:8,radius:280,status:'freeze',desc:'The final, killing cold.'},
   // NECRO +7
-  bone_spear:{name:'Bone Spear',icon:'🦴',el:'shadow',kind:'projectile',cost:12,dmg:32,cd:0.6,speed:520,desc:'A spear of jagged bone.'},
-  soul_siphon:{name:'Soul Siphon',icon:'🩸',el:'shadow',kind:'beam',cost:20,dmg:32,cd:1.4,drain:true,desc:'Drain life through a thread of shadow.'},
-  grave_chill:{name:'Grave Chill',icon:'🪦',el:'shadow',kind:'aoe',cost:28,dmg:38,cd:3,radius:190,desc:'The cold of the tomb spreads out.'},
+  bone_spear:{name:'Bone Spear',icon:'🦴',el:'shadow',kind:'projectile',cost:12,dmg:32,cd:0.6,speed:520,status:'bleed',desc:'A jagged bone spear that leaves a bleeding wound.'},
+  soul_siphon:{name:'Soul Siphon',icon:'🩸',el:'shadow',kind:'beam',cost:20,dmg:32,cd:1.4,drain:true,status:'bleed',desc:'Drain life through shadow — the wound keeps bleeding.'},
+  grave_chill:{name:'Grave Chill',icon:'🪦',el:'shadow',kind:'aoe',cost:28,dmg:38,cd:3,radius:190,status:'slow',desc:'The cold of the tomb slows all it touches.'},
   shadow_ward:{name:'Shadow Ward',icon:'🌑',el:'shadow',kind:'self',cost:28,dmg:0,cd:8,shield:80,desc:'Bound souls turn aside harm.'},
-  night_terror:{name:'Night Terror',icon:'👁️',el:'shadow',kind:'aoe',cost:40,dmg:50,cd:5,radius:220,desc:'Manifest the fear of the dark.'},
+  night_terror:{name:'Night Terror',icon:'👁️',el:'shadow',kind:'aoe',cost:40,dmg:48,cd:5,radius:220,status:'weaken',desc:'Manifest pure fear — foes flail and miss.'},
   dark_mend:{name:'Dark Mend',icon:'🖤',el:'shadow',kind:'self',cost:26,dmg:0,cd:7,heal:46,desc:'Stitch wounds with stolen life.'},
   oblivion:{name:'Oblivion',icon:'⚫',el:'shadow',kind:'aoe',cost:58,dmg:78,cd:8,radius:280,desc:'Unmake all that stands before you.'},
   // WATER +7
@@ -1025,7 +1025,7 @@ const SPELLS={
   discharge:{name:'Discharge',icon:'🔌',el:'power',kind:'aoe',cost:28,dmg:42,cd:3,radius:200,status:'thunder',desc:'Release stored energy outward.'},
   force_ward:{name:'Force Ward',icon:'🛡️',el:'power',kind:'self',cost:28,dmg:0,cd:8,shield:74,desc:'A humming wall of force.'},
   thunderstorm:{name:'Thunderstorm',icon:'⛈️',el:'power',kind:'aoe',cost:40,dmg:54,cd:5,radius:230,status:'thunder',desc:'Call down chained lightning.'},
-  siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,desc:'Tear energy from your foe to heal.'},
+  siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,status:'bleed',desc:'Tear life from your foe to heal — they bleed.'},
   annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
 };
 
@@ -1179,9 +1179,25 @@ function knownSpellCount(){
 }
 function knownSpells(){
   const cls=CLASSES[G.classId];
-  return cls.spells.slice(0,knownSpellCount());
+  if(!cls) return [];
+  const cap=knownSpellCount();
+  let chosen=(G.chosenSpells||[]).filter(s=>cls.spells.includes(s));
+  if(chosen.length===0) chosen=[cls.spells[0]];
+  return chosen.slice(0,cap);
 }
+function spellSlotsOpen(){ return Math.max(0, knownSpellCount()-knownSpells().length); }
 function isSpellKnown(sid){ return knownSpells().includes(sid); }
+// short tag string describing a spell's bonus effects (for tooltips / spellbook)
+const STATUS_TEXT={burn:'🔥 Burn',bleed:'🩸 Bleed',weaken:'💫 −Hit',slow:'🐌 Slow',freeze:'❄️ Freeze',thunder:'⚡ Stun',mud:'🟤 Mire',vuln:'🎯 Vuln'};
+function spellEffectText(sp){
+  const tags=[];
+  if(sp.status&&STATUS_TEXT[sp.status]) tags.push(STATUS_TEXT[sp.status]);
+  if(sp.heal) tags.push('➕ Heal '+sp.heal);
+  if(sp.shield) tags.push('🛡️ Shield '+sp.shield);
+  if(sp.mana) tags.push('🔵 +'+sp.mana+' Mana');
+  if(sp.drain) tags.push('🩸 Lifesteal');
+  return tags.join(' · ');
+}
 const MAX_LOADOUT=7;
 // range of a spell in pixels (turn-based duel positioning)
 function spellRange(sp){
@@ -1220,6 +1236,10 @@ function freshSave(){
     equipFamiliar:null,      // currently summoned familiar
     auraColor:null,          // custom aura/glow colour override (null = class default)
     enchants:{},             // weaponId -> enchant id
+    weaponPlus:{},           // weaponId -> upgrade level (0..2)
+    chosenSpells:[],         // spells you've chosen to learn (Nauka = how many you may know)
+    campaign:0,              // index of the next campaign boss to face (0..13)
+    campaignWon:false,       // beat all 13 bosses
     bounties:[],             // active bounty states
     bountyTimer:0,           // fights until reset
     specialStock:[],         // current special potion ids in shop
@@ -1239,7 +1259,12 @@ let hasSave=false;
 function loadSave(){
   try{
     const raw=localStorage.getItem(SAVE_KEY);
-    if(raw){ const d=JSON.parse(raw); G=Object.assign(freshSave(),d); hasSave=!!G.classId; return true; }
+    if(raw){ const d=JSON.parse(raw); G=Object.assign(freshSave(),d); hasSave=!!G.classId;
+      // migrate older saves: seed chosen spells from the first-N rule they used before
+      if(G.classId && (!G.chosenSpells || G.chosenSpells.length===0)){
+        G.chosenSpells=CLASSES[G.classId].spells.slice(0, knownForClass(G.classId));
+      }
+      return true; }
   }catch(e){ console.warn('load fail',e); }
   return false;
 }
@@ -1921,8 +1946,10 @@ function selectClass(cid,card){
 function confirmClass(cid){
   G=freshSave();
   G.classId=cid;
-  // default loadout = first 5 spells
-  G.loadout=CLASSES[cid].spells.slice(0,MAX_LOADOUT);
+  // you start knowing a handful of spells (Nauka count); you can re-curate them later
+  G.chosenSpells=CLASSES[cid].spells.slice(0, knownForClass(cid));
+  // default loadout = your starting known spells
+  G.loadout=G.chosenSpells.slice(0,MAX_LOADOUT);
   G.gold=150;
   G.statPoints=10; // 10 to distribute at start
   refreshBounties(true);
@@ -2356,11 +2383,14 @@ function openCharacterScreen(){
     const pct=tier>=3?100:clamp(m.uses/nextThresh*100,0,100);
     const inLoadout=G.loadout.includes(sid);
     const isKnown=known.includes(sid);
+    const eff=spellEffectText(sp);
     if(!isKnown){
-      spellListHtml+=`<div class="spell-list-item locked" style="opacity:.5;">
-        <div class="sicon">🔒</div>
+      const canLearn=spellSlotsOpen()>0;
+      spellListHtml+=`<div class="spell-list-item locked" style="opacity:${canLearn?'.9':'.45'};">
+        <div class="sicon">${canLearn?sp.icon:'🔒'}</div>
         <div class="sinfo"><div class="sname">${sp.name}</div>
-        <div class="muted">Requires Nauka ${idx} — raise Knowledge to learn</div></div></div>`;
+        <div class="muted">${sp.cost} mana • ${sp.dmg||0} dmg${eff?' • '+eff:''}</div></div>
+        <div>${canLearn?`<button data-learn="${sid}" style="padding:2px 8px;font-size:11px;background:linear-gradient(180deg,#3a5a8a,#243a5a);">📖 Learn</button>`:`<span class="muted" style="font-size:10px;">raise Nauka</span>`}</div></div>`;
       return;
     }
     const rng=spellRange(sp);
@@ -2369,11 +2399,13 @@ function openCharacterScreen(){
       <div class="sicon">${sp.icon}</div>
       <div class="sinfo">
         <div class="sname">${sp.name} ${tier>0?`<span class="gold-text">${TIER_NAMES[tier]}</span>`:''}${m.path?` <span class="muted">[Path ${m.path}]</span>`:''}</div>
-        <div class="muted">${sp.cost} mana • ${sp.dmg||0} dmg • ${rngTxt} • ${m.uses} uses</div>
+        <div class="muted">${sp.cost} mana • ${sp.dmg||0} dmg • ${rngTxt}${eff?' • '+eff:''} • ${m.uses} uses</div>
         <div class="mastery-bar"><div class="mastery-bar-fill" style="width:${pct}%"></div></div>
       </div>
-      <div>${inLoadout?'<span class="muted" style="font-size:10px;">equipped</span>':`<button data-add="${sid}" style="padding:2px 8px;font-size:11px;" ${G.loadout.length<MAX_LOADOUT?'':'disabled'}>+</button>`}
-      ${tier>=3&&!m.path?`<button data-path="${sid}" style="padding:2px 6px;font-size:10px;">⚒ Path</button>`:''}</div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+      ${inLoadout?'<span class="muted" style="font-size:10px;">equipped</span>':`<button data-add="${sid}" style="padding:2px 8px;font-size:11px;" ${G.loadout.length<MAX_LOADOUT?'':'disabled'}>+ slot</button>`}
+      ${tier>=3&&!m.path?`<button data-path="${sid}" style="padding:2px 6px;font-size:10px;">⚒ Path</button>`:''}
+      ${known.length>1?`<button data-forget="${sid}" style="padding:2px 6px;font-size:10px;background:#3a2030;border-color:#5a3040;">Forget</button>`:''}</div>
     </div>`;
   });
   // class mechanic bar (just display)
@@ -2405,7 +2437,8 @@ function openCharacterScreen(){
       <div class="spell-loadout">${slotHtml}</div>
     </div>
   </div>
-  <h3 class="gold-text" style="margin-top:10px;">Spellbook &amp; Mastery — <span class="muted" style="font-size:13px;">know ${known.length}/15 spells (Nauka ${s.learning|0}), equip up to ${MAX_LOADOUT}</span></h3>
+  <h3 class="gold-text" style="margin-top:10px;">Spellbook &amp; Mastery — <span class="muted" style="font-size:13px;">know ${known.length}/${knownSpellCount()} spells (Nauka ${s.learning|0})${spellSlotsOpen()>0?` · <span style="color:#7fd8ff;">${spellSlotsOpen()} free slot${spellSlotsOpen()>1?'s':''} — pick spells to 📖 Learn</span>`:''}, equip up to ${MAX_LOADOUT}</span></h3>
+  <div class="muted" style="font-size:11px;margin-bottom:4px;">Raise <b>Nauka</b> to open more slots. <b>Forget</b> a spell to free a slot and learn another — build the kit you want.</div>
   <div style="max-height:240px;overflow-y:auto;">${spellListHtml}</div>`;
   const ov=openModal('👤 Character',body,cls.c1);
   wireCharacterScreen(ov);
@@ -2419,6 +2452,18 @@ function wireCharacterScreen(ov){
   });
   ov.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
     if(G.loadout.length>=MAX_LOADOUT)return;G.loadout.push(b.dataset.add);saveGame();ov.remove();openCharacterScreen();
+  });
+  ov.querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{
+    if(spellSlotsOpen()<=0)return;
+    G.chosenSpells=knownSpells();           // normalize to the valid known set
+    G.chosenSpells.push(b.dataset.learn);
+    saveGame();ov.remove();openCharacterScreen();
+  });
+  ov.querySelectorAll('[data-forget]').forEach(b=>b.onclick=()=>{
+    const sid=b.dataset.forget;
+    G.chosenSpells=knownSpells().filter(s=>s!==sid);
+    const li=G.loadout.indexOf(sid); if(li>=0)G.loadout.splice(li,1);
+    saveGame();ov.remove();openCharacterScreen();
   });
   ov.querySelectorAll('[data-unrelic]').forEach(b=>b.onclick=()=>{
     G.relics.splice(+b.dataset.unrelic,1);saveGame();ov.remove();openCharacterScreen();
@@ -2584,7 +2629,8 @@ const BOSS_MAGES=[
   {name:'Mortus the Undying',classId:'necro',c:'#00ff66',hpMult:2.7,dmgMult:1.3,lines:["Death is only the beginning.","Your soul will serve me.","I have died before. Have you?"]},
 ];
 
-const TB_VITALITY=1.85; // duels last longer than the old wave HP pools
+const TB_VITALITY=2.7;  // bigger HP pools so duels are a back-and-forth, not a 3-turn blitz
+const DMG_GLOBAL=0.78;  // global spell-damage scale — lower so rounds last longer & choices matter
 function makeMage(side,classId,stats,opts={}){
   const cls=CLASSES[classId];
   const vit=opts.isPlayer?TB_VITALITY*1.25:TB_VITALITY;
@@ -2596,6 +2642,7 @@ function makeMage(side,classId,stats,opts={}){
     mana:stats.maxmana, maxmana:stats.maxmana,
     manaregen:stats.manaregen||4,
     sp:stats.sp, crit:stats.crit, hit:stats.hit, dodge:stats.dodge, def:stats.def,
+    evaLvl:opts.evaLvl||0,    // extra evasion (foes get harder to hit as the campaign scales)
     speedStat:stats.speed,
     shield:0, buffs:{}, statuses:{}, statusTags:new Set(),
     facing:side==='L'?1:-1,
@@ -2622,10 +2669,10 @@ function makeFoe(mode){
       maxhp:Math.round((base.hp*3.4+lvl*14)*b.hpMult*d.hp*tier),
       maxmana:base.mana+200, manaregen:8,
       sp:Math.round((base.sp+8+lvl*1.2)*b.dmgMult),
-      crit:base.crit+6, hit:96, dodge:base.dodge+4, def:base.def+6, speed:base.speed+1,
+      crit:base.crit+6, hit:88, dodge:base.dodge+4, def:base.def+6, speed:base.speed+1,
     };
     const foe=makeMage('R',b.classId,st,{name:b.name,dmgMult:b.dmgMult*d.dmg*0.62,isBoss:true,ai:'boss',
-      spells:cls.spells.slice(0,12)});
+      evaLvl:8+lvl*0.5, spells:cls.spells.slice(0,12)});
     foe._color=b.c; foe._lines=b.lines; foe._title='';
     return foe;
   }
@@ -2639,13 +2686,14 @@ function makeFoe(mode){
     maxhp:Math.round((base.hp+lvl*7+(round-1)*22)*scale*d.hp),
     maxmana:base.mana+80, manaregen:6,
     sp:Math.round((base.sp+lvl*0.7+(round-1)*1.4)),
-    crit:base.crit+2, hit:90, dodge:base.dodge, def:base.def, speed:base.speed,
+    crit:base.crit+2, hit:82, dodge:base.dodge, def:base.def, speed:base.speed,
   };
   const known=knownForClass(classId);
   const foe=makeMage('R',classId,st,{
     name:pick(FOE_NAMES)+' '+pick(FOE_TITLES),
     dmgMult:d.dmg*0.7*(1+(round-1)*0.06),
     ai:'balanced',
+    evaLvl:3+lvl*0.4+(round-1)*1.2,
     spells:cls.spells.slice(0,Math.max(4,Math.min(known,8))),
   });
   foe._color=cls.c1;
@@ -3015,8 +3063,9 @@ function tbCast(caster, target, sid, onDone){
 }
 function tbComputeDmg(caster,sp,sid){
   let d=(sp.dmg||0);
-  d*= 1 + (caster.sp||10)/55;          // spell power scaling
+  d*= 1 + (caster.sp||10)/62;          // spell power scaling (gentler so HP pools last)
   d*= (caster.dmgMult||1);
+  d*= DMG_GLOBAL;                       // global longer-rounds scale
   if(caster.isPlayer){ d*=masteryDmgMult(sid); if(caster.buffs.berserk)d*=1.4; }
   // weakness / essence attunement
   d*=rand(0.92,1.08);
@@ -3025,10 +3074,18 @@ function tbComputeDmg(caster,sp,sid){
 function tbDealDamage(target,dmg,el,opt={}){
   const attacker=(target===CB.foe)?CB.player:CB.foe;
   const enchant=attacker.isPlayer?G.enchants[G.equipWeapon]:null;
-  // dodge
-  if(Math.random()*100 < (target.dodge||0)){
-    floatNumber(target.x,target.y-30,'DODGE',{miss:true});
-    return 0;
+  // ---- ACCURACY vs EVASION ----
+  // a single avoidance roll blends: target dodge + level/boss evasion, raised when
+  // the attacker is Weakened or has low Hit %, lowered by high Hit %. (crit is separate)
+  if(!opt.trueHit){
+    const wk=(attacker.statuses&&attacker.statuses.weaken)?attacker.statuses.weaken.val:0;
+    const accuracy=(attacker.hit||80)-wk;          // ~80 is the baseline "neutral"
+    let avoid=(target.dodge||0)+(target.evaLvl||0)+(80-accuracy);
+    avoid=clamp(avoid,2,85);
+    if(Math.random()*100 < avoid){
+      floatNumber(target.x,target.y-30, (target.dodge>=12?'DODGE':'MISS'), {miss:true});
+      return 0;
+    }
   }
   // crit (Keen Edge enchant adds +8% chance)
   let crit=Math.random()*100 < (attacker.crit||0)+(enchant==='keen'?8:0);
@@ -3078,9 +3135,12 @@ function tbApplyStatus(target,el,sid){
   const stt=sp&&sp.status?sp.status:null;
   if(!stt)return;
   if(stt==='slow'||stt==='freeze'){ target.statuses.slow={turns:2,val:0.5}; if(stt==='freeze'&&Math.random()<0.4)target.statuses.vuln={turns:2}; }
-  else if(stt==='burn'){ target.statuses.burn={turns:2,dmg:Math.round((sp.dmg||20)*0.18)}; }
-  else if(stt==='mud'){ target.statuses.slow={turns:2,val:0.5}; }
-  else if(stt==='thunder'){ if(Math.random()<0.25)target.statuses.stun={turns:1}; }
+  else if(stt==='burn'){ target.statuses.burn={turns:3,dmg:Math.round((sp.dmg||20)*0.16)+3}; }
+  else if(stt==='bleed'){ target.statuses.bleed={turns:3,dmg:Math.round((sp.dmg||20)*0.14)+4}; }
+  else if(stt==='weaken'){ target.statuses.weaken={turns:3,val:35}; floatNumber(target.x,target.y-48,'−35 Hit',{miss:true}); }
+  else if(stt==='vuln'){ target.statuses.vuln={turns:3}; }
+  else if(stt==='mud'){ target.statuses.slow={turns:2,val:0.5}; target.statuses.weaken={turns:2,val:18}; }
+  else if(stt==='thunder'){ if(Math.random()<0.3)target.statuses.stun={turns:1}; }
 }
 
 /* ---------------- ENEMY AI ---------------- */
@@ -3165,9 +3225,11 @@ function tbAnimateFoeMove(dir,steps,done){
   stepOnce();
 }
 function tbTickDots(m){
-  if(m.statuses.burn){
-    const dd=m.statuses.burn.dmg||8;
-    m.hp=clamp(m.hp-dd,0,m.maxhp); floatNumber(m.x,m.y-30,''+dd,{el:'fire'});
+  let total=0, el='fire';
+  if(m.statuses.burn){ total+=m.statuses.burn.dmg||8; el='fire'; }
+  if(m.statuses.bleed){ total+=m.statuses.bleed.dmg||6; if(!m.statuses.burn)el='shadow'; }
+  if(total>0){
+    m.hp=clamp(m.hp-total,0,m.maxhp); floatNumber(m.x,m.y-30,''+total,{el});
     if(m.hp<=0){ if(m===CB.foe)tbFoeDefeated(); else tbPlayerDown(); }
   }
 }
