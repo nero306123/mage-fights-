@@ -1148,7 +1148,7 @@ const POTIONS={
   berserker:{name:'Berserker Brew',icon:'😡',price:200,effect:'berserk'},
   timesand:{name:'Time Sand',icon:'⏳',price:250,effect:'slowall'},
   bloodpact:{name:'Blood Pact',icon:'🩸',price:180,effect:'bloodpact'},
-  phoenix:{name:'Phoenix Tear',icon:'🔥',price:400,effect:'phoenix',passive:true},
+  phoenix:{name:'Phoenix Tear',icon:'🔥',price:900,effect:'phoenix',passive:true},
   void_ess:{name:'Void Essence',icon:'🌑',price:150,effect:'freecast'},
   chaos:{name:'Chaos Draught',icon:'🎲',price:120,effect:'chaos'},
   mirror:{name:'Mirror Shard',icon:'🪞',price:300,effect:'mirror'},
@@ -1157,18 +1157,34 @@ const POTIONS={
 const SPECIAL_POOL=['berserker','timesand','bloodpact','phoenix','void_ess','chaos','mirror','manaover'];
 
 const RELICS={
-  lichs_ring:{name:"Lich's Ring",icon:'💍',desc:'5% on kill → instantly refill mana'},
-  dragon_scale:{name:'Dragon Scale',icon:'🐲',desc:'Immune to Burn | fire spells do +15% to you'},
-  void_heart:{name:'Void Heart',icon:'🖤',desc:'8% of damage dealt → heals you'},
-  storm_crystal:{name:'Storm Crystal',icon:'🌩️',desc:'Every 5th spell auto-crits'},
-  soul_mirror:{name:'Soul Mirror',icon:'🪞',desc:'On dodge → deal 40% avoided damage back'},
-  madmans_crown:{name:"Madman's Crown",icon:'👑',desc:'All damage is 0–300% random'},
-  time_piece:{name:'Time Piece',icon:'⏱️',desc:'All cooldowns 25% shorter'},
-  cursed_eye:{name:'Cursed Eye',icon:'👁️',desc:'+20% crit, every hit taken = −5 HP permanent (this fight)'},
-  necro_pact:{name:'Necro Pact',icon:'📜',desc:'10% on kill → spawn weak skeleton 15s'},
-  echo_stone:{name:'Echo Stone',icon:'🔊',desc:'Last cast spell auto-repeats at 30% power after 3s'},
+  lichs_ring:{name:"Lich's Ring",icon:'💍',desc:'On kill → instantly refill your mana'},
+  dragon_scale:{name:'Dragon Scale',icon:'🐲',desc:'Immune to Burn | take −20% fire damage'},
+  void_heart:{name:'Void Heart',icon:'🖤',desc:'Heal 8% of all damage you deal'},
+  storm_crystal:{name:'Storm Crystal',icon:'🌩️',desc:'Every 5th hit you land auto-crits'},
+  soul_mirror:{name:'Soul Mirror',icon:'🪞',desc:'Reflect 30% of the damage you take'},
+  madmans_crown:{name:"Madman's Crown",icon:'👑',desc:'Your damage is 50–300% random'},
+  time_piece:{name:'Time Piece',icon:'⏱️',desc:'Your cooldowns tick down twice as fast'},
+  cursed_eye:{name:'Cursed Eye',icon:'👁️',desc:'+20% crit chance'},
+  necro_pact:{name:'Necro Pact',icon:'📜',desc:'On kill → restore 25% of your HP'},
+  echo_stone:{name:'Echo Stone',icon:'🔊',desc:'+10% spell damage'},
+  // ---- expanded relic vault ----
+  bloodfang:{name:'Bloodfang',icon:'🦷',desc:'Heal 13% of all damage you deal'},
+  giants_gauntlet:{name:"Giant's Gauntlet",icon:'🥊',desc:'+15% spell damage'},
+  executioner:{name:"Executioner's Mark",icon:'🪓',desc:'+45% damage to foes below 30% HP'},
+  keenstone:{name:'Keenstone',icon:'💠',desc:'+12% crit chance'},
+  mana_pearl:{name:'Mana Pearl',icon:'🔮',desc:'+18 mana at the start of each turn'},
+  regen_idol:{name:'Regrowth Idol',icon:'🌿',desc:'Heal 14 HP at the start of each turn'},
+  aegis_heart:{name:'Aegis Heart',icon:'🛡️',desc:'Begin each duel with a 90 shield'},
+  titan_core:{name:'Titan Core',icon:'🗿',desc:'+25% maximum HP'},
+  spite_thorns:{name:'Thornmail',icon:'🌹',desc:'Reflect 25% of the damage you take'},
+  phoenix_heart:{name:'Phoenix Heart',icon:'❤️‍🔥',desc:'Once per duel, revive at 50% HP'},
 };
-const RELIC_PRICES={lichs_ring:600,dragon_scale:700,void_heart:800,storm_crystal:750,soul_mirror:700,madmans_crown:500,time_piece:900,cursed_eye:650,necro_pact:700,echo_stone:850};
+const RELIC_PRICES={
+  lichs_ring:900,dragon_scale:1000,void_heart:1100,storm_crystal:1050,soul_mirror:1000,
+  madmans_crown:800,time_piece:1300,cursed_eye:1100,necro_pact:950,echo_stone:1200,
+  bloodfang:1100,giants_gauntlet:1300,executioner:1400,keenstone:1000,mana_pearl:900,
+  regen_idol:1050,aegis_heart:950,titan_core:1500,spite_thorns:1200,phoenix_heart:2200,
+};
 
 // ---------- BOUNTIES ----------
 const BOUNTY_POOL=[
@@ -2861,6 +2877,9 @@ function startCombat(mode){
   const P=makeMage('L',G.classId,s,{name:'You',spells:G.loadout.filter(Boolean),isPlayer:true});
   P.x=Math.round(w*0.24); P.y=groundY; P.baseY=groundY; P.facing=1;
   P.isPlayer=true;
+  // start-of-duel relics
+  if(G.relics.includes('titan_core')){ P.maxhp=Math.round(P.maxhp*1.25); P.hp=P.maxhp; }
+  if(G.relics.includes('aegis_heart')){ P.shield=(P.shield||0)+90; }
   const bless=applyBlessing(P);
   CB.player=P;
   CB.cooldowns=P.cooldowns;
@@ -2957,6 +2976,10 @@ function tbStartTurn(who){
   m.facing=(other.x>=m.x)?1:-1;
   if(who==='player'){
     CB.turnNo++;
+    // start-of-turn relics
+    if(G.relics.includes('time_piece')){ for(const k in m.cooldowns){ m.cooldowns[k]=Math.max(0,(m.cooldowns[k]||0)-1); } }
+    if(G.relics.includes('mana_pearl')){ m.mana=clamp(m.mana+18,0,m.maxmana); floatNumber(m.x-20,m.y-62,'+18 mana',{heal:true}); }
+    if(G.relics.includes('regen_idol')){ m.hp=clamp(m.hp+14,0,m.maxhp); floatNumber(m.x+20,m.y-62,'+14',{heal:true}); }
     tbApplyFamiliar();
     tbUpdateTurnUI();
   } else {
@@ -3223,9 +3246,26 @@ function tbDealDamage(target,dmg,el,opt={}){
       return 0;
     }
   }
-  // crit (Keen Edge enchant adds +8% chance)
-  let crit=Math.random()*100 < (attacker.crit||0)+(enchant==='keen'?8:0);
+  // crit (Keen Edge enchant + relics add chance; Storm Crystal forces every 5th hit)
+  let critChance=(attacker.crit||0)+(enchant==='keen'?8:0);
+  if(attacker.isPlayer){
+    if(G.relics.includes('cursed_eye'))critChance+=20;
+    if(G.relics.includes('keenstone'))critChance+=12;
+  }
+  let crit=Math.random()*100 < critChance;
+  if(attacker.isPlayer && G.relics.includes('storm_crystal')){
+    CB._stormHits=(CB._stormHits||0)+1; if(CB._stormHits%5===0)crit=true;
+  }
   let d=dmg*(crit?2:1);
+  // ---- player offensive damage relics ----
+  if(attacker.isPlayer){
+    if(G.relics.includes('giants_gauntlet'))d*=1.15;
+    if(G.relics.includes('echo_stone'))d*=1.10;
+    if(G.relics.includes('executioner') && target.hp < target.maxhp*0.30)d*=1.45;
+    if(G.relics.includes('madmans_crown'))d*=rand(0.5,3);
+  }
+  // Dragon Scale: the player takes less fire damage
+  if(target.isPlayer && el==='fire' && G.relics.includes('dragon_scale'))d*=0.8;
   // defense flat reduction
   d=Math.max(1, d - (target.def||0)*0.5);
   if(target.classId==='earth' && target===CB.foe) d=Math.max(1,d-6);
@@ -3257,6 +3297,25 @@ function tbDealDamage(target,dmg,el,opt={}){
     const leech=Math.max(1,Math.round(d*0.10));
     attacker.mana=clamp(attacker.mana+leech,0,attacker.maxmana);
     floatNumber(attacker.x,attacker.y-50,'+'+leech+' mana',{heal:true});
+  }
+  // ---- relic lifesteal (you hitting the foe) ----
+  if(attacker.isPlayer && d>0){
+    let leechPct=0;
+    if(G.relics.includes('void_heart'))leechPct+=0.08;
+    if(G.relics.includes('bloodfang'))leechPct+=0.13;
+    if(leechPct>0){ const h=Math.max(1,Math.round(d*leechPct)); attacker.hp=clamp(attacker.hp+h,0,attacker.maxhp); floatNumber(attacker.x,attacker.y-52,'+'+h,{heal:true}); }
+  }
+  // ---- relic reflect (foe hitting you) ----
+  if(target.isPlayer && d>0){
+    let refl=0;
+    if(G.relics.includes('spite_thorns'))refl+=0.25;
+    if(G.relics.includes('soul_mirror'))refl+=0.30;
+    if(refl>0 && CB.foe && !CB.foe._dead){
+      const back=Math.max(1,Math.round(d*refl));
+      CB.foe.hp=clamp(CB.foe.hp-back,0,CB.foe.maxhp); CB.foe.flash=0.3;
+      floatNumber(CB.foe.x,CB.foe.y-30,''+back,{el:'essence'});
+      if(CB.foe.hp<=0)tbFoeDefeated();
+    }
   }
   // death check
   if(target.hp<=0){
@@ -3382,6 +3441,9 @@ function tbEndTurn(who){
 function tbFoeDefeated(){
   if(CB.over)return;
   const f=CB.foe;
+  // on-kill relics
+  if(G.relics.includes('lichs_ring')){ CB.player.mana=CB.player.maxmana; floatNumber(CB.player.x,CB.player.y-50,'mana!',{heal:true}); }
+  if(G.relics.includes('necro_pact')){ CB.player.hp=clamp(CB.player.hp+CB.player.maxhp*0.25,0,CB.player.maxhp); floatNumber(CB.player.x,CB.player.y-60,'+'+Math.round(CB.player.maxhp*0.25),{heal:true}); }
   f.hp=0; f._dead=true;
   deathBurst(f.x,f.y-20,f.classId==='fire'?'fire':'shadow',32);
   triggerShake(16);
@@ -3451,6 +3513,13 @@ function tbPlayerDown(){
   if(CB.cls.id==='necro' && !CB._lichUsed && Math.random()<0.3){
     CB._lichUsed=true; p.hp=p.maxhp*0.35; p.buffs.freecast=true;
     showBanner('💀 LICH FORM 💀','#00ff44',true); flashScreen('rgba(0,255,68,.4)',500);
+    return;
+  }
+  // Phoenix Heart relic — once-per-duel revive
+  if(G.relics.includes('phoenix_heart') && !CB._phoenixHeartUsed){
+    CB._phoenixHeartUsed=true; p.hp=p.maxhp*0.5; p.shield=0;
+    showBanner('❤️‍🔥 PHOENIX HEART ❤️‍🔥','#ff5577',true);
+    flashScreen('rgba(255,85,119,.5)',500); doShockwave(p.x,p.y-20,'#ff5577',1.4);
     return;
   }
   CB.over=true; CB.phase='lose';
