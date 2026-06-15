@@ -922,7 +922,7 @@ const CLASSES = {
   necro:{
     id:'necro',name:'Necromancer',emoji:'💀',c1:'#6600cc',c2:'#00ff44',
     base:{hp:55,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:76,dodge:2,learning:5},
-    passive:{name:'Master of the Dead',desc:'A frail summoner who lets the dead fight for him. Every 6 rounds, Raise Dead automatically rises on its own — no casting, can\'t be forgotten or mastered — conjuring a wave of shadow-mage minions (more with Shadow Magic) that strike each turn and body-block for you.'},
+    passive:{name:'Master of the Dead',desc:'A frail summoner who lets the dead fight for him. At the START of each duel, Raise Dead automatically rises on its own — no casting, can\'t be forgotten or mastered — conjuring your whole army of shadow-mage minions (more with Shadow Magic) that strike each turn and body-block for you. They do NOT respawn — keep them alive, and use Dark Command to heal & empower them.'},
     mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 35% HP in Lich Form — all spells free briefly.',max:100},
     spells:['shadow_ball','bone_spear','death_nova','dark_command','grave_bind','dark_mend','bone_shield','soul_barrier','shadow_ward','grave_chill','night_terror','soul_siphon','soul_explosion'],
   },
@@ -952,7 +952,7 @@ const CLASSES = {
     base:{hp:90,mana:110,sp:13,speed:8,stamina:10,def:6,crit:7,hit:80,dodge:5,learning:6},
     passive:{name:'Attunement',desc:'Spells deal +20% dmg to an enemy\'s weakness.'},
     mech:{name:'Prismatic Charge',desc:'Hitting weaknesses fills bar. Release: SINGULARITY NOVA — rainbow explosion hitting every weakness.',max:100},
-    spells:['essence_bolt','prismatic_ray','aura_burst','mana_surge','elemental_fusion','arcane_nova','pure_energy','singularity','spark_dart','prism_lance','aura_pulse','ward_of_light','chromatic_burst','essence_mend','cosmos'],
+    spells:['essence_bolt','prismatic_ray','aura_burst','mana_surge','elemental_fusion','arcane_nova','pure_energy','singularity','spark_dart','prism_lance','aura_pulse','ward_of_light','chromatic_burst','essence_mend','cosmos','essence_fusion'],
   },
   power:{
     id:'power',name:'Power Mage',emoji:'⚡',c1:'#9900ff',c2:'#ffffff',
@@ -1148,8 +1148,10 @@ const SPELLS={
   siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,status:'bleed',desc:'Tear life from your foe to heal — they bleed.'},
   annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
   // ===== NECROMANCER SUMMONER KIT (minions do the fighting; Raise Dead itself is automatic) =====
-  dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:4,desc:'Heal all your minions to full and permanently boost their damage this duel.'},
+  dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:6,desc:'Heal all your minions to full and permanently boost their damage this duel. Long cooldown.'},
   grave_bind:{name:'Grave Bind',icon:'⛓️',el:'shadow',kind:'aoe',cost:26,dmg:8,cd:5,radius:170,status:'bind',desc:'Skeletal hands erupt and lock your foe in place — stunned for 2 turns.'},
+  // ===== ESSENCE FUSION (Essence mage) =====
+  essence_fusion:{name:'Essence Fusion',icon:'⚛️',el:'essence',kind:'fusion',cost:20,dmg:0,cd:7,desc:'Spend ALL your mana to unleash your two strongest other spells at once — the more mana spent, the harder they hit.'},
 };
 
 // element display colors (for projectiles / particles / combos)
@@ -3012,7 +3014,7 @@ function openCharacterScreen(){
       <div class="stat-line"><span>Mana Regen</span><span>${s.manaregen}/s</span></div>
       ${cls.id==='necro'?`<div class="stat-line"><span>Shadow Magic <span class="muted">(Raise Dead → ${necroSummonCount()*2} minion${necroSummonCount()*2>1?'s':''}/wave)</span></span>
         <span><span class="gold-text">${G.shadowMagic||0}</span> <button data-sm ${G.statPoints>0?'':'disabled'} style="padding:2px 8px;font-size:12px;">＋</button></span></div>
-        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Raise Dead is automatic — every ${NECRO_SUMMON_CD} rounds it raises a wave of shadow-mage minions on its own (max ${MINION_CAP}), no casting needed. Every 5 Shadow Magic adds 2 more per wave. Minions strike each turn &amp; body-block when you stand behind them.</div>`:''}
+        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Raise Dead is automatic — at the START of each duel it raises your whole army of shadow-mage minions at once (max ${MINION_CAP}), no casting needed. It does NOT respawn them, so keep them alive! Every 5 Shadow Magic adds 2 more. Minions strike each turn &amp; body-block when you stand behind them. Use Dark Command to heal &amp; empower them mid-fight.</div>`:''}
       <h4 style="margin-top:12px;color:${cls.c1}">⚜ ${cls.passive.name}</h4><div class="muted">${cls.passive.desc}</div>
       <h4 style="margin-top:8px;color:${cls.c1}">✦ ${cls.mech.name}</h4><div class="muted">${cls.mech.desc}</div>
       ${G.level>=20?`<button data-prestige style="margin-top:12px;background:linear-gradient(180deg,#ffd866,#aa7700);color:#000;">👑 PRESTIGE (reset to Lvl 1)</button>`:`<div class="muted" style="margin-top:12px;">Prestige unlocks at Lvl 20</div>`}
@@ -3603,6 +3605,20 @@ function tbTeleportTo(wx){
 }
 
 /* ---------------- CASTING ---------------- */
+// Turn-based cooldown (in rounds) derived from a spell's real-time cd value.
+// Cheap basic attacks stay spammable (0 — castable every round); everything
+// else costs whole rounds, and lifesteal (drain) / shields / heals are made
+// deliberately slow so you can't chain them turn after turn.
+function tbCdFor(sid){
+  const sp=SPELLS[sid]; if(!sp)return 0;
+  const cd=sp.cd||0;
+  if(cd<=0.6) return 0;                       // basic attack — free to spam
+  let t=Math.max(1,Math.round(cd));
+  if(sp.drain) t+=3;                          // lifesteal — long cooldown
+  if(sp.kind==='self'&&sp.shield) t+=2;       // shields — long cooldown
+  if(sp.kind==='self'&&sp.heal) t+=1;
+  return t;
+}
 function tbPlayerCast(slot){
   if(!CB||CB.over||CB.phase!=='player'||CB.busy)return;
   const sid=G.loadout[slot]; if(!sid)return;
@@ -3613,14 +3629,14 @@ function tbPlayerCast(slot){
   const free=p.buffs.freecast;
   if(free)cost=0;
   if(p.mana<cost){ floatNumber(p.x,p.y-70,'not enough mana',{miss:true}); return; }
-  // range check (self spells always ok)
+  // range check (self & fusion channels always ok)
   const rng=spellRange(sp);
-  if(sp.kind!=='self' && tbDist()>rng){
+  if(sp.kind!=='self' && sp.kind!=='fusion' && tbDist()>rng){
     floatNumber(p.x,p.y-70,'out of range — move closer',{miss:true});
     return;
   }
   if(free)delete p.buffs.freecast; else p.mana-=cost;
-  p.cooldowns[sid]=Math.max(1,Math.round(sp.cd<=1?1:sp.cd/1.5));
+  p.cooldowns[sid]=tbCdFor(sid);
   CB.stat.spellUse[sid]=(CB.stat.spellUse[sid]||0)+1;
   trackMasteryUse(sid);
   CB.busy=true; CB.phase='anim';
@@ -3647,6 +3663,35 @@ function tbCast(caster, target, sid, onDone){
       else floatNumber(caster.x,caster.y-46,'no minions',{miss:true});
       tbAuraBurst(caster,'shadow');
       setTimeout(finish,280);
+    },360);
+    return;
+  }
+  // FUSION: spend ALL mana to fire the two strongest other loadout spells at once
+  if(sp.kind==='fusion'){
+    setTimeout(()=>{
+      if(!CB||CB.over){finish();return;}
+      const spent=caster.mana; caster.mana=0;
+      const power=1+clamp(spent/200,0,1)*0.6;          // up to +60% from mana spent
+      const list=(caster.isPlayer?(G.loadout||[]):(caster.spells||[]));
+      const picks=list.filter(s=>s&&s!==sid&&SPELLS[s]&&(SPELLS[s].dmg||0)>0&&SPELLS[s].kind!=='self'&&SPELLS[s].kind!=='fusion')
+        .sort((a,b)=>(SPELLS[b].dmg||0)-(SPELLS[a].dmg||0)).slice(0,2);
+      tbAuraBurst(caster,'essence');
+      floatNumber(caster.x,caster.y-58,'⚛️ FUSION',{el:'essence'});
+      if(!picks.length){ floatNumber(caster.x,caster.y-46,'no spells to fuse',{miss:true}); setTimeout(finish,320); return; }
+      let i=0;
+      const fireOne=()=>{
+        if(!CB||CB.over){finish();return;}
+        const s=picks[i], ssp=SPELLS[s];
+        const tx=target.x, ty=target.y-16;
+        CB.effects.push({type:'aoe',el:ssp.el,x:tx,y:ty,r:Math.min(ssp.radius||170,180),life:0.6,maxlife:0.6,color:EL_COLORS[ssp.el]});
+        doShockwave(tx,ty,EL_COLORS[ssp.el],1.15);
+        spawnImpact(tx,ty,ssp.el,1.4);
+        tbDealDamage(target,Math.round(tbComputeDmg(caster,ssp,s)*power),ssp.el,{sid:s});
+        triggerShake(9);
+        i++;
+        if(i<picks.length) setTimeout(fireOne,250); else setTimeout(finish,420);
+      };
+      fireOne();
     },360);
     return;
   }
@@ -3749,6 +3794,7 @@ function tbComputeDmg(caster,sp,sid){
   let d=(sp.dmg||0);
   d*= 1 + (caster.sp||10)/62;          // spell power scaling (gentler so HP pools last)
   d*= (caster.dmgMult||1);
+  if(sp.el==='wind') d*=0.66;          // wind hits soft — it's about KNOCKBACK, not raw damage
   d*= DMG_GLOBAL;                       // global longer-rounds scale
   if(caster.isPlayer){ d*=masteryDmgMult(sid); if(caster.buffs.berserk)d*=1.4; }
   // weakness / essence attunement
@@ -3815,6 +3861,18 @@ function tbDealDamage(target,dmg,el,opt={}){
   if(crit){ CB.stat.crits++; floatNumber(target.x,target.y-34,d+'!',{crit:true,el}); triggerShake(10); }
   else floatNumber(target.x,target.y-30, ''+d, {el});
   spawnHitParticles(target.x,target.y-20,el);
+  // ---- WIND KNOCKBACK: wind spells shove the target away (low dmg, big push) ----
+  const _ksp=opt.sid?SPELLS[opt.sid]:null;
+  if(_ksp && _ksp.el==='wind' && d>0 && target!==attacker){
+    const dir=(target.x>=attacker.x)?1:-1;
+    const force=_ksp.knock||clamp(48+(_ksp.dmg||20)*1.6,48,150);
+    const nx=clamp(target.x+dir*force, tbWorldMinX(), tbWorldMaxX());
+    if(Math.abs(nx-target.x)>2){
+      target.x=nx; target.walkT=0.4;
+      floatNumber(target.x,target.y-52,'💨',{miss:true});
+      for(let i=0;i<9;i++){ const a=rand(-0.7,0.7); CB.particles.push({x:target.x-dir*14,y:target.y-26,vx:-dir*rand(140,260),vy:Math.sin(a)*70,life:rand(0.3,0.6),maxlife:0.6,r:rand(2,4),color:'#ddffaa',fade:true}); }
+    }
+  }
   // apply simple status by spell element
   tbApplyStatus(target,el,opt.sid);
   // Searing Edge: chance to ignite the foe on a successful hit
@@ -3885,7 +3943,7 @@ function tbEnemyTurn(){
     if(!CB||CB.over)return;
     if(choice.sid){
       const sp=SPELLS[choice.sid];
-      f.mana-=sp.cost; f.cooldowns[choice.sid]=Math.max(1,Math.round(sp.cd<=1?1:sp.cd/1.5));
+      f.mana-=sp.cost; f.cooldowns[choice.sid]=tbCdFor(choice.sid);
       CB.busy=true; CB.phase='anim'; tbUpdateTurnUI();
       tbCast(f,p,choice.sid,()=>{ if(CB&&!CB.over) tbEndTurn('enemy'); });
     } else {
@@ -5607,16 +5665,22 @@ function spawnHitParticles(x,y,el){
 }
 function deathBurst(x,y,el,size){
   const c=EL_COLORS[el]||'#fff';
-  for(let i=0;i<Math.min(40,18+size);i++){ const a=rand(0,7),s=rand(60,260); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.5,1),maxlife:1,r:rand(2,6),color:c,fade:true,grav:80}); }
+  CB.effects.push({type:'shock',x,y,r:10,maxr:90,life:0.5,maxlife:0.5,color:c});
+  for(let i=0;i<Math.min(48,22+size);i++){ const a=rand(0,7),s=rand(60,280); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.5,1),maxlife:1,r:rand(2,6),color:c,fade:true,grav:80}); }
+  for(let i=0;i<6;i++){ const a=rand(0,7),s=rand(160,320); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.3,maxlife:0.3,r:rand(1,2),color:'#ffffff',fade:true}); }
 }
 function spawnImpact(x,y,el,scale){
   const c=EL_COLORS[el]||'#fff';
   CB.effects.push({type:'impact',el,x,y,r:30*scale,life:0.4,maxlife:0.4});
-  for(let i=0;i<10;i++){ const a=rand(0,7),s=rand(50,180)*scale; CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.3,0.6),maxlife:0.6,r:rand(2,5),color:c,fade:true,grav:40}); }
+  CB.effects.push({type:'shock',x,y,r:8*scale,maxr:60*scale,life:0.45,maxlife:0.45,color:c});
+  for(let i=0;i<16;i++){ const a=rand(0,7),s=rand(60,220)*scale; CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.3,0.7),maxlife:0.7,r:rand(2,5),color:c,fade:true,grav:40}); }
+  for(let i=0;i<5;i++){ const a=rand(0,7),s=rand(130,270)*scale; CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.25,maxlife:0.25,r:rand(1,2),color:'#ffffff',fade:true}); }
 }
 function spawnCastBurst(x,y,el){
   const c=EL_COLORS[el]||'#fff';
-  for(let i=0;i<16;i++){ const a=rand(0,7),s=rand(40,140); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.5,maxlife:0.5,r:rand(2,4),color:c,fade:true}); }
+  for(let i=0;i<20;i++){ const a=rand(0,7),s=rand(40,150); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.5,maxlife:0.5,r:rand(2,4),color:c,fade:true}); }
+  // motes spiral inward toward the staff tip as the spell charges
+  for(let i=0;i<8;i++){ const a=(i/8)*Math.PI*2; CB.particles.push({x:x+Math.cos(a)*28,y:y+Math.sin(a)*28,vx:-Math.cos(a)*100,vy:-Math.sin(a)*100,life:0.4,maxlife:0.4,r:rand(2,3),color:'#ffffff',fade:true}); }
 }
 function tbAuraBurst(m,el){
   const c=EL_COLORS[el]||'#fff';
@@ -5674,18 +5738,15 @@ function tbApplyFamiliar(){
 // longer being able to cast/forget/master it.
 function necroSummonCount(){ return clamp(1+Math.floor((G.shadowMagic||0)/5),1,6); }
 const MINION_CAP=6;
-// how many rounds between automatic Raise Dead waves
-const NECRO_SUMMON_CD=6;
-// Raise Dead — fires automatically, but only once every NECRO_SUMMON_CD rounds
-// (it's a burst, not a per-turn flood). Fires immediately on the first turn.
+// Raise Dead — fires automatically, but only ONCE per duel (at the start).
+// It's your opening army, not a per-round flood. After this, your minions are
+// all you get — protect them. (Dark Command can heal/empower them mid-fight.)
 function tbAutoSummonMinions(){
   if(!CB||CB.over||!CB.player||CB.player.classId!=='necro')return;
-  if(CB.necroSummonTimer===undefined)CB.necroSummonTimer=0;
-  if(CB.necroSummonTimer>0){ CB.necroSummonTimer--; floatNumber(CB.player.x,CB.player.y-58,'🧟 '+CB.necroSummonTimer+'r',{miss:true}); return; }
-  const before=(CB.minions||[]).filter(m=>m.hp>0).length;
+  if(CB._necroRaised)return;                 // already raised this duel
+  CB._necroRaised=true;
   spawnNecroMinions(necroSummonCount()*2);
-  CB.necroSummonTimer=NECRO_SUMMON_CD;
-  if((CB.minions||[]).filter(m=>m.hp>0).length>before){
+  if((CB.minions||[]).filter(m=>m.hp>0).length){
     floatNumber(CB.player.x,CB.player.y-58,'🧟 risen',{heal:true});
   }
 }
