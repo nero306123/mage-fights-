@@ -1106,6 +1106,19 @@ const ENCHANTS={
   keen:{name:'Keen Edge',icon:'⚡',price:450,c:'#ffe680',
     desc:'+8% critical hit chance.'},
 };
+// ---- weapon upgrade (+1/+2) ----
+const WEAPON_MAX_PLUS=2;
+function weaponPlus(id){ return clamp(G.weaponPlus&&G.weaponPlus[id]||0,0,WEAPON_MAX_PLUS); }
+// each + raises the weapon's stats by 30% (rounded), so upgrades visibly outclass a base copy
+function effectiveWeaponStats(id){
+  const w=WEAPONS[id]; if(!w) return {};
+  const plus=weaponPlus(id); if(!plus) return w.stats;
+  const out={}; for(const k in w.stats) out[k]=Math.round(w.stats[k]*(1+0.30*plus));
+  return out;
+}
+function weaponDisplayName(id){ const p=weaponPlus(id); return WEAPONS[id].name+(p?(' +'+p):''); }
+// cost to take a weapon from its current + to the next
+function weaponUpgradeCost(id){ const p=weaponPlus(id); return Math.round(WEAPONS[id].price*(0.7+0.5*p)); }
 const ARMORS={
   cloth_robe:{name:'Cloth Robe',icon:'🧥',price:80,stats:{def:5}},
   arcane_robe:{name:'Arcane Robe',icon:'🌌',price:200,stats:{mana:50,speed:-5}},
@@ -1120,6 +1133,14 @@ const ARMORS={
   travelers_cloak:{name:"Traveler's Cloak",icon:'🧣',price:260,stats:{speed:8,dodge:6}},
   bronze_plate:{name:'Bronze Plate',icon:'🟫',price:520,stats:{def:24,hp:25,speed:-6}},
   emberweave_robe:{name:'Emberweave Robe',icon:'🧶',price:1200,stats:{sp:24,crit:6,hp:10}},
+  // ---- expanded wardrobe (spread across price tiers, distinct niches) ----
+  acolyte_wrap:{name:"Acolyte's Wrap",icon:'🧵',price:130,stats:{hp:10,mana:20,hit:3}},
+  silk_shawl:{name:'Silk Shawl',icon:'🎀',price:340,stats:{sp:12,dodge:6,speed:4}},
+  warden_plate:{name:'Warden Plate',icon:'🛡️',price:680,stats:{def:26,hp:35,speed:-7}},
+  stormweave_robe:{name:'Stormweave Robe',icon:'⚡',price:1100,stats:{sp:18,speed:7,crit:5,hit:4}},
+  frostguard_mail:{name:'Frostguard Mail',icon:'🧊',price:1700,stats:{def:20,mana:45,hp:25}},
+  phoenix_mantle:{name:'Phoenix Mantle',icon:'🦅',price:2600,stats:{sp:28,hp:35,crit:8}},
+  celestial_robe:{name:'Celestial Robe',icon:'🌟',price:4200,stats:{sp:36,mana:80,def:16,hit:5}},
 };
 const POTIONS={
   health:{name:'Health Potion',icon:'❤️',price:80,basic:true,effect:'heal',val:50},
@@ -1308,7 +1329,7 @@ function computeStats(){
       s[k]=(s[k]||0)+st[k];
     }
   };
-  if(G.equipWeapon) applyStats(WEAPONS[G.equipWeapon].stats);
+  if(G.equipWeapon) applyStats(effectiveWeaponStats(G.equipWeapon));
   if(G.equipArmor) applyStats(ARMORS[G.equipArmor].stats);
   // prestige +5% all
   const presPct=G.prestige*5 + allpct;
@@ -1415,6 +1436,13 @@ const ARMOR_LOOK={
   dragon_silk:    {c1:'#6e1414',c2:'#ffcf66',pattern:'scales'},
   void_transcendence:{c1:'#0c0816',c2:'#bb88ff',pattern:'stars'},
   godweave:       {c1:'#4a3a10',c2:'#ffe27a',pattern:'gold'},
+  acolyte_wrap:   {c1:'#3a3450',c2:'#aab0d8',pattern:'runes'},
+  silk_shawl:     {c1:'#4a2a4a',c2:'#ff9ed8',pattern:'weave'},
+  warden_plate:   {c1:'#3a4450',c2:'#cfe0ff',pattern:'plates'},
+  stormweave_robe:{c1:'#1e2a4a',c2:'#88ccff',pattern:'stars'},
+  frostguard_mail:{c1:'#22404e',c2:'#bfeaff',pattern:'gems'},
+  phoenix_mantle: {c1:'#5a1808',c2:'#ffb24a',pattern:'weave'},
+  celestial_robe: {c1:'#1a2450',c2:'#ffe9a0',pattern:'stars'},
 };
 
 function drawMage(ctx,x,y,scale,classId,t,opts={}){
@@ -2166,14 +2194,17 @@ function statStr(stats){
 function buyGearCard(key,def,kind,owned,equipped){
   const can=G.gold>=def.price;
   const isOwned=owned;
+  const isW=kind==='weapon';
+  const name=isW?weaponDisplayName(key):def.name;
+  const stats=isW?effectiveWeaponStats(key):def.stats;
   let btn;
   if(equipped) btn='<button disabled>Equipped</button>';
   else if(isOwned) btn=`<button data-eq="${key}">Equip</button>`;
   else btn=`<button data-buy="${key}" ${can?'':'disabled'}>Buy ${def.price}g</button>`;
   return `<div class="item-card panel ${equipped?'equipped':''}" style="--glow:${equipped?'#ffd866':'#4a4a7a'}">
     <div class="item-icon">${def.icon}</div>
-    <span class="iname">${def.name}</span>
-    <div class="istats">${statStr(def.stats)}</div>
+    <span class="iname">${name}</span>
+    <div class="istats">${statStr(stats)}</div>
     ${btn}</div>`;
 }
 function wireGearButtons(ov,table,kind){
@@ -2212,13 +2243,42 @@ function openWeaponShop(re){
         <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
         <div class="istats">${def.desc}</div>${btn}</div>`;
     }).join('')}</div>`:'<div class="muted">Equip a weapon first to enchant it.</div>';
+  // ---- forge: upgrade the equipped weapon +1/+2 ----
+  let forgeSection;
+  if(!curWeapon){ forgeSection='<div class="muted">Equip a weapon first to reforge it.</div>'; }
+  else {
+    const id=G.equipWeapon, p=weaponPlus(id);
+    if(p>=WEAPON_MAX_PLUS){
+      forgeSection=`<div class="item-card panel equipped" style="--glow:#ffd866">
+        <div class="item-icon">${curWeapon.icon}</div><span class="iname">${weaponDisplayName(id)}</span>
+        <div class="istats">${statStr(effectiveWeaponStats(id))}</div>
+        <button disabled>Max forged ✦</button></div>`;
+    } else {
+      const cost=weaponUpgradeCost(id);
+      // preview stats at next +
+      const nextPlus=p+1, prev={}; for(const k in curWeapon.stats) prev[k]=Math.round(curWeapon.stats[k]*(1+0.30*nextPlus));
+      forgeSection=`<div class="item-card panel" style="--glow:#ff8844">
+        <div class="item-icon">${curWeapon.icon}</div><span class="iname">${weaponDisplayName(id)} → +${nextPlus}</span>
+        <div class="istats">${statStr(effectiveWeaponStats(id))} ➜ <span class="gold-text">${statStr(prev)}</span></div>
+        <button data-upgrade ${G.gold>=cost?'':'disabled'}>Forge +${nextPlus} (${cost}g)</button></div>`;
+    }
+  }
   const body=shopkeeperHeader('weapon')+`
     <h3 class="gold-text">Staffs — balanced</h3><div class="shop-grid">${sec('staff')}</div>
     <h3 class="gold-text">Wands — crit &amp; precision</h3><div class="shop-grid">${sec('wand')}</div>
     <h3 class="gold-text">Orbs — mana &amp; sustain</h3><div class="shop-grid">${sec('orb')}</div>
+    <h3 class="gold-text">⚒ Forge — upgrade your ${curWeapon?curWeapon.icon+' '+weaponDisplayName(G.equipWeapon):'weapon'}</h3>
+    <div class="shop-grid">${forgeSection}</div>
     <h3 class="gold-text">✦ Enchant your ${curWeapon?curWeapon.icon+' '+curWeapon.name:'weapon'}</h3>${enchantSection}`;
   _openShopOv=openModal('⚔️ Weapon Smith',body,'#ff8844');_openShopKind='weapon';
   wireGearButtons(_openShopOv,WEAPONS,'weapon');
+  _openShopOv.querySelectorAll('[data-upgrade]').forEach(b=>b.onclick=()=>{
+    const id=G.equipWeapon; if(!id)return;
+    const cost=weaponUpgradeCost(id);
+    if(G.gold<cost||weaponPlus(id)>=WEAPON_MAX_PLUS)return;
+    G.gold-=cost; G.weaponPlus[id]=weaponPlus(id)+1;
+    saveGame();openWeaponShop(true);
+  });
   _openShopOv.querySelectorAll('[data-enchant]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.enchant;const def=ENCHANTS[k];
     if(G.gold<def.price||!G.equipWeapon)return;
@@ -2498,7 +2558,7 @@ function openCharacterScreen(){
     </div>
     <div>
       <h3 class="gold-text">Equipped</h3>
-      <div class="stat-line"><span>Weapon</span><span>${eqW?eqW.icon+' '+eqW.name:'<span class="muted">none</span>'}</span></div>
+      <div class="stat-line"><span>Weapon</span><span>${eqW?eqW.icon+' '+weaponDisplayName(G.equipWeapon):'<span class="muted">none</span>'}</span></div>
       ${eqW&&G.enchants[G.equipWeapon]?`<div class="stat-line"><span>Enchant</span><span>${ENCHANTS[G.enchants[G.equipWeapon]].icon} ${ENCHANTS[G.enchants[G.equipWeapon]].name}</span></div>`:''}
       <div class="stat-line"><span>Armor</span><span>${eqA?eqA.icon+' '+eqA.name:'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Phoenix Tear</span><span>${G.phoenixTear?'🔥 ready':'<span class="muted">none</span>'}</span></div>
