@@ -868,9 +868,9 @@ const CLASSES = {
   necro:{
     id:'necro',name:'Necromancer',emoji:'💀',c1:'#6600cc',c2:'#00ff44',
     base:{hp:70,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:76,dodge:2,learning:5},
-    passive:{name:'Soul Harvest',desc:'30% capture chance on kill (20% bosses). Stash persists between rounds.'},
-    mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 30% HP in Lich Form — all spells free 10s.',max:100},
-    spells:['shadow_ball','soul_explosion','spawn_all','spawn_shadow','soul_barrier','death_nova','bone_shield','void_rift','bone_spear','soul_siphon','grave_chill','shadow_ward','night_terror','dark_mend','oblivion'],
+    passive:{name:'Master of the Dead',desc:'A summoner, not a striker: Raise Dead conjures shadow-mage minions that attack each turn and body-block for you. Raise more with Shadow Magic.'},
+    mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 35% HP in Lich Form — all spells free briefly.',max:100},
+    spells:['shadow_ball','necro_summon','bone_spear','death_nova','raise_horde','dark_command','grave_bind','dark_mend','bone_shield','soul_barrier','shadow_ward','grave_chill','night_terror','soul_siphon','soul_explosion'],
   },
   water:{
     id:'water',name:'Water Mage',emoji:'💧',c1:'#00ffcc',c2:'#0066ff',
@@ -1093,6 +1093,11 @@ const SPELLS={
   thunderstorm:{name:'Thunderstorm',icon:'⛈️',el:'power',kind:'aoe',cost:40,dmg:54,cd:5,radius:230,status:'thunder',desc:'Call down chained lightning.'},
   siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,status:'bleed',desc:'Tear life from your foe to heal — they bleed.'},
   annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
+  // ===== NECROMANCER SUMMONER KIT (minions do the fighting) =====
+  necro_summon:{name:'Raise Dead',icon:'🧟',el:'shadow',kind:'minion',cost:34,dmg:0,cd:6,summonBase:1,desc:'Raise shadow-mage minions behind you (more with Shadow Magic). They strike each of your turns and can body-block for you.'},
+  raise_horde:{name:'Raise Horde',icon:'👥',el:'shadow',kind:'minion',cost:50,dmg:0,cd:9,summonBonus:2,desc:'Raise a larger group of minions at once (base + 2). Costly, long cooldown.'},
+  dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:4,desc:'Heal all your minions to full and permanently boost their damage this duel.'},
+  grave_bind:{name:'Grave Bind',icon:'⛓️',el:'shadow',kind:'aoe',cost:26,dmg:8,cd:5,radius:170,status:'bind',desc:'Skeletal hands erupt and lock your foe in place — stunned for 2 turns.'},
 };
 
 // element display colors (for projectiles / particles / combos)
@@ -1291,7 +1296,7 @@ function knownSpells(){
 function spellSlotsOpen(){ return Math.max(0, knownSpellCount()-knownSpells().length); }
 function isSpellKnown(sid){ return knownSpells().includes(sid); }
 // short tag string describing a spell's bonus effects (for tooltips / spellbook)
-const STATUS_TEXT={burn:'🔥 Burn',bleed:'🩸 Bleed',weaken:'💫 −Hit',slow:'🐌 Slow',freeze:'❄️ Freeze',thunder:'⚡ Stun',mud:'🟤 Mire',vuln:'🎯 Vuln'};
+const STATUS_TEXT={burn:'🔥 Burn',bleed:'🩸 Bleed',weaken:'💫 −Hit',slow:'🐌 Slow',freeze:'❄️ Freeze',thunder:'⚡ Stun',mud:'🟤 Mire',vuln:'🎯 Vuln',bind:'⛓️ Stun 2t'};
 function spellEffectText(sp){
   const tags=[];
   if(sp.status&&STATUS_TEXT[sp.status]) tags.push(STATUS_TEXT[sp.status]);
@@ -1302,10 +1307,12 @@ function spellEffectText(sp){
   return tags.join(' · ');
 }
 const MAX_LOADOUT=7;
+// the Necromancer is a summoner/support — fewer active spells, leans on his minions
+function maxLoadout(){ return G.classId==='necro'?5:7; }
 // range of a spell in pixels (turn-based duel positioning)
 function spellRange(sp){
   if(!sp) return 400;
-  if(sp.kind==='self') return 99999;
+  if(sp.kind==='self'||sp.kind==='minion'||sp.kind==='minion_buff') return 99999;
   if(sp.kind==='beam') return 540;
   if(sp.kind==='projectile') return sp.melee?200:680;
   if(sp.kind==='aoe') return sp.melee?190:360;
@@ -2133,9 +2140,14 @@ function confirmClass(cid){
   G=freshSave();
   G.classId=cid;
   // you start knowing a handful of spells (Nauka count); you can re-curate them later
-  G.chosenSpells=CLASSES[cid].spells.slice(0, knownForClass(cid));
+  if(cid==='necro'){
+    // the summoner begins with just his bolt and his summon — he grows his horde via Shadow Magic
+    G.chosenSpells=['shadow_ball','necro_summon'];
+  } else {
+    G.chosenSpells=CLASSES[cid].spells.slice(0, knownForClass(cid));
+  }
   // default loadout = your starting known spells
-  G.loadout=G.chosenSpells.slice(0,MAX_LOADOUT);
+  G.loadout=G.chosenSpells.slice(0,maxLoadout());
   G.gold=150;
   G.statPoints=10; // 10 to distribute at start
   refreshBounties(true);
@@ -2587,7 +2599,7 @@ function openCharacterScreen(){
   }).join('');
   // spell loadout slots (7)
   let slotHtml='';
-  for(let i=0;i<MAX_LOADOUT;i++){
+  for(let i=0;i<maxLoadout();i++){
     const sid=G.loadout[i];const sp=sid?SPELLS[sid]:null;
     slotHtml+=`<div class="spell-slot ${sp?'':'empty'} ${sp?masteryClass(sid):''}" data-slot="${i}" ${sp?'title="'+sp.name+'"':''}>${sp?sp.icon:'＋'}</div>`;
   }
@@ -2621,7 +2633,7 @@ function openCharacterScreen(){
         <div class="mastery-bar"><div class="mastery-bar-fill" style="width:${pct}%"></div></div>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
-      ${inLoadout?'<span class="muted" style="font-size:10px;">equipped</span>':`<button data-add="${sid}" style="padding:2px 8px;font-size:11px;" ${G.loadout.length<MAX_LOADOUT?'':'disabled'}>+ slot</button>`}
+      ${inLoadout?'<span class="muted" style="font-size:10px;">equipped</span>':`<button data-add="${sid}" style="padding:2px 8px;font-size:11px;" ${G.loadout.length<maxLoadout()?'':'disabled'}>+ slot</button>`}
       ${tier>=3&&!m.path?`<button data-path="${sid}" style="padding:2px 6px;font-size:10px;">⚒ Path</button>`:''}
       ${known.length>1?`<button data-forget="${sid}" style="padding:2px 6px;font-size:10px;background:#3a2030;border-color:#5a3040;">Forget</button>`:''}</div>
     </div>`;
@@ -2633,7 +2645,9 @@ function openCharacterScreen(){
       <div class="muted" style="margin-bottom:8px;">Unspent points: <b class="gold-text" id="charPoints">${G.statPoints}</b> • Gold: <b class="gold-text">${G.gold}</b></div>
       ${allocRows}
       <div class="stat-line"><span>Mana Regen</span><span>${s.manaregen}/s</span></div>
-      ${cls.id==='necro'?`<div class="stat-line"><span>Shadow Magic</span><span>${G.shadowMagic} <button data-souls style="padding:2px 6px;font-size:10px;">Stash (${G.soulStash.length})</button></span></div>`:''}
+      ${cls.id==='necro'?`<div class="stat-line"><span>Shadow Magic <span class="muted">(Raise Dead → ${necroSummonCount()} minion${necroSummonCount()>1?'s':''})</span></span>
+        <span><span class="gold-text">${G.shadowMagic||0}</span> <button data-sm ${G.statPoints>0?'':'disabled'} style="padding:2px 8px;font-size:12px;">＋</button></span></div>
+        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Every 5 Shadow Magic raises one more minion (max ${MINION_CAP}). Minions strike each turn &amp; body-block when you stand behind them.</div>`:''}
       <h4 style="margin-top:12px;color:${cls.c1}">⚜ ${cls.passive.name}</h4><div class="muted">${cls.passive.desc}</div>
       <h4 style="margin-top:8px;color:${cls.c1}">✦ ${cls.mech.name}</h4><div class="muted">${cls.mech.desc}</div>
       ${G.level>=20?`<button data-prestige style="margin-top:12px;background:linear-gradient(180deg,#ffd866,#aa7700);color:#000;">👑 PRESTIGE (reset to Lvl 1)</button>`:`<div class="muted" style="margin-top:12px;">Prestige unlocks at Lvl 20</div>`}
@@ -2655,7 +2669,7 @@ function openCharacterScreen(){
       <div class="spell-loadout">${slotHtml}</div>
     </div>
   </div>
-  <h3 class="gold-text" style="margin-top:10px;">Spellbook &amp; Mastery — <span class="muted" style="font-size:13px;">know ${known.length}/${knownSpellCount()} spells (Nauka ${s.learning|0})${spellSlotsOpen()>0?` · <span style="color:#7fd8ff;">${spellSlotsOpen()} free slot${spellSlotsOpen()>1?'s':''} — pick spells to 📖 Learn</span>`:''}, equip up to ${MAX_LOADOUT}</span></h3>
+  <h3 class="gold-text" style="margin-top:10px;">Spellbook &amp; Mastery — <span class="muted" style="font-size:13px;">know ${known.length}/${knownSpellCount()} spells (Nauka ${s.learning|0})${spellSlotsOpen()>0?` · <span style="color:#7fd8ff;">${spellSlotsOpen()} free slot${spellSlotsOpen()>1?'s':''} — pick spells to 📖 Learn</span>`:''}, equip up to ${maxLoadout()}</span></h3>
   <div class="muted" style="font-size:11px;margin-bottom:4px;">Raise <b>Nauka</b> to open more slots. <b>Forget</b> a spell to free a slot and learn another — build the kit you want.</div>
   <div style="max-height:240px;overflow-y:auto;">${spellListHtml}</div>`;
   const ov=openModal('👤 Character',body,cls.c1);
@@ -2669,8 +2683,10 @@ function wireCharacterScreen(ov){
     G.statPoints--;saveGame();ov.remove();openCharacterScreen();
   });
   ov.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{
-    if(G.loadout.length>=MAX_LOADOUT)return;G.loadout.push(b.dataset.add);saveGame();ov.remove();openCharacterScreen();
+    if(G.loadout.length>=maxLoadout())return;G.loadout.push(b.dataset.add);saveGame();ov.remove();openCharacterScreen();
   });
+  const smBtn=ov.querySelector('[data-sm]');
+  if(smBtn)smBtn.onclick=()=>{ if(G.statPoints<=0)return; G.shadowMagic=(G.shadowMagic||0)+1; G.statPoints--; saveGame();ov.remove();openCharacterScreen(); };
   ov.querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{
     if(spellSlotsOpen()<=0)return;
     G.chosenSpells=knownSpells();           // normalize to the valid known set
@@ -2959,7 +2975,7 @@ function startCombat(mode){
     phase:'intro', turn:'player', turnNo:1, round:1, busy:false,
     selSlot:0,
     player:null, foe:null,
-    enemies:[], projectiles:[],particles:[],numbers:[],grounds:[],effects:[],summons:[],
+    enemies:[], projectiles:[],particles:[],numbers:[],grounds:[],effects:[],summons:[],minions:[],
     cooldowns:{},  // alias to player.cooldowns for legacy helpers
     mech:0, combustion:0, galeStacks:0, overloadActive:0,
     killStreak:0,streakTier:0,streakBuffTimer:0,streakSPmult:1,goldMult:1,
@@ -3069,11 +3085,15 @@ function tbStartTurn(who){
   m.facing=(other.x>=m.x)?1:-1;
   if(who==='player'){
     CB.turnNo++;
+    // stunned (e.g. by a boss's Grave Bind) → skip the turn
+    if(m.statuses.stun){ delete m.statuses.stun; floatNumber(m.x,m.y-44,'STUNNED',{miss:true}); tbUpdateTurnUI();
+      setTimeout(()=>{ if(CB&&!CB.over) tbStartTurn('enemy'); }, 850); return; }
     // start-of-turn relics
     if(G.relics.includes('time_piece')){ for(const k in m.cooldowns){ m.cooldowns[k]=Math.max(0,(m.cooldowns[k]||0)-1); } }
     if(G.relics.includes('mana_pearl')){ m.mana=clamp(m.mana+18,0,m.maxmana); floatNumber(m.x-20,m.y-62,'+18 mana',{heal:true}); }
     if(G.relics.includes('regen_idol')){ m.hp=clamp(m.hp+14,0,m.maxhp); floatNumber(m.x+20,m.y-62,'+14',{heal:true}); }
     tbApplyFamiliar();
+    tbMinionsAct();
     tbUpdateTurnUI();
   } else {
     tbUpdateTurnUI();
@@ -3218,6 +3238,29 @@ function tbCast(caster, target, sid, onDone){
   const dmgBase=()=>tbComputeDmg(caster,sp,sid);
   const finish=()=>{ caster.casting=0; if(onDone)onDone(); };
 
+  // MINION: raise necromancer minions behind the caster
+  if(sp.kind==='minion'){
+    setTimeout(()=>{
+      if(!CB||CB.over)return;
+      spawnNecroMinions(necroSummonCount()+(sp.summonBonus||0));
+      tbAuraBurst(caster,'shadow');
+      floatNumber(caster.x,caster.y-46,'🧟 risen',{heal:true});
+      setTimeout(finish,320);
+    },360);
+    return;
+  }
+  // MINION BUFF: heal & empower your minions
+  if(sp.kind==='minion_buff'){
+    setTimeout(()=>{
+      if(!CB||CB.over)return;
+      const mins=(CB.minions||[]).filter(m=>m.hp>0);
+      if(mins.length){ mins.forEach(m=>{ m.hp=m.maxhp; m.dmgBuff=(m.dmgBuff||0)+5; m.castT=0.3; }); floatNumber(caster.x,caster.y-46,'⬆ minions',{heal:true}); }
+      else floatNumber(caster.x,caster.y-46,'no minions',{miss:true});
+      tbAuraBurst(caster,'shadow');
+      setTimeout(finish,280);
+    },360);
+    return;
+  }
   // SELF spells: shield / heal / mana
   if(sp.kind==='self'){
     setTimeout(()=>{
@@ -3326,6 +3369,12 @@ function tbComputeDmg(caster,sp,sid){
 function tbDealDamage(target,dmg,el,opt={}){
   const attacker=(target===CB.foe)?CB.player:CB.foe;
   const enchant=attacker.isPlayer?G.enchants[G.equipWeapon]:null;
+  // ---- NECRO MINION BODY-BLOCK ----
+  // a minion standing between the necromancer and the foe soaks the blow instead
+  if(target.isPlayer && !opt._toMinion){
+    const blk=minionBlockerFor(target);
+    if(blk){ damageMinion(blk,Math.round(dmg),el); return 0; }
+  }
   // ---- ACCURACY vs EVASION ----
   // a single avoidance roll blends: target dodge + level/boss evasion, raised when
   // the attacker is Weakened or has low Hit %, lowered by high Hit %. (crit is separate)
@@ -3427,6 +3476,7 @@ function tbApplyStatus(target,el,sid){
   else if(stt==='bleed'){ target.statuses.bleed={turns:3,dmg:Math.round((sp.dmg||20)*0.14)+4}; }
   else if(stt==='weaken'){ target.statuses.weaken={turns:3,val:35}; floatNumber(target.x,target.y-48,'−35 Hit',{miss:true}); }
   else if(stt==='vuln'){ target.statuses.vuln={turns:3}; }
+  else if(stt==='bind'){ target.statuses.stun={turns:2}; floatNumber(target.x,target.y-48,'⛓️ STUNNED',{miss:true}); }
   else if(stt==='mud'){ target.statuses.slow={turns:2,val:0.5}; target.statuses.weaken={turns:2,val:18}; }
   else if(stt==='thunder'){ if(Math.random()<0.3)target.statuses.stun={turns:1}; }
 }
@@ -3649,6 +3699,13 @@ function tbLoop(ts){
     if(m.hitTimer>0)m.hitTimer-=dt;
     m.bobT+=dt;
   }
+  // necro minion timers
+  if(CB.minions) for(const mn of CB.minions){
+    if(mn.castT>0)mn.castT-=dt;
+    if(mn.flash>0)mn.flash-=dt;
+    if(mn.spawnT>0)mn.spawnT-=dt;
+    mn.bobT+=dt;
+  }
   tbUpdateProjectiles(dt);
   updateParticles(dt);
   updateNumbers(dt);
@@ -3692,7 +3749,7 @@ function tbUpdateHUD(){
   // spell button cooldowns + affordability + range
   const btns=document.querySelectorAll('.spell-btn');
   const dist=tbDist();
-  for(let i=0;i<MAX_LOADOUT;i++){
+  for(let i=0;i<maxLoadout();i++){
     const sid=G.loadout[i];const btn=btns[i];if(!btn)continue;
     const ov=btn.querySelector('.cd-overlay');
     if(!sid){ continue; }
@@ -3749,6 +3806,8 @@ function tbRender(){
   tbDrawMoveRings();
   // shadows + mages sorted by y (both same ground)
   tbDrawMageFull(CB.foe);
+  // necro minions stand alongside their master
+  if(CB.minions) for(const mn of CB.minions) drawMinion(mn);
   tbDrawMageFull(CB.player);
   // projectiles
   tbRenderProjectiles();
@@ -5187,6 +5246,77 @@ function tbApplyFamiliar(){
   }
 }
 
+/* ---------------- NECROMANCER MINIONS ---------------- */
+// how many minions Raise Dead spawns: 1 + 1 per 5 Shadow Magic, capped at 6
+function necroSummonCount(){ return clamp(1+Math.floor((G.shadowMagic||0)/5),1,6); }
+const MINION_CAP=6;
+function spawnNecroMinions(n){
+  if(!CB)return;
+  CB.minions=(CB.minions||[]).filter(m=>m.hp>0);   // clear corpses so they don't count toward the cap
+  const p=CB.player;
+  for(let i=0;i<n && CB.minions.length<MINION_CAP;i++){
+    const slot=CB.minions.length;
+    // spawn BEHIND the necro (away from the foe); they cannot move on their own
+    const mx=clamp(p.x - p.facing*(40+slot*24), CB.w*0.05, CB.w*0.95);
+    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:40, maxhp:40,
+      facing:p.facing, dmg:9, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
+    deathBurst(mx,p.baseY-22,'shadow',10);
+    CB.effects.push({type:'shock',x:mx,y:p.baseY-22,r:4,maxr:40,life:0.4,maxlife:0.4,color:'#00ff66'});
+  }
+}
+// minions act at the start of each of the necromancer's turns — each flings a shadow bolt
+function tbMinionsAct(){
+  if(!CB||CB.over||!CB.minions||!CB.minions.length||!CB.foe)return;
+  let delay=120;
+  for(const m of CB.minions){
+    if(m.hp<=0)continue;
+    const mm=m;
+    setTimeout(()=>{
+      if(!CB||CB.over||mm.hp<=0||!CB.foe||CB.foe._dead)return;
+      mm.castT=0.32; mm.facing=(CB.foe.x>=mm.x)?1:-1;
+      const lx=mm.x+mm.facing*10, ly=mm.baseY-30;
+      CB.projectiles.push({tb:true,x:lx,y:ly,el:'shadow',color:'#33ff88',r:5,homing:CB.foe,speed:520,trail:[],dmg:mm.dmg+(mm.dmgBuff||0),
+        onHit:()=>{ if(CB&&!CB.over&&CB.foe){ spawnImpact(CB.foe.x,CB.foe.y-22,'shadow',0.8); tbDealDamage(CB.foe,mm.dmg+(mm.dmgBuff||0),'shadow',{trueHit:true}); } }});
+    }, delay);
+    delay+=170;
+  }
+}
+// a minion soaks a hit aimed at the necromancer when it stands between him and the foe
+function minionBlockerFor(player){
+  if(!CB.minions||!CB.minions.length||!CB.foe)return null;
+  const foeSide=CB.foe.x>=player.x?1:-1;     // which way the foe is
+  const blockers=CB.minions.filter(m=>m.hp>0 && (foeSide>0 ? m.x>player.x+8 : m.x<player.x-8));
+  if(!blockers.length)return null;
+  // the one nearest the foe takes the blow
+  blockers.sort((a,b)=> foeSide>0 ? b.x-a.x : a.x-b.x);
+  return blockers[0];
+}
+function damageMinion(m,dmg,el){
+  m.hp=clamp(m.hp-dmg,0,m.maxhp); m.flash=0.3;
+  floatNumber(m.x,m.baseY-42,''+Math.round(dmg),{el});
+  spawnHitParticles(m.x,m.baseY-22,el);
+  if(m.hp<=0){ deathBurst(m.x,m.baseY-22,'shadow',12); }
+}
+function cleanupMinions(){ if(CB&&CB.minions) CB.minions=CB.minions.filter(m=>m.hp>0); }
+// draw a small spectral shadow-mage minion (reuses the mage art at a tiny scale)
+function drawMinion(m){
+  if(m.hp<=0)return;
+  const t=CB.time;
+  const cast=m.castT>0?clamp(m.castT/0.32,0,1):0;
+  ctx.save(); ctx.globalAlpha=0.92;
+  if(m.spawnT>0){ ctx.globalAlpha=0.92*(1-m.spawnT/0.4); }
+  drawMage(ctx,m.x,m.baseY-22,0.78,'necro',t,{facing:m.facing,casting:cast,aura:0.3});
+  ctx.restore();
+  // hit flash
+  if(m.flash>0){ ctx.save();ctx.globalAlpha=m.flash/0.3*0.5;ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(m.x,m.baseY-26,12,20,0,0,7);ctx.fill();ctx.restore(); }
+  // mini HP bar
+  const w=22,hpc=clamp(m.hp/m.maxhp,0,1);
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(m.x-w/2,m.baseY-58,w,3.5);
+  ctx.fillStyle=hpc>0.4?'#33ff77':'#ff5555';ctx.fillRect(m.x-w/2,m.baseY-58,w*hpc,3.5);
+  ctx.restore();
+}
+
 /* ---------------- FLOATING NUMBERS ---------------- */
 function floatNumber(x,y,text,opt){
   CB.numbers.push({x:x+rand(-8,8),y,text,life:1.1,maxlife:1.1,vy:-40,wob:rand(0,7),opt:opt||{}});
@@ -5714,7 +5844,7 @@ function pointLineDist(px,py,x1,y1,x2,y2){
 ============================================================ */
 function buildSpellBar(){
   const bar=$('spellBar');bar.innerHTML='';
-  for(let i=0;i<MAX_LOADOUT;i++){
+  for(let i=0;i<maxLoadout();i++){
     const sid=G.loadout[i];
     const btn=document.createElement('div');
     btn.className='spell-btn';
