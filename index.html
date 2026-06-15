@@ -1331,6 +1331,23 @@ const MAGE_LOOK={
 };
 const SKIN='#d8a878', BRONZE='#6e4f2c', LEATHER='#4a3320', GOLDTRIM='#d8b24a', WOOD='#5a3f22';
 
+// armor-driven robe palettes & patterns — the cheapest robe stays class-coloured
+// (fire = orange-red, water = teal-blue, etc.), pricier armors get their own look
+const ARMOR_LOOK={
+  travelers_cloak:{c1:'#5a6a3a',c2:'#caa467',pattern:'plain'},
+  arcane_robe:    {c1:'#2a1e54',c2:'#9977ff',pattern:'runes'},
+  battle_robe:    {c1:'#4a4438',c2:'#d8d8e0',pattern:'plates'},
+  bronze_plate:   {c1:'#5a4022',c2:'#e0b060',pattern:'plates'},
+  shadow_cloak:   {c1:'#16121e',c2:'#9966dd',pattern:'tatters'},
+  mages_vestment: {c1:'#241a4a',c2:'#ffd866',pattern:'stars'},
+  emberweave_robe:{c1:'#5a1e10',c2:'#ffaa55',pattern:'weave'},
+  crystal_armor:  {c1:'#1e3a4a',c2:'#9eeaff',pattern:'gems'},
+  lichs_shroud:   {c1:'#201a2a',c2:'#88ff66',pattern:'tatters'},
+  dragon_silk:    {c1:'#6e1414',c2:'#ffcf66',pattern:'scales'},
+  void_transcendence:{c1:'#0c0816',c2:'#bb88ff',pattern:'stars'},
+  godweave:       {c1:'#4a3a10',c2:'#ffe27a',pattern:'gold'},
+};
+
 function drawMage(ctx,x,y,scale,classId,t,opts={}){
   const cls=CLASSES[classId];
   const c1=cls.c1, c2=cls.c2;
@@ -1339,10 +1356,17 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   const aura=opts.aura||0;           // 0..1 extra glow
   const casting=opts.casting||0;     // 0..1 cast charge (raises staff + charges tip)
   const bob=Math.sin(t*2.2)*1.6*scale;
-  // warm, earthy robe — class colour only as accent/trim, not full neon
-  const robeBase=blend(c1,BRONZE,0.58);
-  const robeDark=blend(c1,'#241608',0.55);
-  const trim=cls.rainbow?GOLDTRIM:blend(c2,GOLDTRIM,0.35);
+  // ROBE PALETTE: cheapest robe stays class-coloured (fire=orange-red, water=teal, ...);
+  // pricier armors (from ARMOR_LOOK) get their own palette + pattern.
+  const armorLook=ARMOR_LOOK[opts.armorKey];
+  let robeBase,robeDark,trim,pattern;
+  if(armorLook){
+    robeBase=armorLook.c1; robeDark=blend(armorLook.c1,'#000',0.35);
+    trim=armorLook.c2; pattern=armorLook.pattern;
+  } else {
+    robeBase=blend(c1,BRONZE,0.32); robeDark=blend(c1,'#1c1208',0.45);
+    trim=cls.rainbow?GOLDTRIM:blend(c2,GOLDTRIM,0.35); pattern='plain';
+  }
   ctx.save();
   ctx.translate(x,y+bob);
   ctx.scale(scale*facing,scale);
@@ -1397,17 +1421,26 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   ctx.beginPath();ctx.ellipse(5+stride*0.3,31,4.4,2.4,0,0,7);ctx.fill();
 
   // ============ ROBE / TUNIC ============
+  const robePath=()=>{
+    ctx.beginPath();
+    ctx.moveTo(-7*wide,-13);
+    ctx.lineTo(7*wide,-13);
+    ctx.lineTo(9*wide,8);
+    ctx.quadraticCurveTo(13*wide,26,11*wide,30);  // flared hem
+    ctx.lineTo(-11*wide,30);
+    ctx.quadraticCurveTo(-13*wide,26,-9*wide,8);
+    ctx.closePath();
+  };
   const robe=ctx.createLinearGradient(0,-14,0,30);
   robe.addColorStop(0,blend(robeBase,'#fff',0.12));robe.addColorStop(0.55,robeBase);robe.addColorStop(1,robeDark);
   ctx.fillStyle=robe;ctx.strokeStyle=robeDark;ctx.lineWidth=1;
-  ctx.beginPath();
-  ctx.moveTo(-7*wide,-13);
-  ctx.lineTo(7*wide,-13);
-  ctx.lineTo(9*wide,8);
-  ctx.quadraticCurveTo(13*wide,26,11*wide,30);  // flared hem
-  ctx.lineTo(-11*wide,30);
-  ctx.quadraticCurveTo(-13*wide,26,-9*wide,8);
-  ctx.closePath();ctx.fill();ctx.stroke();
+  robePath();ctx.fill();ctx.stroke();
+  // armor-specific pattern, clipped to the robe shape
+  if(pattern!=='plain'){
+    ctx.save();robePath();ctx.clip();
+    drawRobePattern(ctx,pattern,wide,trim,t);
+    ctx.restore();
+  }
   // center seam + hem trim (class accent)
   ctx.strokeStyle=trim;ctx.lineWidth=1.4;ctx.globalAlpha=.85;
   ctx.beginPath();ctx.moveTo(0,-10);ctx.lineTo(0,29);ctx.stroke();
@@ -1534,6 +1567,57 @@ function drawCrown(ctx,yy){
   ctx.moveTo(-6,yy+4);ctx.lineTo(-6,yy);ctx.lineTo(-3,yy+2.5);ctx.lineTo(0,yy-2.5);
   ctx.lineTo(3,yy+2.5);ctx.lineTo(6,yy);ctx.lineTo(6,yy+4);ctx.closePath();ctx.fill();
   ctx.fillStyle='#ff5577';ctx.beginPath();ctx.arc(0,yy+1.5,1,0,7);ctx.fill();
+  ctx.restore();
+}
+// subtle decorative texture drawn over the robe, clipped to its silhouette
+function drawRobePattern(ctx,pattern,wide,accent,t){
+  ctx.save();
+  switch(pattern){
+    case 'plates': // armored horizontal bands with rivets
+      ctx.fillStyle='rgba(0,0,0,.18)';
+      for(let yy=-8;yy<28;yy+=8) ctx.fillRect(-12*wide,yy,24*wide,3);
+      ctx.fillStyle=accent;ctx.globalAlpha=.8;
+      for(let yy=-8;yy<28;yy+=8) for(let xx=-8*wide;xx<=8*wide;xx+=6) { ctx.beginPath();ctx.arc(xx,yy+1.5,0.8,0,7);ctx.fill(); }
+      break;
+    case 'gems': // glowing facets
+      ctx.fillStyle=accent;ctx.shadowColor=accent;
+      for(let i=0;i<6;i++){
+        const gx=(i%2?1:-1)*(3+Math.floor(i/2)*3.5)*wide, gy=-8+ (i%3)*11;
+        ctx.shadowBlur=5+2*Math.sin(t*3+i);ctx.globalAlpha=.6+0.3*Math.sin(t*3+i);
+        ctx.beginPath();ctx.moveTo(gx,gy-2.4);ctx.lineTo(gx+2,gy);ctx.lineTo(gx,gy+2.4);ctx.lineTo(gx-2,gy);ctx.closePath();ctx.fill();
+      }
+      break;
+    case 'scales': // overlapping dragon scales
+      ctx.strokeStyle=accent;ctx.globalAlpha=.35;ctx.lineWidth=1;
+      for(let yy=-10;yy<28;yy+=5){
+        for(let xx=-10*wide;xx<10*wide;xx+=5){ ctx.beginPath();ctx.arc(xx+((yy/5)%2)*2.5,yy,3.2,0,Math.PI);ctx.stroke(); }
+      }
+      break;
+    case 'runes': // small glowing arcane marks along the seam
+      ctx.fillStyle=accent;ctx.shadowColor=accent;ctx.shadowBlur=4;
+      for(let i=0;i<5;i++){ const yy=-10+i*9; ctx.globalAlpha=.5+0.4*Math.sin(t*2+i);
+        ctx.beginPath();ctx.arc(-4.5*wide,yy,1,0,7);ctx.arc(4.5*wide,yy,1,0,7);ctx.fill(); }
+      break;
+    case 'tatters': // extra jagged strips over the hem
+      ctx.fillStyle=blend(accent,'#000',0.3);ctx.globalAlpha=.55;
+      for(let i=-1;i<=1;i++){ ctx.beginPath();ctx.moveTo(i*6*wide-1.5,18);ctx.lineTo(i*6*wide+1.5,18);ctx.lineTo(i*6*wide+3,30);ctx.lineTo(i*6*wide-3,30);ctx.closePath();ctx.fill(); }
+      break;
+    case 'stars': // tiny sparkles
+      ctx.fillStyle=accent;ctx.shadowColor=accent;
+      for(let i=0;i<8;i++){ const sx=Math.sin(i*2.1)*9*wide, sy=-9+((i*5)%34);
+        ctx.globalAlpha=.4+0.4*Math.sin(t*3+i*1.7);ctx.shadowBlur=4;
+        ctx.beginPath();ctx.arc(sx,sy,0.9,0,7);ctx.fill(); }
+      break;
+    case 'weave': // diagonal cross-hatch
+      ctx.strokeStyle=accent;ctx.globalAlpha=.25;ctx.lineWidth=1;
+      for(let i=-20;i<24;i+=5){ ctx.beginPath();ctx.moveTo(-12*wide+i,-14);ctx.lineTo(-12*wide+i+16,32);ctx.stroke(); }
+      break;
+    case 'gold': // ornate gold border along the hem & collar
+      ctx.strokeStyle=accent;ctx.lineWidth=1.6;ctx.globalAlpha=.9;ctx.shadowColor=accent;ctx.shadowBlur=3;
+      ctx.beginPath();ctx.moveTo(-11*wide,29);ctx.quadraticCurveTo(0,33,11*wide,29);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-7*wide,-12);ctx.lineTo(7*wide,-12);ctx.stroke();
+      break;
+  }
   ctx.restore();
 }
 
@@ -3198,7 +3282,8 @@ function tbDrawMageFull(m){
   ctx.save();
   ctx.globalAlpha=m.flash>0?0.6+0.4*Math.sin(t*40):1;
   const tipC=m.isPlayer?(WEAPON_TIP[G.equipWeapon]||null):null;
-  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
+  const armorKey=m.isPlayer?G.equipArmor:null;
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
   ctx.restore();
   // hit flash overlay
   if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
