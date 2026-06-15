@@ -338,6 +338,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 .hud{position:absolute;inset:0;pointer-events:none;z-index:10;}
 .hud *{pointer-events:auto;}
 .hud-top-left{position:absolute;top:10px;left:10px;width:280px;}
+.hud-gold-line{font-size:12px;margin-top:4px;}
 .bar-row{margin-bottom:6px;}
 .bar-label{font-size:11px;display:flex;justify-content:space-between;color:var(--muted);margin-bottom:2px;}
 .bar-track{height:14px;border-radius:7px;overflow:hidden;background:#1a1a2e;border:1px solid #333355;position:relative;}
@@ -494,6 +495,22 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 @media (max-height:520px){
   .tb-mode .hud-bottom{bottom:78px;}
   .tc-btn{width:52px;height:52px;font-size:22px;}
+}
+
+/* ---- shrink the whole HUD on short viewports so the player isn't
+   hidden behind the stat panel ---- */
+@media (max-height:420px){
+  .hud-top-left{width:140px;padding:6px 9px;background:rgba(17,17,34,.55);}
+  .hud-top-left .bar-row{margin-bottom:2px;}
+  .hud-top-left .bar-label{font-size:8px;margin-bottom:1px;}
+  .hud-top-left .bar-track{height:6px;}
+  .hud-top-left .bar-xp{display:none;}
+  .hud-gold-line{font-size:9px;margin-top:1px;}
+  .hud-top-right{top:6px;right:6px;}
+  .hud-top-right .wave-chip,.hud-top-right .diff-badge{padding:2px 7px;font-size:9px;margin-bottom:3px;}
+  .hud-top-right button{padding:3px 9px;font-size:10px;}
+  .boss-name{font-size:12px;margin-bottom:1px;}
+  .boss-bar-track{height:9px;}
 }
 
 /* center-screen big text events */
@@ -727,7 +744,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
           <div class="bar-label"><span>Lvl <span id="lvlText"></span></span><span id="xpText"></span></div>
           <div class="bar-track"><div class="bar-fill" id="xpFill"></div></div>
         </div>
-        <div style="font-size:12px;margin-top:4px;">Gold: <span class="gold-text" id="goldText"></span></div>
+        <div class="hud-gold-line">Gold: <span class="gold-text" id="goldText"></span></div>
       </div>
 
       <div class="hud-top-center">
