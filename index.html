@@ -686,6 +686,9 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 }
 .diff-grid{display:flex;gap:10px;justify-content:center;margin-top:12px;}
 .diff-btn.active{border-color:var(--gold);box-shadow:0 0 12px var(--gold);}
+.diff-btn.locked{opacity:.4;cursor:not-allowed;filter:grayscale(0.6);}
+.diff-btn.locked.active{opacity:.8;}
+#diffNote{text-align:center;font-size:11.5px;margin-top:6px;min-height:14px;}
 
 /* ---------- rotate-to-landscape hint (portrait phones) ---------- */
 #rotateHint{
@@ -759,6 +762,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
       <div class="mode-grid" id="modeGrid"></div>
       <h3 class="muted">Difficulty</h3>
       <div class="diff-grid" id="diffGrid"></div>
+      <div class="muted" id="diffNote"></div>
       <div class="flexrow" style="margin-top:14px;">
         <button id="btnBackToCity">Back to City</button>
         <button id="btnStartFight" disabled>Enter Arena</button>
@@ -876,9 +880,9 @@ const CLASSES = {
   necro:{
     id:'necro',name:'Necromancer',emoji:'💀',c1:'#6600cc',c2:'#00ff44',
     base:{hp:70,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:76,dodge:2,learning:5},
-    passive:{name:'Master of the Dead',desc:'A summoner, not a striker: Raise Dead conjures shadow-mage minions that attack each turn and body-block for you. Raise more with Shadow Magic.'},
+    passive:{name:'Master of the Dead',desc:'A summoner, not a striker: each round, Raise Dead automatically rises on its own — no casting, no cooldown, can\'t be forgotten or mastered. It raises shadow-mage minions (more with Shadow Magic) that attack each turn and body-block for you.'},
     mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 35% HP in Lich Form — all spells free briefly.',max:100},
-    spells:['shadow_ball','necro_summon','bone_spear','death_nova','raise_horde','dark_command','grave_bind','dark_mend','bone_shield','soul_barrier','shadow_ward','grave_chill','night_terror','soul_siphon','soul_explosion'],
+    spells:['shadow_ball','bone_spear','death_nova','dark_command','grave_bind','dark_mend','bone_shield','soul_barrier','shadow_ward','grave_chill','night_terror','soul_siphon','soul_explosion'],
   },
   water:{
     id:'water',name:'Water Mage',emoji:'💧',c1:'#00ffcc',c2:'#0066ff',
@@ -1101,9 +1105,7 @@ const SPELLS={
   thunderstorm:{name:'Thunderstorm',icon:'⛈️',el:'power',kind:'aoe',cost:40,dmg:54,cd:5,radius:230,status:'thunder',desc:'Call down chained lightning.'},
   siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,status:'bleed',desc:'Tear life from your foe to heal — they bleed.'},
   annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
-  // ===== NECROMANCER SUMMONER KIT (minions do the fighting) =====
-  necro_summon:{name:'Raise Dead',icon:'🧟',el:'shadow',kind:'minion',cost:34,dmg:0,cd:9,summonBase:1,desc:'Raise shadow-mage minions behind you (more with Shadow Magic). They strike each of your turns and can body-block for you. Long cooldown (6 turns).'},
-  raise_horde:{name:'Raise Horde',icon:'👥',el:'shadow',kind:'minion',cost:50,dmg:0,cd:12,summonBonus:2,desc:'Raise a larger group of minions at once (base + 2). Costly, very long cooldown.'},
+  // ===== NECROMANCER SUMMONER KIT (minions do the fighting; Raise Dead itself is automatic) =====
   dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:4,desc:'Heal all your minions to full and permanently boost their damage this duel.'},
   grave_bind:{name:'Grave Bind',icon:'⛓️',el:'shadow',kind:'aoe',cost:26,dmg:8,cd:5,radius:170,status:'bind',desc:'Skeletal hands erupt and lock your foe in place — stunned for 2 turns.'},
 };
@@ -1320,7 +1322,7 @@ function maxLoadout(){ return G.classId==='necro'?5:7; }
 // range of a spell in pixels (turn-based duel positioning)
 function spellRange(sp){
   if(!sp) return 400;
-  if(sp.kind==='self'||sp.kind==='minion'||sp.kind==='minion_buff') return 99999;
+  if(sp.kind==='self'||sp.kind==='minion_buff') return 99999;
   if(sp.kind==='beam') return 540;
   if(sp.kind==='projectile') return sp.melee?200:680;
   if(sp.kind==='aoe') return sp.melee?190:360;
@@ -1381,6 +1383,14 @@ function loadSave(){
       // migrate older saves: seed chosen spells from the first-N rule they used before
       if(G.classId && (!G.chosenSpells || G.chosenSpells.length===0)){
         G.chosenSpells=CLASSES[G.classId].spells.slice(0, knownForClass(G.classId));
+      }
+      // drop spells that no longer exist on this class (balance changes removed/renamed them)
+      if(G.classId && CLASSES[G.classId]){
+        const cls=CLASSES[G.classId];
+        G.chosenSpells=(G.chosenSpells||[]).filter(s=>cls.spells.includes(s));
+        if(G.chosenSpells.length===0) G.chosenSpells=[cls.spells[0]];
+        G.loadout=(G.loadout||[]).filter(s=>G.chosenSpells.includes(s));
+        if(G.loadout.length===0) G.loadout=G.chosenSpells.slice(0,maxLoadout());
       }
       return true; }
   }catch(e){ console.warn('load fail',e); }
@@ -2148,12 +2158,7 @@ function confirmClass(cid){
   G=freshSave();
   G.classId=cid;
   // you start knowing a handful of spells (Nauka count); you can re-curate them later
-  if(cid==='necro'){
-    // the summoner begins with just his bolt and his summon — he grows his horde via Shadow Magic
-    G.chosenSpells=['shadow_ball','necro_summon'];
-  } else {
-    G.chosenSpells=CLASSES[cid].spells.slice(0, knownForClass(cid));
-  }
+  G.chosenSpells=CLASSES[cid].spells.slice(0, knownForClass(cid));
   // default loadout = your starting known spells
   G.loadout=G.chosenSpells.slice(0,maxLoadout());
   G.gold=150;
@@ -2802,9 +2807,9 @@ function openCharacterScreen(){
       <div class="muted" style="margin-bottom:8px;">Unspent points: <b class="gold-text" id="charPoints">${G.statPoints}</b> • Gold: <b class="gold-text">${G.gold}</b></div>
       ${allocRows}
       <div class="stat-line"><span>Mana Regen</span><span>${s.manaregen}/s</span></div>
-      ${cls.id==='necro'?`<div class="stat-line"><span>Shadow Magic <span class="muted">(Raise Dead → ${necroSummonCount()} minion${necroSummonCount()>1?'s':''})</span></span>
+      ${cls.id==='necro'?`<div class="stat-line"><span>Shadow Magic <span class="muted">(Raise Dead → ${necroSummonCount()*2} minion${necroSummonCount()*2>1?'s':''}/round)</span></span>
         <span><span class="gold-text">${G.shadowMagic||0}</span> <button data-sm ${G.statPoints>0?'':'disabled'} style="padding:2px 8px;font-size:12px;">＋</button></span></div>
-        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Every 5 Shadow Magic raises one more minion (max ${MINION_CAP}). Minions strike each turn &amp; body-block when you stand behind them.</div>`:''}
+        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Raise Dead is automatic — every round it raises shadow-mage minions on its own (max ${MINION_CAP}), no casting needed. Every 5 Shadow Magic raises 2 more. Minions strike each turn &amp; body-block when you stand behind them.</div>`:''}
       <h4 style="margin-top:12px;color:${cls.c1}">⚜ ${cls.passive.name}</h4><div class="muted">${cls.passive.desc}</div>
       <h4 style="margin-top:8px;color:${cls.c1}">✦ ${cls.mech.name}</h4><div class="muted">${cls.mech.desc}</div>
       ${G.level>=20?`<button data-prestige style="margin-top:12px;background:linear-gradient(180deg,#ffd866,#aa7700);color:#000;">👑 PRESTIGE (reset to Lvl 1)</button>`:`<div class="muted" style="margin-top:12px;">Prestige unlocks at Lvl 20</div>`}
@@ -2961,15 +2966,22 @@ function openModeSelect(){
     };
     grid.appendChild(el);
   });
+  // difficulty is chosen once per "career" (your push toward the next boss) and then
+  // locked until you beat that boss — no swapping to easy mid-run for an easier finish.
+  const careerLocked=(G.normalWins||0)>0;
   const diffs=[{id:'easy',name:'Easy'},{id:'normal',name:'Normal'},{id:'hard',name:'Hard'}];
   const dg=$('diffGrid');dg.innerHTML='';
   diffs.forEach(d=>{
     const b=document.createElement('button');
-    b.className='diff-btn'+(G.difficulty===d.id?' active':'');
+    b.className='diff-btn'+(G.difficulty===d.id?' active':'')+(careerLocked?' locked':'');
     b.textContent=d.name;
-    b.onclick=()=>{G.difficulty=d.id;saveGame();openModeSelect();};
+    b.disabled=careerLocked;
+    if(!careerLocked) b.onclick=()=>{G.difficulty=d.id;saveGame();openModeSelect();};
     dg.appendChild(b);
   });
+  $('diffNote').textContent=careerLocked
+    ? `🔒 Locked for this run (${G.normalWins}/10 wins toward the next boss) — beat the boss to choose again.`
+    : 'Pick your difficulty for the run toward the next boss — it stays locked until you beat them.';
   $('btnBackToCity').onclick=()=>enterCity();
   $('btnStartFight').disabled=!selectedMode;
   $('btnStartFight').onclick=()=>{ if(selectedMode) startCombat(selectedMode); };
@@ -3251,6 +3263,7 @@ function tbStartTurn(who){
     if(G.relics.includes('regen_idol')){ m.hp=clamp(m.hp+14,0,m.maxhp); floatNumber(m.x+20,m.y-62,'+14',{heal:true}); }
     tbApplyFamiliar();
     tbMinionsAct();
+    tbAutoSummonMinions();
     tbUpdateTurnUI();
   } else {
     tbUpdateTurnUI();
@@ -3395,17 +3408,6 @@ function tbCast(caster, target, sid, onDone){
   const dmgBase=()=>tbComputeDmg(caster,sp,sid);
   const finish=()=>{ caster.casting=0; if(onDone)onDone(); };
 
-  // MINION: raise necromancer minions behind the caster
-  if(sp.kind==='minion'){
-    setTimeout(()=>{
-      if(!CB||CB.over)return;
-      spawnNecroMinions(necroSummonCount()+(sp.summonBonus||0));
-      tbAuraBurst(caster,'shadow');
-      floatNumber(caster.x,caster.y-46,'🧟 risen',{heal:true});
-      setTimeout(finish,320);
-    },360);
-    return;
-  }
   // MINION BUFF: heal & empower your minions
   if(sp.kind==='minion_buff'){
     setTimeout(()=>{
@@ -3772,6 +3774,9 @@ function tbFoeDefeated(){
     G.bossDefeats.push({date:new Date().toISOString().slice(0,10),classId:G.classId,time:CB.turnNo});
     maybeDropRelic(false);
     if(CB.player.hp<CB.player.maxhp*0.25)bountyProgress('bosslow',1);
+    // beating a boss ends this "career" — your win count (and difficulty lock) resets
+    // so you choose a fresh difficulty for the push toward the next boss
+    G.normalWins=0;
     // advance the campaign if this was the next boss in line
     const beatIdx=(f._campaignIdx!==undefined)?f._campaignIdx:-1;
     let finalWin=false;
@@ -5406,9 +5411,20 @@ function tbApplyFamiliar(){
 }
 
 /* ---------------- NECROMANCER MINIONS ---------------- */
-// how many minions Raise Dead spawns: 1 + 1 per 5 Shadow Magic, capped at 6
+// base count: 1 + 1 per 5 Shadow Magic (capped at 6). Raise Dead now triggers this
+// automatically each round at DOUBLE this count, in exchange for the player no
+// longer being able to cast/forget/master it.
 function necroSummonCount(){ return clamp(1+Math.floor((G.shadowMagic||0)/5),1,6); }
 const MINION_CAP=6;
+// Raise Dead — fires automatically at the start of every necromancer turn.
+function tbAutoSummonMinions(){
+  if(!CB||CB.over||!CB.player||CB.player.classId!=='necro')return;
+  const before=(CB.minions||[]).filter(m=>m.hp>0).length;
+  spawnNecroMinions(necroSummonCount()*2);
+  if((CB.minions||[]).filter(m=>m.hp>0).length>before){
+    floatNumber(CB.player.x,CB.player.y-58,'🧟 risen',{heal:true});
+  }
+}
 function spawnNecroMinions(n){
   if(!CB)return;
   CB.minions=(CB.minions||[]).filter(m=>m.hp>0);   // clear corpses so they don't count toward the cap
@@ -5417,8 +5433,8 @@ function spawnNecroMinions(n){
     const slot=CB.minions.length;
     // spawn BEHIND the necro (away from the foe); they cannot move on their own
     const mx=clamp(p.x - p.facing*(40+slot*24), CB.w*0.05, CB.w*0.95);
-    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:42, maxhp:42,
-      facing:p.facing, dmg:10, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
+    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:63, maxhp:63,
+      facing:p.facing, dmg:14, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
     deathBurst(mx,p.baseY-22,'shadow',10);
     CB.effects.push({type:'shock',x:mx,y:p.baseY-22,r:4,maxr:40,life:0.4,maxlife:0.4,color:'#00ff66'});
   }
