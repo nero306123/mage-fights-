@@ -1543,6 +1543,7 @@ const SHOPKEEPERS={
   armor:{accent:'#44aaff',item:'🛡️',hat:'helm', greet:["Robes woven to turn aside a dragon's breath.","Protection is never a waste of gold.","Wear this and laugh at their spells."]},
   potion:{accent:'#44ff88',item:'⚗️',hat:'hood', greet:["Fresh brews, bubbling and potent!","A sip now spares a grave later.","Careful — some of these bite back."]},
   relic:{accent:'#ffd866',item:'💎',hat:'hood', greet:["Relics torn from forgotten tombs...","Power has a price. Hers was steep.","You won't see these wares again."]},
+  tavern:{accent:'#e0a858',item:'🍺',hat:'helm', greet:["Welcome, duelist! A drink before the blood?","One blessing lasts a single duel — choose wisely.","Drink up — the crowd loves a winner!"]},
 };
 function drawShopkeeper(ctx,x,y,scale,type,t){
   const cfg=SHOPKEEPERS[type]||SHOPKEEPERS.weapon;
@@ -1778,6 +1779,7 @@ const CITY_BUILDINGS=[
   {id:'weapon',icon:'⚔️',lbl:'Weapon Shop',glow:'#ff8844'},
   {id:'armor',icon:'🧥',lbl:'Armor Shop',glow:'#44aaff'},
   {id:'potion',icon:'🧪',lbl:'Potion Shop',glow:'#44ff88'},
+  {id:'tavern',icon:'🍺',lbl:'Tavern',glow:'#e0a858'},
   {id:'relic',icon:'💎',lbl:'Relic Merchant',glow:'#ffd866'},
   {id:'bounty',icon:'📋',lbl:'Bounty Board',glow:'#cc88ff'},
   {id:'trophy',icon:'🏆',lbl:'Trophy Room',glow:'#ffcc44'},
@@ -1826,6 +1828,7 @@ function cityAction(id){
     case 'weapon': openWeaponShop(); break;
     case 'armor': openArmorShop(); break;
     case 'potion': openPotionShop(); break;
+    case 'tavern': openTavern(); break;
     case 'relic': openRelicMerchant(); break;
     case 'bounty': openBountyBoard(); break;
     case 'trophy': openTrophyRoom(); break;
@@ -1946,6 +1949,46 @@ function openPotionShop(re){
     G.potions.splice(+b.dataset.drop,1);saveGame();openPotionShop(true);
   });
   renderCityTopbar();
+}
+
+/* ---- TAVERN: buy a single-duel blessing ---- */
+const BLESSINGS={
+  hearty:  {name:'Hearty Stew',  icon:'🍲',price:120,desc:'+25% max HP for your next duel.'},
+  focus:   {name:'Sharpened Focus',icon:'🎯',price:150,desc:'+20% spell power for your next duel.'},
+  quickstep:{name:'Quickstep Ale',icon:'👟',price:120,desc:'+50 stamina & roomier movement next duel.'},
+  warded:  {name:'Warding Mead', icon:'🛡️',price:140,desc:'Begin your next duel with a 70 shield.'},
+};
+function openTavern(re){
+  if(re&&_openShopOv)_openShopOv.remove();
+  const active=G.blessing?BLESSINGS[G.blessing]:null;
+  const cards=Object.keys(BLESSINGS).map(k=>{
+    const def=BLESSINGS[k];const can=G.gold>=def.price;const isOn=G.blessing===k;
+    let btn;
+    if(isOn)btn='<button disabled>Ordered ✓</button>';
+    else btn=`<button data-bless="${k}" ${can?'':'disabled'}>Order ${def.price}g</button>`;
+    return `<div class="item-card panel ${isOn?'equipped':''}" style="--glow:${isOn?'#e0a858':'#4a4a7a'}">
+      <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
+      <div class="istats">${def.desc}</div>${btn}</div>`;
+  }).join('');
+  const cur=active?`<div class="muted center-text" style="color:#e0c070">On the table: ${active.icon} ${active.name} — lasts your next duel.</div>`:'';
+  _openShopOv=openModal('🍺 The Duelist\'s Rest',shopkeeperHeader('tavern')+cur+`<div class="shop-grid">${cards}</div>`,'#e0a858');
+  _openShopKind='tavern';
+  _openShopOv.querySelectorAll('[data-bless]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.bless;const def=BLESSINGS[k];
+    if(G.gold<def.price)return;
+    G.gold-=def.price; G.blessing=k; saveGame(); openTavern(true);
+  });
+  startShopkeeper(_openShopOv,'tavern');
+  renderCityTopbar();
+}
+function applyBlessing(P){
+  if(!G.blessing)return null;
+  const k=G.blessing; G.blessing=null;
+  if(k==='hearty'){ P.maxhp=Math.round(P.maxhp*1.25); P.hp=P.maxhp; }
+  else if(k==='focus'){ P.sp=Math.round(P.sp*1.2); }
+  else if(k==='quickstep'){ P.maxstamina+=50; P.stamina=P.maxstamina; P.speedStat=(P.speedStat||6)+2; }
+  else if(k==='warded'){ P.shield=(P.shield||0)+70; }
+  return BLESSINGS[k];
 }
 function openRelicMerchant(re){
   if(re&&_openShopOv)_openShopOv.remove();
@@ -2372,6 +2415,7 @@ function startCombat(mode){
   const P=makeMage('L',G.classId,s,{name:'You',spells:G.loadout.filter(Boolean),isPlayer:true});
   P.x=Math.round(w*0.24); P.y=groundY; P.baseY=groundY; P.facing=1;
   P.isPlayer=true;
+  const bless=applyBlessing(P);
   CB.player=P;
   CB.cooldowns=P.cooldowns;
   // FOE mage
@@ -2387,6 +2431,7 @@ function startCombat(mode){
   // intro
   showBanner(mode==='boss'?('⚔ '+F.name):'⚔ DUEL', mode==='boss'?'#ff3050':'#ffd866',true);
   if(mode==='boss' && F._lines){ tbBossLine(pick(F._lines)); }
+  if(bless){ setTimeout(()=>{ if(CB&&!CB.over) floatNumber(CB.player.x,CB.player.baseY-80,bless.icon+' '+bless.name,{heal:true}); }, 500); }
   lastTS=performance.now();
   if(combatRAF)cancelAnimationFrame(combatRAF);
   tbLoop(lastTS);
@@ -3072,13 +3117,17 @@ function tbRender(){
 }
 function tbDrawArena(w,h){
   const t=CB.time, gy=CB.groundY;
-  // sky gradient
+  // warm dusk sky gradient (golden/bronze, less neon)
   const sky=ctx.createLinearGradient(0,0,0,gy);
-  sky.addColorStop(0,'#1a1430'); sky.addColorStop(0.6,'#3a2a4a'); sky.addColorStop(1,'#6b4a52');
+  sky.addColorStop(0,'#2a2236'); sky.addColorStop(0.45,'#6b4a3a'); sky.addColorStop(0.8,'#b07840'); sky.addColorStop(1,'#e0a858');
   ctx.fillStyle=sky; ctx.fillRect(0,0,w,gy+4);
-  // distant colosseum tiers (parallax bands)
+  // hazy setting sun glow on the horizon
+  const sun=ctx.createRadialGradient(w*0.5,gy-60,10,w*0.5,gy-60,Math.max(w,300)*0.5);
+  sun.addColorStop(0,'rgba(255,210,130,0.45)');sun.addColorStop(0.4,'rgba(230,160,90,0.18)');sun.addColorStop(1,'transparent');
+  ctx.fillStyle=sun; ctx.fillRect(0,0,w,gy);
+  // distant colosseum tiers (warm sandstone bands)
   for(let b=0;b<3;b++){
-    const yy=gy- (90+b*46), col=['#241c33','#2c2238','#342740'][b];
+    const yy=gy- (90+b*46), col=['#4a3826','#564330','#62503a'][b];
     ctx.fillStyle=col; ctx.fillRect(0,yy,w,gy-yy);
     // arches
     ctx.fillStyle='rgba(0,0,0,.22)';
@@ -3090,7 +3139,7 @@ function tbDrawArena(w,h){
     CB._crowd=[];
     for(let row=0;row<3;row++){
       const yy=gy-(150-row*30);
-      for(let x=12;x<w-8;x+=12) CB._crowd.push({x:x+rand(-3,3),y:yy+rand(-3,3),r:rand(2,3.6),c:pick(['#5a4a6a','#6a4a4a','#4a5a6a','#6a6055','#705a66'])});
+      for(let x=12;x<w-8;x+=12) CB._crowd.push({x:x+rand(-3,3),y:yy+rand(-3,3),r:rand(2,3.6),c:pick(['#6a5238','#7a5a3a','#5a4632','#8a6a44','#6e5540'])});
     }
   }
   for(const c of CB._crowd){ ctx.save(); ctx.globalAlpha=0.7; ctx.fillStyle=c.c; ctx.beginPath(); ctx.arc(c.x,c.y+Math.sin(t*1.5+c.x*0.1)*0.6,c.r,0,7); ctx.fill(); ctx.restore(); }
