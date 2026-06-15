@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mage Arena">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0a0f'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%23ffd866'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0a0f'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='%23ffd866'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
 <title>Mage Arena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -711,6 +718,20 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 @keyframes rotateSpin{0%,40%{transform:rotate(0);}60%,100%{transform:rotate(90deg);}}
 @media (max-width:900px) and (orientation:portrait){ #rotateHint{display:flex;} }
 
+/* ---------- fullscreen toggle ---------- */
+#btnFullscreen{
+  position:fixed;z-index:9998;
+  top:max(8px,env(safe-area-inset-top));
+  right:max(8px,env(safe-area-inset-right));
+  width:38px;height:38px;padding:0;margin:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;line-height:1;border-radius:8px;
+  background:rgba(10,10,20,.55);border:1px solid rgba(154,106,255,.5);
+  color:var(--text);opacity:.6;
+}
+#btnFullscreen:hover,#btnFullscreen:active{opacity:1;}
+@media (display-mode:standalone){ #btnFullscreen{display:none;} }
+
 /* small util */
 .flexrow{display:flex;align-items:center;gap:8px;}
 .center-text{text-align:center;}
@@ -724,6 +745,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   <div class="rmsg">Obróć telefon poziomo</div>
   <div class="rsub">Mage Arena gra się w trybie poziomym ⚔️</div>
 </div>
+<button id="btnFullscreen" title="Fullscreen"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/><path d="M9 20H4v-5"/></svg></button>
 <div id="app">
 
   <!-- ================= TITLE SCREEN ================= -->
@@ -6367,11 +6389,63 @@ $('btnFlee').onclick=()=>{
   enterCity('You retreat to fight another day');
 };
 
+/* ============================================================
+   FULLSCREEN / "APP-LIKE" MODE
+============================================================ */
+(function setupManifest(){
+  try{
+    const icon='data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='#0a0a0f'/><text x='50' y='68' font-size='58' text-anchor='middle' fill='#ffd866'>✦</text></svg>");
+    const manifest={
+      name:'Mage Arena', short_name:'Mage Arena',
+      start_url:'.', scope:'.', display:'fullscreen', orientation:'landscape',
+      background_color:'#0a0a0f', theme_color:'#0a0a0f',
+      icons:[{src:icon,sizes:'192x192',type:'image/svg+xml'},{src:icon,sizes:'512x512',type:'image/svg+xml'}]
+    };
+    const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    const link=document.createElement('link');
+    link.rel='manifest'; link.href=URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  }catch(e){}
+})();
+
+function isFullscreen(){
+  return !!(document.fullscreenElement||document.webkitFullscreenElement||document.msFullscreenElement);
+}
+function enterFullscreen(){
+  const el=document.documentElement;
+  const req=el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+  try{ if(req) return Promise.resolve(req.call(el)).catch(()=>{}); }catch(e){}
+  return Promise.resolve();
+}
+function exitFullscreen(){
+  const ex=document.exitFullscreen||document.webkitExitFullscreen||document.msExitFullscreen;
+  try{ if(ex && isFullscreen()) return Promise.resolve(ex.call(document)).catch(()=>{}); }catch(e){}
+  return Promise.resolve();
+}
+function toggleFullscreen(){
+  if(isFullscreen()) exitFullscreen(); else enterFullscreen();
+  setTimeout(updateFullscreenBtn,200);
+}
+const FS_ICON_ENTER='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/><path d="M9 20H4v-5"/></svg>';
+const FS_ICON_EXIT='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M15 20v-5h5"/><path d="M9 20v-5H4"/></svg>';
+function updateFullscreenBtn(){
+  const b=$('btnFullscreen'); if(!b)return;
+  b.innerHTML=isFullscreen()?FS_ICON_EXIT:FS_ICON_ENTER;
+}
+['fullscreenchange','webkitfullscreenchange','MSFullscreenChange'].forEach(ev=>
+  document.addEventListener(ev,updateFullscreenBtn));
+
 function init(){
   loadSave();
   initTitle();
   showScreen('title');
   resizeCanvas();
+  $('btnFullscreen').onclick=toggleFullscreen;
+  updateFullscreenBtn();
+  // try to slip into fullscreen on the very first tap/click anywhere (mobile feel)
+  const tryAutoFullscreen=()=>{ if(!isFullscreen()) enterFullscreen(); setTimeout(updateFullscreenBtn,200); };
+  document.addEventListener('pointerdown',tryAutoFullscreen,{once:true});
+  document.addEventListener('keydown',tryAutoFullscreen,{once:true});
 }
 window.addEventListener('DOMContentLoaded',init);
 if(document.readyState!=='loading')init();
