@@ -286,6 +286,16 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);
   box-shadow:0 0 14px var(--glow) inset, 0 0 8px var(--glow);
 }
+.aura-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.aura-swatch{
+  width:26px;height:26px;border-radius:50%;cursor:pointer;
+  border:2px solid rgba(255,255,255,.25);
+  box-shadow:0 0 6px var(--sw);background:var(--sw);
+  transition:transform .12s,border-color .12s;
+}
+.aura-swatch:hover{transform:scale(1.15);}
+.aura-swatch.selected{border-color:#fff;box-shadow:0 0 10px var(--sw),0 0 0 2px var(--sw);}
+.aura-swatch.default{background:repeating-linear-gradient(45deg,#555 0 4px,#333 4px 8px);}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;}
 .tabs button.active{border-color:var(--gold);box-shadow:0 0 10px var(--gold);}
 
@@ -1198,6 +1208,7 @@ function freshSave(){
     shadowMagic:0,           // necro stat
     familiars:[],            // owned familiar ids
     equipFamiliar:null,      // currently summoned familiar
+    auraColor:null,          // custom aura/glow colour override (null = class default)
     bounties:[],             // active bounty states
     bountyTimer:0,           // fights until reset
     specialStock:[],         // current special potion ids in shop
@@ -1350,6 +1361,9 @@ const MAGE_LOOK={
 };
 const SKIN='#d8a878', BRONZE='#6e4f2c', LEATHER='#4a3320', GOLDTRIM='#d8b24a', WOOD='#5a3f22';
 
+// preset aura colours for the Character screen's customization picker (own idea: pick a personal glow colour)
+const AURA_COLORS=['#ffd866','#ff5544','#ff77cc','#cc66ff','#7799ff','#44ddff','#55ffaa','#ffffff'];
+
 // armor-driven robe palettes & patterns — the cheapest robe stays class-coloured
 // (fire = orange-red, water = teal-blue, etc.), pricier armors get their own look
 const ARMOR_LOOK={
@@ -1370,6 +1384,7 @@ const ARMOR_LOOK={
 function drawMage(ctx,x,y,scale,classId,t,opts={}){
   const cls=CLASSES[classId];
   const c1=cls.c1, c2=cls.c2;
+  const glowC=opts.auraColor||c2;    // custom aura colour overrides the class glow tint
   const look=MAGE_LOOK[classId]||{head:'hood'};
   const facing=opts.facing||1;       // 1 right, -1 left
   const aura=opts.aura||0;           // 0..1 extra glow
@@ -1401,14 +1416,14 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
     const r=22+Math.sin(t*1.7+i)*4;
     const px=Math.cos(a)*r, py=Math.sin(a)*r*0.7 - 6;
     ctx.save();ctx.globalAlpha=.35+0.25*Math.sin(t*3+i);
-    const pc=cls.rainbow?`hsl(${(t*80+i*60)%360},85%,62%)`:c2;
+    const pc=opts.auraColor||(cls.rainbow?`hsl(${(t*80+i*60)%360},85%,62%)`:c2);
     ctx.fillStyle=pc;ctx.shadowColor=pc;ctx.shadowBlur=6;
     ctx.beginPath();ctx.arc(px,py,1.4,0,7);ctx.fill();ctx.restore();
   }
   if(aura>0){
     ctx.save();ctx.globalAlpha=0.22*aura;
     const g=ctx.createRadialGradient(0,-4,4,0,-4,38);
-    g.addColorStop(0,c2);g.addColorStop(1,'transparent');
+    g.addColorStop(0,glowC);g.addColorStop(1,'transparent');
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,-4,38,0,7);ctx.fill();ctx.restore();
   }
 
@@ -1484,7 +1499,7 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   ctx.fillStyle=SKIN;ctx.beginPath();ctx.arc(-8,10,2,0,7);ctx.fill();
 
   // ============ HEAD ============
-  drawMageHead(ctx,classId,look,c1,c2,trim,t,casting);
+  drawMageHead(ctx,classId,look,c1,glowC,trim,t,casting);
 
   // ============ FRONT ARM + STAFF (the casting implement) ============
   const raise=casting;                       // 0 rest .. 1 staff up
@@ -1505,7 +1520,7 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   // tip crown/holder
   ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(tipx,tipy,2.6,0,7);ctx.fill();
   // glowing focus orb at tip — magical, intensifies while casting; tinted by equipped weapon
-  const tipC=opts.tipC||c2;
+  const tipC=opts.tipC||glowC;
   const pulse=0.55+0.25*Math.sin(t*5)+casting*0.6;
   const orbR=3.2+casting*3.2;
   ctx.save();ctx.shadowColor=tipC;ctx.shadowBlur=10+casting*22;
@@ -1517,7 +1532,7 @@ function drawMage(ctx,x,y,scale,classId,t,opts={}){
   // charge motes converging on tip while casting
   if(casting>0.15){
     for(let i=0;i<5;i++){ const a=t*4+i*1.3; const rr=(1-casting)*14+8;
-      ctx.save();ctx.globalAlpha=casting*0.8;ctx.fillStyle=c2;ctx.shadowColor=c2;ctx.shadowBlur=6;
+      ctx.save();ctx.globalAlpha=casting*0.8;ctx.fillStyle=glowC;ctx.shadowColor=glowC;ctx.shadowBlur=6;
       ctx.beginPath();ctx.arc(tipx+Math.cos(a)*rr,tipy-2+Math.sin(a)*rr*0.8,1.1,0,7);ctx.fill();ctx.restore(); }
   }
   ctx.restore();
@@ -2349,6 +2364,8 @@ function openCharacterScreen(){
       <div class="stat-line"><span>Armor</span><span>${eqA?eqA.icon+' '+eqA.name:'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Phoenix Tear</span><span>${G.phoenixTear?'🔥 ready':'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Familiar</span><span>${G.equipFamiliar?FAMILIARS[G.equipFamiliar].icon+' '+FAMILIARS[G.equipFamiliar].name:'<span class="muted">none (Alchemist)</span>'}</span></div>
+      <h4 style="margin-top:8px;">✨ Aura Color</h4>
+      <div class="aura-swatches">${AURA_COLORS.map(c=>`<div class="aura-swatch ${G.auraColor===c?'selected':''}" style="--sw:${c}" data-aura="${c}" title="${c}"></div>`).join('')}<div class="aura-swatch default ${!G.auraColor?'selected':''}" data-aura="" title="Class default" style="--sw:${cls.c2}"></div></div>
       <h4 style="margin-top:8px;">Relics (${G.relics.length}/2)</h4>
       <div class="shop-grid" style="grid-template-columns:1fr 1fr;">${relicHtml}</div>
       <h4 style="margin-top:8px;">Potions (${G.potions.length}/3)</h4>
@@ -2374,6 +2391,9 @@ function wireCharacterScreen(ov){
   });
   ov.querySelectorAll('[data-unrelic]').forEach(b=>b.onclick=()=>{
     G.relics.splice(+b.dataset.unrelic,1);saveGame();ov.remove();openCharacterScreen();
+  });
+  ov.querySelectorAll('[data-aura]').forEach(b=>b.onclick=()=>{
+    G.auraColor=b.dataset.aura||null;saveGame();ov.remove();openCharacterScreen();
   });
   ov.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{
     const sid=b.dataset.path;choosePathDialog(sid,ov);
@@ -3411,7 +3431,7 @@ function tbDrawMageFull(m){
   ctx.globalAlpha=m.flash>0?0.6+0.4*Math.sin(t*40):1;
   const tipC=m.isPlayer?(WEAPON_TIP[G.equipWeapon]||null):null;
   const armorKey=m.isPlayer?G.equipArmor:null;
-  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0)});
+  drawMage(ctx,m.x+lean,m.y-30,sc,m.classId,t,{facing:m.facing,walk:m.walkT>0,tipC,armorKey,casting:m.casting>0?clamp(m.casting/0.45,0,1):0,aura:m.isBoss?0.5:(m.casting>0?0.4:0),auraColor:m.isPlayer?G.auraColor:null});
   ctx.restore();
   // hit flash overlay
   if(flashA>0){ ctx.save(); ctx.globalAlpha=flashA*0.5; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(m.x,m.y-34,18*sc/1.7,30*sc/1.7,0,0,7); ctx.fill(); ctx.restore(); }
@@ -4948,7 +4968,7 @@ function renderPlayer(){
   else if(CB.streakTier>=2)aura=0.6;
   // lich form / absolute power glow
   if(p.buffs.lichForm>0||CB.overloadActive>0)aura=Math.max(aura,0.8);
-  drawMage(ctx,p.x,p.y,1.4,CB.cls.id,CB.time,{facing:p.facing,aura,casting:p.casting});
+  drawMage(ctx,p.x,p.y,1.4,CB.cls.id,CB.time,{facing:p.facing,aura,casting:p.casting,auraColor:G.auraColor});
   // casting charge ring
   if(p.casting>0){
     const sp=SPELLS[p.castSpell];
