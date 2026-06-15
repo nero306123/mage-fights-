@@ -1196,6 +1196,8 @@ function freshSave(){
     inventory:{weapons:[],armors:[],relics:[],potions:{}}, // owned
     soulStash:[],            // necro captured souls
     shadowMagic:0,           // necro stat
+    familiars:[],            // owned familiar ids
+    equipFamiliar:null,      // currently summoned familiar
     bounties:[],             // active bounty states
     bountyTimer:0,           // fights until reset
     specialStock:[],         // current special potion ids in shop
@@ -1642,7 +1644,7 @@ function drawRobePattern(ctx,pattern,wide,accent,t){
 const SHOPKEEPERS={
   weapon:{accent:'#ff8844',item:'⚔️',hat:'helm', greet:["Steel and spellwood, finest in the realm!","Pick a weapon worthy of an archmage.","Every staff here has tasted battle."]},
   armor:{accent:'#44aaff',item:'🛡️',hat:'helm', greet:["Robes woven to turn aside a dragon's breath.","Protection is never a waste of gold.","Wear this and laugh at their spells."]},
-  potion:{accent:'#44ff88',item:'⚗️',hat:'hood', greet:["Fresh brews, bubbling and potent!","A sip now spares a grave later.","Careful — some of these bite back."]},
+  potion:{accent:'#44ff88',item:'⚗️',hat:'hood', greet:["Fresh brews, bubbling and potent!","A sip now spares a grave later.","Careful — some of these bite back.","Looking for a companion? I've got a few in the back jars..."]},
   relic:{accent:'#ffd866',item:'💎',hat:'hood', greet:["Relics torn from forgotten tombs...","Power has a price. Hers was steep.","You won't see these wares again."]},
   tavern:{accent:'#e0a858',item:'🍺',hat:'helm', greet:["Welcome, duelist! A drink before the blood?","One blessing lasts a single duel — choose wisely.","Drink up — the crowd loves a winner!"]},
 };
@@ -1690,6 +1692,87 @@ function drawShopkeeper(ctx,x,y,scale,type,t){
   ctx.fillStyle=GOLDTRIM;ctx.beginPath();ctx.arc(-18,15,1.8,0,7);ctx.arc(-14,16,1.8,0,7);ctx.arc(18,15,1.8,0,7);ctx.fill();
   ctx.restore();
 }
+
+/* ---- FAMILIARS: small companions that ride along and act each of your turns (own idea) ---- */
+const FAMILIARS={
+  imp:  {name:'Ember Imp',   icon:'😈', price:220, c1:'#ff5522', c2:'#ffcc55',
+    desc:'A cackling fire sprite. Each of your turns it flings a cinder at your foe.',
+    effect:'burn',  amount:7},
+  wisp: {name:'Moon Wisp',   icon:'👻', price:220, c1:'#9eeaff', c2:'#ffffff',
+    desc:'A gentle spirit drifting at your side, knitting your wounds each turn.',
+    effect:'heal',  amount:12},
+  golem:{name:'Pebble Golem',icon:'🗿', price:220, c1:'#9a8460', c2:'#bfe6a0',
+    desc:'A loyal stone construct. It raises a small ward around you each turn.',
+    effect:'shield',amount:9},
+};
+// small companion drawn floating beside the player — echoes the mage art style at a tiny scale
+function drawFamiliar(ctx,x,y,scale,famId,t){
+  const def=FAMILIARS[famId]; if(!def)return;
+  const bob=Math.sin(t*2.6)*3;
+  ctx.save();
+  ctx.translate(x,y+bob);ctx.scale(scale,scale);ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.save();ctx.globalAlpha=.22;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(0,17,9,3,0,0,7);ctx.fill();ctx.restore();
+  if(famId==='imp'){
+    const flap=Math.sin(t*9)*0.5+0.5;
+    ctx.save();ctx.globalAlpha=.85;ctx.fillStyle=blend(def.c1,'#000',0.5);
+    ctx.beginPath();ctx.moveTo(-3,-2);ctx.quadraticCurveTo(-14,-9-flap*4,-12,2);ctx.quadraticCurveTo(-9,4,-3,2);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(3,-2);ctx.quadraticCurveTo(14,-9-flap*4,12,2);ctx.quadraticCurveTo(9,4,3,2);ctx.closePath();ctx.fill();
+    ctx.restore();
+    // tail
+    ctx.strokeStyle=def.c1;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(2,8);ctx.quadraticCurveTo(10,10,8,15+Math.sin(t*3)*2);ctx.stroke();
+    ctx.fillStyle=def.c1;ctx.beginPath();ctx.moveTo(8,15+Math.sin(t*3)*2);ctx.lineTo(11,13);ctx.lineTo(11,17);ctx.closePath();ctx.fill();
+    // body
+    const bg=ctx.createRadialGradient(-2,-4,1,0,0,11);
+    bg.addColorStop(0,blend(def.c1,'#fff',0.3));bg.addColorStop(1,blend(def.c1,'#000',0.25));
+    ctx.fillStyle=bg;ctx.beginPath();ctx.ellipse(0,2,9,10,0,0,7);ctx.fill();
+    // horns
+    ctx.fillStyle=blend(def.c1,'#000',0.4);
+    ctx.beginPath();ctx.moveTo(-5,-7);ctx.quadraticCurveTo(-8,-15,-4,-14);ctx.quadraticCurveTo(-3,-10,-2,-6);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(5,-7);ctx.quadraticCurveTo(8,-15,4,-14);ctx.quadraticCurveTo(3,-10,2,-6);ctx.closePath();ctx.fill();
+    // glowing eyes
+    ctx.fillStyle=def.c2;ctx.shadowColor=def.c2;ctx.shadowBlur=6;
+    ctx.beginPath();ctx.ellipse(-3,0,1.6,2,0,0,7);ctx.ellipse(3,0,1.6,2,0,0,7);ctx.fill();
+  } else if(famId==='wisp'){
+    const gg=ctx.createRadialGradient(0,0,1,0,0,15);
+    gg.addColorStop(0,blend(def.c1,'#fff',0.4));gg.addColorStop(1,'transparent');
+    ctx.save();ctx.globalAlpha=.5;ctx.fillStyle=gg;ctx.beginPath();ctx.arc(0,0,15,0,7);ctx.fill();ctx.restore();
+    const wob=Math.sin(t*3)*2;
+    const bg=ctx.createLinearGradient(0,-10,0,12);
+    bg.addColorStop(0,blend(def.c1,'#fff',0.5));bg.addColorStop(1,blend(def.c1,'#000',0.1));
+    ctx.save();ctx.globalAlpha=.82;ctx.fillStyle=bg;
+    ctx.beginPath();
+    ctx.moveTo(0,-11);
+    ctx.quadraticCurveTo(8,-6,7,4);
+    ctx.quadraticCurveTo(7+wob,9,2,12);
+    ctx.quadraticCurveTo(0,9,-2,12);
+    ctx.quadraticCurveTo(-7+wob,9,-7,4);
+    ctx.quadraticCurveTo(-8,-6,0,-11);
+    ctx.closePath();ctx.fill();ctx.restore();
+    ctx.fillStyle=def.c1;ctx.shadowColor=def.c1;ctx.shadowBlur=8;
+    ctx.beginPath();ctx.arc(-2.6,-2,1.4,0,7);ctx.arc(2.6,-2,1.4,0,7);ctx.fill();
+    for(let i=0;i<3;i++){
+      const a=t*2+i*2.1, r=12+Math.sin(t*2+i)*2;
+      ctx.save();ctx.globalAlpha=.5+0.4*Math.sin(t*4+i);ctx.fillStyle='#fff';ctx.shadowColor=def.c1;ctx.shadowBlur=5;
+      ctx.beginPath();ctx.arc(Math.cos(a)*r,Math.sin(a)*r*0.7,1,0,7);ctx.fill();ctx.restore();
+    }
+  } else if(famId==='golem'){
+    ctx.fillStyle=blend(def.c1,'#000',0.3);
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(-7,10,5,5,1.5):ctx.rect(-7,10,5,5);ctx.fill();
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(2,10,5,5,1.5):ctx.rect(2,10,5,5);ctx.fill();
+    const bg=ctx.createLinearGradient(0,-10,0,11);
+    bg.addColorStop(0,blend(def.c1,'#fff',0.18));bg.addColorStop(1,blend(def.c1,'#000',0.3));
+    ctx.fillStyle=bg;ctx.strokeStyle=blend(def.c1,'#000',0.45);ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(-9,-6,18,17,3):ctx.rect(-9,-6,18,17);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(-6,-15,12,9,2.5):ctx.rect(-6,-15,12,9);ctx.fill();ctx.stroke();
+    ctx.save();ctx.strokeStyle=def.c2;ctx.lineWidth=1;ctx.shadowColor=def.c2;ctx.shadowBlur=5;ctx.globalAlpha=.6+0.3*Math.sin(t*2);
+    ctx.beginPath();ctx.moveTo(-4,1);ctx.lineTo(0,-2);ctx.lineTo(4,3);ctx.moveTo(0,4);ctx.lineTo(0,9);ctx.stroke();ctx.restore();
+    ctx.fillStyle=def.c2;ctx.shadowColor=def.c2;ctx.shadowBlur=6;
+    ctx.beginPath();ctx.rect(-4,-12,2.4,2.4);ctx.rect(1.6,-12,2.4,2.4);ctx.fill();
+  }
+  ctx.restore();
+}
+
 let _skRAF=null;
 function startShopkeeper(ov,type){
   const cv=ov.querySelector('.sk-canvas'); if(!cv)return;
@@ -2032,12 +2115,26 @@ function openPotionShop(re){
   const specials=G.specialStock.map(card).join('');
   const phoenixCard=card('phoenix');
   const carry=G.potions.map((p,i)=>`<span class="item-card panel" style="--glow:#ffd866;padding:6px 10px;">${POTIONS[p].icon} ${POTIONS[p].name} <button data-drop="${i}" style="padding:2px 6px;font-size:10px;">✕</button></span>`).join('') || '<span class="muted">none</span>';
+  const famCard=(k)=>{
+    const def=FAMILIARS[k];
+    const owned=G.familiars.includes(k);
+    const summoned=G.equipFamiliar===k;
+    let btn;
+    if(summoned) btn='<button data-unfam>Dismiss</button>';
+    else if(owned) btn=`<button data-eqfam="${k}">Summon</button>`;
+    else btn=`<button data-buyfam="${k}" ${G.gold>=def.price?'':'disabled'}>Buy ${def.price}g</button>`;
+    return `<div class="item-card panel ${summoned?'equipped':''}" style="--glow:${summoned?'#ffd866':def.c1}">
+      <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
+      <div class="istats">${def.desc}</div>${btn}</div>`;
+  };
+  const familiarCards=Object.keys(FAMILIARS).map(famCard).join('');
   const body=shopkeeperHeader('potion')+`<div class="muted center-text">carrying ${carried}/3 potions (Phoenix Tear uses a separate slot)</div>
     <h3 class="gold-text">Basics</h3><div class="shop-grid">${basics}</div>
     <h3 class="gold-text">Special (rotates)</h3><div class="shop-grid">${specials}</div>
     <h3 class="gold-text">Passive Slot</h3><div class="shop-grid">${phoenixCard}</div>
-    <h3 class="gold-text">Carried Loadout</h3><div class="flexrow" style="flex-wrap:wrap;gap:8px;">${carry}</div>`;
-  _openShopOv=openModal('🧪 Alchemist',body,'#44ff88');_openShopKind='potion';
+    <h3 class="gold-text">Carried Loadout</h3><div class="flexrow" style="flex-wrap:wrap;gap:8px;">${carry}</div>
+    <h3 class="gold-text">✦ Familiars — one act with you each turn</h3><div class="shop-grid">${familiarCards}</div>`;
+  _openShopOv=openModal('🧪 Alchemist & Familiars',body,'#44ff88');_openShopKind='potion';
   startShopkeeper(_openShopOv,'potion');
   _openShopOv.querySelectorAll('[data-buyp]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.buyp;const def=POTIONS[k];
@@ -2048,6 +2145,18 @@ function openPotionShop(re){
   });
   _openShopOv.querySelectorAll('[data-drop]').forEach(b=>b.onclick=()=>{
     G.potions.splice(+b.dataset.drop,1);saveGame();openPotionShop(true);
+  });
+  _openShopOv.querySelectorAll('[data-buyfam]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.buyfam;const def=FAMILIARS[k];
+    if(G.gold<def.price)return;
+    G.gold-=def.price; G.familiars.push(k); G.equipFamiliar=k;
+    saveGame();openPotionShop(true);
+  });
+  _openShopOv.querySelectorAll('[data-eqfam]').forEach(b=>b.onclick=()=>{
+    G.equipFamiliar=b.dataset.eqfam; saveGame();openPotionShop(true);
+  });
+  _openShopOv.querySelectorAll('[data-unfam]').forEach(b=>b.onclick=()=>{
+    G.equipFamiliar=null; saveGame();openPotionShop(true);
   });
   renderCityTopbar();
 }
@@ -2239,6 +2348,7 @@ function openCharacterScreen(){
       <div class="stat-line"><span>Weapon</span><span>${eqW?eqW.icon+' '+eqW.name:'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Armor</span><span>${eqA?eqA.icon+' '+eqA.name:'<span class="muted">none</span>'}</span></div>
       <div class="stat-line"><span>Phoenix Tear</span><span>${G.phoenixTear?'🔥 ready':'<span class="muted">none</span>'}</span></div>
+      <div class="stat-line"><span>Familiar</span><span>${G.equipFamiliar?FAMILIARS[G.equipFamiliar].icon+' '+FAMILIARS[G.equipFamiliar].name:'<span class="muted">none (Alchemist)</span>'}</span></div>
       <h4 style="margin-top:8px;">Relics (${G.relics.length}/2)</h4>
       <div class="shop-grid" style="grid-template-columns:1fr 1fr;">${relicHtml}</div>
       <h4 style="margin-top:8px;">Potions (${G.potions.length}/3)</h4>
@@ -2612,6 +2722,7 @@ function tbStartTurn(who){
   m.facing=(other.x>=m.x)?1:-1;
   if(who==='player'){
     CB.turnNo++;
+    tbApplyFamiliar();
     tbUpdateTurnUI();
   } else {
     tbUpdateTurnUI();
@@ -3312,6 +3423,10 @@ function tbDrawMageFull(m){
   const tag=m.isPlayer?'You':(m.isBoss?'👑 '+m.name:m.name);
   ctx.fillText(tag, m.x, m.y-30-46*sc/1.7);
   ctx.restore();
+  // familiar companion, floating behind the player
+  if(m.isPlayer && G.equipFamiliar){
+    drawFamiliar(ctx, m.x-m.facing*30, m.y-78, 1.4, G.equipFamiliar, t);
+  }
 }
 
 /* ---------------- WAVE MANAGEMENT (legacy, unused in TB) ---------------- */
@@ -4582,6 +4697,27 @@ function tbAuraBurst(m,el){
 function spawnFreezeVfx(e){ e._frozenVfx=1.5; }
 function spawnRockEncase(e){ e._rockVfx=1; }
 function doShockwave(x,y,color,scale=1){ CB.effects.push({type:'shock',x,y,r:10,maxr:200*scale,life:0.6,maxlife:0.6,color}); }
+function tbFamiliarFX(x,y,color){
+  for(let i=0;i<8;i++){ const a=rand(0,7),s=rand(20,60); CB.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-20,life:rand(0.3,0.5),maxlife:0.5,r:rand(1,3),color,fade:true,grav:-10}); }
+}
+// familiar acts once at the start of each of the player's turns
+function tbApplyFamiliar(){
+  const fid=G.equipFamiliar; if(!fid||!CB||CB.over)return;
+  const def=FAMILIARS[fid], p=CB.player;
+  const fx=p.x-p.facing*30, fy=p.y-78;
+  if(def.effect==='heal'){
+    p.hp=clamp(p.hp+def.amount,0,p.maxhp);
+    floatNumber(fx,fy-12,'+'+def.amount,{heal:true});
+    tbFamiliarFX(fx,fy,def.c1);
+  } else if(def.effect==='shield'){
+    p.shield=(p.shield||0)+def.amount;
+    floatNumber(fx,fy-12,'+'+def.amount+' 🛡',{heal:true});
+    tbFamiliarFX(fx,fy,def.c2);
+  } else if(def.effect==='burn'){
+    tbFamiliarFX(fx,fy,def.c1);
+    if(CB.foe) tbDealDamage(CB.foe,def.amount,'fire',{});
+  }
+}
 
 /* ---------------- FLOATING NUMBERS ---------------- */
 function floatNumber(x,y,text,opt){
