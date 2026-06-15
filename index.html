@@ -194,9 +194,14 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 #screen-city{padding:0;}
 .city-scene{
   position:absolute;inset:0;
-  background:linear-gradient(180deg,#06060f 0%,#0c0c1c 55%,#15101c 100%);
+  background:#06060f;
   overflow:hidden;
 }
+#cityCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:manipulation;}
+.city-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;color:rgba(216,178,74,.55);
+  font-family:'MedievalSharp',cursive;font-size:13px;letter-spacing:1px;pointer-events:none;
+  animation:cityHintPulse 2.4s ease-in-out infinite;}
+@keyframes cityHintPulse{0%,100%{opacity:.35;}50%{opacity:.8;}}
 .city-skyline{
   position:absolute;bottom:0;left:0;right:0;height:55%;
   display:flex;align-items:flex-end;justify-content:space-around;
@@ -261,8 +266,8 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   padding:6px 12px;margin-right:8px;font-size:13px;
 }
 .city-title{
-  position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);
-  text-align:center;pointer-events:none;
+  position:absolute;top:20%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;width:90%;
   animation:cityTitleFade 2.5s ease forwards;
 }
 @keyframes cityTitleFade{
@@ -270,7 +275,8 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   70%{opacity:1;}
   100%{opacity:0;}
 }
-.city-title .big{font-size:42px;color:var(--gold);text-shadow:0 0 20px rgba(255,216,102,.7);}
+.city-title .big{font-size:34px;color:var(--gold);text-shadow:0 0 20px rgba(255,216,102,.7);}
+@media (max-height:480px){ .city-title .big{font-size:22px;} }
 
 /* ---------- MODAL OVERLAYS ---------- */
 .modal-overlay{
@@ -739,11 +745,10 @@ button:disabled{opacity:.4;cursor:not-allowed;}
   <!-- ================= CITY HUB ================= -->
   <div id="screen-city" class="screen hidden">
     <div class="city-scene" id="cityScene">
-      <div class="starfield" id="cityStars"></div>
+      <canvas id="cityCanvas"></canvas>
       <div class="city-topbar" id="cityTopbar"></div>
-      <div class="city-skyline" id="citySkyline"></div>
-      <div class="cobble"></div>
       <div class="city-title" id="cityTitleMsg"></div>
+      <div class="city-hint" id="cityHint">tap a building to enter</div>
     </div>
   </div>
 
@@ -2224,31 +2229,73 @@ const CITY_BUILDINGS=[
   {id:'char',icon:'👤',lbl:'Character',glow:'#88ccff'},
   {id:'fight',icon:'⚔️',lbl:'To Battle!',glow:'#ff4444'},
 ];
+// ---- painted dark-town hub (canvas) ----
+let _cityRAF=null,_cityStars=null,_cityBuildings=[],_cityHover=-1,_cityT0=0,_cityClsId=null;
 function enterCity(message){
   showScreen('city');
-  buildStars($('cityStars'),120,36);
   renderCityTopbar();
-  // skyline buildings
-  const sky=$('citySkyline'); sky.innerHTML='';
-  CITY_BUILDINGS.forEach((b,i)=>{
-    if(b.id==='relic' && !G.relicCart) return; // appears every 5 wins
-    const h=rand(120,210);
-    const w=rand(80,120);
-    const el=document.createElement('div');
-    el.className='building';
-    el.style.cssText=`height:${h}px;width:${w}px;--glow:${b.glow}`;
-    let lanterns='';
-    for(let l=0;l<3;l++) lanterns+=`<div class="lantern" style="left:${rand(10,80)}%;top:${rand(40,90)}%;animation-delay:${rand(0,2)}s"></div>`;
-    el.innerHTML=`<div class="icon" style="color:${b.glow}">${b.icon}</div><div class="lbl">${b.lbl}</div>${lanterns}`;
-    el.onclick=()=>cityAction(b.id);
-    sky.appendChild(el);
-  });
+  setupCityScene();
   if(message){
     const m=$('cityTitleMsg');
     m.innerHTML=`<div class="big">${message}</div>`;
     m.style.animation='none';void m.offsetWidth;m.style.animation='cityTitleFade 2.5s ease forwards';
   }
   saveGame();
+}
+function setupCityScene(){
+  const cv=$('cityCanvas'); if(!cv)return;
+  const ctx=cv.getContext('2d');
+  if(!_cityStars){ _cityStars=[]; for(let i=0;i<110;i++)_cityStars.push({x:Math.random(),y:Math.random()*0.5,r:Math.random()*1.3+0.3,p:Math.random()*7}); }
+  cv.onclick=(e)=>{ const idx=cityHit(e.offsetX,e.offsetY); if(idx>=0)cityAction(_cityBuildings[idx].id); };
+  cv.onmousemove=(e)=>{ _cityHover=cityHit(e.offsetX,e.offsetY); cv.style.cursor=_cityHover>=0?'pointer':'default'; };
+  cv.onmouseleave=()=>{ _cityHover=-1; };
+  _cityT0=performance.now();
+  if(_cityRAF)cancelAnimationFrame(_cityRAF);
+  const loop=(ts)=>{
+    if($('screen-city').classList.contains('hidden')){ _cityRAF=null; return; }
+    const r=cv.getBoundingClientRect();
+    const dpr=Math.min(2,window.devicePixelRatio||1);
+    if(Math.abs(cv.width-r.width*dpr)>2||Math.abs(cv.height-r.height*dpr)>2){
+      cv.width=Math.max(320,r.width)*dpr; cv.height=Math.max(220,r.height)*dpr;
+    }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    layoutCity(r.width,r.height);   // re-layout each frame so the shop list (e.g. relic unlock) stays current
+    drawCity(ctx,r.width,r.height,(ts-_cityT0)/1000);
+    _cityRAF=requestAnimationFrame(loop);
+  };
+  _cityRAF=requestAnimationFrame(loop);
+}
+// per-building palette (dark, moody — accent tints the roof / windows / sign glow)
+const CITY_LOOK={
+  weapon:{roof:'#7a2d2d',body:'#2a2330'}, armor:{roof:'#244a6a',body:'#222a36'},
+  potion:{roof:'#1f5a3a',body:'#202a28'}, tavern:{roof:'#6a4a1e',body:'#2e2620'},
+  relic:{roof:'#6a5a1e',body:'#2c2a22'},  bounty:{roof:'#4a2d6a',body:'#272232'},
+  trophy:{roof:'#6a5520',body:'#2c2820'}, char:{roof:'#2d4a6a',body:'#222732'},
+  fight:{roof:'#7a2020',body:'#2a2026'},
+};
+function cityList(){ return CITY_BUILDINGS.filter(b=>!(b.id==='relic'&&!G.relicCart)); }
+function layoutCity(W,H){
+  const list=cityList();
+  const n=list.length;
+  const baseY=Math.round(H*0.66);
+  const margin=Math.max(8,W*0.015);
+  const gap=Math.max(5,W*0.008);
+  const bw=Math.min(150,(W-margin*2-gap*(n-1))/n);
+  const startX=(W-(bw*n+gap*(n-1)))/2;
+  _cityBuildings=list.map((b,i)=>{
+    // deterministic height variation per id so it's stable between frames
+    const seed=(b.id.charCodeAt(0)+b.id.length*7)%5;
+    const hh=Math.round(H*(0.26+seed*0.018));
+    const x=startX+i*(bw+gap);
+    return {id:b.id,name:b.lbl,icon:b.icon,glow:b.glow,x,w:bw,base:baseY,h:hh,top:baseY-hh,look:CITY_LOOK[b.id]||{roof:'#444',body:'#222'}};
+  });
+}
+function cityHit(px,py){
+  for(let i=0;i<_cityBuildings.length;i++){
+    const b=_cityBuildings[i];
+    if(px>=b.x-2 && px<=b.x+b.w+2 && py>=b.top-Math.round(b.h*0.34) && py<=b.base+6) return i;
+  }
+  return -1;
 }
 function renderCityTopbar(){
   const cls=CLASSES[G.classId];
@@ -2260,6 +2307,105 @@ function renderCityTopbar(){
     </div>
     <div><button id="cityToTitle">⌂ Title</button></div>`;
   $('cityToTitle').onclick=()=>{ saveGame(); showScreen('title'); $('btnContinue').disabled=false; $('btnContinue').textContent='Continue (Lvl '+G.level+')'; };
+}
+function rr(ctx,x,y,w,h,r){ if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,w,h,r);} else {ctx.beginPath();ctx.rect(x,y,w,h);} }
+function drawCity(ctx,W,H,t){
+  // ---- SKY ----
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#070611');sky.addColorStop(0.45,'#0c0a1d');sky.addColorStop(0.72,'#130f20');sky.addColorStop(1,'#1a1320');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // ---- MOON ----
+  const mx=W*0.83,my=H*0.18;
+  ctx.save();
+  const mg=ctx.createRadialGradient(mx,my,2,mx,my,70);
+  mg.addColorStop(0,'rgba(210,200,250,.45)');mg.addColorStop(1,'transparent');
+  ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,70,0,7);ctx.fill();
+  ctx.fillStyle='#e9e3f6';ctx.beginPath();ctx.arc(mx,my,20,0,7);ctx.fill();
+  ctx.fillStyle='rgba(170,160,200,.45)';ctx.beginPath();ctx.arc(mx-6,my-3,3.5,0,7);ctx.arc(mx+6,my+5,4.5,0,7);ctx.arc(mx+2,my-7,2.5,0,7);ctx.fill();
+  ctx.restore();
+  // ---- STARS ----
+  for(const s of _cityStars){ ctx.globalAlpha=0.25+0.55*Math.abs(Math.sin(t*1.2+s.p)); ctx.fillStyle='#cfe0ff'; ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,7);ctx.fill(); }
+  ctx.globalAlpha=1;
+  // ---- DISTANT ARENA ----
+  const cx=W*0.5, ay=H*0.62, rw=Math.min(W*0.32,260), rdh=H*0.34;
+  ctx.save();
+  ctx.fillStyle='#0a0814';
+  ctx.beginPath();ctx.ellipse(cx,ay,rw,rdh,0,Math.PI,0);ctx.lineTo(cx+rw,ay);ctx.lineTo(cx-rw,ay);ctx.closePath();ctx.fill();
+  // faint rim light
+  ctx.strokeStyle='rgba(120,90,160,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,ay,rw,rdh,0,Math.PI,0);ctx.stroke();
+  // glowing arch openings
+  for(let r=0;r<2;r++){ const arY=ay-rdh*0.42-r*rdh*0.3; const cols=10; for(let c=0;c<cols;c++){ const arX=cx-rw*0.82+c*(rw*1.64/cols); ctx.fillStyle='rgba(255,150,60,.10)'; ctx.fillRect(arX,arY,rw*1.64/cols*0.5,rdh*0.18); } }
+  ctx.restore();
+  // ---- FOG ----
+  ctx.save();const fy=H*0.58;
+  const fog=ctx.createLinearGradient(0,fy-44,0,fy+34);fog.addColorStop(0,'transparent');fog.addColorStop(0.5,'rgba(100,80,140,.10)');fog.addColorStop(1,'transparent');
+  ctx.fillStyle=fog;ctx.fillRect(0,fy-44,W,80);ctx.restore();
+  // ---- GROUND / STREET ----
+  const groundY=H*0.66;
+  const gnd=ctx.createLinearGradient(0,groundY,0,H);gnd.addColorStop(0,'#29222f');gnd.addColorStop(1,'#120e18');
+  ctx.fillStyle=gnd;ctx.fillRect(0,groundY,W,H-groundY);
+  ctx.strokeStyle='rgba(0,0,0,.28)';ctx.lineWidth=1;
+  for(let i=1;i<6;i++){ const yy=groundY+(H-groundY)*(i/6); ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(W,yy);ctx.stroke(); }
+  // perspective street lines
+  ctx.strokeStyle='rgba(0,0,0,.2)';
+  for(let i=-3;i<=3;i++){ ctx.beginPath();ctx.moveTo(cx+i*30,groundY);ctx.lineTo(cx+i*120,H);ctx.stroke(); }
+  // ---- BUILDINGS ----
+  _cityBuildings.forEach((b,i)=>drawHouse(ctx,b,t,i===_cityHover));
+  // ---- MAGE in the street ----
+  if(G.classId){ drawMage(ctx, cx, H*0.93, Math.max(1.5,H/210), G.classId, t, {facing:1, casting:0.25+0.2*Math.sin(t*1.1)}); }
+  // ---- drifting embers ----
+  for(let i=0;i<16;i++){ const ex=(Math.sin(i*12.9+t*0.25)*0.5+0.5)*W; const ey=H - ((t*16+i*47)%(H*0.55)); ctx.globalAlpha=0.35*Math.abs(Math.sin(t*1.3+i)); ctx.fillStyle='#ffb060'; ctx.beginPath();ctx.arc(ex,ey,1.3,0,7);ctx.fill(); }
+  ctx.globalAlpha=1;
+}
+function drawHouse(ctx,b,t,hover){
+  const {x,w,base,h,top,look,glow,icon,name}=b;
+  // ground shadow
+  ctx.save();ctx.globalAlpha=.4;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(x+w/2,base+4,w*0.55,7,0,0,7);ctx.fill();ctx.restore();
+  // body
+  const bg=ctx.createLinearGradient(0,top,0,base);
+  bg.addColorStop(0,blend(look.body,'#fff',hover?0.14:0.05));bg.addColorStop(1,blend(look.body,'#000',0.32));
+  ctx.fillStyle=bg;rr(ctx,x,top,w,h,4);ctx.fill();
+  // timber frame
+  ctx.strokeStyle='rgba(18,12,8,.85)';ctx.lineWidth=Math.max(2,w*0.028);
+  ctx.strokeRect(x+2,top+2,w-4,h-4);
+  ctx.lineWidth=Math.max(1.4,w*0.02);
+  ctx.beginPath();ctx.moveTo(x+w*0.5,top+h*0.45);ctx.lineTo(x+w*0.5,base-3);ctx.moveTo(x+4,top+h*0.45);ctx.lineTo(x+w-4,top+h*0.45);ctx.stroke();
+  // roof
+  const rfh=h*0.44;
+  ctx.fillStyle=blend(look.roof,'#000',0.18);
+  ctx.beginPath();ctx.moveTo(x-7,top+5);ctx.lineTo(x+w/2,top-rfh);ctx.lineTo(x+w+7,top+5);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.save();ctx.globalAlpha=.65;ctx.strokeStyle=blend(glow,'#fff',0.1);ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(x-7,top+5);ctx.lineTo(x+w/2,top-rfh);ctx.lineTo(x+w+7,top+5);ctx.stroke();ctx.restore();
+  // glowing icon medallion
+  const cxw=x+w/2, mcy=top+h*0.30, mr=Math.max(12,w*0.20);
+  ctx.save();
+  const mgl=ctx.createRadialGradient(cxw,mcy,1,cxw,mcy,mr+6);
+  mgl.addColorStop(0,blend(glow,'#fff',0.3));mgl.addColorStop(1,'transparent');
+  ctx.globalAlpha=hover?0.9:0.6;ctx.fillStyle=mgl;ctx.beginPath();ctx.arc(cxw,mcy,mr+6,0,7);ctx.fill();ctx.restore();
+  ctx.fillStyle='#15101f';ctx.strokeStyle=blend(glow,'#000',0.2);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cxw,mcy,mr,0,7);ctx.fill();ctx.stroke();
+  ctx.font=`${Math.round(mr*1.25)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(icon,cxw,mcy+1);
+  // windows flanking the door
+  const winC=blend(glow,'#fff',0.35);
+  const ww=Math.max(7,w*0.14),wh=ww*1.15,wy=top+h*0.56;
+  for(const wx of [x+w*0.22-ww/2, x+w*0.78-ww/2]){
+    ctx.save();ctx.shadowColor=winC;ctx.shadowBlur=8+3*Math.sin(t*3+x);ctx.fillStyle=blend(winC,'#000',0.15);rr(ctx,wx,wy,ww,wh,2);ctx.fill();ctx.restore();
+    ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(wx+ww/2,wy);ctx.lineTo(wx+ww/2,wy+wh);ctx.moveTo(wx,wy+wh/2);ctx.lineTo(wx+ww,wy+wh/2);ctx.stroke();
+  }
+  // arched door with warm glow
+  const dw=w*0.24,dh=h*0.36,dx=cxw-dw/2,dy=base-dh;
+  ctx.save();ctx.shadowColor='#ffb050';ctx.shadowBlur=12;ctx.fillStyle='#180f06';
+  ctx.beginPath();ctx.moveTo(dx,base);ctx.lineTo(dx,dy+dw*0.5);ctx.quadraticCurveTo(dx,dy,dx+dw/2,dy);ctx.quadraticCurveTo(dx+dw,dy,dx+dw,dy+dw*0.5);ctx.lineTo(dx+dw,base);ctx.closePath();ctx.fill();ctx.restore();
+  ctx.fillStyle='rgba(255,170,70,.16)';ctx.fillRect(dx+2,dy+dw*0.5,dw-4,dh-dw*0.5);
+  // name label below
+  ctx.font=`bold ${Math.max(8,Math.min(12,w*0.115))}px Cinzel, serif`;
+  ctx.fillStyle=hover?'#fff':blend(glow,'#fff',0.45);ctx.textAlign='center';ctx.textBaseline='top';
+  ctx.shadowColor='#000';ctx.shadowBlur=3;
+  const words=name.split(' ');
+  if(words.length>1 && w<110){ ctx.fillText(words[0],cxw,base+6); ctx.fillText(words.slice(1).join(' '),cxw,base+6+Math.max(9,w*0.13)); }
+  else ctx.fillText(name,cxw,base+6);
+  ctx.shadowBlur=0;
 }
 function cityAction(id){
   switch(id){
