@@ -322,6 +322,9 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 .aura-swatch.selected{border-color:#fff;box-shadow:0 0 10px var(--sw),0 0 0 2px var(--sw);}
 .aura-swatch.default{background:repeating-linear-gradient(45deg,#555 0 4px,#333 4px 8px);}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;}
+.tab-btn{padding:6px 14px;font-size:13px;border-radius:9px;background:linear-gradient(180deg,rgba(40,34,60,.7),rgba(20,16,32,.7));border:1px solid rgba(150,130,200,.25);color:#cfc4e6;cursor:pointer;transition:all .15s;}
+.tab-btn:hover{transform:translateY(-2px);border-color:var(--gold);}
+.tab-btn.active{background:linear-gradient(180deg,var(--gold),#aa7700);color:#1a1208;border-color:var(--gold);box-shadow:0 0 12px rgba(216,178,74,.5);font-weight:700;}
 .tabs button.active{border-color:var(--gold);box-shadow:0 0 10px var(--gold);}
 
 /* ---------- BOUNTY ---------- */
@@ -2323,10 +2326,13 @@ function refreshOpenShop(kind){
   else if(kind==='potion') openPotionShop(true);
   else if(kind==='relic') openRelicMerchant(true);
 }
+let _weaponTab='staff';
 function openWeaponShop(re){
   if(re&&_openShopOv)_openShopOv.remove();
   let tabs={staff:[],wand:[],orb:[]};
   for(const k in WEAPONS) tabs[WEAPONS[k].type].push(k);
+  // cheapest → priciest within each category
+  for(const t in tabs) tabs[t].sort((a,b)=>WEAPONS[a].price-WEAPONS[b].price);
   const sec=(type)=>tabs[type].map(k=>buyGearCard(k,WEAPONS[k],'weapon',G.inventory.weapons.includes(k),G.equipWeapon===k)).join('');
   const curWeapon=G.equipWeapon?WEAPONS[G.equipWeapon]:null;
   const enchantSection=curWeapon?`<div class="shop-grid">${Object.keys(ENCHANTS).map(k=>{
@@ -2357,15 +2363,19 @@ function openWeaponShop(re){
         <button data-upgrade ${G.gold>=cost?'':'disabled'}>Forge +${nextPlus} (${cost}g)</button></div>`;
     }
   }
-  const body=shopkeeperHeader('weapon')+`
-    <h3 class="gold-text">Staffs — balanced</h3><div class="shop-grid">${sec('staff')}</div>
-    <h3 class="gold-text">Wands — crit &amp; precision</h3><div class="shop-grid">${sec('wand')}</div>
-    <h3 class="gold-text">Orbs — mana &amp; sustain</h3><div class="shop-grid">${sec('orb')}</div>
-    <h3 class="gold-text">⚒ Forge — upgrade your ${curWeapon?curWeapon.icon+' '+weaponDisplayName(G.equipWeapon):'weapon'}</h3>
-    <div class="shop-grid">${forgeSection}</div>
-    <h3 class="gold-text">✦ Enchant your ${curWeapon?curWeapon.icon+' '+curWeapon.name:'weapon'}</h3>${enchantSection}`;
+  // category tabs (like a real weapon board — pick a type, then the wares show)
+  const WTABS=[{id:'staff',lbl:'🪄 Staffs'},{id:'wand',lbl:'✨ Wands'},{id:'orb',lbl:'🔮 Orbs'},{id:'forge',lbl:'⚒ Forge'},{id:'enchant',lbl:'✦ Enchant'}];
+  if(!WTABS.some(t=>t.id===_weaponTab))_weaponTab='staff';
+  const tabBar=`<div class="tabs">${WTABS.map(t=>`<button class="tab-btn ${_weaponTab===t.id?'active':''}" data-wtab="${t.id}">${t.lbl}</button>`).join('')}</div>`;
+  const blurb={staff:'Staffs — balanced spell power',wand:'Wands — crit &amp; precision',orb:'Orbs — mana &amp; sustain'};
+  let content;
+  if(_weaponTab==='forge') content=`<h3 class="gold-text">⚒ Forge — upgrade your ${curWeapon?curWeapon.icon+' '+weaponDisplayName(G.equipWeapon):'weapon'}</h3><div class="shop-grid">${forgeSection}</div>`;
+  else if(_weaponTab==='enchant') content=`<h3 class="gold-text">✦ Enchant your ${curWeapon?curWeapon.icon+' '+curWeapon.name:'weapon'}</h3>${enchantSection}`;
+  else content=`<h3 class="gold-text">${blurb[_weaponTab]} <span class="muted" style="font-size:12px;">(cheapest first)</span></h3><div class="shop-grid">${sec(_weaponTab)}</div>`;
+  const body=shopkeeperHeader('weapon')+tabBar+content;
   _openShopOv=openModal('⚔️ Weapon Smith',body,'#ff8844');_openShopKind='weapon';
   wireGearButtons(_openShopOv,WEAPONS,'weapon');
+  _openShopOv.querySelectorAll('[data-wtab]').forEach(b=>b.onclick=()=>{ _weaponTab=b.dataset.wtab; openWeaponShop(true); });
   _openShopOv.querySelectorAll('[data-upgrade]').forEach(b=>b.onclick=()=>{
     const id=G.equipWeapon; if(!id)return;
     const cost=weaponUpgradeCost(id);
@@ -2387,8 +2397,9 @@ function openWeaponShop(re){
 }
 function openArmorShop(re){
   if(re&&_openShopOv)_openShopOv.remove();
-  const cards=Object.keys(ARMORS).map(k=>buyGearCard(k,ARMORS[k],'armor',G.inventory.armors.includes(k),G.equipArmor===k)).join('');
-  _openShopOv=openModal('🧥 Armorer',shopkeeperHeader('armor')+`<div class="shop-grid">${cards}</div>`,'#44aaff');
+  const cards=Object.keys(ARMORS).sort((a,b)=>ARMORS[a].price-ARMORS[b].price)
+    .map(k=>buyGearCard(k,ARMORS[k],'armor',G.inventory.armors.includes(k),G.equipArmor===k)).join('');
+  _openShopOv=openModal('🧥 Armorer',shopkeeperHeader('armor')+`<h3 class="gold-text">Robes &amp; Armor <span class="muted" style="font-size:12px;">(cheapest first)</span></h3><div class="shop-grid">${cards}</div>`,'#44aaff');
   _openShopKind='armor';
   wireGearButtons(_openShopOv,ARMORS,'armor');
   startShopkeeper(_openShopOv,'armor');
@@ -2413,8 +2424,8 @@ function openPotionShop(re){
       <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
       <div class="istats">${eff}</div>${btn}</div>`;
   };
-  const basics=Object.keys(POTIONS).filter(k=>POTIONS[k].basic).map(card).join('');
-  const specials=G.specialStock.map(card).join('');
+  const basics=Object.keys(POTIONS).filter(k=>POTIONS[k].basic).sort((a,b)=>POTIONS[a].price-POTIONS[b].price).map(card).join('');
+  const specials=[...G.specialStock].sort((a,b)=>POTIONS[a].price-POTIONS[b].price).map(card).join('');
   const phoenixCard=card('phoenix');
   const carry=G.potions.map((p,i)=>`<span class="item-card panel" style="--glow:#ffd866;padding:6px 10px;">${POTIONS[p].icon} ${POTIONS[p].name} <button data-drop="${i}" style="padding:2px 6px;font-size:10px;">✕</button></span>`).join('') || '<span class="muted">none</span>';
   const famCard=(k)=>{
@@ -2429,7 +2440,7 @@ function openPotionShop(re){
       <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
       <div class="istats">${def.desc}</div>${btn}</div>`;
   };
-  const familiarCards=Object.keys(FAMILIARS).map(famCard).join('');
+  const familiarCards=Object.keys(FAMILIARS).sort((a,b)=>FAMILIARS[a].price-FAMILIARS[b].price).map(famCard).join('');
   const body=shopkeeperHeader('potion')+`<div class="muted center-text">carrying ${carried}/3 potions (Phoenix Tear uses a separate slot)</div>
     <h3 class="gold-text">Basics</h3><div class="shop-grid">${basics}</div>
     <h3 class="gold-text">Special (rotates)</h3><div class="shop-grid">${specials}</div>
@@ -2473,7 +2484,7 @@ const BLESSINGS={
 function openTavern(re){
   if(re&&_openShopOv)_openShopOv.remove();
   const active=G.blessing?BLESSINGS[G.blessing]:null;
-  const cards=Object.keys(BLESSINGS).map(k=>{
+  const cards=Object.keys(BLESSINGS).sort((a,b)=>BLESSINGS[a].price-BLESSINGS[b].price).map(k=>{
     const def=BLESSINGS[k];const can=G.gold>=def.price;const isOn=G.blessing===k;
     let btn;
     if(isOn)btn='<button disabled>Ordered ✓</button>';
@@ -2521,7 +2532,7 @@ function openRelicMerchant(re){
       <div class="item-icon">${def.icon}</div><span class="iname">${def.name}</span>
       <div class="istats">${def.desc}</div>${btn}</div>`;
   };
-  const offer=G._relicOffer.map(card).join('');
+  const offer=[...G._relicOffer].sort((a,b)=>RELIC_PRICES[a]-RELIC_PRICES[b]).map(card).join('');
   const owned=G.inventory.relics.map(card).join('')||'<span class="muted">none owned</span>';
   const body=`<div class="muted center-text">💰 ${G.gold}g — equip up to 2 relics (${G.relics.length}/2)</div>
     <h3 class="gold-text">For Sale</h3><div class="shop-grid">${offer}</div>
