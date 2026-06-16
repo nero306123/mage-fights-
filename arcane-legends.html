@@ -215,7 +215,10 @@ h1,h2,h3{font-family:'MedievalSharp',cursive;letter-spacing:1px;}
   width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;
   background:rgba(12,8,22,.55);border:1px solid rgba(160,120,220,.5);color:#e7d8ff;opacity:.5;}
 #btnFs:active{opacity:1;}
-@media (display-mode:standalone){#btnFs{display:none;}}
+#btnSound{position:fixed;z-index:9998;bottom:max(8px,env(safe-area-inset-bottom));left:calc(max(8px,env(safe-area-inset-left)) + 42px);
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:16px;
+  background:rgba(12,8,22,.55);border:1px solid rgba(160,120,220,.5);color:#e7d8ff;opacity:.5;cursor:pointer;}
+#btnSound:active{opacity:1;}
 .toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);z-index:80;background:rgba(20,12,34,.95);
   border:1.5px solid var(--gold);border-radius:10px;padding:10px 18px;font-size:13px;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:90vw;}
 .toast.on{opacity:1;}
@@ -345,9 +348,24 @@ h1,h2,h3{font-family:'MedievalSharp',cursive;letter-spacing:1px;}
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn" id="modeArena">🛡️ ARENA <span style="font-size:10px;opacity:.8">— 12 walk, rosnące nagrody</span></button>
       <button class="btn" id="modeTour">🏆 TURNIEJ <span style="font-size:10px;opacity:.8">— drabinka 8 graczy</span></button>
+      <button class="btn" id="modeSurvival">♾️ WYZWANIE <span style="font-size:10px;opacity:.8" id="survBest">— fale bez końca</span></button>
       <button class="btn ghost" id="modeQuick">⚡ SZYBKA WALKA <span style="font-size:10px;opacity:.8">— jeden pojedynek</span></button>
     </div>
     <div class="muted" style="margin-top:10px;">Walczysz aktywną kartą. Zmień ją w Kolekcji.<br>💡 Podwójne dotknięcie ◀▶ = unik (dash). Tarcza w ostatniej chwili = ★ PARRY ★!</div>
+  </div></div>
+
+  <div class="modal" id="modalTut"><div class="modal-box" style="--rc:var(--gold);">
+    <h2 class="sec-title">⚔️ Witaj w Arcane Legends!</h2>
+    <div style="font-size:13px;line-height:1.9;color:#d8c8f4;">
+      <div>👆 <b>Dotknij areny</b> = szybki atak (za darmo)</div>
+      <div>◀ ▶ <b>Ruch</b> — a <b>podwójne dotknięcie</b> = unik (dash, daje nietykalność!)</div>
+      <div>🪄 <b>Przyciski zaklęć</b> = mocne ataki (mana + cooldown)</div>
+      <div>🛡️ <b>Tarcza</b> = trzymaj, blokujesz 100% obrażeń. Uniesiona <b>w ostatniej chwili</b> = ★ PARRY ★ (odbija atak!)</div>
+      <div>⚡ <b>ULT</b> = gdy złoty pasek pełny — niszczycielski atak</div>
+      <div>🔥 <b>Combo</b> = trafiaj bez przerwy, by zwiększyć obrażenia</div>
+      <div>🃏 Zdobywaj <b>karty</b> w Przyzwaniu, ulepszaj je duplikatami i kolekcjonuj 100 postaci!</div>
+    </div>
+    <button class="btn" id="tutGo" style="width:100%;margin-top:14px;">ZACZYNAJ! ⚔️</button>
   </div></div>
 
   <div class="modal" id="modalCard"><div class="modal-box" id="cardModalBox">
@@ -357,6 +375,7 @@ h1,h2,h3{font-family:'MedievalSharp',cursive;letter-spacing:1px;}
 
   <div id="pullOverlay"></div>
   <button id="btnFs" title="Pełny ekran"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M15 4h5v5"/><path d="M20 15v5h-5"/><path d="M9 20H4v-5"/></svg></button>
+  <button id="btnSound" title="Dźwięk">🔊</button>
   <div class="toast" id="toast"></div>
 </div>
 
@@ -368,6 +387,53 @@ const rand=(a,b)=>a+Math.random()*(b-a);
 const lerp=(a,b,t)=>a+(b-a)*t;
 const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
 const fmt=n=>n>=1000?(n/1000).toFixed(n>=10000?0:1)+'k':''+n;
+
+/* =====================================================================
+   AUDIO — tiny WebAudio synth (no files)
+===================================================================== */
+const Audio2={ctx:null,on:true,master:null};
+function audioInit(){
+  if(Audio2.ctx)return;
+  try{ Audio2.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    Audio2.master=Audio2.ctx.createGain(); Audio2.master.gain.value=0.35; Audio2.master.connect(Audio2.ctx.destination);
+  }catch(e){ Audio2.ctx=null; }
+}
+function audioResume(){ if(Audio2.ctx&&Audio2.ctx.state==='suspended')Audio2.ctx.resume(); }
+function blip(freq,dur,type,vol,slideTo){
+  if(!Audio2.on||!Audio2.ctx)return;
+  const c=Audio2.ctx,t=c.currentTime;
+  const o=c.createOscillator(),g=c.createGain();
+  o.type=type||'square'; o.frequency.setValueAtTime(freq,t);
+  if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo),t+dur);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol||0.3,t+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(Audio2.master); o.start(t); o.stop(t+dur+0.02);
+}
+function noise(dur,vol){
+  if(!Audio2.on||!Audio2.ctx)return;
+  const c=Audio2.ctx,t=c.currentTime,n=Math.floor(c.sampleRate*dur);
+  const buf=c.createBuffer(1,n,c.sampleRate),data=buf.getChannelData(0);
+  for(let i=0;i<n;i++)data[i]=(Math.random()*2-1)*(1-i/n);
+  const src=c.createBufferSource(); src.buffer=buf;
+  const g=c.createGain(); g.gain.value=vol||0.25; src.connect(g); g.connect(Audio2.master); src.start(t);
+}
+function sfx(type){
+  if(!Audio2.on||!Audio2.ctx)return;
+  switch(type){
+    case 'hit': blip(rand(180,240),0.09,'square',0.22,90); noise(0.06,0.12); break;
+    case 'cast': blip(rand(420,520),0.14,'triangle',0.2,720); break;
+    case 'basic': blip(660,0.07,'square',0.14,880); break;
+    case 'parry': blip(900,0.07,'sawtooth',0.28,1400); blip(1300,0.12,'triangle',0.22,1900); break;
+    case 'block': blip(300,0.08,'square',0.16,200); break;
+    case 'dash': blip(520,0.12,'sine',0.18,200); break;
+    case 'ult': blip(160,0.4,'sawtooth',0.3,520); noise(0.3,0.16); break;
+    case 'ko': blip(200,0.45,'square',0.32,40); noise(0.35,0.2); break;
+    case 'win': [523,659,784,1047].forEach((f,i)=>setTimeout(()=>blip(f,0.18,'triangle',0.26),i*110)); break;
+    case 'lose': [400,330,260,180].forEach((f,i)=>setTimeout(()=>blip(f,0.22,'sawtooth',0.22),i*130)); break;
+    case 'ui': blip(720,0.05,'square',0.12,820); break;
+    case 'reward': [784,988,1319].forEach((f,i)=>setTimeout(()=>blip(f,0.14,'triangle',0.24),i*90)); break;
+  }
+}
 
 /* =====================================================================
    COLORS / RARITY
@@ -558,7 +624,7 @@ function defaultProfile(){
   return {coins:1500,crystals:60,diamonds:10,essence:0,cards,
     selected:starters[0]?starters[0].id:CARDS[0].id,
     lastDaily:0, arenaBest:0, tourWins:0, totalWins:0,
-    diff:'normal', accXp:0, accLvl:1, firstWinDay:0, seenTut:false};
+    diff:'normal', accXp:0, accLvl:1, firstWinDay:0, seenTut:false, sound:true, survivalBest:0};
 }
 function loadProfile(){
   try{ const s=localStorage.getItem(SAVE_KEY); if(s){P=JSON.parse(s); migrateProfile(); return;} }catch(e){}
@@ -923,6 +989,7 @@ const DIFFS={
   hard:  {name:'Trudny', hpMul:1.12, dmgMul:1.08, aiSkill:0.95, rewardMul:1.35},
 };
 function renderDiffPick(){
+  const sb=$('survBest'); if(sb)sb.textContent=(P.survivalBest>0)?('— rekord: '+P.survivalBest+' fal'):'— fale bez końca';
   const el=$('diffPick'); if(!el)return;
   el.innerHTML=['easy','normal','hard'].map(k=>{
     const d=DIFFS[k];const on=P.diff===k;
@@ -975,7 +1042,8 @@ function startRound(first){
   for(const k in p.cds)p.cds[k]=0; for(const k in e.cds)e.cds[k]=0;
   G.projectiles.length=0;G.particles.length=0;G.wisps.length=0;G.beams.length=0;G.rains.length=0;
   placeFighters(); G.state='intro';G.stateT=0;
-  announce('RUNDA '+G.round, matchCtx.label||'', 1.3);
+  if(matchCtx.survival)announce(matchCtx.label||'FALA','Przetrwaj!',1.3);
+  else announce('RUNDA '+G.round, matchCtx.label||'', 1.3);
   setTimeout(()=>{ if(G&&G.state==='intro'){G.state='fight';announce('WALCZ!','',0.8);} },1350);
 }
 function announce(big,small,dur){ $('annBig').textContent=big;$('annSmall').textContent=small||'';
@@ -998,9 +1066,9 @@ function bindHold(el,on,off){const s=e=>{e.preventDefault();on();};const en=e=>{
   el.addEventListener('mousedown',s);window.addEventListener('mouseup',en);}
 
 function canCast(m,sid){const sp=SPELLS[sid];return G.state==='fight'&&!m.statuses.freeze&&!m.statuses.stun&&(m.cds[sid]||0)<=0&&m.mana>=sp.mana;}
-function castSpell(m,sid){if(!canCast(m,sid))return;const sp=SPELLS[sid];m.mana-=sp.mana;m.cds[sid]=sp.cd;m.castAnim=0.32;
+function castSpell(m,sid){if(!canCast(m,sid))return;const sp=SPELLS[sid];m.mana-=sp.mana;m.cds[sid]=sp.cd;m.castAnim=0.32;sfx('cast');
   const tgt=(m===G.player)?G.enemy:G.player;fireSpell(m,tgt,sp,sid);}
-function castUlt(m){if(G.state!=='fight'||m.special<m.specMax||m.statuses.freeze||m.statuses.stun)return;m.special=0;m.castAnim=0.5;
+function castUlt(m){if(G.state!=='fight'||m.special<m.specMax||m.statuses.freeze||m.statuses.stun)return;m.special=0;m.castAnim=0.5;sfx('ult');
   const tgt=(m===G.player)?G.enemy:G.player;fireUlt(m,tgt);}
 function handX(m){return m.x+m.facing*16;}function handY(m){return m.y-58;}
 
@@ -1043,12 +1111,12 @@ function dealDamage(target,amount,attacker,sp){
     const perfect=(G.t-target.shieldRaised)<0.28;
     if(perfect){
       floatTxt(target.x,target.y-62,'★ PARNY ★','#ffd56b'); shieldFlash(target); parryFlash(target);
-      gainSpecial(target,22); shakeIt(8);
+      sfx('parry'); gainSpecial(target,22); shakeIt(8);
       // reflect a little damage back if attacker exists
       if(attacker&&attacker.hp>0&&Math.random()<0.6){ const rfl=Math.max(1,Math.round(amount*0.25)); attacker.hp=clamp(attacker.hp-rfl,0,attacker.maxhp); floatTxt(attacker.x,attacker.y-56,''+rfl,'#ffd56b'); if(attacker.hp<=0)onKO(attacker); }
       return 0;
     }
-    floatTxt(target.x,target.y-60,'BLOK','#8fd6ff'); shieldFlash(target); gainSpecial(target,6); return 0;
+    floatTxt(target.x,target.y-60,'BLOK','#8fd6ff'); shieldFlash(target); sfx('block'); gainSpecial(target,6); return 0;
   }
   let d=amount*(attacker&&attacker.power?attacker.power:1);
   if(attacker&&attacker.statuses&&attacker.statuses.weaken)d*=0.6;
@@ -1060,7 +1128,7 @@ function dealDamage(target,amount,attacker,sp){
   // combo tracking
   if(attacker){ attacker.combo=(attacker.combo||0)+1; attacker.comboT=1.6; if(attacker.combo>=3)bumpCombo(attacker); }
   floatTxt(target.x,target.y-56,''+d,(attacker&&attacker.combo>=5)?'#ffd56b':'#fff');impact(target.x,target.y-34,sp&&sp.el?COL[sp.el]:'#fff',1);hitParticles(target.x,target.y-34,'#fff');
-  if(amount>=24)G.hitStop=Math.max(G.hitStop,0.045);
+  sfx('hit'); if(amount>=24)G.hitStop=Math.max(G.hitStop,0.045);
   if(sp&&sp.status)applyStatus(target,sp.status,sp);
   if(sp&&sp.leech&&attacker){const h=Math.round(d*sp.leech);attacker.hp=clamp(attacker.hp+h,0,attacker.maxhp);floatTxt(attacker.x,attacker.y-66,'+'+h,'#7af0a0');}
   gainSpecial(attacker,d*0.5);gainSpecial(target,d*0.8);
@@ -1085,9 +1153,10 @@ function onKO(loser){
   if(G.state==='over')return;
   const winner=(loser===G.player)?G.enemy:G.player;
   if(loser===G.player)G.roundWins.en++;else G.roundWins.pl++;
-  G.state='over';G.stateT=0;loser.hurtAnim=0.6;
-  announce('K.O.',(winner===G.player?'Wygrywasz rundę':'Przegrywasz rundę'),1.6);shakeIt(16);
+  G.state='over';G.stateT=0;loser.hurtAnim=0.6;G.hitStop=Math.max(G.hitStop,0.12);
+  announce('K.O.',(winner===G.player?'Wygrywasz rundę':'Przegrywasz rundę'),1.6);shakeIt(16);sfx('ko');
   setTimeout(()=>{if(!G)return;
+    if(matchCtx.survival){ finishMatch(loser!==G.player); return; }
     if(G.roundWins.pl>=2||G.roundWins.en>=2){finishMatch(G.roundWins.pl>=2);}
     else{G.round++;startRound(false);}
   },1900);
@@ -1102,7 +1171,7 @@ function finishMatch(playerWon){
 function basicAttack(m){
   if(G.state!=='fight'||m.basicCd>0||m.statuses.freeze||m.statuses.stun)return;
   m.basicCd=0.4;m.castAnim=0.25;const tgt=(m===G.player)?G.enemy:G.player;const hx=handX(m),hy=handY(m);
-  castBurst(hx,hy,'#dcd2ff');
+  if(m===G.player)sfx('basic'); castBurst(hx,hy,'#dcd2ff');
   G.projectiles.push({x:hx,y:hy,vx:m.facing*640,vy:0,r:6,col:'#e7ddff',el:'arcane',owner:m,tgt,dmg:7,basic:true,life:1.1,trail:[]});
 }
 function moveTap(dir){
@@ -1153,6 +1222,10 @@ function aiUpdate(e,dt){
     if(pr.owner===p && Math.sign(pr.vx)===Math.sign(e.x-p.x)){
       const d=Math.abs(pr.x-e.x); if(d<incDist){incDist=d;incoming=pr;}
     }
+  }
+  // skilled AIs sometimes DASH to dodge a close incoming shot
+  if(incoming && incDist<70 && sk>0.7 && e.dashCd<=0 && Math.random()<0.5*sk){
+    tryDash(e, (p.x>e.x)?-1:1); return;
   }
   const reactDist = 60+sk*150;            // skilled AIs read further ahead
   const blockChance = (0.18+sk*0.55);     // skilled AIs block more
@@ -1245,7 +1318,7 @@ function updateUnit(m,dt){
 }
 function tryDash(m,dir){
   if(G.state!=='fight'||m.dashCd>0||m.statuses.freeze||m.statuses.stun||m.statuses.root)return;
-  m.dashDir=dir; m.iframe=0.3; m.dashCd=1.1; m.shieldHeld=false;
+  m.dashDir=dir; m.iframe=0.3; m.dashCd=1.1; m.shieldHeld=false; if(m===G.player)sfx('dash');
   for(let i=0;i<8;i++)G.particles.push({x:m.x,y:m.y-40,vx:-dir*rand(40,120),vy:rand(-30,30),r:rand(2,4),col:'#cfe0ff',life:0.3,maxlife:0.3});
   floatTxt(m.x,m.y-70,'⟫⟫','#a0ffd0');
 }
@@ -1292,7 +1365,12 @@ function drawArena(){
   let gr=ctx.createLinearGradient(0,gy,0,H);gr.addColorStop(0,'#3a2a18');gr.addColorStop(1,'#1a1208');ctx.fillStyle=gr;ctx.fillRect(0,gy,W,H-gy);
   ctx.strokeStyle='rgba(255,200,120,0.12)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke();}
 function drawShadow(m){const gy=m.baseY;ctx.save();ctx.globalAlpha=0.34;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(m.x,gy+4,34,9,0,0,7);ctx.fill();ctx.restore();}
-function drawCharacter(m){m.cls.type==='fighter'?drawFighter(m):drawMage(m);}
+function drawCharacter(m){
+  const ghost=m.iframe>0;
+  if(ghost){ctx.save();ctx.globalAlpha=0.4;}
+  m.cls.type==='fighter'?drawFighter(m):drawMage(m);
+  if(ghost)ctx.restore();
+}
 function drawMage(m){
   const c=m.cls,col=c.c,x=m.x,y=m.y,hurt=m.hurtAnim>0;const bob=Math.sin(m.bob)*2+(m.walkAnim>0.1?Math.sin(m.walkAnim)*2:0);
   ctx.save();ctx.translate(x,y+bob);ctx.scale(m.facing,1);if(hurt)ctx.translate(rand(-2,2),0);
@@ -1449,6 +1527,46 @@ function firstWinBonus(){
 }
 
 /* =====================================================================
+   MODE: SURVIVAL (endless waves, HP carries over)
+===================================================================== */
+let survival=null;
+function startSurvival(){ survival={wave:0,hpFrac:1,coins:0,crystals:0,dia:0}; closeModal('modalBattle'); nextSurvivalWave(); }
+function nextSurvivalWave(){
+  const w=survival.wave;
+  const t=Math.min(w/14,1);
+  const bias=[Math.max(0,0.55-t*0.55),Math.max(0,0.4-t*0.15),0.1+t*0.3,t*0.3,t*0.12];
+  const norm=bias.reduce((a,b)=>a+b,0);for(let k=0;k<bias.length;k++)bias[k]/=norm;
+  const card=randomEnemyCard(bias);
+  const stageMul=0.45+w*0.13;   // gets harder each wave (still fair-anchored to player)
+  const rm=(DIFFS[P.diff]||DIFFS.normal).rewardMul;
+  beginMatch({mode:'survival',survival:true,label:'FALA '+(w+1),
+    makeEnemy:()=>buildFairEnemy(card,stageMul),
+    onWin:()=>{
+      const coins=Math.round((60+w*30)*rm),crystals=Math.round((3+Math.floor(w/2))*rm),dia=((w+1)%5===0)?3:0;
+      survival.coins+=coins;survival.crystals+=crystals;survival.dia+=dia;
+      P.coins+=coins;P.crystals+=crystals;P.diamonds+=dia;P.totalWins++;addAccXp(25+w*6);
+      if(w===0)firstWinBonus();
+      // carry HP forward with a small heal
+      survival.hpFrac=clamp((G.player.hp/G.player.maxhp)+0.22,0.12,1);
+      survival.wave++; if(survival.wave>(P.survivalBest||0))P.survivalBest=survival.wave;
+      saveProfile();
+      showResult(true,'FALA '+(w+1)+' POKONANA','Wchodzisz do fali '+(survival.wave+1)+'. Życie przeniesione: '+Math.round(survival.hpFrac*100)+'%',
+        [['🪙',coins],['💎',crystals]].concat(dia?[['🔷',dia]]:[]),()=>nextSurvivalWave(),'NASTĘPNA FALA ⚔',()=>endSurvival());
+    },
+    onLose:()=>endSurvival(),
+  });
+  // apply carried HP after setup
+  if(G&&G.player)G.player.hp=Math.max(1,Math.round(G.player.maxhp*survival.hpFrac));
+}
+function endSurvival(){
+  saveProfile();
+  showResult(survival.wave>0,'WYZWANIE ZAKOŃCZONE',
+    'Przetrwałeś '+survival.wave+' fal! Rekord: '+(P.survivalBest||0)+'.',
+    [['🪙',survival.coins],['💎',survival.crystals]].concat(survival.dia?[['🔷',survival.dia]]:[]),
+    ()=>startSurvival(),'JESZCZE RAZ',()=>show('home'));
+}
+
+/* =====================================================================
    MODES: TOURNAMENT (8-card single elimination)
 ===================================================================== */
 let tour=null;
@@ -1555,9 +1673,11 @@ function advanceTournament(playerWon,opp){
 ===================================================================== */
 function showResult(won,title,sub,rewards,nextFn,nextLabel,menuFn){
   show('result');
+  sfx(won?'win':'lose');
   $('resTitle').textContent=title;$('resTitle').style.color=won?'#7af0a0':'var(--en)';
   $('resSub').textContent=sub;
   $('resRewards').innerHTML=(rewards||[]).map(r=>`<div class="reward"><span class="ric">${r[0]}</span>+${fmt(r[1])}</div>`).join('');
+  if(won&&rewards&&rewards.length)setTimeout(()=>sfx('reward'),700);
   $('btnResNext').textContent=nextLabel||'DALEJ';$('btnResNext').onclick=()=>{ if(nextFn)nextFn(); };
   $('btnResMenu').onclick=()=>{ if(menuFn)menuFn();else show('home'); };
   $('btnResMenu').classList.toggle('hidden', !!(menuFn===undefined&&nextLabel==='MENU'));
@@ -1589,12 +1709,20 @@ function init(){
   // battle modal
   $('modeArena').onclick=startArena;
   $('modeQuick').onclick=startQuick;
+  $('modeSurvival').onclick=startSurvival;
   $('modeTour').onclick=()=>{closeModal('modalBattle');openTournament();};
   // modal close
   document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
   document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m.id);}));
   const af=()=>{if(!isFs())try{toggleFs();}catch(e){}};document.addEventListener('pointerdown',af,{once:true});
+  // audio: init+resume on first interaction
+  const ai=()=>{ audioInit(); audioResume(); }; document.addEventListener('pointerdown',ai); document.addEventListener('keydown',ai);
+  Audio2.on = (P.sound!==false);
+  $('btnSound').textContent=Audio2.on?'🔊':'🔇';
+  $('btnSound').onclick=()=>{ Audio2.on=!Audio2.on; P.sound=Audio2.on; saveProfile(); $('btnSound').textContent=Audio2.on?'🔊':'🔇'; if(Audio2.on){audioInit();audioResume();sfx('ui');} };
+  $('tutGo').onclick=()=>{ P.seenTut=true; saveProfile(); closeModal('modalTut'); sfx('ui'); };
   show('home');requestAnimationFrame(loop);
+  if(!P.seenTut)setTimeout(()=>openModal('modalTut'),500);
 }
 window.addEventListener('DOMContentLoaded',init);
 if(document.readyState!=='loading')init();
