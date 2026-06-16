@@ -486,12 +486,12 @@ const SPELLS={
   time_warp:{name:'Spowolnienie',icon:'🕰️',cd:4.5,mana:24,dmg:14,kind:'nova',el:'time',status:'slow'},
   rewind:{name:'Cofnięcie',icon:'⏪',cd:6.5,mana:28,dmg:0,heal:40,kind:'self',el:'time'},
   // warrior
-  sword_slash:{name:'Cięcie',icon:'⚔️',cd:0.7,mana:8,dmg:22,kind:'bolt',el:'physical',speed:700},
+  sword_slash:{name:'Cięcie',icon:'⚔️',cd:0.7,mana:8,dmg:24,kind:'melee',el:'physical',knock:480},
   battle_cry:{name:'Bojowy Okrzyk',icon:'📢',cd:5.0,mana:20,dmg:10,kind:'nova',el:'physical',status:'weaken'},
   shield_bash:{name:'Uderzenie Tarczą',icon:'🛡️',cd:4.5,mana:18,dmg:14,kind:'push',el:'physical',status:'stun'},
   // rogue
   dagger_throw:{name:'Rzut Sztyletem',icon:'🗡️',cd:0.55,mana:8,dmg:16,kind:'bolt',el:'shadow',speed:760},
-  backstab:{name:'Cios z Zaskoczenia',icon:'🎯',cd:4.0,mana:24,dmg:40,kind:'bolt',el:'shadow',speed:600},
+  backstab:{name:'Cios z Zaskoczenia',icon:'🎯',cd:4.0,mana:24,dmg:42,kind:'melee',el:'shadow',big:true,knock:520},
   smoke_bomb:{name:'Bomba Dymna',icon:'💨',cd:5.5,mana:20,dmg:0,kind:'nova',el:'shadow',status:'slow'},
   // paladin
   holy_bolt:{name:'Święty Pocisk',icon:'✝️',cd:0.9,mana:12,dmg:18,kind:'beam',el:'holy'},
@@ -508,9 +508,9 @@ const SPELLS={
   // monk
   chi_blast:{name:'Impuls Chi',icon:'👊',cd:0.7,mana:10,dmg:15,kind:'beam',el:'arcane'},
   spinning_kick:{name:'Wirujący Kopniak',icon:'🦵',cd:3.5,mana:18,dmg:22,kind:'push',el:'physical'},
-  iron_fist:{name:'Żelazna Pięść',icon:'✊',cd:5.0,mana:24,dmg:34,kind:'bolt',el:'physical',speed:680,status:'stun'},
+  iron_fist:{name:'Żelazna Pięść',icon:'✊',cd:5.0,mana:24,dmg:36,kind:'melee',el:'physical',big:true,status:'stun',knock:560},
   // knight
-  lance_thrust:{name:'Pchnięcie Lancą',icon:'🔱',cd:0.7,mana:9,dmg:22,kind:'bolt',el:'physical',speed:680},
+  lance_thrust:{name:'Pchnięcie Lancą',icon:'🔱',cd:0.7,mana:9,dmg:24,kind:'melee',el:'physical',big:true,knock:440},
   charge:{name:'Szarża',icon:'🐎',cd:4.0,mana:20,dmg:20,kind:'push',el:'physical',status:'stun'},
   shield_wall:{name:'Mur Tarcz',icon:'🛡️',cd:6.0,mana:24,dmg:0,heal:30,kind:'self',el:'holy'},
   // assassin
@@ -984,9 +984,9 @@ function makeUnit(card,level,isPlayer,mods){
 }
 
 const DIFFS={
-  easy:  {name:'Łatwy',  hpMul:0.78, dmgMul:0.68, aiSkill:0.5,  rewardMul:0.8},
-  normal:{name:'Normalny',hpMul:1.0, dmgMul:0.9,  aiSkill:0.72, rewardMul:1.0},
-  hard:  {name:'Trudny', hpMul:1.12, dmgMul:1.08, aiSkill:0.95, rewardMul:1.35},
+  easy:  {name:'Łatwy',  hpMul:0.6,  dmgMul:0.48, aiSkill:0.3,  rewardMul:0.8},
+  normal:{name:'Normalny',hpMul:0.82,dmgMul:0.68, aiSkill:0.52, rewardMul:1.0},
+  hard:  {name:'Trudny', hpMul:1.05, dmgMul:0.95, aiSkill:0.85, rewardMul:1.4},
 };
 function renderDiffPick(){
   const sb=$('survBest'); if(sb)sb.textContent=(P.survivalBest>0)?('— rekord: '+P.survivalBest+' fal'):'— fale bez końca';
@@ -1003,7 +1003,7 @@ function beginMatch(ctx){
   G={
     player:makeUnit(selCard,selOwn.level,true,{}),
     enemy:null,
-    projectiles:[],particles:[],floaters:[],wisps:[],beams:[],rains:[],
+    projectiles:[],particles:[],floaters:[],wisps:[],beams:[],rains:[],slashes:[],
     round:1,roundWins:{pl:0,en:0},state:'intro',stateT:0,over:false,t:0,shake:0,
     diff:DIFFS[P.diff]||DIFFS.normal, hitStop:0,
   };
@@ -1022,10 +1022,10 @@ function buildFairEnemy(card,stageMul){
   const maxL=RARITY[card.rarity].maxLvl;
   for(let L=1;L<=maxL;L++){ const diff=Math.abs(cardPower(card,L)-pScore); if(diff<bestDiff){bestDiff=diff;best=L;} }
   lvl=best;
-  // effective multipliers: difficulty knobs * gentle stage ramp
-  const hpMul=d.hpMul*(0.92+0.16*stageMul);
-  const dmgMul=d.dmgMul*(0.95+0.12*stageMul);
-  const aiSkill=clamp(d.aiSkill*(0.9+0.18*stageMul),0.4,1.0);
+  // effective multipliers: difficulty knobs * gentle stage ramp (kept modest so fights stay winnable)
+  const hpMul=d.hpMul*(0.94+0.09*stageMul);
+  const dmgMul=d.dmgMul*(0.96+0.07*stageMul);
+  const aiSkill=clamp(d.aiSkill*(0.92+0.12*stageMul),0.25,1.0);
   const e=makeUnit(card,lvl,false,{hpMul,dmgMul,aiSkill});
   e.stageMul=stageMul;
   return e;
@@ -1038,9 +1038,9 @@ function startRound(first){
   const p=G.player,e=G.enemy;
   p.hp=p.maxhp;e.hp=e.maxhp;p.mana=p.maxmana;e.mana=e.maxmana;
   p.statuses={};e.statuses={};p.shield=e.shield=false;p.special=Math.min(p.special,30);e.special=Math.min(e.special,30);
-  p.combo=e.combo=0;p.comboT=e.comboT=0;p.iframe=e.iframe=0;p.dashCd=e.dashCd=0;p.aiWindup=e.aiWindup=0;p.shieldHeld=e.shieldHeld=false;
+  p.combo=e.combo=0;p.comboT=e.comboT=0;p.iframe=e.iframe=0;p.dashCd=e.dashCd=0;p.aiWindup=e.aiWindup=0;p.shieldHeld=e.shieldHeld=false;p.lunge=e.lunge=null;
   for(const k in p.cds)p.cds[k]=0; for(const k in e.cds)e.cds[k]=0;
-  G.projectiles.length=0;G.particles.length=0;G.wisps.length=0;G.beams.length=0;G.rains.length=0;
+  G.projectiles.length=0;G.particles.length=0;G.wisps.length=0;G.beams.length=0;G.rains.length=0;if(G.slashes)G.slashes.length=0;
   placeFighters(); G.state='intro';G.stateT=0;
   if(matchCtx.survival)announce(matchCtx.label||'FALA','Przetrwaj!',1.3);
   else announce('RUNDA '+G.round, matchCtx.label||'', 1.3);
@@ -1080,8 +1080,24 @@ function fireSpell(m,tgt,sp,sid){
   else if(sp.kind==='rain'){G.rains.push({x:tgt.x+rand(-30,30),y:-40,tx:tgt.x,vy:760,col,el:sp.el,owner:m,tgt,dmg:sp.dmg,status:sp.status,r:16});}
   else if(sp.kind==='push'){G.particles.push({ring:true,x:m.x+m.facing*40,y:m.y-40,r:10,maxr:90,life:0.4,maxlife:0.4,col});dealDamage(tgt,sp.dmg,m,sp);tgt.vx+=m.facing*620;tgt.hurtAnim=0.3;impact(tgt.x,tgt.y-34,col,1.1);}
   else if(sp.kind==='root'){G.projectiles.push({x:hx,y:hy,vx:m.facing*460,vy:0,r:8,col,el:sp.el,owner:m,tgt,dmg:sp.dmg,status:'root',sid,life:3,trail:[]});}
+  else if(sp.kind==='melee'){ meleeAttack(m,sp.dmg,{el:sp.el,status:sp.status,leech:sp.leech},sp.big,sp.knock); }
   else if(sp.kind==='self'){if(sp.heal){const h=Math.round(sp.heal*(m.power||1));m.hp=clamp(m.hp+h,0,m.maxhp);floatTxt(m.x,m.y-70,'+'+h,'#7af0a0');healSparkle(m,col);}}
   else if(sp.kind==='summon'){spawnWisp(m,tgt);}
+}
+// Melee lunge: dash into the enemy and strike with an arc + knockback.
+function meleeAttack(m,dmg,opt,big,knock){
+  if(G.state!=='fight'||m.statuses.freeze||m.statuses.stun)return;
+  const tgt=(m===G.player)?G.enemy:G.player;
+  m.facing=(tgt.x>=m.x)?1:-1; m.castAnim=0.3;
+  m.lunge={t:big?0.5:0.42, dir:m.facing, dmg, opt:opt||{el:'physical'}, hit:false,
+    reach:W*0.22, spd:Math.max(m.speed,165)*6, knock:knock||(big?560:440)};
+}
+function meleeSlash(m,el){
+  const col=el?COL[el]:'#fff'; const hx=m.x+m.facing*38, hy=m.y-44;
+  if(!G.slashes)G.slashes=[];
+  G.slashes.push({x:hx,y:hy,facing:m.facing,life:0.22,maxlife:0.22,col});
+  for(let i=0;i<10;i++){const a=rand(-0.7,0.7);const r=44;
+    G.particles.push({x:hx+m.facing*Math.cos(a)*r,y:hy+Math.sin(a)*r,vx:m.facing*rand(60,180),vy:rand(-80,80),r:rand(2,4),col:'#fff',life:0.28,maxlife:0.28});}
 }
 function fireUlt(m,tgt){
   const c=m.cls,col=COL[c.el];announce(SPELLS[c.ult].name.toUpperCase(),'',1.1);shakeIt(12);
@@ -1169,10 +1185,18 @@ function finishMatch(playerWon){
 
 /* ---- input ---- */
 function basicAttack(m){
-  if(G.state!=='fight'||m.basicCd>0||m.statuses.freeze||m.statuses.stun)return;
-  m.basicCd=0.4;m.castAnim=0.25;const tgt=(m===G.player)?G.enemy:G.player;const hx=handX(m),hy=handY(m);
-  if(m===G.player)sfx('basic'); castBurst(hx,hy,'#dcd2ff');
-  G.projectiles.push({x:hx,y:hy,vx:m.facing*640,vy:0,r:6,col:'#e7ddff',el:'arcane',owner:m,tgt,dmg:7,basic:true,life:1.1,trail:[]});
+  if(G.state!=='fight'||m.basicCd>0||m.statuses.freeze||m.statuses.stun||m.lunge)return;
+  const tgt=(m===G.player)?G.enemy:G.player;
+  if(m.cls.type==='fighter'){
+    // MELEE: lunge in and swing
+    m.basicCd=0.5; if(m===G.player)sfx('basic');
+    meleeAttack(m,14,{el:m.cls.el||'physical'},false,360);
+  } else {
+    // RANGED: staff/element bolt
+    m.basicCd=0.4;m.castAnim=0.25;const hx=handX(m),hy=handY(m);
+    if(m===G.player)sfx('basic'); castBurst(hx,hy,COL[m.cls.el]||'#dcd2ff');
+    G.projectiles.push({x:hx,y:hy,vx:m.facing*640,vy:0,r:6,col:COL[m.cls.el]||'#e7ddff',el:m.cls.el||'arcane',owner:m,tgt,dmg:10,basic:true,life:1.1,trail:[]});
+  }
 }
 function moveTap(dir){
   if(!G)return; const m=G.player;
@@ -1206,7 +1230,9 @@ function aiUpdate(e,dt){
   if(e.statuses.freeze||e.statuses.stun||e.statuses.root){e.moveDir=0;e.shieldHeld=false;e.aiWindup=0;return;}
   e.aiT-=dt;e.aiBlockT-=dt;
   const dist=Math.abs(e.x-p.x);
-  const idealRange=W*0.42;
+  // melee fighters press in close; ranged classes keep distance
+  const meleeClass=e.cls.type==='fighter';
+  const idealRange=meleeClass?W*0.16:W*0.42;
 
   // --- ULTIMATE TELEGRAPH: windup before firing so the player can react ---
   if(e.aiWindup>0){
@@ -1227,8 +1253,8 @@ function aiUpdate(e,dt){
   if(incoming && incDist<70 && sk>0.7 && e.dashCd<=0 && Math.random()<0.5*sk){
     tryDash(e, (p.x>e.x)?-1:1); return;
   }
-  const reactDist = 60+sk*150;            // skilled AIs read further ahead
-  const blockChance = (0.18+sk*0.55);     // skilled AIs block more
+  const reactDist = 55+sk*140;            // skilled AIs read further ahead
+  const blockChance = (0.08+sk*0.42);     // skilled AIs block more; weaker ones rarely
   if(incoming && incDist<reactDist && e.aiBlockT<=0 && e.mana>14){
     if(Math.random()<blockChance){
       // reaction delay before the shield actually goes up (lower skill = slower)
@@ -1288,7 +1314,7 @@ function update(dt){
   G.t+=dt;if(G.shake>0)G.shake=Math.max(0,G.shake-dt*60);
   const p=G.player,e=G.enemy;aiUpdate(e,dt);updateUnit(p,dt);updateUnit(e,dt);
   p.facing=(e.x>=p.x)?1:-1;e.facing=(p.x>=e.x)?1:-1;
-  updateProjectiles(dt);updateRains(dt);updateWisps(dt);updateParticles(dt);updateFloaters(dt);updateBeams(dt);updateHUD();
+  updateProjectiles(dt);updateRains(dt);updateWisps(dt);updateParticles(dt);updateFloaters(dt);updateBeams(dt);updateSlashes(dt);updateHUD();
 }
 function updateUnit(m,dt){
   const shieldSlow=m.shield?0.5:1;
@@ -1307,12 +1333,31 @@ function updateUnit(m,dt){
   m.shield=m.shieldHeld&&m.mana>2&&!frozen&&m.iframe<=0;
   if(m.shield&&!wasShield)m.shieldRaised=G.t;   // rising edge for parry window
   if(m.shield){m.mana=clamp(m.mana-14*dt,0,m.maxmana);m.shieldT+=dt;}else{m.shieldT=0;m.mana=clamp(m.mana+(m===G.player?14:13)*dt,0,m.maxmana);}
+  const other=(m===G.player)?G.enemy:G.player;const minGap=W*0.12;
+  // ---- MELEE LUNGE overrides normal movement ----
+  if(m.lunge && !frozen){
+    const L=m.lunge; L.t-=dt;
+    L.dir=(other.x>=m.x)?1:-1; m.facing=L.dir;   // home toward the enemy
+    if(!L.hit){
+      m.vx=L.dir*L.spd;                            // fast gap-closing dash
+      if(Math.abs(m.x-other.x)<L.reach){
+        L.hit=true;
+        dealDamage(other,L.dmg,m,L.opt);
+        other.vx+=L.dir*L.knock; other.hurtAnim=0.34;
+        meleeSlash(m,L.opt&&L.opt.el); shakeIt(7); G.hitStop=Math.max(G.hitStop,0.06);
+      }
+    } else { m.vx*=Math.pow(0.001,dt); }          // brief follow-through then stop
+    m.x=clamp(m.x+m.vx*dt,W*0.10,W*0.90);
+    if(Math.abs(m.x-other.x)<minGap){const push=(minGap-Math.abs(m.x-other.x))/2;m.x+=(m.x<other.x?-1:1)*push;}
+    if(L.t<=0||(L.hit&&L.t<0.10))m.lunge=null;
+    m.walkAnim+=dt*16; m.bob+=dt*3;
+    return;
+  }
   let md=m.moveDir;if(frozen||m.statuses.root||G.state!=='fight'||m.shield)md=0;
   let sp=m.speed*(m.statuses.slow?0.5:1);
   if(m.iframe>0){ md=m.dashDir; sp=m.speed*3.4; }  // dashing
   m.vx+=(md*sp-m.vx)*Math.min(1,dt*(m.iframe>0?20:12));
   if(Math.abs(md)<0.01)m.vx*=Math.pow(0.001,dt);m.x+=m.vx*dt;m.x=clamp(m.x,W*0.10,W*0.90);
-  const other=(m===G.player)?G.enemy:G.player;const minGap=W*0.12;
   if(Math.abs(m.x-other.x)<minGap){const push=(minGap-Math.abs(m.x-other.x))/2;m.x+=(m.x<other.x?-1:1)*push;}
   if(Math.abs(md)>0.01)m.walkAnim+=dt*10;else m.walkAnim*=0.9;m.bob+=dt*3;
 }
@@ -1338,6 +1383,7 @@ function updateWisps(dt){for(let i=G.wisps.length-1;i>=0;i--){const w=G.wisps[i]
   if(w.fireT<=0&&tgt.hp>0&&G.state==='fight'){w.fireT=1.1;G.projectiles.push({x:w.x,y:w.y,vx:(tgt.x>w.x?1:-1)*460,vy:0,r:6,col:COL.death,el:'death',owner:w.owner,tgt,dmg:8,status:null,life:2,trail:[]});}
   if(w.life<=0){deathPop(w.x,w.y,COL.death);G.wisps.splice(i,1);}}}
 function updateBeams(dt){for(let i=G.beams.length-1;i>=0;i--){G.beams[i].life-=dt;if(G.beams[i].life<=0)G.beams.splice(i,1);}}
+function updateSlashes(dt){if(!G.slashes)return;for(let i=G.slashes.length-1;i>=0;i--){G.slashes[i].life-=dt;if(G.slashes[i].life<=0)G.slashes.splice(i,1);}}
 function updateParticles(dt){for(let i=G.particles.length-1;i>=0;i--){const p=G.particles[i];p.life-=dt;
   if(p.ring){p.r=lerp(p.r,p.maxr,dt*7);}else{p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.grav)p.vy+=p.grav*dt;}if(p.life<=0)G.particles.splice(i,1);}}
 function updateFloaters(dt){for(let i=G.floaters.length-1;i>=0;i--){const f=G.floaters[i];f.life-=dt;f.y-=28*dt;if(f.life<=0)G.floaters.splice(i,1);}}
@@ -1355,7 +1401,19 @@ function floatTxt(x,y,txt,col){G.floaters.push({x,y,txt,col,life:0.9});}
 /* ---- render ---- */
 function render(){ctx.clearRect(0,0,W,H);ctx.save();if(G.shake>0)ctx.translate(rand(-G.shake,G.shake),rand(-G.shake,G.shake));
   drawArena();drawShadow(G.player);drawShadow(G.enemy);drawWisps();drawCharacter(G.enemy);drawCharacter(G.player);
-  drawRains();drawProjectiles();drawBeams();drawParticles();drawFloaters();ctx.restore();}
+  drawRains();drawProjectiles();drawBeams();drawSlashes();drawParticles();drawFloaters();ctx.restore();}
+function drawSlashes(){
+  if(!G.slashes)return;
+  for(const s of G.slashes){
+    const a=clamp(s.life/s.maxlife,0,1);
+    ctx.save();ctx.translate(s.x,s.y);ctx.scale(s.facing,1);ctx.globalAlpha=a;
+    ctx.strokeStyle='#fff';ctx.lineWidth=6*a+2;ctx.lineCap='round';ctx.shadowColor=s.col;ctx.shadowBlur=16;
+    ctx.beginPath();ctx.arc(8,0,40,-1.0,1.0);ctx.stroke();
+    ctx.strokeStyle=s.col;ctx.lineWidth=3*a+1;ctx.beginPath();ctx.arc(8,0,40,-1.0,1.0);ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
 function drawArena(){
   const gy=H*0.82;let sky=ctx.createLinearGradient(0,0,0,gy);sky.addColorStop(0,'#1a0f33');sky.addColorStop(0.6,'#2a1340');sky.addColorStop(1,'#3a1a3e');
   ctx.fillStyle=sky;ctx.fillRect(0,0,W,gy);
