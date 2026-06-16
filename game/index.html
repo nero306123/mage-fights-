@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mage Arena RPG</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#111;
+    touch-action:none;user-select:none;-webkit-user-select:none}
+  canvas{display:block;width:100%;height:100%}
+
+  #hud{position:fixed;top:0;left:0;width:100%;height:100%;
+    pointer-events:none;z-index:10;font-family:'Segoe UI',sans-serif}
+
+  #crosshair{position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:24px;height:24px;opacity:.6}
+  #crosshair::before,#crosshair::after{
+    content:'';position:absolute;background:#ccc;border-radius:1px}
+  #crosshair::before{width:2px;height:24px;left:11px;top:0}
+  #crosshair::after{width:24px;height:2px;top:11px;left:0}
+
+  #topbar{position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);
+    border-radius:6px;padding:4px 16px;
+    color:#c8ccd4;font-size:13px;letter-spacing:.5px;
+    display:flex;gap:14px;align-items:center}
+  #compass{color:#e8c86a;font-weight:600;min-width:22px;text-align:center}
+
+  #bars{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+    display:flex;gap:12px;align-items:center}
+  .bar-wrap{width:140px;height:14px;background:rgba(0,0,0,.6);
+    border:1px solid rgba(255,255,255,.15);border-radius:7px;overflow:hidden;
+    position:relative}
+  .bar-fill{height:100%;border-radius:7px;transition:width .3s}
+  .bar-hp .bar-fill{background:linear-gradient(90deg,#8b1a1a,#c0392b);width:100%}
+  .bar-mana .bar-fill{background:linear-gradient(90deg,#1a3a8b,#2980b9);width:100%}
+  .bar-label{position:absolute;top:0;left:0;width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;color:#ddd;text-shadow:0 1px 2px #000;font-weight:600}
+
+  #hotbar{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+    display:flex;gap:4px}
+  .slot{width:44px;height:44px;background:rgba(0,0,0,.6);
+    border:2px solid rgba(255,255,255,.18);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    color:#555;font-size:11px}
+  .slot.active{border-color:#e8c86a}
+  .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
+
+  #joystick-zone{position:fixed;bottom:0;left:0;width:44%;height:55%;
+    pointer-events:auto;z-index:20}
+  #joystick-base{position:absolute;width:110px;height:110px;
+    border-radius:50%;background:rgba(255,255,255,.08);
+    border:2px solid rgba(255,255,255,.15);display:none;
+    pointer-events:none}
+  #joystick-knob{position:absolute;width:46px;height:46px;
+    border-radius:50%;background:rgba(255,255,255,.2);
+    border:2px solid rgba(255,255,255,.25);display:none;
+    pointer-events:none}
+
+  #overlay{position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,.7);z-index:50;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer}
+  #overlay span{color:#c8ccd4;font-size:20px;letter-spacing:1px;
+    font-family:'Segoe UI',sans-serif;
+    text-shadow:0 0 20px rgba(232,200,106,.3)}
+  #overlay.hidden{display:none}
+
+  #jump-btn{position:fixed;bottom:80px;right:30px;width:64px;height:64px;
+    border-radius:50%;background:rgba(255,255,255,.1);
+    border:2px solid rgba(255,255,255,.2);z-index:20;
+    pointer-events:auto;display:none;
+    color:#aaa;font-size:12px;
+    font-family:'Segoe UI',sans-serif;
+    line-height:64px;text-align:center}
+
+  #debug{position:absolute;top:36px;left:8px;color:#888;font-size:11px;
+    display:none}
+
+  @media(max-width:900px){
+    #hotbar .slot{width:38px;height:38px}
+    .bar-wrap{width:110px;height:12px}
+    #topbar{font-size:11px;padding:3px 10px}
+    #jump-btn{display:flex;align-items:center;justify-content:center}
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="hud">
+  <div id="crosshair"></div>
+
+  <div id="topbar">
+    <span id="compass">N</span>
+    <span id="coords">0, 0, 0</span>
+  </div>
+
+  <div id="bars">
+    <div class="bar-wrap bar-hp">
+      <div class="bar-fill"></div>
+      <div class="bar-label">HP 100/100</div>
+    </div>
+    <div class="bar-wrap bar-mana">
+      <div class="bar-fill"></div>
+      <div class="bar-label">MANA 100/100</div>
+    </div>
+  </div>
+
+  <div id="hotbar">
+    <div class="slot active" data-slot="1"><span class="slot-key">1</span></div>
+    <div class="slot" data-slot="2"><span class="slot-key">2</span></div>
+    <div class="slot" data-slot="3"><span class="slot-key">3</span></div>
+    <div class="slot" data-slot="4"><span class="slot-key">4</span></div>
+    <div class="slot" data-slot="5"><span class="slot-key">5</span></div>
+    <div class="slot" data-slot="6"><span class="slot-key">6</span></div>
+    <div class="slot" data-slot="7"><span class="slot-key">7</span></div>
+  </div>
+</div>
+
+<div id="joystick-zone">
+  <div id="joystick-base"></div>
+  <div id="joystick-knob"></div>
+</div>
+
+<div id="jump-btn">JUMP</div>
+
+<div id="overlay">
+  <span>Kliknij aby grac</span>
+</div>
+
+<div id="debug"></div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
