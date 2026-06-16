@@ -499,6 +499,15 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 .spell-btn .rngmark{position:absolute;bottom:1px;right:4px;font-size:11px;color:#9fa8d8;opacity:.8;}
 .spell-btn.tb-unavail{opacity:.4;filter:grayscale(.5);}
 .spell-btn.tb-oor{border-color:#aa6644;box-shadow:0 0 8px rgba(200,90,40,.5);opacity:.7;}
+.spell-btn.fusion-pick{border-color:#ffd866!important;box-shadow:0 0 14px #ffd866!important;animation:masteredGlow 1s infinite;opacity:1!important;}
+.spell-btn.fusion-sel{border-color:#ff66cc!important;box-shadow:0 0 18px #ff66cc!important;transform:scale(1.1);opacity:1!important;}
+#fusionHint{
+  display:none;text-align:center;
+  background:rgba(20,10,40,.92);border:1px solid #ffd866;border-radius:8px;
+  color:#ffd866;font-size:12px;padding:5px 12px;z-index:30;pointer-events:none;
+  animation:titleGlow 1.5s ease-in-out infinite;
+}
+#fusionHint.active{display:block;}
 .turn-controls{
   position:absolute;left:0;right:0;bottom:10px;z-index:25;
   display:flex;align-items:center;justify-content:center;gap:14px;
@@ -867,6 +876,7 @@ button:disabled{opacity:.4;cursor:not-allowed;}
 
       <div class="hud-bottom">
         <div class="potionbar" id="potionBar"></div>
+        <div id="fusionHint">⚛️ FUZJA — kliknij 2 zaklęcia | kliknij ⚛️ znowu = anuluj</div>
         <div class="spellbar" id="spellBar"></div>
       </div>
 
@@ -922,7 +932,7 @@ const CLASSES = {
   necro:{
     id:'necro',name:'Necromancer',emoji:'💀',c1:'#6600cc',c2:'#00ff44',
     base:{hp:55,mana:90,sp:10,speed:5,stamina:7,def:3,crit:5,hit:76,dodge:2,learning:5},
-    passive:{name:'Master of the Dead',desc:'A frail summoner who lets the dead fight for him. At the START of each duel, Raise Dead automatically rises on its own — no casting, can\'t be forgotten or mastered — conjuring your whole army of shadow-mage minions (more with Shadow Magic) that strike each turn and body-block for you. They do NOT respawn — keep them alive, and use Dark Command to heal & empower them.'},
+    passive:{name:'Master of the Dead',desc:'A frail summoner who commands the dead. Use Dark Command to raise minions (1 per cast, max 6) — they strike each turn and body-block for you. Dark Command also heals all your living minions and boosts their damage. Shadow Magic increases the max count. Protect your army — they do not respawn on their own.'},
     mech:{name:'Lich Form',desc:'On death, 25% chance to revive at 35% HP in Lich Form — all spells free briefly.',max:100},
     spells:['shadow_ball','bone_spear','death_nova','dark_command','grave_bind','dark_mend','bone_shield','soul_barrier','shadow_ward','grave_chill','night_terror','soul_siphon','soul_explosion'],
   },
@@ -1148,10 +1158,10 @@ const SPELLS={
   siphon_life:{name:'Siphon Life',icon:'🩸',el:'power',kind:'beam',cost:20,dmg:34,cd:1.4,drain:true,status:'bleed',desc:'Tear life from your foe to heal — they bleed.'},
   annihilate:{name:'Annihilate',icon:'💢',el:'power',kind:'aoe',cost:58,dmg:82,cd:8,radius:300,status:'thunder',desc:'Erase your enemy from existence.'},
   // ===== NECROMANCER SUMMONER KIT (minions do the fighting; Raise Dead itself is automatic) =====
-  dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:6,desc:'Heal all your minions to full and permanently boost their damage this duel. Long cooldown.'},
+  dark_command:{name:'Dark Command',icon:'📣',el:'shadow',kind:'minion_buff',cost:24,dmg:0,cd:10,desc:'Heal all living minions to full and boost their damage. Also raises 1 new minion from the dead if you have fewer than 6. Very long cooldown.'},
   grave_bind:{name:'Grave Bind',icon:'⛓️',el:'shadow',kind:'aoe',cost:26,dmg:8,cd:5,radius:170,status:'bind',desc:'Skeletal hands erupt and lock your foe in place — stunned for 2 turns.'},
   // ===== ESSENCE FUSION (Essence mage) =====
-  essence_fusion:{name:'Essence Fusion',icon:'⚛️',el:'essence',kind:'fusion',cost:20,dmg:0,cd:7,desc:'Spend ALL your mana to unleash your two strongest other spells at once — the more mana spent, the harder they hit.'},
+  essence_fusion:{name:'Essence Fusion',icon:'⚛️',el:'essence',kind:'fusion',cost:0,dmg:0,cd:8,desc:'Click, then pick any 2 spells from your loadout — fires them both at ×1.5 damage and costs the sum of both their mana costs (very expensive). Perfect for bursting a boss.'},
 };
 
 // element display colors (for projectiles / particles / combos)
@@ -2316,7 +2326,7 @@ function confirmClass(cid){
   // the necromancer is a slow-building summoner — he starts with just 3 spells and
   // grows his book via Nauka; everyone else starts with their Nauka count
   if(cid==='necro'){
-    G.chosenSpells=CLASSES.necro.spells.slice(0,3);
+    G.chosenSpells=['shadow_ball','bone_spear','dark_command'];  // dark_command is core — always start with it
   } else {
     G.chosenSpells=CLASSES[cid].spells.slice(0, knownForClass(cid));
   }
@@ -3013,8 +3023,8 @@ function openCharacterScreen(){
       ${allocRows}
       <div class="stat-line"><span>Mana Regen</span><span>${s.manaregen}/s</span></div>
       ${cls.id==='necro'?`<div class="stat-line"><span>Shadow Magic <span class="muted">(Raise Dead → ${necroSummonCount()*2} minion${necroSummonCount()*2>1?'s':''}/wave)</span></span>
-        <span><span class="gold-text">${G.shadowMagic||0}</span> <button data-sm ${G.statPoints>0?'':'disabled'} style="padding:2px 8px;font-size:12px;">＋</button></span></div>
-        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Raise Dead is automatic — at the START of each duel it raises your whole army of shadow-mage minions at once (max ${MINION_CAP}), no casting needed. It does NOT respawn them, so keep them alive! Every 5 Shadow Magic adds 2 more. Minions strike each turn &amp; body-block when you stand behind them. Use Dark Command to heal &amp; empower them mid-fight.</div>`:''}
+        <span><span class="gold-text">${G.shadowMagic||0}</span> <button data-sm ${(G.statPoints>0&&(G.shadowMagic||0)<10)?'':'disabled'} style="padding:2px 8px;font-size:12px;">＋</button></span></div>
+        <div class="muted" style="font-size:10.5px;margin:-2px 0 4px;">Use Dark Command to raise minions (1 per cast, max ${MINION_CAP}). It also heals &amp; empowers all living ones. Cap: 10 Shadow Magic points. Every 5 Shadow Magic = 1 more slot (starting at 1). Protect them — they do not respawn on their own!</div>`:''}
       <h4 style="margin-top:12px;color:${cls.c1}">⚜ ${cls.passive.name}</h4><div class="muted">${cls.passive.desc}</div>
       <h4 style="margin-top:8px;color:${cls.c1}">✦ ${cls.mech.name}</h4><div class="muted">${cls.mech.desc}</div>
       ${G.level>=20?`<button data-prestige style="margin-top:12px;background:linear-gradient(180deg,#ffd866,#aa7700);color:#000;">👑 PRESTIGE (reset to Lvl 1)</button>`:`<div class="muted" style="margin-top:12px;">Prestige unlocks at Lvl 20</div>`}
@@ -3053,7 +3063,7 @@ function wireCharacterScreen(ov){
     if(G.loadout.length>=maxLoadout())return;G.loadout.push(b.dataset.add);saveGame();ov.remove();openCharacterScreen();
   });
   const smBtn=ov.querySelector('[data-sm]');
-  if(smBtn)smBtn.onclick=()=>{ if(G.statPoints<=0)return; G.shadowMagic=(G.shadowMagic||0)+1; G.statPoints--; saveGame();ov.remove();openCharacterScreen(); };
+  if(smBtn)smBtn.onclick=()=>{ if(G.statPoints<=0||(G.shadowMagic||0)>=10)return; G.shadowMagic=(G.shadowMagic||0)+1; G.statPoints--; saveGame();ov.remove();openCharacterScreen(); };
   ov.querySelectorAll('[data-learn]').forEach(b=>b.onclick=()=>{
     if(spellSlotsOpen()<=0)return;
     G.chosenSpells=knownSpells();           // normalize to the valid known set
@@ -3495,7 +3505,6 @@ function tbStartTurn(who){
     if(G.relics.includes('regen_idol')){ m.hp=clamp(m.hp+14,0,m.maxhp); floatNumber(m.x+20,m.y-62,'+14',{heal:true}); }
     tbApplyFamiliar();
     tbMinionsAct();
-    tbAutoSummonMinions();
     tbUpdateTurnUI();
   } else {
     tbUpdateTurnUI();
@@ -3619,19 +3628,93 @@ function tbCdFor(sid){
   if(sp.kind==='self'&&sp.heal) t+=1;
   return t;
 }
+// called by tbUpdateTurnUI too — updates spell button fusion states
+function tbUpdateFusionUI(){
+  const hint=$('fusionHint');
+  const btns=document.querySelectorAll('.spell-btn');
+  const mode=CB&&CB.fusionMode;
+  if(hint) hint.classList.toggle('active',!!mode);
+  for(let i=0;i<(G.loadout||[]).length;i++){
+    const btn=btns[i]; if(!btn)continue;
+    const sid=G.loadout[i];
+    btn.classList.remove('fusion-pick','fusion-sel');
+    if(!mode||!sid)continue;
+    const sp=SPELLS[sid]; if(!sp)continue;
+    if(sp.kind==='fusion'){ btn.classList.add('fusion-pick'); continue; }  // fusion button glows to indicate cancel
+    if(mode.picks.includes(sid)){ btn.classList.add('fusion-sel'); continue; }
+    const pickable=sp.kind!=='fusion'&&sp.dmg>0;
+    if(pickable)btn.classList.add('fusion-pick');
+  }
+}
 function tbPlayerCast(slot){
   if(!CB||CB.over||CB.phase!=='player'||CB.busy)return;
   const sid=G.loadout[slot]; if(!sid)return;
   const sp=SPELLS[sid]; if(!sp)return;
   const p=CB.player;
+
+  // ---- FUSION MODE ACTIVE ----
+  if(CB.fusionMode){
+    if(sp.kind==='fusion'){
+      // clicking fusion again cancels
+      CB.fusionMode=null; tbUpdateFusionUI(); tbUpdateTurnUI();
+      floatNumber(p.x,p.y-70,'fusion cancelled',{miss:true}); return;
+    }
+    if(sp.dmg<=0 || sp.kind==='fusion'){
+      floatNumber(p.x,p.y-70,'pick a damage spell',{miss:true}); return;
+    }
+    if(CB.fusionMode.picks.includes(sid)){
+      floatNumber(p.x,p.y-70,'already picked',{miss:true}); return;
+    }
+    CB.fusionMode.picks.push(sid);
+    tbUpdateFusionUI();
+    if(CB.fusionMode.picks.length<2){ floatNumber(p.x,p.y-70,'pick 1 more spell',{miss:true}); return; }
+    // have 2 picks — fire fusion!
+    const picks=CB.fusionMode.picks.slice();
+    CB.fusionMode=null; tbUpdateFusionUI();
+    const totalCost=picks.reduce((s,s2)=>(s+(SPELLS[s2]?.cost||0)),0);
+    if(p.mana<totalCost){ floatNumber(p.x,p.y-70,'not enough mana ('+totalCost+' needed)',{miss:true}); return; }
+    p.mana-=totalCost;
+    // set fusion CD and both picked spell CDs
+    p.cooldowns[CB._fusionSid||'essence_fusion']=tbCdFor(CB._fusionSid||'essence_fusion');
+    picks.forEach(s=>{ p.cooldowns[s]=tbCdFor(s); CB.stat.spellUse[s]=(CB.stat.spellUse[s]||0)+1; });
+    CB.busy=true; CB.phase='anim'; tbUpdateTurnUI();
+    tbAuraBurst(p,'essence');
+    floatNumber(p.x,p.y-62,'⚛️ FUZJA ×1.5!',{el:'essence'});
+    let i=0;
+    const fireNext=()=>{
+      if(!CB||CB.over){ if(i>=picks.length) tbEndTurn('player'); return; }
+      if(i>=picks.length){ setTimeout(()=>{ if(CB&&!CB.over)tbEndTurn('player'); },350); return; }
+      const s=picks[i++], ssp=SPELLS[s];
+      const tx=CB.foe.x, ty=CB.foe.y-16;
+      CB.effects.push({type:'aoe',el:ssp.el,x:tx,y:ty,r:Math.min(ssp.radius||180,180),life:0.65,maxlife:0.65,color:EL_COLORS[ssp.el]});
+      doShockwave(tx,ty,EL_COLORS[ssp.el],1.2);
+      spawnImpact(tx,ty,ssp.el,1.5);
+      const dmg=Math.round(tbComputeDmg(p,ssp,s)*1.5);
+      tbDealDamage(CB.foe,dmg,ssp.el,{sid:s});
+      triggerShake(10);
+      setTimeout(fireNext,380);
+    };
+    setTimeout(fireNext,320);
+    return;
+  }
+
+  // ---- FUSION ACTIVATION ----
+  if(sp.kind==='fusion'){
+    if(p.cooldowns[sid]>0){ floatNumber(p.x,p.y-70,'on cooldown',{miss:true}); return; }
+    CB.fusionMode={picks:[]}; CB._fusionSid=sid;
+    tbUpdateFusionUI();
+    floatNumber(p.x,p.y-70,'⚛️ pick 2 spells',{el:'essence'});
+    return;
+  }
+
+  // ---- NORMAL CAST ----
   if(p.cooldowns[sid]>0){ floatNumber(p.x,p.y-70,'on cooldown',{miss:true}); return; }
   let cost=sp.cost;
   const free=p.buffs.freecast;
   if(free)cost=0;
   if(p.mana<cost){ floatNumber(p.x,p.y-70,'not enough mana',{miss:true}); return; }
-  // range check (self & fusion channels always ok)
   const rng=spellRange(sp);
-  if(sp.kind!=='self' && sp.kind!=='fusion' && tbDist()>rng){
+  if(sp.kind!=='self' && tbDist()>rng){
     floatNumber(p.x,p.y-70,'out of range — move closer',{miss:true});
     return;
   }
@@ -3654,44 +3737,18 @@ function tbCast(caster, target, sid, onDone){
   const dmgBase=()=>tbComputeDmg(caster,sp,sid);
   const finish=()=>{ caster.casting=0; if(onDone)onDone(); };
 
-  // MINION BUFF: heal & empower your minions
+  // MINION BUFF: heal & empower living minions, spawn 1 new one if below cap
   if(sp.kind==='minion_buff'){
     setTimeout(()=>{
       if(!CB||CB.over)return;
       const mins=(CB.minions||[]).filter(m=>m.hp>0);
       if(mins.length){ mins.forEach(m=>{ m.hp=m.maxhp; m.dmgBuff=(m.dmgBuff||0)+5; m.castT=0.3; }); floatNumber(caster.x,caster.y-46,'⬆ minions',{heal:true}); }
-      else floatNumber(caster.x,caster.y-46,'no minions',{miss:true});
+      // raise 1 new minion if below cap
+      const alive=(CB.minions||[]).filter(m=>m.hp>0).length;
+      if(alive<MINION_CAP){ spawnNecroMinions(1); floatNumber(caster.x,caster.y-62,'🧟 risen',{heal:true}); }
+      else floatNumber(caster.x,caster.y-62,'army at cap',{miss:true});
       tbAuraBurst(caster,'shadow');
       setTimeout(finish,280);
-    },360);
-    return;
-  }
-  // FUSION: spend ALL mana to fire the two strongest other loadout spells at once
-  if(sp.kind==='fusion'){
-    setTimeout(()=>{
-      if(!CB||CB.over){finish();return;}
-      const spent=caster.mana; caster.mana=0;
-      const power=1+clamp(spent/200,0,1)*0.6;          // up to +60% from mana spent
-      const list=(caster.isPlayer?(G.loadout||[]):(caster.spells||[]));
-      const picks=list.filter(s=>s&&s!==sid&&SPELLS[s]&&(SPELLS[s].dmg||0)>0&&SPELLS[s].kind!=='self'&&SPELLS[s].kind!=='fusion')
-        .sort((a,b)=>(SPELLS[b].dmg||0)-(SPELLS[a].dmg||0)).slice(0,2);
-      tbAuraBurst(caster,'essence');
-      floatNumber(caster.x,caster.y-58,'⚛️ FUSION',{el:'essence'});
-      if(!picks.length){ floatNumber(caster.x,caster.y-46,'no spells to fuse',{miss:true}); setTimeout(finish,320); return; }
-      let i=0;
-      const fireOne=()=>{
-        if(!CB||CB.over){finish();return;}
-        const s=picks[i], ssp=SPELLS[s];
-        const tx=target.x, ty=target.y-16;
-        CB.effects.push({type:'aoe',el:ssp.el,x:tx,y:ty,r:Math.min(ssp.radius||170,180),life:0.6,maxlife:0.6,color:EL_COLORS[ssp.el]});
-        doShockwave(tx,ty,EL_COLORS[ssp.el],1.15);
-        spawnImpact(tx,ty,ssp.el,1.4);
-        tbDealDamage(target,Math.round(tbComputeDmg(caster,ssp,s)*power),ssp.el,{sid:s});
-        triggerShake(9);
-        i++;
-        if(i<picks.length) setTimeout(fireOne,250); else setTimeout(finish,420);
-      };
-      fireOne();
     },360);
     return;
   }
@@ -4209,11 +4266,12 @@ function tbUpdateHUD(){
     const sp=SPELLS[sid];
     const cd=p.cooldowns[sid]||0;
     if(ov){ if(cd>0){ ov.classList.remove('hidden'); ov.textContent=Math.ceil(cd); } else ov.classList.add('hidden'); }
-    const inRange=sp.kind==='self'||dist<=spellRange(sp);
+    const inRange=sp.kind==='self'||sp.kind==='fusion'||dist<=spellRange(sp);
     const ok=cd<=0 && p.mana>=sp.cost && (CB.phase==='player') && inRange;
-    btn.classList.toggle('tb-unavail', !ok);
-    btn.classList.toggle('tb-oor', !inRange && CB.phase==='player' && cd<=0 && p.mana>=sp.cost);
+    btn.classList.toggle('tb-unavail', !ok && !CB.fusionMode);
+    btn.classList.toggle('tb-oor', !inRange && CB.phase==='player' && cd<=0 && p.mana>=sp.cost && !CB.fusionMode);
   }
+  if(CB.fusionMode) tbUpdateFusionUI();
 }
 
 // concentric movement rings around the player on their turn ("kółka dookoła")
@@ -5758,7 +5816,7 @@ function spawnNecroMinions(n){
     const slot=CB.minions.length;
     // spawn BEHIND the necro (away from the foe); they cannot move on their own
     const mx=clamp(p.x - p.facing*(40+slot*24), tbWorldMinX(), tbWorldMaxX());
-    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:63, maxhp:63,
+    CB.minions.push({ x:mx, y:p.baseY, baseY:p.baseY, hp:57, maxhp:57,
       facing:p.facing, dmg:13, dmgBuff:0, bobT:rand(0,6), castT:0, flash:0, spawnT:0.4 });
     deathBurst(mx,p.baseY-22,'shadow',10);
     CB.effects.push({type:'shock',x:mx,y:p.baseY-22,r:4,maxr:40,life:0.4,maxlife:0.4,color:'#00ff66'});
