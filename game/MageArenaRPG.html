@@ -229,6 +229,63 @@
 
   /* level badge */
   #lvl-badge{color:#e8c86a;font-weight:700;font-size:12px}
+  #gold{color:#f0d070;font-weight:600}
+
+  /* item count badge */
+  .slot-count{position:absolute;bottom:1px;right:3px;font-size:11px;
+    color:#fff;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
+
+  /* interact prompt */
+  #interact-prompt{position:absolute;bottom:200px;left:50%;transform:translateX(-50%);
+    background:rgba(20,26,42,.92);border:2px solid rgba(232,200,106,.55);
+    border-radius:22px;color:#e8e0c8;font-size:15px;font-weight:600;
+    padding:9px 20px;display:none;align-items:center;gap:6px;
+    pointer-events:auto;cursor:pointer;z-index:8;
+    box-shadow:0 0 18px rgba(232,200,106,.25)}
+  #interact-prompt.show{display:flex}
+  #interact-prompt:active{transform:translateX(-50%) scale(.95)}
+  #interact-name{color:#e8c86a}
+
+  /* dialog / shop */
+  #dialog{position:absolute;inset:0;z-index:22;background:rgba(6,9,16,.72);
+    display:flex;align-items:center;justify-content:center;pointer-events:auto;
+    padding:18px}
+  #dialog.hidden{display:none}
+  .dlg-panel{width:100%;max-width:420px;max-height:84vh;overflow-y:auto;
+    background:linear-gradient(180deg,rgba(28,36,58,.98),rgba(16,22,38,.98));
+    border:2px solid rgba(232,200,106,.4);border-radius:16px;padding:18px;
+    box-shadow:0 12px 50px rgba(0,0,0,.6);animation:fade .25s ease}
+  .dlg-head{display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:4px}
+  #dlg-title{font-size:21px;font-weight:700;color:#e8c86a;letter-spacing:1px}
+  #dlg-x{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);
+    border-radius:8px;color:#ccc;font-size:16px;width:34px;height:34px;cursor:pointer}
+  .dlg-sub{font-size:12.5px;color:#8a98b4;margin-bottom:14px;line-height:1.5;
+    font-style:italic}
+  .dlg-body{display:flex;flex-direction:column;gap:9px}
+  .shop-row{display:flex;align-items:center;gap:11px;
+    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);
+    border-radius:10px;padding:9px 11px}
+  .shop-ic{font-size:26px;width:34px;text-align:center}
+  .shop-info{flex:1;min-width:0}
+  .shop-nm{font-size:14px;color:#e8e0c8;font-weight:600}
+  .shop-ds{font-size:11px;color:#8a98b4;line-height:1.3}
+  .shop-buy{background:linear-gradient(180deg,#3a6b2a,#1e4a14);
+    border:1px solid rgba(160,220,120,.5);border-radius:8px;color:#eaffe0;
+    font-size:13px;font-weight:700;padding:8px 12px;cursor:pointer;white-space:nowrap}
+  .shop-buy:active{transform:scale(.95)}
+  .shop-buy:disabled{opacity:.4;background:#333;border-color:#444}
+  .dlg-text{font-size:14px;color:#d8d0c0;line-height:1.6;
+    background:rgba(0,0,0,.25);border-radius:10px;padding:12px}
+  .dlg-btn{background:linear-gradient(180deg,rgba(40,52,80,.9),rgba(24,32,52,.9));
+    border:2px solid rgba(232,200,106,.4);border-radius:10px;color:#e8e0c8;
+    font-size:15px;font-weight:600;padding:12px;cursor:pointer;margin-top:4px}
+  .dlg-btn.primary{background:linear-gradient(180deg,#3a6b2a,#1e4a14);
+    border-color:rgba(160,220,120,.5);color:#eaffe0}
+  .dlg-btn:active{transform:scale(.98)}
+  .dlg-btn:disabled{opacity:.45}
+  .dlg-gold{text-align:right;font-size:13px;color:#f0d070;font-weight:700;
+    margin-bottom:6px}
 
   @media(max-width:900px){
     #hotbar .slot{width:48px;height:48px;font-size:22px}
@@ -331,6 +388,7 @@
       <span id="compass">N</span>
       <span id="classname">Mag</span>
       <span id="lvl-badge">Poz. 1</span>
+      <span id="gold">🪙 0</span>
       <span id="score">💠 0</span>
       <span id="coords">0, 0, 0</span>
     </div>
@@ -353,6 +411,15 @@
   <div id="joystick-zone"></div>
   <div id="jump-btn">JUMP</div>
   <div id="cast-btn">✦</div>
+  <div id="interact-prompt">💬 <span id="interact-name">Rozmawiaj</span></div>
+  <div id="dialog" class="hidden">
+    <div class="dlg-panel">
+      <div class="dlg-head"><span id="dlg-title">NPC</span>
+        <button id="dlg-x">✕</button></div>
+      <div class="dlg-sub" id="dlg-sub"></div>
+      <div class="dlg-body" id="dlg-body"></div>
+    </div>
+  </div>
   <div id="overlay"><span>Kliknij aby grac</span></div>
   <div id="death-overlay">
     <div class="death-title" id="death-title">SMIERC</div>
@@ -387,10 +454,21 @@ const ITEMS = [
 
 // ═══ MOB TYPES ═══════════════════════════════════════
 const MOB_TYPES = [
-  { id:'skeleton', name:'Szkielet',  hp:60,  dmg:8,  speed:3.2, atkRange:2.2, aggroRange:18, xp:15, atkCd:1.5, height:1.7 },
-  { id:'wolf',     name:'Wilkolak',  hp:110, dmg:14, speed:4.8, atkRange:2.5, aggroRange:22, xp:28, atkCd:1.2, height:1.9 },
-  { id:'ghost',    name:'Duch',      hp:40,  dmg:11, speed:2.2, atkRange:3.0, aggroRange:28, xp:22, atkCd:2.0, height:1.5 },
+  { id:'skeleton', name:'Szkielet',  hp:60,  dmg:8,  speed:3.2, atkRange:2.2, aggroRange:18, xp:15, gold:5, atkCd:1.5, height:1.7 },
+  { id:'wolf',     name:'Wilkolak',  hp:110, dmg:14, speed:4.8, atkRange:2.5, aggroRange:22, xp:28, gold:9, atkCd:1.2, height:1.9 },
+  { id:'ghost',    name:'Duch',      hp:40,  dmg:11, speed:2.2, atkRange:3.0, aggroRange:28, xp:22, gold:7, atkCd:2.0, height:1.5 },
 ];
+
+// ═══ SKLEP / MIKSTURY ═════════════════════════════════
+// Mikstury dzialaja od razu — wypij klikajac slot na pasku.
+const SHOP_ITEMS = [
+  { id:'hp_pot',   name:'Mikstura Zdrowia', icon:'🧪', type:'consumable', desc:'Przywraca 50 HP', price:25, effect:{hp:50} },
+  { id:'mana_pot', name:'Mikstura Many',    icon:'🔵', type:'consumable', desc:'Przywraca 300 many', price:30, effect:{mana:300} },
+  { id:'big_hp',   name:'Wielka Mikstura',  icon:'❤️', type:'consumable', desc:'Przywraca 120 HP', price:60, effect:{hp:120} },
+];
+// stan zadania (na razie jedno, powtarzalne)
+const quest = { active:false, done:false, target:'skeleton', targetName:'Szkielet',
+                need:5, have:0, rewardGold:60, rewardXp:50 };
 
 // ═══ MENU LOGIC ═══════════════════════════════════════
 const session = { class:null, difficulty:null };
@@ -457,7 +535,9 @@ function buildItembar(){
     const slot=document.createElement('div');
     slot.className='slot'+(i===player.heldItem?' active':'');
     slot.dataset.slot=i;
-    slot.innerHTML=`<span class="slot-key">${i+1}</span>`+(it?it.icon:'');
+    let inner=`<span class="slot-key">${i+1}</span>`+(it?it.icon:'');
+    if(it&&it.type==='consumable'&&it.count>1)inner+=`<span class="slot-count">${it.count}</span>`;
+    slot.innerHTML=inner;
     slot.addEventListener('click',()=>selectItem(i));
     hb.appendChild(slot);
   }
@@ -540,7 +620,8 @@ const joyState={active:false,dx:0,dy:0,id:null};
 const lookState={active:false,id:null,lastX:0,lastY:0};
 
 const player={hp:100,maxHp:100,mana:1000,maxMana:1000,manaRegen:1000/120,
-              selSpell:0,lastCast:0,lastMelee:0,heldItem:0};
+              selSpell:0,lastCast:0,lastMelee:0,heldItem:0,gold:0};
+let dialogOpen=false;
 const xpState={level:1,xp:0,xpNext:100,kills:0};
 const projectiles=[];
 const impacts=[];
@@ -892,6 +973,189 @@ function nearestLandmark(px,pz){
   return best;
 }
 
+// ═══ NPC ══════════════════════════════════════════════
+const npcs=[];
+let _activeNPC=null;
+const INTERACT_RANGE=4.5;
+function makeMarkerSprite(text,color){
+  const cv=document.createElement('canvas');cv.width=cv.height=64;
+  const ctx=cv.getContext('2d');
+  ctx.font='bold 48px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=color;ctx.fillText(text,32,34);
+  const tex=new THREE.CanvasTexture(cv);
+  const mat=new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true});
+  const sp=new THREE.Sprite(mat);sp.scale.set(1.0,1.0,1.0);
+  return sp;
+}
+function buildNPCMesh(robeCol,skinCol){
+  const g=new THREE.Group();
+  const robe=new THREE.MeshStandardMaterial({color:robeCol,roughness:0.85,flatShading:true});
+  const skin=new THREE.MeshStandardMaterial({color:skinCol,roughness:0.7,flatShading:true});
+  // szata (stozek scięty)
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.55,1.5,8),robe);
+  body.position.y=0.95;body.castShadow=!isMobile;g.add(body);
+  // glowa
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.26,8,7),skin);
+  head.position.y=1.95;head.castShadow=!isMobile;g.add(head);
+  // wlosy/czapka
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.27,8,6,0,Math.PI*2,0,Math.PI*0.55),
+    new THREE.MeshStandardMaterial({color:0x3a2a1a,roughness:0.9,flatShading:true}));
+  cap.position.y=2.02;g.add(cap);
+  // oczy
+  const eye=new THREE.MeshBasicMaterial({color:0x222222});
+  const eg=new THREE.SphereGeometry(0.035,4,4);
+  const eL=new THREE.Mesh(eg,eye);eL.position.set(-0.09,1.97,0.23);g.add(eL);
+  const eR=new THREE.Mesh(eg,eye);eR.position.set(0.09,1.97,0.23);g.add(eR);
+  // ramiona
+  const arm=new THREE.CylinderGeometry(0.08,0.07,0.8,5);
+  const aL=new THREE.Mesh(arm,robe);aL.position.set(-0.42,1.05,0);aL.rotation.z=0.25;g.add(aL);
+  const aR=new THREE.Mesh(arm,robe);aR.position.set(0.42,1.05,0);aR.rotation.z=-0.25;g.add(aR);
+  return g;
+}
+function spawnNPC(scene,role,name,desc,x,z,robeCol,skinCol,marker,markerCol){
+  const mesh=buildNPCMesh(robeCol,skinCol);
+  const h=terrainHeight(x,z);mesh.position.set(x,h,z);
+  scene.add(mesh);
+  const sp=makeMarkerSprite(marker,markerCol);
+  sp.position.y=2.7;mesh.add(sp);
+  npcs.push({role,name,desc,mesh,marker:sp,homeX:x,homeZ:z,
+    wanderAngle:Math.random()*6.28,wanderTimer:Math.random()*3,
+    phase:Math.random()*6.28,baseY:h});
+}
+function buildNPCs(scene,vx,vz){
+  spawnNPC(scene,'quest','Soltys Bran',
+    'Starszy wioski. Ma prace dla zdolnego maga.',
+    vx-6,vz+4,0xd0a030,0xe0b890,'!','#ffdd33');
+  spawnNPC(scene,'shop','Kupiec Vendar',
+    'Wedrowny handlarz. Sprzedaje mikstury i nie tylko.',
+    vx+6,vz-3,0x3a7a4a,0xd0a878,'🪙','#f0d070');
+  spawnNPC(scene,'villager','Mieszkaniec',
+    'Zwykly mieszkaniec wioski.',
+    vx+2,vz+7,0x5a6a8a,0xe0b890,'·','#aaaaaa');
+  spawnNPC(scene,'villager','Mieszkanka',
+    'Zwykla mieszkanka wioski.',
+    vx-3,vz-6,0x8a5a7a,0xe8c0a0,'·','#aaaaaa');
+}
+function updateNPCs(dt,now,camera){
+  for(const n of npcs){
+    const dx=camera.position.x-n.mesh.position.x;
+    const dz=camera.position.z-n.mesh.position.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    if(dist<6){
+      // patrz na gracza
+      n.mesh.rotation.y=Math.atan2(dx,dz);
+    }else{
+      // lekkie chodzenie wokol domu
+      n.wanderTimer-=dt;
+      if(n.wanderTimer<=0){n.wanderAngle=Math.random()*6.28;n.wanderTimer=2.5+Math.random()*4;}
+      const nx=n.mesh.position.x+Math.sin(n.wanderAngle)*0.6*dt;
+      const nz=n.mesh.position.z+Math.cos(n.wanderAngle)*0.6*dt;
+      if((nx-n.homeX)**2+(nz-n.homeZ)**2<64){n.mesh.position.x=nx;n.mesh.position.z=nz;}
+      n.mesh.rotation.y+=(n.wanderAngle-n.mesh.rotation.y)*dt*2;
+    }
+    const gh=terrainHeight(n.mesh.position.x,n.mesh.position.z);
+    n.mesh.position.y=gh+Math.sin(now*0.002+n.phase)*0.04;
+    // delikatne unoszenie markera
+    n.marker.position.y=2.7+Math.sin(now*0.003+n.phase)*0.08;
+  }
+}
+function findInteractNPC(camera){
+  let best=null,bd=INTERACT_RANGE;
+  for(const n of npcs){
+    const dx=camera.position.x-n.mesh.position.x;
+    const dz=camera.position.z-n.mesh.position.z;
+    const d=Math.sqrt(dx*dx+dz*dz);
+    if(d<bd){bd=d;best=n;}
+  }
+  return best;
+}
+
+// ═══ DIALOG / SKLEP / ZADANIA ════════════════════════
+function openDialog(npc){
+  if(!npc)return;
+  dialogOpen=true;casting=false;
+  if(document.exitPointerLock)document.exitPointerLock();
+  document.getElementById('dialog').classList.remove('hidden');
+  document.getElementById('interact-prompt').classList.remove('show');
+  document.getElementById('dlg-title').textContent=npc.name;
+  document.getElementById('dlg-sub').textContent=npc.desc;
+  const body=document.getElementById('dlg-body');body.innerHTML='';
+  if(npc.role==='shop')renderShop(body);
+  else if(npc.role==='quest')renderQuest(body);
+  else renderVillager(body);
+}
+function closeDialog(){
+  dialogOpen=false;
+  document.getElementById('dialog').classList.add('hidden');
+}
+function renderShop(body){
+  const gold=document.createElement('div');gold.className='dlg-gold';
+  gold.textContent='Twoje zloto: '+player.gold+' 🪙';body.appendChild(gold);
+  SHOP_ITEMS.forEach(si=>{
+    const row=document.createElement('div');row.className='shop-row';
+    row.innerHTML=`<div class="shop-ic">${si.icon}</div>
+      <div class="shop-info"><div class="shop-nm">${si.name}</div>
+      <div class="shop-ds">${si.desc}</div></div>`;
+    const btn=document.createElement('button');btn.className='shop-buy';
+    btn.textContent=si.price+' 🪙';
+    btn.disabled=player.gold<si.price;
+    btn.addEventListener('click',()=>buyItem(si,body));
+    row.appendChild(btn);body.appendChild(row);
+  });
+}
+function buyItem(si,body){
+  if(player.gold<si.price){toast('Za malo zlota');return;}
+  if(addToInventory(si)){
+    player.gold-=si.price;
+    toast('Kupiono: '+si.name);
+    body.innerHTML='';renderShop(body);
+  }
+}
+function renderQuest(body){
+  if(!quest.active){
+    const t=document.createElement('div');t.className='dlg-text';
+    t.innerHTML=`Potwory nekaja okolice. Zabij <b>${quest.need} ${quest.targetName}ow</b> a wynagrodze cie sowicie.<br><br>
+      Nagroda: <b>${quest.rewardGold} 🪙</b> oraz <b>${quest.rewardXp} XP</b>.`;
+    body.appendChild(t);
+    const b=document.createElement('button');b.className='dlg-btn primary';
+    b.textContent='Przyjmij zadanie';
+    b.addEventListener('click',()=>{quest.active=true;quest.done=false;quest.have=0;
+      toast('Zadanie przyjete');closeDialog();});
+    body.appendChild(b);
+  }else if(!quest.done){
+    const t=document.createElement('div');t.className='dlg-text';
+    t.innerHTML=`Postep: <b>${quest.have}/${quest.need} ${quest.targetName}ow</b>.<br>Wracaj gdy skonczysz.`;
+    body.appendChild(t);
+    const b=document.createElement('button');b.className='dlg-btn';
+    b.textContent='Zamknij';b.addEventListener('click',closeDialog);body.appendChild(b);
+  }else{
+    const t=document.createElement('div');t.className='dlg-text';
+    t.innerHTML=`Swietna robota! Oto twoja nagroda: <b>${quest.rewardGold} 🪙</b> i <b>${quest.rewardXp} XP</b>.`;
+    body.appendChild(t);
+    const b=document.createElement('button');b.className='dlg-btn primary';
+    b.textContent='Odbierz nagrode';
+    b.addEventListener('click',()=>{
+      player.gold+=quest.rewardGold;giveXP(quest.rewardXp);
+      quest.active=false;quest.done=false;quest.have=0;
+      toast('Nagroda odebrana!');closeDialog();
+    });
+    body.appendChild(b);
+  }
+}
+function renderVillager(body){
+  const lines=['Piekny dzien, prawda?','Slyszalem o smokach w gorach...',
+    'Soltys ma dla ciebie prace.','Kupiec ma swieze mikstury.',
+    'Uwazaj na potwory nocą.','Witaj w naszej wiosce, magu.'];
+  const t=document.createElement('div');t.className='dlg-text';
+  t.textContent=lines[(Math.random()*lines.length)|0];body.appendChild(t);
+  const b=document.createElement('button');b.className='dlg-btn';
+  b.textContent='Zegnaj';b.addEventListener('click',closeDialog);body.appendChild(b);
+}
+document.getElementById('dlg-x').addEventListener('click',closeDialog);
+document.getElementById('interact-prompt').addEventListener('click',()=>{
+  if(_activeNPC)openDialog(_activeNPC);
+});
+
 // ── spell & item selection ──
 function selectSpell(idx){
   if(!SPELLS[idx])return;
@@ -900,9 +1164,39 @@ function selectSpell(idx){
   document.getElementById('spellname').textContent=SPELLS[idx].name;
 }
 function selectItem(idx){
+  const it=ITEMS[idx];
+  // mikstura -> wypij od razu (nie zmienia trzymanego przedmiotu)
+  if(it&&it.type==='consumable'){useConsumable(idx);return;}
   player.heldItem=idx;
   document.querySelectorAll('#hotbar .slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
   updateAttackIcon();
+}
+function useConsumable(idx){
+  const it=ITEMS[idx];if(!it)return;
+  if(playerDead)return;
+  if(it.effect.hp){
+    if(player.hp>=player.maxHp){toast('HP juz pelne');return;}
+    player.hp=Math.min(player.maxHp,player.hp+it.effect.hp);
+  }
+  if(it.effect.mana){
+    if(player.mana>=player.maxMana){toast('Mana juz pelna');return;}
+    player.mana=Math.min(player.maxMana,player.mana+it.effect.mana);
+  }
+  toast('Wypito: '+it.name);
+  it.count--;
+  if(it.count<=0)ITEMS[idx]=null;
+  buildItembar();
+}
+function addToInventory(def){
+  // dolacz do istniejacego stosu lub do pierwszego wolnego slotu (1..6)
+  for(let i=1;i<ITEMS.length;i++){
+    const it=ITEMS[i];
+    if(it&&it.id===def.id){it.count++;buildItembar();return true;}
+  }
+  for(let i=1;i<ITEMS.length;i++){
+    if(!ITEMS[i]){ITEMS[i]={...def,count:1};buildItembar();return true;}
+  }
+  toast('Ekwipunek pelny');return false;
 }
 function heldIsWand(){
   const it=ITEMS[player.heldItem];
@@ -1223,6 +1517,13 @@ function killMob(idx){
   xpState.kills++;destroyed++;
   document.getElementById('score').textContent='💠 '+destroyed;
   giveXP(m.type.xp);
+  // zloto
+  player.gold+=m.type.gold;
+  // postep zadania
+  if(quest.active&&!quest.done&&m.type.id===quest.target){
+    quest.have++;
+    if(quest.have>=quest.need){quest.done=true;toast('Zadanie ukonczone! Wroc do zleceniodawcy');}
+  }
   const pos=m.mesh.position.clone();
   const col=m.type.id==='skeleton'?0xd4c9a8:m.type.id==='wolf'?0x4a3a2a:0x8888dd;
   for(let j=0;j<8;j++){
@@ -1234,6 +1535,8 @@ function killMob(idx){
   }
   const fp=pos.clone();fp.y+=m.type.height+0.5;
   floatNumber(fp,'+'+m.type.xp+' XP','#66ff66');
+  const gp=pos.clone();gp.y+=m.type.height+0.9;
+  floatNumber(gp,'+'+m.type.gold+'🪙','#f0d070');
   _scene.remove(m.mesh);
   disposeMob(m);
   mobs.splice(idx,1);
@@ -1378,6 +1681,10 @@ function setupDesktopInput(){
     keys[e.code]=true;
     if(e.code==='ShiftLeft')sprinting=true;
     if(e.code>='Digit1'&&e.code<='Digit7')selectSpell(parseInt(e.code.replace('Digit',''))-1);
+    if(e.code==='KeyE'){
+      if(dialogOpen){closeDialog();}
+      else if(_activeNPC){openDialog(_activeNPC);}
+    }
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
   overlay.addEventListener('click',()=>document.body.requestPointerLock());
@@ -1458,7 +1765,7 @@ function setupMobileInput(){
 }
 
 function updatePlayer(dt,camera){
-  if(playerDead)return;
+  if(playerDead||dialogOpen)return;
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
   else{
@@ -1494,6 +1801,7 @@ function updateHUD(camera){
   document.querySelector('.bar-xp .bar-fill').style.width=(xpState.xp/xpState.xpNext*100)+'%';
   document.querySelector('.bar-xp .bar-label').textContent=`XP ${xpState.xp}/${xpState.xpNext}`;
   document.getElementById('lvl-badge').textContent='Poz. '+xpState.level;
+  document.getElementById('gold').textContent='🪙 '+player.gold;
   // wskaznik najblizszej struktury — strzalka wzgledem patrzenia
   const lm=nearestLandmark(p.x,p.z);
   if(lm){
@@ -1524,6 +1832,7 @@ function initWorld(){
   updateChunks(scene,camera);
   rebuildScenery(scene,camera.position.x,camera.position.z);
   buildStructures(scene);
+  buildNPCs(scene,LANDMARKS.village.x,LANDMARKS.village.z);
   buildTargets(scene);
   selectSpell(0);selectItem(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
@@ -1535,7 +1844,7 @@ function initWorld(){
   function loop(now){
     requestAnimationFrame(loop);
     let dt=(now-last)/1000;last=now;if(dt>0.05)dt=0.05;
-    if(casting&&!playerDead)attemptCast(now);
+    if(casting&&!playerDead&&!dialogOpen)attemptCast(now);
     if(!playerDead)player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
     updatePlayer(dt,camera);
     if(_sun){_sun.position.set(camera.position.x+50,camera.position.y+90,camera.position.z+30);
@@ -1545,6 +1854,13 @@ function initWorld(){
     updateStructures(now);
     updateProjectiles(dt);updateImpacts(dt);updateTargets(dt,now);
     updateMobs(dt,now,camera,scene);
+    updateNPCs(dt,now,camera);
+    _activeNPC=findInteractNPC(camera);
+    const ipEl=document.getElementById('interact-prompt');
+    if(_activeNPC&&!dialogOpen){
+      document.getElementById('interact-name').textContent=_activeNPC.name;
+      ipEl.classList.add('show');
+    }else{ipEl.classList.remove('show');}
     updateHUD(camera);
     renderer.render(scene,camera);
   }
