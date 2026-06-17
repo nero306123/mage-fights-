@@ -478,7 +478,7 @@ const joyState={active:false,dx:0,dy:0,id:null};
 const lookState={active:false,id:null,lastX:0,lastY:0};
 
 const player={ hp:100, maxHp:100, mana:1000, maxMana:1000, manaRegen:1000/120,
-               selSpell:0, lastCast:0, heldItem:0 };
+               selSpell:0, lastCast:0, lastMelee:0, heldItem:0 };
 const xpState={ level:1, xp:0, xpNext:100, kills:0 };
 const projectiles=[];
 const impacts=[];
@@ -582,6 +582,9 @@ function updateAttackIcon(){
 }
 function meleeSwing(){
   if(playerDead)return;
+  const now=performance.now();
+  if(now-player.lastMelee<600)return;
+  player.lastMelee=now;
   const c=document.getElementById('crosshair');
   c.style.transform='translate(-50%,-50%) scale(1.5)';
   setTimeout(()=>{c.style.transform='translate(-50%,-50%)';},90);
