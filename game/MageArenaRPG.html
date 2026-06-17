@@ -287,6 +287,77 @@
   .dlg-gold{text-align:right;font-size:13px;color:#f0d070;font-weight:700;
     margin-bottom:6px}
 
+  /* ── CHARACTER PANEL ──────────────────────────────── */
+  #char-panel{position:absolute;inset:0;z-index:21;background:rgba(6,9,16,.82);
+    display:none;align-items:center;justify-content:center;pointer-events:auto;
+    padding:12px}
+  #char-panel.open{display:flex}
+  .cp-wrap{width:100%;max-width:460px;max-height:88vh;overflow-y:auto;
+    background:linear-gradient(180deg,rgba(24,32,54,.98),rgba(14,18,32,.98));
+    border:2px solid rgba(232,200,106,.4);border-radius:16px;padding:16px;
+    box-shadow:0 12px 50px rgba(0,0,0,.6);animation:fade .25s ease}
+  .cp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .cp-title{font-size:20px;font-weight:700;color:#e8c86a;letter-spacing:1px}
+  .cp-close{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);
+    border-radius:8px;color:#ccc;font-size:16px;width:34px;height:34px;cursor:pointer}
+
+  .cp-section{margin-bottom:14px}
+  .cp-label{font-size:12px;color:#8a98b4;text-transform:uppercase;letter-spacing:1px;
+    margin-bottom:6px;font-weight:600}
+
+  .cp-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+  .cp-stat{display:flex;align-items:center;gap:6px;
+    background:rgba(0,0,0,.3);border-radius:8px;padding:6px 10px}
+  .cp-stat-icon{font-size:16px;width:20px;text-align:center}
+  .cp-stat-info{flex:1;min-width:0}
+  .cp-stat-name{font-size:11px;color:#8a98b4}
+  .cp-stat-val{font-size:15px;color:#e8e0c8;font-weight:700}
+
+  .cp-attrs{display:flex;flex-direction:column;gap:5px}
+  .cp-attr{display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.28);border-radius:8px;padding:7px 10px}
+  .cp-attr-name{flex:1;font-size:13px;color:#d8d0c0;font-weight:600}
+  .cp-attr-desc{font-size:10px;color:#7a89a8;flex:2;line-height:1.3}
+  .cp-attr-val{font-size:15px;color:#e8c86a;font-weight:800;min-width:24px;text-align:center}
+  .cp-attr-btn{background:linear-gradient(180deg,#3a6b2a,#1e4a14);
+    border:1px solid rgba(160,220,120,.5);border-radius:6px;color:#eaffe0;
+    font-size:16px;font-weight:800;width:28px;height:28px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center}
+  .cp-attr-btn:active{transform:scale(.9)}
+  .cp-attr-btn:disabled{opacity:.3;background:#333;border-color:#444}
+  .cp-pts{text-align:center;font-size:13px;color:#e8c86a;font-weight:700;
+    margin-bottom:8px}
+
+  .cp-spells{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  .cp-spell{display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);
+    border-radius:8px;padding:6px 4px;cursor:pointer;position:relative}
+  .cp-spell.active{border-color:#9ad0ff;box-shadow:0 0 10px rgba(120,170,255,.4)}
+  .cp-spell.locked{opacity:.35;cursor:not-allowed}
+  .cp-spell-icon{font-size:22px}
+  .cp-spell-name{font-size:8px;color:#8a98b4;text-align:center;line-height:1.2}
+  .cp-spell-lvl{position:absolute;top:2px;right:4px;font-size:8px;color:#e8c86a;font-weight:700}
+
+  #inv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .inv-slot{width:100%;aspect-ratio:1;background:rgba(0,0,0,.35);
+    border:2px solid rgba(255,255,255,.12);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:24px;
+    cursor:pointer;position:relative}
+  .inv-slot.hotbar-slot{border-color:rgba(232,200,106,.3)}
+  .inv-slot:active{transform:scale(.95)}
+  .inv-count{position:absolute;bottom:1px;right:3px;font-size:11px;
+    color:#fff;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
+
+  #char-btn{position:absolute;top:10px;left:50%;margin-left:90px;
+    background:rgba(0,0,0,.55);border:1px solid rgba(232,200,106,.4);
+    border-radius:8px;color:#e8c86a;font-size:12px;font-weight:700;
+    padding:6px 10px;pointer-events:auto;cursor:pointer;z-index:3;
+    letter-spacing:.5px}
+  #char-btn:active{transform:scale(.95)}
+  #char-btn .pts-badge{background:#c0392b;color:#fff;border-radius:50%;
+    font-size:9px;width:16px;height:16px;display:inline-flex;align-items:center;
+    justify-content:center;margin-left:4px;vertical-align:middle}
+
   @media(max-width:900px){
     #hotbar .slot{width:48px;height:48px;font-size:22px}
     .bar-wrap{width:112px;height:12px}
@@ -420,6 +491,32 @@
       <div class="dlg-body" id="dlg-body"></div>
     </div>
   </div>
+  <button id="char-btn">POSTAC</button>
+  <div id="char-panel">
+    <div class="cp-wrap">
+      <div class="cp-head">
+        <span class="cp-title">Postac</span>
+        <button class="cp-close" id="cp-close">✕</button>
+      </div>
+      <div class="cp-section">
+        <div class="cp-label">Statystyki</div>
+        <div class="cp-stats" id="cp-stats"></div>
+      </div>
+      <div class="cp-section">
+        <div class="cp-pts" id="cp-pts"></div>
+        <div class="cp-label">Umiejetnosci</div>
+        <div class="cp-attrs" id="cp-attrs"></div>
+      </div>
+      <div class="cp-section">
+        <div class="cp-label">Zaklecia</div>
+        <div class="cp-spells" id="cp-spells"></div>
+      </div>
+      <div class="cp-section">
+        <div class="cp-label">Ekwipunek (20 slotow)</div>
+        <div id="inv-grid"></div>
+      </div>
+    </div>
+  </div>
   <div id="overlay"><span>Kliknij aby grac</span></div>
   <div id="death-overlay">
     <div class="death-title" id="death-title">SMIERC</div>
@@ -439,18 +536,31 @@ import * as THREE from 'three';
 // ═══ SPELLS ═══════════════════════════════════════════
 const SPELLS = [
   { id:'bolt',  name:'Magiczny Pocisk', icon:'✦', color:0x66ccff, light:0x4488ff,
-    mana:30,  dmg:18, speed:48, size:0.26, life:2.2, cd:0.32, gravity:0 },
+    mana:30,  dmg:18, speed:48, size:0.26, life:2.2, cd:0.32, gravity:0, lvl:1 },
   { id:'fire',  name:'Kula Ognia',      icon:'🔥', color:0xff7a22, light:0xff5500,
-    mana:120, dmg:55, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5 },
+    mana:120, dmg:55, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5, lvl:1 },
   { id:'frost', name:'Lodowa Iglica',   icon:'❄', color:0x9cf0ff, light:0x66ddff,
-    mana:65,  dmg:30, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0 },
+    mana:65,  dmg:30, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0, lvl:1 },
+  { id:'chain', name:'Lancuch Blyskawic',icon:'⚡', color:0xeedd44, light:0xddcc22,
+    mana:90,  dmg:38, speed:60, size:0.2,  life:1.6, cd:0.55, gravity:0, lvl:3 },
+  { id:'poison',name:'Trujaca Chmura',  icon:'☠️', color:0x55cc33, light:0x44aa22,
+    mana:75,  dmg:42, speed:30, size:0.52, life:3.0, cd:0.85, gravity:2, lvl:4 },
+  { id:'void',  name:'Pocisk Pustki',   icon:'🌀', color:0x9944dd, light:0x7733bb,
+    mana:150, dmg:70, speed:34, size:0.44, life:2.8, cd:1.0,  gravity:0, lvl:6 },
+  { id:'holy',  name:'Swiatlo Oczyszczenia', icon:'✨', color:0xffeebb, light:0xffdd88,
+    mana:100, dmg:48, speed:52, size:0.32, life:2.0, cd:0.6,  gravity:0, lvl:5 },
+  { id:'meteor',name:'Meteor',          icon:'☄️', color:0xff4400, light:0xdd3300,
+    mana:250, dmg:120,speed:28, size:0.7,  life:3.5, cd:2.0,  gravity:12,lvl:8 },
+  { id:'ice',   name:'Lodowa Burza',    icon:'🌨️', color:0xaaeeff, light:0x88ccff,
+    mana:180, dmg:65, speed:42, size:0.55, life:2.4, cd:1.2,  gravity:3, lvl:7 },
+  { id:'dark',  name:'Mroczna Kula',    icon:'🖤', color:0x440066, light:0x330044,
+    mana:200, dmg:90, speed:36, size:0.5,  life:3.0, cd:1.5,  gravity:0, lvl:10 },
 ];
 
 // ═══ ITEMS (hotbar) ═══════════════════════════════════
-const ITEMS = [
-  { id:'wand', name:'Rozdzka', icon:'🪄', type:'wand' },
-  null, null, null, null, null, null
-];
+const INV_SIZE=20;
+const ITEMS = new Array(INV_SIZE).fill(null);
+ITEMS[0]={ id:'wand', name:'Rozdzka', icon:'🪄', type:'wand' };
 
 // ═══ MOB TYPES ═══════════════════════════════════════
 const MOB_TYPES = [
@@ -517,8 +627,9 @@ document.getElementById('start-game').addEventListener('click',()=>{
 function buildSpellbar(){
   const sb=document.getElementById('spellbar');sb.innerHTML='';
   SPELLS.forEach((sp,i)=>{
+    if(sp.lvl>xpState.level)return;
     const el=document.createElement('div');
-    el.className='spell-slot'+(i===0?' active':'');
+    el.className='spell-slot'+(i===player.selSpell?' active':'');
     el.dataset.spell=i;
     el.innerHTML=`${sp.icon}<span class="spell-cost">${sp.mana}</span>`;
     const g=document.createElement('div');g.className='spell-glow';
@@ -540,6 +651,24 @@ function buildItembar(){
     slot.innerHTML=inner;
     slot.addEventListener('click',()=>selectItem(i));
     hb.appendChild(slot);
+  }
+}
+function buildInvGrid(){
+  const g=document.getElementById('inv-grid');if(!g)return;g.innerHTML='';
+  for(let i=0;i<INV_SIZE;i++){
+    const it=ITEMS[i];
+    const slot=document.createElement('div');
+    slot.className='inv-slot'+(i<7?' hotbar-slot':'');
+    slot.dataset.idx=i;
+    let inner=it?it.icon:'';
+    if(it&&it.type==='consumable'&&it.count>1)inner+=`<span class="inv-count">${it.count}</span>`;
+    slot.innerHTML=inner;
+    slot.title=it?it.name:'Pusty slot';
+    slot.addEventListener('click',()=>{
+      if(!it)return;
+      if(it.type==='consumable'){useConsumable(i);buildInvGrid();buildItembar();}
+    });
+    g.appendChild(slot);
   }
 }
 function startGame(){
@@ -621,7 +750,8 @@ const lookState={active:false,id:null,lastX:0,lastY:0};
 
 const player={hp:100,maxHp:100,mana:1000,maxMana:1000,manaRegen:1000/120,
               selSpell:0,lastCast:0,lastMelee:0,heldItem:0,gold:0};
-let dialogOpen=false;
+const stats={magPow:0,endurance:0,regen:0,spellPts:0};
+let charOpen=false,dialogOpen=false;
 const xpState={level:1,xp:0,xpNext:100,kills:0};
 const projectiles=[];
 const impacts=[];
@@ -1155,10 +1285,13 @@ document.getElementById('dlg-x').addEventListener('click',closeDialog);
 document.getElementById('interact-prompt').addEventListener('click',()=>{
   if(_activeNPC)openDialog(_activeNPC);
 });
+document.getElementById('char-btn').addEventListener('click',toggleCharPanel);
+document.getElementById('cp-close').addEventListener('click',closeCharPanel);
 
 // ── spell & item selection ──
 function selectSpell(idx){
   if(!SPELLS[idx])return;
+  if(SPELLS[idx].lvl>xpState.level){toast('Wymaga poziomu '+SPELLS[idx].lvl);return;}
   player.selSpell=idx;
   document.querySelectorAll('.spell-slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
   document.getElementById('spellname').textContent=SPELLS[idx].name;
@@ -1188,16 +1321,97 @@ function useConsumable(idx){
   buildItembar();
 }
 function addToInventory(def){
-  // dolacz do istniejacego stosu lub do pierwszego wolnego slotu (1..6)
-  for(let i=1;i<ITEMS.length;i++){
+  for(let i=1;i<INV_SIZE;i++){
     const it=ITEMS[i];
     if(it&&it.id===def.id){it.count++;buildItembar();return true;}
   }
-  for(let i=1;i<ITEMS.length;i++){
+  for(let i=1;i<INV_SIZE;i++){
     if(!ITEMS[i]){ITEMS[i]={...def,count:1};buildItembar();return true;}
   }
   toast('Ekwipunek pelny');return false;
 }
+function openCharPanel(){
+  charOpen=true;
+  document.getElementById('char-panel').classList.add('open');
+  renderCharPanel();
+}
+function closeCharPanel(){
+  charOpen=false;
+  document.getElementById('char-panel').classList.remove('open');
+}
+function toggleCharPanel(){
+  if(charOpen)closeCharPanel();else openCharPanel();
+}
+function renderCharPanel(){
+  const baseMaxHp=100+(xpState.level-1)*10;
+  const totalMaxHp=baseMaxHp+maxHpBonus();
+  const st=document.getElementById('cp-stats');
+  st.innerHTML=`
+    <div class="cp-stat"><span class="cp-stat-icon">❤️</span><div class="cp-stat-info">
+      <div class="cp-stat-name">Zdrowie</div><div class="cp-stat-val">${Math.round(player.hp)}/${totalMaxHp}</div></div></div>
+    <div class="cp-stat"><span class="cp-stat-icon">🔵</span><div class="cp-stat-info">
+      <div class="cp-stat-name">Mana</div><div class="cp-stat-val">${Math.round(player.mana)}/${player.maxMana}</div></div></div>
+    <div class="cp-stat"><span class="cp-stat-icon">⭐</span><div class="cp-stat-info">
+      <div class="cp-stat-name">Poziom</div><div class="cp-stat-val">${xpState.level}</div></div></div>
+    <div class="cp-stat"><span class="cp-stat-icon">✨</span><div class="cp-stat-info">
+      <div class="cp-stat-name">Doswiadczenie</div><div class="cp-stat-val">${xpState.xp}/${xpState.xpNext}</div></div></div>
+    <div class="cp-stat"><span class="cp-stat-icon">🪙</span><div class="cp-stat-info">
+      <div class="cp-stat-name">Zloto</div><div class="cp-stat-val">${player.gold}</div></div></div>
+    <div class="cp-stat"><span class="cp-stat-icon">💀</span><div class="cp-stat-info">
+      <div class="cp-stat-name">Zabojstwa</div><div class="cp-stat-val">${xpState.kills}</div></div></div>`;
+
+  const pts=document.getElementById('cp-pts');
+  pts.textContent=stats.spellPts>0?`Wolne punkty: ${stats.spellPts}`:'Brak wolnych punktow';
+
+  const ATTR_DEF=[
+    {key:'magPow',name:'Sila Magiczna',desc:'+8% obrazen zaklec za punkt',icon:'🔮'},
+    {key:'endurance',name:'Wytrzymalosc',desc:'+15 maks. HP za punkt',icon:'🛡️'},
+    {key:'regen',name:'Regeneracja',desc:'+12% regeneracji many za punkt',icon:'💧'},
+  ];
+  const at=document.getElementById('cp-attrs');at.innerHTML='';
+  for(const a of ATTR_DEF){
+    const row=document.createElement('div');row.className='cp-attr';
+    row.innerHTML=`<span style="font-size:18px">${a.icon}</span>
+      <span class="cp-attr-name">${a.name}</span>
+      <span class="cp-attr-desc">${a.desc}</span>
+      <span class="cp-attr-val">${stats[a.key]}</span>`;
+    const btn=document.createElement('button');btn.className='cp-attr-btn';btn.textContent='+';
+    btn.disabled=stats.spellPts<=0;
+    btn.addEventListener('click',()=>{
+      if(stats.spellPts<=0)return;
+      stats.spellPts--;stats[a.key]++;
+      if(a.key==='endurance'){
+        player.maxHp=100+(xpState.level-1)*10+maxHpBonus();
+        player.hp=Math.min(player.hp,player.maxHp);
+      }
+      applyStats();renderCharPanel();updateCharBtn();
+    });
+    row.appendChild(btn);at.appendChild(row);
+  }
+
+  const sp=document.getElementById('cp-spells');sp.innerHTML='';
+  SPELLS.forEach((s,i)=>{
+    const locked=s.lvl>xpState.level;
+    const el=document.createElement('div');
+    el.className='cp-spell'+(i===player.selSpell?' active':'')+(locked?' locked':'');
+    el.innerHTML=`<span class="cp-spell-icon">${s.icon}</span>
+      <span class="cp-spell-name">${locked?'Poz. '+s.lvl:s.name}</span>
+      ${locked?'<span class="cp-spell-lvl">🔒'+s.lvl+'</span>':''}`;
+    if(!locked)el.addEventListener('click',()=>{selectSpell(i);renderCharPanel();});
+    sp.appendChild(el);
+  });
+
+  buildInvGrid();
+}
+function updateCharBtn(){
+  const btn=document.getElementById('char-btn');
+  if(stats.spellPts>0){
+    btn.innerHTML='POSTAC <span class="pts-badge">'+stats.spellPts+'</span>';
+  }else{
+    btn.textContent='POSTAC';
+  }
+}
+
 function heldIsWand(){
   const it=ITEMS[player.heldItem];
   return !!(it && it.type==='wand');
@@ -1238,7 +1452,7 @@ function spawnProjectile(scene,camera,sp){
   mesh.position.copy(start);
   mesh.add(new THREE.PointLight(sp.light,2.2,9));
   scene.add(mesh);
-  projectiles.push({mesh,mat,vel:dir.clone().multiplyScalar(sp.speed),life:sp.life,gravity:sp.gravity,color:sp.light,dmg:sp.dmg});
+  projectiles.push({mesh,mat,vel:dir.clone().multiplyScalar(sp.speed),life:sp.life,gravity:sp.gravity,color:sp.light,dmg:Math.round(sp.dmg*spellDmgMul())});
 }
 function spawnImpact(scene,pos,color){
   const geo=new THREE.SphereGeometry(0.3,10,10);
@@ -1667,12 +1881,23 @@ function giveXP(amount){
     xpState.xp-=xpState.xpNext;
     xpState.level++;
     xpState.xpNext=Math.floor(100*Math.pow(xpState.level,1.15));
-    player.maxHp+=10;player.hp=player.maxHp;
-    player.maxMana+=50;player.mana=player.maxMana;
-    player.manaRegen=player.maxMana/120;
-    toast('Poziom '+xpState.level+'! +10 HP, +50 Mana');
+    player.maxHp=100+(xpState.level-1)*10+maxHpBonus();player.hp=player.maxHp;
+    player.maxMana=1000+(xpState.level-1)*50;player.mana=player.maxMana;
+    applyStats();
+    stats.spellPts+=2;
+    toast('Poziom '+xpState.level+'! +2 pkt umiejętności');
+    checkNewSpells();updateCharBtn();
   }
 }
+function checkNewSpells(){
+  const unlocked=SPELLS.filter(s=>s.lvl<=xpState.level);
+  if(unlocked.length>document.querySelectorAll('.spell-slot').length)buildSpellbar();
+}
+function applyStats(){
+  player.manaRegen=(player.maxMana/120)*(1+stats.regen*0.12);
+}
+function spellDmgMul(){return 1+stats.magPow*0.08;}
+function maxHpBonus(){return stats.endurance*15;}
 
 // ── input ──
 function setupDesktopInput(){
@@ -1685,6 +1910,7 @@ function setupDesktopInput(){
       if(dialogOpen){closeDialog();}
       else if(_activeNPC){openDialog(_activeNPC);}
     }
+    if(e.code==='Tab'){e.preventDefault();toggleCharPanel();}
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
   overlay.addEventListener('click',()=>document.body.requestPointerLock());
@@ -1735,7 +1961,7 @@ function setupMobileInput(){
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
 
-  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game');
+  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel');
   document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
       if(t.clientX>window.innerWidth*0.46&&!lookState.active){
@@ -1765,7 +1991,7 @@ function setupMobileInput(){
 }
 
 function updatePlayer(dt,camera){
-  if(playerDead||dialogOpen)return;
+  if(playerDead||dialogOpen||charOpen)return;
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
   else{
@@ -1844,7 +2070,7 @@ function initWorld(){
   function loop(now){
     requestAnimationFrame(loop);
     let dt=(now-last)/1000;last=now;if(dt>0.05)dt=0.05;
-    if(casting&&!playerDead&&!dialogOpen)attemptCast(now);
+    if(casting&&!playerDead&&!dialogOpen&&!charOpen)attemptCast(now);
     if(!playerDead)player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
     updatePlayer(dt,camera);
     if(_sun){_sun.position.set(camera.position.x+50,camera.position.y+90,camera.position.z+30);
