@@ -379,8 +379,8 @@ function updatePlayer(dt, camera) {
   const sinY = Math.sin(yaw);
   const cosY = Math.cos(yaw);
 
-  const worldX = moveX * cosY - moveZ * sinY;
-  const worldZ = moveX * sinY + moveZ * cosY;
+  const worldX = moveX * cosY + moveZ * sinY;
+  const worldZ = -moveX * sinY + moveZ * cosY;
 
   let px = camera.position.x + worldX * spd;
   let pz = camera.position.z + worldZ * spd;

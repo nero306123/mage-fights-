@@ -406,8 +406,8 @@ function updatePlayer(dt, camera) {
   if(len>0.01){mx/=len;mz/=len;}
   const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*dt;
   const sinY=Math.sin(yaw), cosY=Math.cos(yaw);
-  let px=camera.position.x+(mx*cosY-mz*sinY)*spd;
-  let pz=camera.position.z+(mx*sinY+mz*cosY)*spd;
+  let px=camera.position.x+(mx*cosY+mz*sinY)*spd;
+  let pz=camera.position.z+(-mx*sinY+mz*cosY)*spd;
   const half=WORLD_SZ*0.48;
   px=THREE.MathUtils.clamp(px,-half,half);
   pz=THREE.MathUtils.clamp(pz,-half,half);
