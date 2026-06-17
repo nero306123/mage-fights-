@@ -119,39 +119,52 @@
   #compass{color:#e8c86a;font-weight:600;min-width:22px;text-align:center}
   #classname{color:#9ad0ff;font-weight:600}
 
-  #bars{position:absolute;bottom:66px;left:50%;transform:translateX(-50%);
+  #bars{position:absolute;bottom:74px;left:50%;transform:translateX(-50%);
     display:flex;gap:12px;align-items:center}
   .bar-wrap{width:140px;height:14px;background:rgba(0,0,0,.6);
     border:1px solid rgba(255,255,255,.15);border-radius:7px;overflow:hidden;
     position:relative}
-  .bar-fill{height:100%;border-radius:7px;transition:width .3s}
+  .bar-fill{height:100%;border-radius:7px;transition:width .12s linear}
   .bar-hp .bar-fill{background:linear-gradient(90deg,#8b1a1a,#c0392b);width:100%}
   .bar-mana .bar-fill{background:linear-gradient(90deg,#1a3a8b,#2980b9);width:100%}
   .bar-label{position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;font-size:10px;color:#ddd;
     text-shadow:0 1px 2px #000;font-weight:600}
 
+  #spellname{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);
+    color:#cfe0ff;font-size:12px;letter-spacing:1px;text-shadow:0 1px 3px #000;
+    font-weight:600}
+
   #hotbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
     display:flex;gap:4px}
   .slot{width:44px;height:44px;background:rgba(0,0,0,.6);
-    border:2px solid rgba(255,255,255,.18);border-radius:6px;position:relative}
-  .slot.active{border-color:#e8c86a}
+    border:2px solid rgba(255,255,255,.18);border-radius:6px;position:relative;
+    display:flex;align-items:center;justify-content:center;font-size:22px}
+  .slot.active{border-color:#e8c86a;box-shadow:0 0 12px rgba(232,200,106,.4)}
   .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
+  .slot-glow{position:absolute;inset:0;border-radius:4px;opacity:.18}
 
-  #joystick-zone{position:absolute;bottom:90px;left:0;width:44%;height:46%;
+  #joystick-base{position:absolute;left:38px;bottom:120px;width:120px;height:120px;
+    border-radius:50%;background:rgba(255,255,255,.06);
+    border:2px solid rgba(255,255,255,.16);pointer-events:none}
+  #joystick-knob{position:absolute;width:52px;height:52px;border-radius:50%;
+    background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);
+    pointer-events:none}
+  #joystick-zone{position:absolute;left:0;bottom:0;width:46%;height:55%;
     pointer-events:auto}
-  #joystick-base{position:absolute;width:110px;height:110px;border-radius:50%;
-    background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);
-    display:none;pointer-events:none}
-  #joystick-knob{position:absolute;width:46px;height:46px;border-radius:50%;
-    background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.25);
-    display:none;pointer-events:none}
 
-  #jump-btn{position:absolute;bottom:110px;right:30px;width:64px;height:64px;
+  #jump-btn{position:absolute;bottom:200px;right:34px;width:56px;height:56px;
     border-radius:50%;background:rgba(255,255,255,.1);
-    border:2px solid rgba(255,255,255,.2);color:#aaa;font-size:12px;
+    border:2px solid rgba(255,255,255,.2);color:#aaa;font-size:11px;
     display:none;align-items:center;justify-content:center;
     pointer-events:auto;font-weight:600}
+  #cast-btn{position:absolute;bottom:110px;right:26px;width:74px;height:74px;
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 40%,rgba(120,170,255,.35),rgba(40,70,140,.5));
+    border:2px solid rgba(150,200,255,.6);color:#dceaff;font-size:30px;
+    display:none;align-items:center;justify-content:center;
+    pointer-events:auto;text-shadow:0 0 10px rgba(120,170,255,.8)}
+  #cast-btn:active{transform:scale(.93)}
 
   #fs-game{position:absolute;top:10px;right:10px;
     background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);
@@ -166,10 +179,11 @@
   #overlay.hidden{display:none}
 
   @media(max-width:900px){
-    #hotbar .slot{width:38px;height:38px}
-    .bar-wrap{width:110px;height:12px}
+    #hotbar .slot{width:40px;height:40px;font-size:20px}
+    .bar-wrap{width:112px;height:12px}
     #topbar{font-size:11px;padding:3px 10px}
     #jump-btn{display:flex}
+    #cast-btn{display:flex}
   }
 </style>
 </head>
@@ -179,7 +193,6 @@
 <div id="menu">
   <button id="fs-menu" title="Pelny ekran">⛶</button>
 
-  <!-- TITLE -->
   <div class="menu-screen active" id="screen-title">
     <div class="game-title">MAGE ARENA</div>
     <div class="game-sub">RPG</div>
@@ -187,43 +200,37 @@
     <button class="btn" disabled>Kontynuuj</button>
   </div>
 
-  <!-- CLASS SELECT -->
   <div class="menu-screen" id="screen-class">
     <div class="screen-head">Wybierz Klase</div>
     <div class="screen-desc">Kazda klasa to inny styl gry. Na razie dostepny jest Mag — reszta wkrotce.</div>
     <div class="class-grid" id="class-grid">
-      <div class="class-card" data-class="mag" data-icon="🔮">
+      <div class="class-card" data-class="mag">
         <div class="class-icon">🔮</div>
         <div class="class-name">Mag</div>
         <div class="class-tag">Wladca zywiolow. Rozdzka, mana i dziesiatki zaklec o roznej rzadkosci.</div>
       </div>
       <div class="class-card locked" data-class="wampir">
-        <div class="class-lock">Wkrotce</div>
-        <div class="class-icon">🦇</div>
+        <div class="class-lock">Wkrotce</div><div class="class-icon">🦇</div>
         <div class="class-name">Wampir</div>
         <div class="class-tag">System krwi, slabosc na slonce, mroczne moce pasywne.</div>
       </div>
       <div class="class-card locked" data-class="nekromanta">
-        <div class="class-lock">Wkrotce</div>
-        <div class="class-icon">💀</div>
+        <div class="class-lock">Wkrotce</div><div class="class-icon">💀</div>
         <div class="class-name">Nekromanta</div>
         <div class="class-tag">Przyzywa armie cieni. Punkty cienia i ewolucja pupila.</div>
       </div>
       <div class="class-card locked" data-class="czlowiek">
-        <div class="class-lock">Wkrotce</div>
-        <div class="class-icon">⚔️</div>
+        <div class="class-lock">Wkrotce</div><div class="class-icon">⚔️</div>
         <div class="class-name">Czlowiek</div>
         <div class="class-tag">Wszechstronny wojownik. Balans, bron i adaptacja.</div>
       </div>
       <div class="class-card locked" data-class="atlantyda">
-        <div class="class-lock">Wkrotce</div>
-        <div class="class-icon">🔱</div>
+        <div class="class-lock">Wkrotce</div><div class="class-icon">🔱</div>
         <div class="class-name">Atlantyda</div>
         <div class="class-tag">Starozytna magia wody i kryształow z zatopionego miasta.</div>
       </div>
       <div class="class-card locked" data-class="nieumarly">
-        <div class="class-lock">Wkrotce</div>
-        <div class="class-icon">🧟</div>
+        <div class="class-lock">Wkrotce</div><div class="class-icon">🧟</div>
         <div class="class-name">Nieumarly</div>
         <div class="class-tag">Nie czuje bolu. Trupia wytrzymalosc i mroczne klatwy.</div>
       </div>
@@ -234,31 +241,24 @@
     </div>
   </div>
 
-  <!-- DIFFICULTY -->
   <div class="menu-screen" id="screen-difficulty">
     <div class="screen-head">Poziom Trudnosci</div>
     <div class="screen-desc">Wybierz jak surowy bedzie swiat.</div>
     <div class="diff-list" id="diff-list">
       <div class="diff-card" data-diff="hardcore">
-        <div class="diff-icon">💀</div>
-        <div>
+        <div class="diff-icon">💀</div><div>
           <div class="diff-name">Hardcore</div>
-          <div class="diff-desc">Jedno zycie. Smierc oznacza koniec gry. Bez litosci.</div>
-        </div>
+          <div class="diff-desc">Jedno zycie. Smierc oznacza koniec gry. Bez litosci.</div></div>
       </div>
       <div class="diff-card" data-diff="normal">
-        <div class="diff-icon">⚖️</div>
-        <div>
+        <div class="diff-icon">⚖️</div><div>
           <div class="diff-name">Normalny</div>
-          <div class="diff-desc">Odradzasz sie po smierci, ale tracisz przedmioty z ekwipunku.</div>
-        </div>
+          <div class="diff-desc">Odradzasz sie po smierci, ale tracisz przedmioty z ekwipunku.</div></div>
       </div>
       <div class="diff-card" data-diff="easy">
-        <div class="diff-icon">🛡️</div>
-        <div>
+        <div class="diff-icon">🛡️</div><div>
           <div class="diff-name">Latwy</div>
-          <div class="diff-desc">Odradzasz sie zachowujac caly swoj ekwipunek.</div>
-        </div>
+          <div class="diff-desc">Odradzasz sie zachowujac caly swoj ekwipunek.</div></div>
       </div>
     </div>
     <div class="nav-row">
@@ -286,21 +286,14 @@
       <div class="bar-wrap bar-mana"><div class="bar-fill"></div>
         <div class="bar-label">MANA 100/100</div></div>
     </div>
-    <div id="hotbar">
-      <div class="slot active" data-slot="1"><span class="slot-key">1</span></div>
-      <div class="slot" data-slot="2"><span class="slot-key">2</span></div>
-      <div class="slot" data-slot="3"><span class="slot-key">3</span></div>
-      <div class="slot" data-slot="4"><span class="slot-key">4</span></div>
-      <div class="slot" data-slot="5"><span class="slot-key">5</span></div>
-      <div class="slot" data-slot="6"><span class="slot-key">6</span></div>
-      <div class="slot" data-slot="7"><span class="slot-key">7</span></div>
-    </div>
+    <div id="spellname">Magiczny Pocisk</div>
+    <div id="hotbar"></div>
   </div>
-  <div id="joystick-zone">
-    <div id="joystick-base"></div>
-    <div id="joystick-knob"></div>
-  </div>
+  <div id="joystick-base"></div>
+  <div id="joystick-knob"></div>
+  <div id="joystick-zone"></div>
   <div id="jump-btn">JUMP</div>
+  <div id="cast-btn">✦</div>
   <div id="overlay"><span>Kliknij aby grac</span></div>
 </div>
 
@@ -310,66 +303,83 @@
 <script type="module">
 import * as THREE from 'three';
 
-// ═══ MENU LOGIC ═══════════════════════════════════════
-const session = { class: null, difficulty: null };
+// ═══ SPELLS ═══════════════════════════════════════════
+const SPELLS = [
+  { id:'bolt',  name:'Magiczny Pocisk', icon:'✦', color:0x66ccff, light:0x4488ff,
+    mana:8,  speed:48, size:0.26, life:2.2, cd:0.32, gravity:0 },
+  { id:'fire',  name:'Kula Ognia',      icon:'🔥', color:0xff7a22, light:0xff5500,
+    mana:18, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5 },
+  { id:'frost', name:'Lodowa Iglica',   icon:'❄', color:0x9cf0ff, light:0x66ddff,
+    mana:14, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0 },
+];
 
-function showScreen(id) {
-  document.querySelectorAll('.menu-screen').forEach(s => s.classList.remove('active'));
+// ═══ MENU LOGIC ═══════════════════════════════════════
+const session = { class:null, difficulty:null };
+
+function showScreen(id){
+  document.querySelectorAll('.menu-screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('show'), 1600);
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),1600);
 }
-function toggleFullscreen() {
-  const el = document.documentElement;
-  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-    (el.requestFullscreen || el.webkitRequestFullscreen || (()=>{})).call(el);
+function toggleFullscreen(){
+  const el=document.documentElement;
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+    (el.requestFullscreen||el.webkitRequestFullscreen||(()=>{})).call(el);
   } else {
-    (document.exitFullscreen || document.webkitExitFullscreen || (()=>{})).call(document);
+    (document.exitFullscreen||document.webkitExitFullscreen||(()=>{})).call(document);
   }
 }
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.go)));
+document.getElementById('fs-menu').addEventListener('click',toggleFullscreen);
+document.getElementById('fs-game').addEventListener('click',toggleFullscreen);
 
-document.querySelectorAll('[data-go]').forEach(b =>
-  b.addEventListener('click', () => showScreen(b.dataset.go)));
-document.getElementById('fs-menu').addEventListener('click', toggleFullscreen);
-document.getElementById('fs-game').addEventListener('click', toggleFullscreen);
-
-// class selection
-document.querySelectorAll('.class-card').forEach(card => {
-  card.addEventListener('click', () => {
-    if (card.classList.contains('locked')) { toast('Ta klasa bedzie dostepna wkrotce'); return; }
-    document.querySelectorAll('.class-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    session.class = card.dataset.class;
-    document.getElementById('class-next').disabled = false;
+document.querySelectorAll('.class-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    if(card.classList.contains('locked')){toast('Ta klasa bedzie dostepna wkrotce');return;}
+    document.querySelectorAll('.class-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');session.class=card.dataset.class;
+    document.getElementById('class-next').disabled=false;
   });
 });
-document.getElementById('class-next').addEventListener('click', () => {
-  if (session.class) showScreen('screen-difficulty');
-});
-
-// difficulty selection
-document.querySelectorAll('.diff-card').forEach(card => {
-  card.addEventListener('click', () => {
-    document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    session.difficulty = card.dataset.diff;
-    document.getElementById('start-game').disabled = false;
+document.getElementById('class-next').addEventListener('click',()=>{if(session.class)showScreen('screen-difficulty');});
+document.querySelectorAll('.diff-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    document.querySelectorAll('.diff-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');session.difficulty=card.dataset.diff;
+    document.getElementById('start-game').disabled=false;
   });
 });
-document.getElementById('start-game').addEventListener('click', () => {
-  if (session.class && session.difficulty) startGame();
+document.getElementById('start-game').addEventListener('click',()=>{
+  if(session.class&&session.difficulty)startGame();
 });
 
-function startGame() {
-  document.getElementById('menu').style.display = 'none';
+function buildHotbar(){
+  const hb=document.getElementById('hotbar');hb.innerHTML='';
+  for(let i=0;i<7;i++){
+    const sp=SPELLS[i];
+    const slot=document.createElement('div');
+    slot.className='slot'+(i===0?' active':'');
+    slot.dataset.slot=i+1;
+    slot.innerHTML=`<span class="slot-key">${i+1}</span>`+(sp?sp.icon:'');
+    if(sp){
+      const g=document.createElement('div');g.className='slot-glow';
+      g.style.background='#'+sp.color.toString(16).padStart(6,'0');
+      slot.appendChild(g);
+    }
+    hb.appendChild(slot);
+  }
+}
+function startGame(){
+  document.getElementById('menu').style.display='none';
   document.getElementById('game-ui').classList.add('active');
-  const names = { mag:'Mag', wampir:'Wampir', nekromanta:'Nekromanta',
-                  czlowiek:'Czlowiek', atlantyda:'Atlantyda', nieumarly:'Nieumarly' };
-  document.getElementById('classname').textContent = names[session.class] || 'Mag';
+  const names={mag:'Mag',wampir:'Wampir',nekromanta:'Nekromanta',
+    czlowiek:'Czlowiek',atlantyda:'Atlantyda',nieumarly:'Nieumarly'};
+  document.getElementById('classname').textContent=names[session.class]||'Mag';
+  buildHotbar();
   initWorld();
 }
 
@@ -380,9 +390,14 @@ const isMobile='ontouchstart' in window || navigator.maxTouchPoints>1;
 const T_SEGS=isMobile?64:100;
 
 const keys={};
-let pitch=0,yaw=0,velY=0,onGround=true,sprinting=false;
+let pitch=0,yaw=0,velY=0,onGround=true,sprinting=false,casting=false;
 const joyState={active:false,dx:0,dy:0,id:null};
 const lookState={active:false,id:null,lastX:0,lastY:0};
+
+const player={ hp:100, maxHp:100, mana:100, maxMana:100, manaRegen:9, selSpell:0, lastCast:0 };
+const projectiles=[];
+const impacts=[];
+let _scene=null,_camera=null;
 
 function terrainHeight(x,z){
   let h=0;
@@ -394,21 +409,16 @@ function terrainHeight(x,z){
   h+=Math.sin((x+z)*0.007)*8;
   return h;
 }
-
 function buildTerrain(scene){
   const geo=new THREE.PlaneGeometry(WORLD_SZ,WORLD_SZ,T_SEGS,T_SEGS);
   geo.rotateX(-Math.PI/2);
-  const pos=geo.attributes.position;
-  const colors=new Float32Array(pos.count*3);
+  const pos=geo.attributes.position;const colors=new Float32Array(pos.count*3);
   for(let i=0;i<pos.count;i++){
-    const x=pos.getX(i),z=pos.getZ(i);
-    const h=terrainHeight(x,z);
-    pos.setY(i,h);
+    const x=pos.getX(i),z=pos.getZ(i);const h=terrainHeight(x,z);pos.setY(i,h);
     const t=THREE.MathUtils.clamp((h+5)/20,0,1);
     colors[i*3]=0.15+t*0.12;colors[i*3+1]=0.35+t*0.25;colors[i*3+2]=0.12+t*0.08;
   }
-  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
-  geo.computeVertexNormals();
+  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));geo.computeVertexNormals();
   const mat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.85,metalness:0.05,flatShading:true});
   const mesh=new THREE.Mesh(geo,mat);mesh.receiveShadow=true;scene.add(mesh);
 }
@@ -426,8 +436,7 @@ function buildTrees(scene){
   for(let i=0;i<count;i++){
     const x=(Math.random()-0.5)*WORLD_SZ*0.9,z=(Math.random()-0.5)*WORLD_SZ*0.9;
     const h=terrainHeight(x,z);if(h<1.5)continue;
-    const group=new THREE.Group();group.position.set(x,h,z);
-    group.scale.setScalar(0.8+Math.random()*0.6);
+    const group=new THREE.Group();group.position.set(x,h,z);group.scale.setScalar(0.8+Math.random()*0.6);
     const trunk=new THREE.Mesh(trunkGeo,trunkMat);trunk.position.y=1.25;trunk.castShadow=true;group.add(trunk);
     const leafMat=new THREE.MeshStandardMaterial({color:leafColors[Math.floor(Math.random()*leafColors.length)],roughness:0.8,flatShading:true});
     for(let j=0;j<3;j++){const leaf=new THREE.Mesh(leafGeos[j],leafMat);leaf.position.y=2.8+j*1.2;leaf.castShadow=true;group.add(leaf);}
@@ -442,28 +451,75 @@ function buildRocks(scene){
     const x=(Math.random()-0.5)*WORLD_SZ*0.9,z=(Math.random()-0.5)*WORLD_SZ*0.9;
     const h=terrainHeight(x,z);if(h<0.5)continue;
     const mat=new THREE.MeshStandardMaterial({color:rockColors[Math.floor(Math.random()*rockColors.length)],roughness:0.9,flatShading:true});
-    const mesh=new THREE.Mesh(rockGeo,mat);
-    const s=0.3+Math.random()*0.8;
-    mesh.scale.set(s,s*(0.5+Math.random()*0.5),s);
-    mesh.position.set(x,h+s*0.3,z);
-    mesh.rotation.set(Math.random(),Math.random(),Math.random());
-    mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
+    const mesh=new THREE.Mesh(rockGeo,mat);const s=0.3+Math.random()*0.8;
+    mesh.scale.set(s,s*(0.5+Math.random()*0.5),s);mesh.position.set(x,h+s*0.3,z);
+    mesh.rotation.set(Math.random(),Math.random(),Math.random());mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
   }
 }
 function setupLighting(scene){
   scene.add(new THREE.AmbientLight(0x4a5568,0.6));
-  const sun=new THREE.DirectionalLight(0xffeedd,1.0);
-  sun.position.set(50,80,30);sun.castShadow=true;
+  const sun=new THREE.DirectionalLight(0xffeedd,1.0);sun.position.set(50,80,30);sun.castShadow=true;
   sun.shadow.mapSize.set(isMobile?1024:2048,isMobile?1024:2048);
-  sun.shadow.camera.left=-60;sun.shadow.camera.right=60;
-  sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;
-  sun.shadow.camera.near=0.5;sun.shadow.camera.far=200;sun.shadow.bias=-0.001;
-  scene.add(sun);
+  sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;
+  sun.shadow.camera.near=0.5;sun.shadow.camera.far=200;sun.shadow.bias=-0.001;scene.add(sun);
   const fill=new THREE.DirectionalLight(0x8899bb,0.3);fill.position.set(-30,40,-20);scene.add(fill);
 }
 function setupAtmosphere(scene){
   scene.background=new THREE.Color(0x3a4a6b);
   scene.fog=new THREE.FogExp2(0x3a4a6b,isMobile?0.012:0.008);
+}
+
+// ── spell casting ──
+function selectSpell(idx){
+  if(!SPELLS[idx])return;
+  player.selSpell=idx;
+  document.querySelectorAll('.slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.getElementById('spellname').textContent=SPELLS[idx].name;
+}
+function spawnProjectile(scene,camera,sp){
+  const geo=new THREE.SphereGeometry(sp.size,12,12);
+  const mat=new THREE.MeshBasicMaterial({color:sp.color});
+  const mesh=new THREE.Mesh(geo,mat);
+  const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const start=camera.position.clone().addScaledVector(dir,0.7);start.y-=0.18;
+  mesh.position.copy(start);
+  mesh.add(new THREE.PointLight(sp.light,2.2,9));
+  scene.add(mesh);
+  projectiles.push({mesh,mat,vel:dir.clone().multiplyScalar(sp.speed),life:sp.life,gravity:sp.gravity,color:sp.light});
+}
+function spawnImpact(scene,pos,color){
+  const geo=new THREE.SphereGeometry(0.3,10,10);
+  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9});
+  const m=new THREE.Mesh(geo,mat);m.position.copy(pos);m.add(new THREE.PointLight(color,3,10));
+  scene.add(m);impacts.push({mesh:m,mat,t:0});
+}
+function attemptCast(now){
+  if(!_scene||!_camera)return;
+  const sp=SPELLS[player.selSpell];if(!sp)return;
+  if(now-player.lastCast<sp.cd*1000)return;
+  if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
+  player.mana-=sp.mana;player.lastCast=now;
+  spawnProjectile(_scene,_camera,sp);
+}
+function updateProjectiles(dt){
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p=projectiles[i];
+    if(p.gravity)p.vel.y-=p.gravity*dt;
+    p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;
+    const gh=terrainHeight(p.mesh.position.x,p.mesh.position.z);
+    const out=Math.abs(p.mesh.position.x)>WORLD_SZ*0.5||Math.abs(p.mesh.position.z)>WORLD_SZ*0.5;
+    if(p.life<=0||p.mesh.position.y<=gh||out){
+      if(p.mesh.position.y<=gh+0.5)spawnImpact(_scene,p.mesh.position,p.color);
+      _scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();projectiles.splice(i,1);
+    }
+  }
+}
+function updateImpacts(dt){
+  for(let i=impacts.length-1;i>=0;i--){
+    const im=impacts[i];im.t+=dt;const k=im.t/0.3;
+    im.mesh.scale.setScalar(1+k*3.5);im.mat.opacity=Math.max(0,0.9*(1-k));
+    if(im.t>=0.3){_scene.remove(im.mesh);im.mesh.geometry.dispose();im.mat.dispose();impacts.splice(i,1);}
+  }
 }
 
 // ── input ──
@@ -472,10 +528,7 @@ function setupDesktopInput(){
   document.addEventListener('keydown',e=>{
     keys[e.code]=true;
     if(e.code==='ShiftLeft')sprinting=true;
-    if(e.code>='Digit1'&&e.code<='Digit7'){
-      const idx=parseInt(e.code.replace('Digit',''))-1;
-      document.querySelectorAll('.slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
-    }
+    if(e.code>='Digit1'&&e.code<='Digit7')selectSpell(parseInt(e.code.replace('Digit',''))-1);
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
   overlay.addEventListener('click',()=>document.body.requestPointerLock());
@@ -485,6 +538,8 @@ function setupDesktopInput(){
     yaw-=e.movementX*MOUSE_SENS;pitch-=e.movementY*MOUSE_SENS;
     pitch=THREE.MathUtils.clamp(pitch,-Math.PI/2+0.05,Math.PI/2-0.05);
   });
+  document.addEventListener('mousedown',e=>{if(document.pointerLockElement&&e.button===0)casting=true;});
+  document.addEventListener('mouseup',e=>{if(e.button===0)casting=false;});
 }
 function setupMobileInput(){
   document.getElementById('overlay').classList.add('hidden');
@@ -492,49 +547,47 @@ function setupMobileInput(){
   const joyBase=document.getElementById('joystick-base');
   const joyKnob=document.getElementById('joystick-knob');
   const jumpBtn=document.getElementById('jump-btn');
-  jumpBtn.style.display='flex';
-  const JOY_MAX=40;let ox=0,oy=0;
+  const castBtn=document.getElementById('cast-btn');
+  jumpBtn.style.display='flex';castBtn.style.display='flex';
+  const R=58;let cx=0,cy=0;
+  function recenter(){
+    const r=joyBase.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;
+    joyKnob.style.left=(cx-26)+'px';joyKnob.style.top=(cy-26)+'px';
+  }
+  recenter();window.addEventListener('resize',recenter);
+
   joyZone.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
-      if(!joyState.active){
-        joyState.active=true;joyState.id=t.identifier;
-        ox=t.clientX;oy=Math.min(t.clientY,window.innerHeight-90);
-        joyBase.style.display='block';joyKnob.style.display='block';
-        joyBase.style.left=(ox-55)+'px';joyBase.style.top=(oy-55)+'px';
-        joyKnob.style.left=(ox-23)+'px';joyKnob.style.top=(oy-23)+'px';
-      }
+      if(!joyState.active){joyState.active=true;joyState.id=t.identifier;moveKnob(t.clientX,t.clientY);}
     }
   },{passive:true});
   joyZone.addEventListener('touchmove',e=>{
-    for(const t of e.changedTouches){
-      if(t.identifier===joyState.id){
-        let dx=t.clientX-ox,dy=t.clientY-oy;
-        const d=Math.sqrt(dx*dx+dy*dy);
-        if(d>JOY_MAX){dx=dx/d*JOY_MAX;dy=dy/d*JOY_MAX;}
-        joyState.dx=dx/JOY_MAX;joyState.dy=dy/JOY_MAX;
-        joyKnob.style.left=(ox+dx-23)+'px';joyKnob.style.top=(oy+dy-23)+'px';
-      }
-    }
+    for(const t of e.changedTouches){if(t.identifier===joyState.id)moveKnob(t.clientX,t.clientY);}
   },{passive:true});
+  function moveKnob(x,y){
+    let dx=x-cx,dy=y-cy;const d=Math.sqrt(dx*dx+dy*dy);
+    if(d>R){dx=dx/d*R;dy=dy/d*R;}
+    joyState.dx=dx/R;joyState.dy=dy/R;
+    joyKnob.style.left=(cx+dx-26)+'px';joyKnob.style.top=(cy+dy-26)+'px';
+  }
   const endJoy=e=>{for(const t of e.changedTouches){if(t.identifier===joyState.id){
     joyState.active=false;joyState.dx=0;joyState.dy=0;joyState.id=null;
-    joyBase.style.display='none';joyKnob.style.display='none';}}};
+    joyKnob.style.left=(cx-26)+'px';joyKnob.style.top=(cy-26)+'px';}}};
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
+
   document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
-      if(t.clientX>window.innerWidth*0.44&&!lookState.active){
-        if(t.target===jumpBtn||t.target.id==='fs-game')continue;
-        lookState.active=true;lookState.id=t.identifier;
-        lookState.lastX=t.clientX;lookState.lastY=t.clientY;
+      if(t.clientX>window.innerWidth*0.46&&!lookState.active){
+        if(t.target===jumpBtn||t.target===castBtn||t.target.id==='fs-game')continue;
+        lookState.active=true;lookState.id=t.identifier;lookState.lastX=t.clientX;lookState.lastY=t.clientY;
       }
     }
   },{passive:true});
   document.addEventListener('touchmove',e=>{
     for(const t of e.changedTouches){
       if(t.identifier===lookState.id){
-        yaw-=(t.clientX-lookState.lastX)*TOUCH_SENS;
-        pitch-=(t.clientY-lookState.lastY)*TOUCH_SENS;
+        yaw-=(t.clientX-lookState.lastX)*TOUCH_SENS;pitch-=(t.clientY-lookState.lastY)*TOUCH_SENS;
         pitch=THREE.MathUtils.clamp(pitch,-Math.PI/2+0.05,Math.PI/2-0.05);
         lookState.lastX=t.clientX;lookState.lastY=t.clientY;
       }
@@ -543,7 +596,16 @@ function setupMobileInput(){
   const endLook=e=>{for(const t of e.changedTouches){if(t.identifier===lookState.id){lookState.active=false;lookState.id=null;}}};
   document.addEventListener('touchend',endLook,{passive:true});
   document.addEventListener('touchcancel',endLook,{passive:true});
+
   jumpBtn.addEventListener('touchstart',e=>{e.stopPropagation();if(onGround){velY=JUMP_VEL;onGround=false;}},{passive:false});
+  castBtn.addEventListener('touchstart',e=>{e.stopPropagation();casting=true;},{passive:false});
+  castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
+  castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
+
+  // tap hotbar slots to switch spell
+  document.getElementById('hotbar').addEventListener('touchstart',e=>{
+    const slot=e.target.closest('.slot');if(slot)selectSpell(parseInt(slot.dataset.slot)-1);
+  },{passive:true});
 }
 
 function updatePlayer(dt,camera){
@@ -567,8 +629,7 @@ function updatePlayer(dt,camera){
   const groundH=terrainHeight(px,pz)+EYE_H;
   if(py<=groundH){py=groundH;velY=0;onGround=true;}else{onGround=false;}
   camera.position.set(px,py,pz);
-  const quat=new THREE.Quaternion();
-  quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
+  const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
   camera.quaternion.copy(quat);
 }
 function updateHUD(camera){
@@ -577,6 +638,10 @@ function updateHUD(camera){
   document.getElementById('compass').textContent=dirs[Math.round(a/45)%8];
   const p=camera.position;
   document.getElementById('coords').textContent=`${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}`;
+  document.querySelector('.bar-mana .bar-fill').style.width=(player.mana/player.maxMana*100)+'%';
+  document.querySelector('.bar-mana .bar-label').textContent=`MANA ${Math.round(player.mana)}/${player.maxMana}`;
+  document.querySelector('.bar-hp .bar-fill').style.width=(player.hp/player.maxHp*100)+'%';
+  document.querySelector('.bar-hp .bar-label').textContent=`HP ${Math.round(player.hp)}/${player.maxHp}`;
 }
 
 let worldStarted=false;
@@ -591,8 +656,10 @@ function initWorld(){
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(isMobile?65:70,window.innerWidth/window.innerHeight,0.1,500);
   camera.position.set(0,terrainHeight(0,0)+EYE_H,0);
+  _scene=scene;_camera=camera;
   setupAtmosphere(scene);setupLighting(scene);
   buildTerrain(scene);buildWater(scene);buildTrees(scene);buildRocks(scene);
+  selectSpell(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
   window.addEventListener('resize',()=>{
     camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
@@ -602,7 +669,12 @@ function initWorld(){
   function loop(now){
     requestAnimationFrame(loop);
     let dt=(now-last)/1000;last=now;if(dt>0.05)dt=0.05;
-    updatePlayer(dt,camera);updateHUD(camera);renderer.render(scene,camera);
+    if(casting)attemptCast(now);
+    player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
+    updatePlayer(dt,camera);
+    updateProjectiles(dt);updateImpacts(dt);
+    updateHUD(camera);
+    renderer.render(scene,camera);
   }
   requestAnimationFrame(loop);
 }
