@@ -106,7 +106,7 @@
   #hud{position:absolute;inset:0;pointer-events:none}
 
   #crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    width:24px;height:24px;opacity:.6}
+    width:24px;height:24px;opacity:.6;transition:transform .09s ease}
   #crosshair::before,#crosshair::after{content:'';position:absolute;
     background:#ccc;border-radius:1px}
   #crosshair::before{width:2px;height:24px;left:11px;top:0}
@@ -131,39 +131,53 @@
     justify-content:center;font-size:10px;color:#ddd;
     text-shadow:0 1px 2px #000;font-weight:600}
 
+  /* spell selector — top right */
+  #spellbar{position:absolute;top:58px;right:12px;display:flex;flex-direction:column;
+    gap:6px;pointer-events:none}
+  .spell-slot{width:46px;height:46px;border-radius:9px;background:rgba(0,0,0,.55);
+    border:2px solid rgba(255,255,255,.16);display:flex;align-items:center;
+    justify-content:center;font-size:22px;position:relative;pointer-events:auto}
+  .spell-slot.active{border-color:#9ad0ff;box-shadow:0 0 14px rgba(120,170,255,.55)}
+  .spell-cost{position:absolute;bottom:-1px;right:2px;font-size:8.5px;color:#9ad0ff;
+    text-shadow:0 1px 2px #000;font-weight:700}
+  .spell-glow{position:absolute;inset:0;border-radius:7px;opacity:.16}
+
   #spellname{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);
     color:#cfe0ff;font-size:12px;letter-spacing:1px;text-shadow:0 1px 3px #000;
     font-weight:600}
 
   #hotbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
-    display:flex;gap:4px}
+    display:flex;gap:4px;z-index:3}
   .slot{width:44px;height:44px;background:rgba(0,0,0,.6);
     border:2px solid rgba(255,255,255,.18);border-radius:6px;position:relative;
-    display:flex;align-items:center;justify-content:center;font-size:22px}
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+    pointer-events:auto}
   .slot.active{border-color:#e8c86a;box-shadow:0 0 12px rgba(232,200,106,.4)}
   .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
   .slot-glow{position:absolute;inset:0;border-radius:4px;opacity:.18}
 
-  #joystick-base{position:absolute;left:38px;bottom:120px;width:120px;height:120px;
+  #joystick-base{position:absolute;left:34px;bottom:74px;width:120px;height:120px;
     border-radius:50%;background:rgba(255,255,255,.06);
     border:2px solid rgba(255,255,255,.16);pointer-events:none}
   #joystick-knob{position:absolute;width:52px;height:52px;border-radius:50%;
     background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);
     pointer-events:none}
-  #joystick-zone{position:absolute;left:0;bottom:0;width:46%;height:55%;
-    pointer-events:auto}
+  #joystick-zone{position:absolute;left:0;bottom:0;width:46%;height:52%;
+    pointer-events:auto;z-index:1}
 
-  #jump-btn{position:absolute;bottom:200px;right:34px;width:56px;height:56px;
+  #jump-btn{position:absolute;bottom:150px;right:32px;width:56px;height:56px;
     border-radius:50%;background:rgba(255,255,255,.1);
     border:2px solid rgba(255,255,255,.2);color:#aaa;font-size:11px;
     display:none;align-items:center;justify-content:center;
     pointer-events:auto;font-weight:600}
-  #cast-btn{position:absolute;bottom:110px;right:26px;width:74px;height:74px;
+  #cast-btn{position:absolute;bottom:66px;right:24px;width:74px;height:74px;
     border-radius:50%;
     background:radial-gradient(circle at 50% 40%,rgba(120,170,255,.35),rgba(40,70,140,.5));
     border:2px solid rgba(150,200,255,.6);color:#dceaff;font-size:30px;
     display:none;align-items:center;justify-content:center;
     pointer-events:auto;text-shadow:0 0 10px rgba(120,170,255,.8)}
+  #cast-btn.melee{background:radial-gradient(circle at 50% 40%,rgba(220,180,120,.35),rgba(120,80,30,.5));
+    border-color:rgba(230,190,130,.6);color:#ffe6c0;text-shadow:0 0 10px rgba(230,180,120,.8)}
   #cast-btn:active{transform:scale(.93)}
 
   #fs-game{position:absolute;top:10px;right:10px;
@@ -286,6 +300,7 @@
       <div class="bar-wrap bar-mana"><div class="bar-fill"></div>
         <div class="bar-label">MANA 100/100</div></div>
     </div>
+    <div id="spellbar"></div>
     <div id="spellname">Magiczny Pocisk</div>
     <div id="hotbar"></div>
   </div>
@@ -304,13 +319,22 @@
 import * as THREE from 'three';
 
 // ═══ SPELLS ═══════════════════════════════════════════
+// mana scaled to the new 1000 pool (regen ~120s for a full bar)
+// castTime: TODO — czas rzucania na pozniej
 const SPELLS = [
   { id:'bolt',  name:'Magiczny Pocisk', icon:'✦', color:0x66ccff, light:0x4488ff,
-    mana:8,  speed:48, size:0.26, life:2.2, cd:0.32, gravity:0 },
+    mana:60,  speed:48, size:0.26, life:2.2, cd:0.32, gravity:0 },
   { id:'fire',  name:'Kula Ognia',      icon:'🔥', color:0xff7a22, light:0xff5500,
-    mana:18, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5 },
+    mana:220, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5 },
   { id:'frost', name:'Lodowa Iglica',   icon:'❄', color:0x9cf0ff, light:0x66ddff,
-    mana:14, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0 },
+    mana:130, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0 },
+];
+
+// ═══ ITEMS (hotbar) ═══════════════════════════════════
+// Mag startuje z rozdzka. Trzymanie rozdzki/berla zmienia atak w rzucanie zaklec.
+const ITEMS = [
+  { id:'wand', name:'Rozdzka', icon:'🪄', type:'wand' },
+  null, null, null, null, null, null
 ];
 
 // ═══ MENU LOGIC ═══════════════════════════════════════
@@ -357,19 +381,29 @@ document.getElementById('start-game').addEventListener('click',()=>{
   if(session.class&&session.difficulty)startGame();
 });
 
-function buildHotbar(){
+function buildSpellbar(){
+  const sb=document.getElementById('spellbar');sb.innerHTML='';
+  SPELLS.forEach((sp,i)=>{
+    const el=document.createElement('div');
+    el.className='spell-slot'+(i===0?' active':'');
+    el.dataset.spell=i;
+    el.innerHTML=`${sp.icon}<span class="spell-cost">${sp.mana}</span>`;
+    const g=document.createElement('div');g.className='spell-glow';
+    g.style.background='#'+sp.color.toString(16).padStart(6,'0');
+    el.appendChild(g);
+    el.addEventListener('click',()=>selectSpell(i));
+    sb.appendChild(el);
+  });
+}
+function buildItembar(){
   const hb=document.getElementById('hotbar');hb.innerHTML='';
   for(let i=0;i<7;i++){
-    const sp=SPELLS[i];
+    const it=ITEMS[i];
     const slot=document.createElement('div');
-    slot.className='slot'+(i===0?' active':'');
-    slot.dataset.slot=i+1;
-    slot.innerHTML=`<span class="slot-key">${i+1}</span>`+(sp?sp.icon:'');
-    if(sp){
-      const g=document.createElement('div');g.className='slot-glow';
-      g.style.background='#'+sp.color.toString(16).padStart(6,'0');
-      slot.appendChild(g);
-    }
+    slot.className='slot'+(i===player.heldItem?' active':'');
+    slot.dataset.slot=i;
+    slot.innerHTML=`<span class="slot-key">${i+1}</span>`+(it?it.icon:'');
+    slot.addEventListener('click',()=>selectItem(i));
     hb.appendChild(slot);
   }
 }
@@ -379,7 +413,8 @@ function startGame(){
   const names={mag:'Mag',wampir:'Wampir',nekromanta:'Nekromanta',
     czlowiek:'Czlowiek',atlantyda:'Atlantyda',nieumarly:'Nieumarly'};
   document.getElementById('classname').textContent=names[session.class]||'Mag';
-  buildHotbar();
+  buildSpellbar();
+  buildItembar();
   initWorld();
 }
 
@@ -394,7 +429,10 @@ let pitch=0,yaw=0,velY=0,onGround=true,sprinting=false,casting=false;
 const joyState={active:false,dx:0,dy:0,id:null};
 const lookState={active:false,id:null,lastX:0,lastY:0};
 
-const player={ hp:100, maxHp:100, mana:100, maxMana:100, manaRegen:9, selSpell:0, lastCast:0 };
+// maxMana 1000 = bazowa pula bez zadnych pierscieni/ulepszen.
+// regen = maxMana/120 -> pelne odnowienie zajmuje ~120 sekund.
+const player={ hp:100, maxHp:100, mana:1000, maxMana:1000, manaRegen:1000/120,
+               selSpell:0, lastCast:0, heldItem:0 };
 const projectiles=[];
 const impacts=[];
 let _scene=null,_camera=null;
@@ -469,12 +507,32 @@ function setupAtmosphere(scene){
   scene.fog=new THREE.FogExp2(0x3a4a6b,isMobile?0.012:0.008);
 }
 
-// ── spell casting ──
+// ── spell & item selection ──
 function selectSpell(idx){
   if(!SPELLS[idx])return;
   player.selSpell=idx;
-  document.querySelectorAll('.slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.spell-slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
   document.getElementById('spellname').textContent=SPELLS[idx].name;
+}
+function selectItem(idx){
+  player.heldItem=idx;
+  document.querySelectorAll('#hotbar .slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  updateAttackIcon();
+}
+function heldIsWand(){
+  const it=ITEMS[player.heldItem];
+  return !!(it && it.type==='wand');
+}
+function updateAttackIcon(){
+  const btn=document.getElementById('cast-btn');
+  if(heldIsWand()){ btn.textContent='✦'; btn.classList.remove('melee'); }
+  else { btn.textContent='👊'; btn.classList.add('melee'); }
+}
+function meleeSwing(){
+  // placeholder — brak przeciwnikow na razie. Krotki blysk celownika.
+  const c=document.getElementById('crosshair');
+  c.style.transform='translate(-50%,-50%) scale(1.5)';
+  setTimeout(()=>{c.style.transform='translate(-50%,-50%)';},90);
 }
 function spawnProjectile(scene,camera,sp){
   const geo=new THREE.SphereGeometry(sp.size,12,12);
@@ -538,7 +596,10 @@ function setupDesktopInput(){
     yaw-=e.movementX*MOUSE_SENS;pitch-=e.movementY*MOUSE_SENS;
     pitch=THREE.MathUtils.clamp(pitch,-Math.PI/2+0.05,Math.PI/2-0.05);
   });
-  document.addEventListener('mousedown',e=>{if(document.pointerLockElement&&e.button===0)casting=true;});
+  document.addEventListener('mousedown',e=>{
+    if(!document.pointerLockElement||e.button!==0)return;
+    if(heldIsWand())casting=true;else meleeSwing();
+  });
   document.addEventListener('mouseup',e=>{if(e.button===0)casting=false;});
 }
 function setupMobileInput(){
@@ -576,10 +637,11 @@ function setupMobileInput(){
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
 
+  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game');
   document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
       if(t.clientX>window.innerWidth*0.46&&!lookState.active){
-        if(t.target===jumpBtn||t.target===castBtn||t.target.id==='fs-game')continue;
+        if(isUITouch(t.target))continue;
         lookState.active=true;lookState.id=t.identifier;lookState.lastX=t.clientX;lookState.lastY=t.clientY;
       }
     }
@@ -598,14 +660,11 @@ function setupMobileInput(){
   document.addEventListener('touchcancel',endLook,{passive:true});
 
   jumpBtn.addEventListener('touchstart',e=>{e.stopPropagation();if(onGround){velY=JUMP_VEL;onGround=false;}},{passive:false});
-  castBtn.addEventListener('touchstart',e=>{e.stopPropagation();casting=true;},{passive:false});
+  // attack button: rozdzka -> rzucanie zaklec (hold), inaczej -> uderzenie
+  castBtn.addEventListener('touchstart',e=>{e.stopPropagation();
+    if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
-
-  // tap hotbar slots to switch spell
-  document.getElementById('hotbar').addEventListener('touchstart',e=>{
-    const slot=e.target.closest('.slot');if(slot)selectSpell(parseInt(slot.dataset.slot)-1);
-  },{passive:true});
 }
 
 function updatePlayer(dt,camera){
@@ -660,6 +719,7 @@ function initWorld(){
   setupAtmosphere(scene);setupLighting(scene);
   buildTerrain(scene);buildWater(scene);buildTrees(scene);buildRocks(scene);
   selectSpell(0);
+  selectItem(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
   window.addEventListener('resize',()=>{
     camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
