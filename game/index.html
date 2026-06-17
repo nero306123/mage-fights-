@@ -131,16 +131,25 @@
     justify-content:center;font-size:10px;color:#ddd;
     text-shadow:0 1px 2px #000;font-weight:600}
 
-  /* spell selector — top right */
-  #spellbar{position:absolute;top:58px;right:12px;display:flex;flex-direction:column;
-    gap:6px;pointer-events:none}
-  .spell-slot{width:46px;height:46px;border-radius:9px;background:rgba(0,0,0,.55);
+  /* spell selector — top left, horizontal */
+  #spellbar{position:absolute;top:10px;left:10px;display:flex;flex-direction:row;
+    gap:5px;pointer-events:none}
+  .spell-slot{width:38px;height:38px;border-radius:8px;background:rgba(0,0,0,.55);
     border:2px solid rgba(255,255,255,.16);display:flex;align-items:center;
-    justify-content:center;font-size:22px;position:relative;pointer-events:auto}
+    justify-content:center;font-size:18px;position:relative;pointer-events:auto}
   .spell-slot.active{border-color:#9ad0ff;box-shadow:0 0 14px rgba(120,170,255,.55)}
-  .spell-cost{position:absolute;bottom:-1px;right:2px;font-size:8.5px;color:#9ad0ff;
+  .spell-cost{position:absolute;bottom:-2px;right:2px;font-size:8px;color:#9ad0ff;
     text-shadow:0 1px 2px #000;font-weight:700}
-  .spell-glow{position:absolute;inset:0;border-radius:7px;opacity:.16}
+  .spell-glow{position:absolute;inset:0;border-radius:6px;opacity:.16}
+
+  /* floating damage numbers */
+  .dmg-num{position:absolute;transform:translate(-50%,-50%);font-weight:800;
+    font-size:18px;text-shadow:0 2px 4px #000;pointer-events:none;
+    animation:floatUp .8s ease-out forwards}
+  @keyframes floatUp{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+    20%{opacity:1;transform:translate(-50%,-90%) scale(1.1)}
+    100%{opacity:0;transform:translate(-50%,-180%) scale(1)}}
 
   #spellname{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);
     color:#cfe0ff;font-size:12px;letter-spacing:1px;text-shadow:0 1px 3px #000;
@@ -292,6 +301,7 @@
     <div id="topbar">
       <span id="compass">N</span>
       <span id="classname">Mag</span>
+      <span id="score">💠 0</span>
       <span id="coords">0, 0, 0</span>
     </div>
     <div id="bars">
@@ -323,11 +333,11 @@ import * as THREE from 'three';
 // castTime: TODO — czas rzucania na pozniej
 const SPELLS = [
   { id:'bolt',  name:'Magiczny Pocisk', icon:'✦', color:0x66ccff, light:0x4488ff,
-    mana:60,  speed:48, size:0.26, life:2.2, cd:0.32, gravity:0 },
+    mana:30,  dmg:18, speed:48, size:0.26, life:2.2, cd:0.32, gravity:0 },
   { id:'fire',  name:'Kula Ognia',      icon:'🔥', color:0xff7a22, light:0xff5500,
-    mana:220, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5 },
+    mana:120, dmg:55, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5 },
   { id:'frost', name:'Lodowa Iglica',   icon:'❄', color:0x9cf0ff, light:0x66ddff,
-    mana:130, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0 },
+    mana:65,  dmg:30, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0 },
 ];
 
 // ═══ ITEMS (hotbar) ═══════════════════════════════════
@@ -489,7 +499,7 @@ function buildRocks(scene){
     const x=(Math.random()-0.5)*WORLD_SZ*0.9,z=(Math.random()-0.5)*WORLD_SZ*0.9;
     const h=terrainHeight(x,z);if(h<0.5)continue;
     const mat=new THREE.MeshStandardMaterial({color:rockColors[Math.floor(Math.random()*rockColors.length)],roughness:0.9,flatShading:true});
-    const mesh=new THREE.Mesh(rockGeo,mat);const s=0.3+Math.random()*0.8;
+    const mesh=new THREE.Mesh(rockGeo,mat);const s=0.22+Math.random()*0.45;
     mesh.scale.set(s,s*(0.5+Math.random()*0.5),s);mesh.position.set(x,h+s*0.3,z);
     mesh.rotation.set(Math.random(),Math.random(),Math.random());mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
   }
@@ -525,8 +535,12 @@ function heldIsWand(){
 }
 function updateAttackIcon(){
   const btn=document.getElementById('cast-btn');
-  if(heldIsWand()){ btn.textContent='✦'; btn.classList.remove('melee'); }
+  const wand=heldIsWand();
+  if(wand){ btn.textContent='✦'; btn.classList.remove('melee'); }
   else { btn.textContent='👊'; btn.classList.add('melee'); }
+  // zaklecia widoczne tylko gdy trzymasz rozdzke/berlo
+  document.getElementById('spellbar').style.display = wand?'flex':'none';
+  document.getElementById('spellname').style.display = wand?'block':'none';
 }
 function meleeSwing(){
   // placeholder — brak przeciwnikow na razie. Krotki blysk celownika.
@@ -543,7 +557,7 @@ function spawnProjectile(scene,camera,sp){
   mesh.position.copy(start);
   mesh.add(new THREE.PointLight(sp.light,2.2,9));
   scene.add(mesh);
-  projectiles.push({mesh,mat,vel:dir.clone().multiplyScalar(sp.speed),life:sp.life,gravity:sp.gravity,color:sp.light});
+  projectiles.push({mesh,mat,vel:dir.clone().multiplyScalar(sp.speed),life:sp.life,gravity:sp.gravity,color:sp.light,dmg:sp.dmg});
 }
 function spawnImpact(scene,pos,color){
   const geo=new THREE.SphereGeometry(0.3,10,10);
@@ -559,16 +573,30 @@ function attemptCast(now){
   player.mana-=sp.mana;player.lastCast=now;
   spawnProjectile(_scene,_camera,sp);
 }
+function removeProjectile(i){
+  const p=projectiles[i];
+  _scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();projectiles.splice(i,1);
+}
 function updateProjectiles(dt){
   for(let i=projectiles.length-1;i>=0;i--){
     const p=projectiles[i];
     if(p.gravity)p.vel.y-=p.gravity*dt;
     p.mesh.position.addScaledVector(p.vel,dt);p.life-=dt;
+    // trafienie w krysztal treningowy
+    let hit=false;
+    for(const tg of targets){
+      if(!tg.alive)continue;
+      if(p.mesh.position.distanceTo(tg.group.position)<tg.radius){
+        damageTarget(tg,p.dmg);spawnImpact(_scene,p.mesh.position,p.color);
+        removeProjectile(i);hit=true;break;
+      }
+    }
+    if(hit)continue;
     const gh=terrainHeight(p.mesh.position.x,p.mesh.position.z);
     const out=Math.abs(p.mesh.position.x)>WORLD_SZ*0.5||Math.abs(p.mesh.position.z)>WORLD_SZ*0.5;
     if(p.life<=0||p.mesh.position.y<=gh||out){
       if(p.mesh.position.y<=gh+0.5)spawnImpact(_scene,p.mesh.position,p.color);
-      _scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();projectiles.splice(i,1);
+      removeProjectile(i);
     }
   }
 }
@@ -577,6 +605,81 @@ function updateImpacts(dt){
     const im=impacts[i];im.t+=dt;const k=im.t/0.3;
     im.mesh.scale.setScalar(1+k*3.5);im.mat.opacity=Math.max(0,0.9*(1-k));
     if(im.t>=0.3){_scene.remove(im.mesh);im.mesh.geometry.dispose();im.mat.dispose();impacts.splice(i,1);}
+  }
+}
+
+// ── training crystals (placeholder — pelne moby pozniej) ──
+const targets=[];
+const shards=[];
+let destroyed=0;
+const TARGET_HP=100;
+function placeTarget(tg){
+  let x,z,h;
+  do{ x=(Math.random()-0.5)*WORLD_SZ*0.8; z=(Math.random()-0.5)*WORLD_SZ*0.8; h=terrainHeight(x,z); }
+  while(h<1.5);
+  tg.group.position.set(x,h+1.4,z);
+  tg.hp=TARGET_HP;tg.alive=true;tg.core.visible=true;
+  tg.core.scale.setScalar(1);tg.mat.emissiveIntensity=0.9;
+}
+function buildTargets(scene){
+  const geo=new THREE.OctahedronGeometry(0.5,0);
+  for(let i=0;i<14;i++){
+    const mat=new THREE.MeshStandardMaterial({color:0xbb66ff,emissive:0x7a33ff,
+      emissiveIntensity:0.9,roughness:0.3,metalness:0.4,flatShading:true});
+    const core=new THREE.Mesh(geo,mat);core.castShadow=true;
+    const group=new THREE.Group();group.add(core);
+    group.add(new THREE.PointLight(0x9955ff,1.4,7));
+    scene.add(group);
+    const tg={group,core,mat,radius:1.0,hp:TARGET_HP,alive:true,phase:Math.random()*6.28,base:0};
+    placeTarget(tg);tg.base=group.position.y;
+    targets.push(tg);
+  }
+}
+function floatNumber(worldPos,text,color){
+  if(!_camera)return;
+  const v=worldPos.clone();v.y+=0.6;v.project(_camera);
+  if(v.z>1)return;
+  const el=document.createElement('div');el.className='dmg-num';el.textContent=text;
+  el.style.color=color;
+  el.style.left=((v.x*0.5+0.5)*window.innerWidth)+'px';
+  el.style.top=((-v.y*0.5+0.5)*window.innerHeight)+'px';
+  document.getElementById('game-ui').appendChild(el);
+  setTimeout(()=>el.remove(),800);
+}
+function damageTarget(tg,dmg){
+  tg.hp-=dmg;
+  floatNumber(tg.group.position,String(dmg),'#ffe06a');
+  // blysk + drgniecie
+  tg.mat.emissiveIntensity=2.4;
+  tg.core.scale.setScalar(1.25);
+  setTimeout(()=>{if(tg.alive){tg.mat.emissiveIntensity=0.9;tg.core.scale.setScalar(1);}},80);
+  if(tg.hp<=0)shatterTarget(tg);
+}
+function shatterTarget(tg){
+  tg.alive=false;tg.core.visible=false;destroyed++;
+  document.getElementById('score').textContent='💠 '+destroyed;
+  // odlamki
+  for(let i=0;i<10;i++){
+    const g=new THREE.OctahedronGeometry(0.16,0);
+    const m=new THREE.MeshBasicMaterial({color:0xbb66ff,transparent:true,opacity:1});
+    const sh=new THREE.Mesh(g,m);sh.position.copy(tg.group.position);
+    const v=new THREE.Vector3((Math.random()-0.5)*6,Math.random()*5+2,(Math.random()-0.5)*6);
+    _scene.add(sh);shards.push({mesh:sh,mat:m,vel:v,life:1.0});
+  }
+  // respawn po chwili w nowym miejscu
+  setTimeout(()=>{placeTarget(tg);tg.base=tg.group.position.y;},4500);
+}
+function updateTargets(dt,now){
+  for(const tg of targets){
+    if(!tg.alive)continue;
+    tg.group.rotation.y+=dt*0.8;
+    tg.group.position.y=tg.base+Math.sin(now*0.002+tg.phase)*0.18;
+  }
+  for(let i=shards.length-1;i>=0;i--){
+    const s=shards[i];s.vel.y-=14*dt;s.mesh.position.addScaledVector(s.vel,dt);
+    s.mesh.rotation.x+=dt*5;s.mesh.rotation.z+=dt*4;s.life-=dt;
+    s.mat.opacity=Math.max(0,s.life);
+    if(s.life<=0){_scene.remove(s.mesh);s.mesh.geometry.dispose();s.mat.dispose();shards.splice(i,1);}
   }
 }
 
@@ -718,6 +821,7 @@ function initWorld(){
   _scene=scene;_camera=camera;
   setupAtmosphere(scene);setupLighting(scene);
   buildTerrain(scene);buildWater(scene);buildTrees(scene);buildRocks(scene);
+  buildTargets(scene);
   selectSpell(0);
   selectItem(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
@@ -732,7 +836,7 @@ function initWorld(){
     if(casting)attemptCast(now);
     player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
     updatePlayer(dt,camera);
-    updateProjectiles(dt);updateImpacts(dt);
+    updateProjectiles(dt);updateImpacts(dt);updateTargets(dt,now);
     updateHUD(camera);
     renderer.render(scene,camera);
   }
