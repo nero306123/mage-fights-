@@ -480,6 +480,41 @@
     pointer-events:auto;cursor:pointer;z-index:3;font-size:18px;
     display:flex;align-items:center;justify-content:center}
   #craft-btn:active{transform:scale(.95)}
+  #build-btn{position:absolute;top:8px;left:50%;margin-left:184px;
+    background:rgba(0,0,0,.55);border:1px solid rgba(120,200,160,.5);
+    border-radius:10px;color:#7adca0;width:38px;height:38px;
+    pointer-events:auto;cursor:pointer;z-index:3;font-size:18px;
+    display:flex;align-items:center;justify-content:center}
+  #build-btn:active{transform:scale(.95)}
+  #build-btn.active{background:rgba(40,90,60,.85);border-color:#7adca0;box-shadow:0 0 14px rgba(120,220,160,.5)}
+  #build-place-btn,#build-remove-btn{position:absolute;right:14px;width:58px;height:58px;
+    border-radius:50%;font-size:26px;font-weight:800;display:none;
+    align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;z-index:6}
+  #build-place-btn{bottom:170px;background:rgba(30,90,40,.8);border:2px solid rgba(120,220,120,.7);color:#dfffd0}
+  #build-remove-btn{bottom:240px;background:rgba(120,30,30,.8);border:2px solid rgba(220,120,120,.7);color:#ffd0d0}
+  #build-place-btn:active,#build-remove-btn:active{transform:scale(.9)}
+  body.build-on #build-place-btn,body.build-on #build-remove-btn{display:flex}
+  /* ── BUILD PANEL ──────────────────────────────────── */
+  #build-panel{position:absolute;left:0;right:0;bottom:0;z-index:20;
+    background:linear-gradient(0deg,rgba(8,14,12,.97),rgba(12,22,18,.92));
+    border-top:2px solid rgba(120,200,160,.4);border-radius:14px 14px 0 0;
+    padding:10px 12px;transform:translateY(110%);transition:transform .25s ease;
+    pointer-events:auto;max-height:42vh;overflow-y:auto}
+  #build-panel.open{transform:translateY(0)}
+  .build-head{display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:16px;font-weight:700;color:#7adca0;margin-bottom:4px}
+  .build-head button{position:absolute;right:14px;background:rgba(0,0,0,.3);
+    border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#ccc;
+    font-size:14px;width:30px;height:30px;cursor:pointer}
+  .build-hint{font-size:10px;color:#8aa89a;text-align:center;margin-bottom:8px}
+  .build-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:7px}
+  .build-slot{display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12);
+    border-radius:10px;padding:8px 4px;cursor:pointer;position:relative}
+  .build-slot.active{border-color:#7adca0;box-shadow:0 0 12px rgba(120,220,160,.5);background:rgba(40,80,60,.5)}
+  .build-ic{font-size:24px}
+  .build-ct{position:absolute;top:3px;right:5px;font-size:10px;color:#ffe;font-weight:700;background:rgba(0,0,0,.5);border-radius:6px;padding:0 4px}
+  .build-nm{font-size:9px;color:#cfe;text-align:center;line-height:1.1}
 
   /* ── CRAFT PANEL ──────────────────────────────────── */
   #craft-panel{position:absolute;inset:0;z-index:21;background:rgba(6,9,16,.82);
@@ -655,6 +690,14 @@
   </div>
   <button id="char-btn" title="Postac"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="6" r="3.4" fill="currentColor"/><path d="M5 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z" fill="currentColor"/></svg></button>
   <button id="craft-btn" title="Rzemioslo">🔨</button>
+  <button id="build-btn" title="Budowanie">🧱</button>
+  <button id="build-place-btn" title="Postaw blok">✓</button>
+  <button id="build-remove-btn" title="Usun blok">✗</button>
+  <div id="build-panel">
+    <div class="build-head">🧱 Budowanie <button id="build-close">✕</button></div>
+    <div class="build-hint">Wybierz blok, celuj i kliknij ✓ aby postawic, ✗ aby usunac</div>
+    <div class="build-list" id="build-list"></div>
+  </div>
   <div id="char-panel">
     <div class="cp-wrap">
       <div class="cp-head">
@@ -1036,7 +1079,20 @@ const RECIPES = [
   {id:'wooden_pickaxe',name:'Drewniany Kilof',icon:'⛏️',type:'tool',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Pozwala kopac kamien i rudy'},
   {id:'wooden_axe',name:'Drewniany Topor',icon:'🪓',type:'tool',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Szybciej scinasz drzewa'},
   {id:'torch',name:'Pochodnia',icon:'🔦',type:'tool',need:[{id:'wood',count:1},{id:'coal',count:1}],desc:'Oswietla okolice'},
-  {id:'bed',name:'Lozko',icon:'🛏️',type:'tool',need:[{id:'wood',count:3},{id:'wool',count:3}],desc:'Ustawia punkt odrodzenia'},
+  {id:'bed',name:'Lozko',icon:'🛏️',type:'block',blockType:'bed',need:[{id:'wood',count:3},{id:'wool',count:3}],desc:'Postaw - ustawia punkt odrodzenia'},
+  // ── BLOKI BUDOWLANE (stawiane w trybie budowania) ──
+  {id:'stone_wall',name:'Sciana Kamienna',icon:'🧱',type:'block',blockType:'stone_wall',need:[{id:'stone',count:3}],desc:'Mocna sciana z kamienia'},
+  {id:'wood_wall',name:'Sciana Drewniana',icon:'🟫',type:'block',blockType:'wood_wall',need:[{id:'wood',count:3}],desc:'Sciana z drewna'},
+  {id:'stone_floor',name:'Podloga Kamienna',icon:'⬜',type:'block',blockType:'stone_floor',need:[{id:'stone',count:2}],desc:'Plytka podlogowa'},
+  {id:'wood_floor',name:'Podloga Drewniana',icon:'🟧',type:'block',blockType:'wood_floor',need:[{id:'wood',count:2}],desc:'Drewniana podloga'},
+  {id:'wood_door',name:'Drzwi',icon:'🚪',type:'block',blockType:'door',need:[{id:'wood',count:4}],desc:'Drzwi do domu'},
+  {id:'window_wall',name:'Okno',icon:'🪟',type:'block',blockType:'window',need:[{id:'wood',count:2},{id:'glass',count:1}],desc:'Sciana z oknem'},
+  {id:'roof_block',name:'Dach',icon:'🔺',type:'block',blockType:'roof',need:[{id:'wood',count:3}],desc:'Dach na dom'},
+  {id:'fence_block',name:'Plot',icon:'🪵',type:'block',blockType:'fence',need:[{id:'wood',count:2}],desc:'Drewniany plot'},
+  {id:'torch_block',name:'Pochodnia (stawiana)',icon:'🕯️',type:'block',blockType:'torch',need:[{id:'wood',count:1},{id:'coal',count:1}],desc:'Stawiana pochodnia - swiatlo'},
+  {id:'table_block',name:'Stol',icon:'🪑',type:'block',blockType:'table',need:[{id:'wood',count:4}],desc:'Drewniany stol'},
+  {id:'chest_block',name:'Skrzynia',icon:'📦',type:'block',blockType:'chest',need:[{id:'wood',count:6}],desc:'Skrzynia do przechowywania'},
+  {id:'crystal_wall',name:'Sciana Krysztalowa',icon:'🟦',type:'block',blockType:'crystal_wall',need:[{id:'crystal',count:2},{id:'stone',count:2}],desc:'Swiecaca sciana krysztalowa'},
   {id:'golden_collar',name:'Zlota Obroza',icon:'⭕',type:'resource',need:[{id:'gold_ore',count:3},{id:'leather',count:1}],desc:'Do oswojenia lwa'},
   {id:'saddle',name:'Siodlo',icon:'🪑',type:'resource',need:[{id:'leather',count:4},{id:'iron_ore',count:2}],desc:'Do oswojenia konia'},
   // Rozdzki
@@ -1819,6 +1875,213 @@ function openNearbyChest(camera){
   return false;
 }
 
+// ═══ BUDOWANIE (Building System) ══════════════════════
+const GRID=2; // rozmiar siatki budowania
+const placedBlocks=[]; // {mesh,bx,bz,by,blockType,box?}
+let buildMode=false;
+let buildBlockType=null; // aktualnie wybrany blok do postawienia
+let _ghostMesh=null;
+const BLOCK_DEFS={
+  stone_wall:{w:GRID,h:3,d:0.3,color:0x8a8a92,solid:true,name:'Sciana Kamienna'},
+  wood_wall:{w:GRID,h:3,d:0.3,color:0x9a6f3a,solid:true,name:'Sciana Drewniana'},
+  crystal_wall:{w:GRID,h:3,d:0.3,color:0x66ccee,solid:true,glow:0x3399cc,name:'Sciana Krysztalowa'},
+  window:{w:GRID,h:3,d:0.3,color:0xaaddee,solid:true,opacity:0.6,name:'Okno'},
+  stone_floor:{w:GRID,h:0.2,d:GRID,color:0x77777e,solid:false,name:'Podloga Kamienna'},
+  wood_floor:{w:GRID,h:0.2,d:GRID,color:0xa87838,solid:false,name:'Podloga Drewniana'},
+  roof:{w:GRID,h:0.3,d:GRID,color:0x884422,solid:false,roof:true,name:'Dach'},
+  door:{w:GRID,h:3,d:0.3,color:0x6a4a2a,solid:false,door:true,name:'Drzwi'},
+  fence:{w:GRID,h:1.2,d:0.2,color:0x8a6030,solid:true,name:'Plot'},
+  torch:{w:0.2,h:1.2,d:0.2,color:0x4a3020,solid:false,light:0xffaa44,name:'Pochodnia'},
+  table:{w:1.4,h:1.0,d:1.4,color:0x9a6f3a,solid:true,name:'Stol'},
+  bed:{w:1.6,h:0.6,d:2.4,color:0xcc4444,solid:false,bed:true,name:'Lozko'},
+  chest:{w:1.0,h:0.8,d:0.8,color:0xb89a5a,solid:false,chestBlock:true,name:'Skrzynia'},
+};
+function makeBlockMesh(blockType,ghost){
+  const def=BLOCK_DEFS[blockType];if(!def)return null;
+  const g=new THREE.Group();
+  const opacity=ghost?0.4:(def.opacity||1.0);
+  const mat=new THREE.MeshStandardMaterial({color:def.color,roughness:0.8,flatShading:true,
+    transparent:ghost||def.opacity!=null,opacity,
+    emissive:ghost?0x44ff88:(def.glow||0x000000),emissiveIntensity:ghost?0.5:(def.glow?0.5:0)});
+  if(def.roof){
+    const roof=new THREE.Mesh(new THREE.BoxGeometry(def.w*1.05,def.h,def.d*1.05),mat);
+    roof.rotation.x=0.15;roof.position.y=def.h/2;g.add(roof);
+  }else if(def.bed){
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(def.w,0.4,def.d),
+      new THREE.MeshStandardMaterial({color:0x6a4a2a,roughness:0.8,flatShading:true,transparent:ghost,opacity}));
+    frame.position.y=0.2;g.add(frame);
+    const mattress=new THREE.Mesh(new THREE.BoxGeometry(def.w*0.9,0.25,def.d*0.85),mat);
+    mattress.position.y=0.5;g.add(mattress);
+    const pillow=new THREE.Mesh(new THREE.BoxGeometry(def.w*0.7,0.15,0.4),
+      new THREE.MeshStandardMaterial({color:0xeeeeee,roughness:0.7,flatShading:true,transparent:ghost,opacity}));
+    pillow.position.set(0,0.65,-def.d*0.35);g.add(pillow);
+  }else if(blockType==='torch'){
+    const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,def.h,5),mat);
+    stick.position.y=def.h/2;g.add(stick);
+    const flame=new THREE.Mesh(new THREE.SphereGeometry(0.18,6,6),
+      new THREE.MeshBasicMaterial({color:0xffaa33,transparent:true,opacity:ghost?0.5:0.9}));
+    flame.position.y=def.h+0.1;g.add(flame);
+    if(!ghost)g.add(Object.assign(new THREE.PointLight(0xffaa44,1.5,12),{position:new THREE.Vector3(0,def.h+0.2,0)}));
+  }else if(def.door){
+    const door=new THREE.Mesh(new THREE.BoxGeometry(def.w*0.85,def.h,def.d),mat);
+    door.position.y=def.h/2;g.add(door);
+    const knob=new THREE.Mesh(new THREE.SphereGeometry(0.08,6,6),
+      new THREE.MeshStandardMaterial({color:0xffcc44,metalness:0.6,roughness:0.3,transparent:ghost,opacity}));
+    knob.position.set(def.w*0.3,def.h*0.5,def.d);g.add(knob);
+  }else if(def.chestBlock){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h*0.7,def.d),mat);
+    body.position.y=def.h*0.35;g.add(body);
+    const lid=new THREE.Mesh(new THREE.BoxGeometry(def.w*1.02,def.h*0.3,def.d*1.02),
+      new THREE.MeshStandardMaterial({color:0x9a7a4a,roughness:0.7,flatShading:true,transparent:ghost,opacity}));
+    lid.position.y=def.h*0.85;g.add(lid);
+  }else if(blockType==='window'){
+    const fmat=new THREE.MeshStandardMaterial({color:def.color,roughness:0.4,flatShading:true,transparent:true,opacity:ghost?0.4:0.5});
+    // rama
+    const frameMat=new THREE.MeshStandardMaterial({color:0x6a4a2a,roughness:0.8,flatShading:true,transparent:ghost,opacity});
+    const top=new THREE.Mesh(new THREE.BoxGeometry(def.w,0.6,def.d),frameMat);top.position.y=def.h-0.3;g.add(top);
+    const bot=new THREE.Mesh(new THREE.BoxGeometry(def.w,0.6,def.d),frameMat);bot.position.y=0.3;g.add(bot);
+    const glass=new THREE.Mesh(new THREE.BoxGeometry(def.w*0.85,def.h-1.2,def.d*0.6),fmat);glass.position.y=def.h/2;g.add(glass);
+  }else{
+    const box=new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d),mat);
+    box.position.y=def.h/2;g.add(box);
+    if(blockType==='table'){
+      const top2=new THREE.Mesh(new THREE.BoxGeometry(def.w*1.2,0.15,def.d*1.2),mat);
+      top2.position.y=def.h;g.add(top2);
+    }
+  }
+  g.traverse(c=>{if(c.isMesh){c.castShadow=!isMobile&&!ghost;c.receiveShadow=true;}});
+  return g;
+}
+function snapToGrid(v){return Math.round(v/GRID)*GRID;}
+function getBuildTarget(camera){
+  const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const dist=4;
+  const tx=camera.position.x+dir.x*dist;
+  const tz=camera.position.z+dir.z*dist;
+  return {x:snapToGrid(tx),z:snapToGrid(tz)};
+}
+function updateBuildGhost(camera){
+  if(!buildMode||!buildBlockType){if(_ghostMesh){_ghostMesh.visible=false;}return;}
+  if(!_ghostMesh||_ghostMesh.userData.bt!==buildBlockType){
+    if(_ghostMesh){_scene.remove(_ghostMesh);}
+    _ghostMesh=makeBlockMesh(buildBlockType,true);
+    if(_ghostMesh){_ghostMesh.userData.bt=buildBlockType;_scene.add(_ghostMesh);}
+  }
+  if(!_ghostMesh)return;
+  _ghostMesh.visible=true;
+  const t=getBuildTarget(camera);
+  // policz wysokosc - na ziemi lub na innym bloku
+  let by=terrainHeight(t.x,t.z);
+  const def=BLOCK_DEFS[buildBlockType];
+  // jesli stawiamy na istniejacym bloku w tej kolumnie, ustaw wyzej
+  for(const pb of placedBlocks){
+    if(pb.bx===t.x&&pb.bz===t.z){
+      const pd=BLOCK_DEFS[pb.blockType];
+      const topY=pb.by+pd.h;
+      if(topY>by)by=topY;
+    }
+  }
+  _ghostMesh.position.set(t.x,by,t.z);
+}
+function placeBlock(camera){
+  if(!buildMode||!buildBlockType)return false;
+  // sprawdz czy mamy item
+  const invIdx=ITEMS.findIndex(it=>it&&it.type==='block'&&it.blockType===buildBlockType&&it.count>0);
+  if(invIdx<0){toast('Brak bloku w ekwipunku');return false;}
+  const t=getBuildTarget(camera);
+  const def=BLOCK_DEFS[buildBlockType];
+  // policz najwyzszy wierzcholek w tej kolumnie
+  let by=terrainHeight(t.x,t.z);
+  let blocksHere=0;
+  for(const pb of placedBlocks){
+    if(pb.bx===t.x&&pb.bz===t.z){
+      blocksHere++;
+      const topY=pb.by+BLOCK_DEFS[pb.blockType].h;
+      if(topY>by)by=topY;
+    }
+  }
+  if(blocksHere>8){toast('Za wysoko!');return false;}
+  const mesh=makeBlockMesh(buildBlockType,false);
+  if(!mesh)return false;
+  mesh.position.set(t.x,by,t.z);
+  _scene.add(mesh);
+  const block={mesh,bx:t.x,bz:t.z,by,blockType:buildBlockType};
+  // kolizja dla solidnych blokow
+  if(def.solid){
+    block.box={minX:t.x-def.w/2,maxX:t.x+def.w/2,minZ:t.z-def.d/2,maxZ:t.z+def.d/2};
+    _wallBoxes.push(block.box);
+  }
+  if(def.bed)block.spawnPoint=true;
+  if(def.chestBlock){block.storage=new Array(9).fill(null);}
+  placedBlocks.push(block);
+  // zuzyj item
+  ITEMS[invIdx].count--;if(ITEMS[invIdx].count<=0)ITEMS[invIdx]=null;
+  buildItembar();
+  if(def.bed){buildSpawnPoint={x:t.x,z:t.z};toast('Punkt odrodzenia ustawiony!');}
+  else toast(def.name+' postawiony');
+  return true;
+}
+function removeBlockAt(camera){
+  if(!buildMode)return false;
+  const t=getBuildTarget(camera);
+  // znajdz najwyzszy blok w tej kolumnie
+  let best=-1,bestY=-1e9;
+  for(let i=0;i<placedBlocks.length;i++){
+    const pb=placedBlocks[i];
+    if(pb.bx===t.x&&pb.bz===t.z&&pb.by>bestY){bestY=pb.by;best=i;}
+  }
+  if(best<0){toast('Brak bloku do usuniecia');return false;}
+  const pb=placedBlocks[best];
+  _scene.remove(pb.mesh);
+  pb.mesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material&&c.material.dispose)c.material.dispose();});
+  if(pb.box){const bi=_wallBoxes.indexOf(pb.box);if(bi>=0)_wallBoxes.splice(bi,1);}
+  // zwroc item
+  const def=BLOCK_DEFS[pb.blockType];
+  const recipe=RECIPES.find(r=>r.blockType===pb.blockType);
+  if(recipe)addToInventory({...recipe,count:1});
+  placedBlocks.splice(best,1);
+  toast(def.name+' usuniety (+1 do plecaka)');
+  return true;
+}
+let buildSpawnPoint=null;
+function toggleBuildMode(){
+  buildMode=!buildMode;
+  const panel=document.getElementById('build-panel');
+  const btn=document.getElementById('build-btn');
+  if(buildMode){
+    panel.classList.add('open');btn.classList.add('active');
+    document.body.classList.add('build-on');
+    renderBuildPanel();
+  }else{
+    panel.classList.remove('open');btn.classList.remove('active');
+    document.body.classList.remove('build-on');
+    if(_ghostMesh)_ghostMesh.visible=false;
+  }
+}
+function renderBuildPanel(){
+  const list=document.getElementById('build-list');if(!list)return;list.innerHTML='';
+  // pokaz wszystkie bloki ktore gracz ma w ekwipunku
+  const owned={};
+  for(const it of ITEMS){if(it&&it.type==='block'){owned[it.blockType]=(owned[it.blockType]||0)+it.count;}}
+  const keys=Object.keys(BLOCK_DEFS).filter(k=>owned[k]);
+  if(keys.length===0){
+    list.innerHTML='<div style="padding:12px;color:#aaa;font-size:12px">Brak blokow. Stworz je w Rzemiosle (🔨): sciany, podlogi, drzwi, lozko, pochodnie...</div>';
+    return;
+  }
+  for(const k of keys){
+    const def=BLOCK_DEFS[k];
+    const recipe=RECIPES.find(r=>r.blockType===k);
+    const slot=document.createElement('div');
+    slot.className='build-slot'+(buildBlockType===k?' active':'');
+    slot.innerHTML=`<span class="build-ic">${recipe?recipe.icon:'🧱'}</span><span class="build-ct">${owned[k]}</span><span class="build-nm">${def.name}</span>`;
+    slot.addEventListener('click',()=>{
+      buildBlockType=buildBlockType===k?null:k;
+      renderBuildPanel();
+    });
+    list.appendChild(slot);
+  }
+}
+
 // ═══ CLIMB SYSTEM ═════════════════════════════════════
 let climbStamina=100,isClimbing=false,_clingTimer=0;
 function isNearWall(camera){
@@ -2309,6 +2572,11 @@ function updateDayNight(dt){
     if(_camera){_sun.position.set(_camera.position.x+Math.cos(ang)*60,
       Math.sin(ang)*80+20,_camera.position.z+30);
       _sun.target.position.copy(_camera.position);_sun.target.updateMatrixWorld();}}
+  // Swiat Umarlych: mroczna fioletowa atmosfera
+  if(worldRealm==='dead'){
+    skyR=0.10;skyG=0.04;skyB=0.16;ambInt=Math.max(ambInt,0.4);
+    if(_sun)_sun.intensity=0.25;
+  }
   if(_ambient)_ambient.intensity=ambInt;
   if(_hemi)_hemi.intensity=ambInt*0.8;
   if(_scene){_scene.background.setRGB(skyR,skyG,skyB);
@@ -2487,21 +2755,45 @@ function buildCastle(scene,cx,cz){
   }
   buildBeacon(scene,cx,cz,0xff3322);
 }
-function buildPortal(scene,cx,cz){
+const _portals=[];
+function buildPortal(scene,cx,cz,col,destX,destZ,label){
   const grp=new THREE.Group();scene.add(grp);
   const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   const stone=matStone(0x4a4458,0.9);
   addBox(grp,1.2,6,1.2,-2.6,3,0,stone);
   addBox(grp,1.2,6,1.2,2.6,3,0,stone);
   addBox(grp,6.4,1.2,1.2,0,6.4,0,stone);
-  const pmat=new THREE.MeshBasicMaterial({color:0x66ff99,transparent:true,opacity:0.55,side:THREE.DoubleSide});
+  const portalCol=col||0x66ff99;
+  const pmat=new THREE.MeshBasicMaterial({color:portalCol,transparent:true,opacity:0.55,side:THREE.DoubleSide});
   const plane=new THREE.Mesh(new THREE.PlaneGeometry(4.2,5.4),pmat);
   plane.position.set(0,3.2,0);grp.add(plane);
-  const portalRing=new THREE.Mesh(new THREE.TorusGeometry(2.4,0.25,8,20),new THREE.MeshBasicMaterial({color:0x33dd77}));
+  const portalRing=new THREE.Mesh(new THREE.TorusGeometry(2.4,0.25,8,20),new THREE.MeshBasicMaterial({color:portalCol}));
   portalRing.position.set(0,3.2,0.1);grp.add(portalRing);
-  const lt=new THREE.PointLight(0x44ff88,2.2,20);lt.position.set(0,3.5,0);grp.add(lt);
-  _portal={plane,ring:portalRing,mat:pmat,light:lt};
-  buildBeacon(scene,cx,cz,0x55ff99);
+  const lt=new THREE.PointLight(portalCol,2.2,20);lt.position.set(0,3.5,0);grp.add(lt);
+  const portalObj={plane,ring:portalRing,mat:pmat,light:lt,x:cx,z:cz,destX,destZ,label:label||'Portal'};
+  _portals.push(portalObj);
+  if(!_portal)_portal=portalObj;
+  buildBeacon(scene,cx,cz,portalCol);
+  return portalObj;
+}
+// Swiat Umarlych (World of the Dead) - daleka kraina
+const DEAD_WORLD={x:-2500,z:-2500};
+let worldRealm='overworld';
+let _portalCooldown=0;
+function checkPortals(camera,dt){
+  if(_portalCooldown>0){_portalCooldown-=dt;return;}
+  for(const p of _portals){
+    const dx=camera.position.x-p.x,dz=camera.position.z-p.z;
+    if(dx*dx+dz*dz<3.5*3.5){
+      camera.position.set(p.destX,terrainHeight(p.destX,p.destZ)+EYE_H,p.destZ);
+      _portalCooldown=2.5;
+      worldRealm=(p.destX===DEAD_WORLD.x&&p.destZ===DEAD_WORLD.z)?'dead':'overworld';
+      toast(worldRealm==='dead'?'Wszedles do Swiata Umarlych...':'Powrot do swiata zywych');
+      // wymus przeladowanie chunkow
+      _lastChunkX=99999;_lastChunkZ=99999;
+      return;
+    }
+  }
 }
 function buildCemetery(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
@@ -2620,11 +2912,51 @@ function buildBeacon(scene,cx,cz,color){
     side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending});
   const m=new THREE.Mesh(geo,mat);m.position.set(cx,baseH+80,cz);scene.add(m);
 }
+// Swiat Umarlych - mroczna kraina wokol portalu powrotnego
+function buildDeadWorld(scene,cx,cz){
+  const grp=new THREE.Group();scene.add(grp);
+  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const boneMat=matStone(0xd8d0c0,0.85);
+  const darkStone=matStone(0x2a2438,0.9);
+  // martwe drzewa
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0xDEAD);
+  for(let i=0;i<24;i++){
+    const a=rng()*Math.PI*2,r=12+rng()*40;
+    const tx=Math.cos(a)*r,tz=Math.sin(a)*r;
+    const th=2+rng()*3;
+    addBox(grp,0.5,th,0.5,tx,th/2,tz,matStone(0x3a3040,0.9));
+    // konary
+    for(let b=0;b<3;b++){
+      const ba=rng()*Math.PI*2;
+      addBox(grp,0.2,1.5,0.2,tx+Math.cos(ba)*0.6,th+0.3,tz+Math.sin(ba)*0.6,matStone(0x2a2030,0.9));
+    }
+  }
+  // kosci / nagrobki
+  for(let i=0;i<30;i++){
+    const a=rng()*Math.PI*2,r=8+rng()*45;
+    const gx=Math.cos(a)*r,gz=Math.sin(a)*r;
+    addBox(grp,0.4,0.8+rng()*0.6,0.15,gx,0.4,gz,boneMat);
+  }
+  // mroczny oltarz centralny
+  addBox(grp,8,1,8,0,0.5,0,darkStone);
+  addBox(grp,3,2.5,3,12,1.25,0,darkStone);
+  addBox(grp,3,2.5,3,-12,1.25,0,darkStone);
+  // fioletowe swiatla
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2;
+    const l=new THREE.PointLight(0x8833cc,1.2,18);
+    l.position.set(Math.cos(a)*20,3,Math.sin(a)*20);grp.add(l);
+  }
+  buildBeacon(scene,cx,cz,0x9944dd);
+}
 function buildStructures(scene){
-  _wallBoxes.length=0;
+  _wallBoxes.length=0;_portals.length=0;_portal=null;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
   buildCastle(scene,LANDMARKS.castle.x,LANDMARKS.castle.z);
-  buildPortal(scene,LANDMARKS.portal.x,LANDMARKS.portal.z);
+  // Portal do Swiata Umarlych + portal powrotny
+  buildPortal(scene,LANDMARKS.portal.x,LANDMARKS.portal.z,0x9944dd,DEAD_WORLD.x,DEAD_WORLD.z,'Portal do Swiata Umarlych');
+  buildPortal(scene,DEAD_WORLD.x,DEAD_WORLD.z,0x44ddaa,LANDMARKS.portal.x,LANDMARKS.portal.z,'Portal Powrotny');
+  buildDeadWorld(scene,DEAD_WORLD.x,DEAD_WORLD.z);
   buildCemetery(scene,LANDMARKS.cemetery.x,LANDMARKS.cemetery.z);
   buildDragonLair(scene,LANDMARKS.lair.x,LANDMARKS.lair.z);
   buildPyramid(scene,LANDMARKS.pyramid.x,LANDMARKS.pyramid.z);
@@ -2642,10 +2974,10 @@ function buildStructures(scene){
   spawnChest(scene,px+4,pz+6,1);spawnChest(scene,px-5,pz-3,2);
 }
 function updateStructures(now){
-  if(_portal){
-    _portal.ring.rotation.z=now*0.0012;
-    _portal.mat.opacity=0.45+Math.sin(now*0.003)*0.15;
-    _portal.light.intensity=2.0+Math.sin(now*0.004)*0.6;
+  for(const p of _portals){
+    p.ring.rotation.z=now*0.0012;
+    p.mat.opacity=0.45+Math.sin(now*0.003)*0.15;
+    p.light.intensity=2.0+Math.sin(now*0.004)*0.6;
   }
 }
 function nearestLandmark(px,pz){
@@ -3090,6 +3422,10 @@ document.getElementById('craft-close').addEventListener('click',()=>{
 });
 document.getElementById('map-btn').addEventListener('click',toggleFullMap);
 document.getElementById('fm-close').addEventListener('click',toggleFullMap);
+document.getElementById('build-btn').addEventListener('click',toggleBuildMode);
+document.getElementById('build-close').addEventListener('click',toggleBuildMode);
+document.getElementById('build-place-btn').addEventListener('click',()=>{if(_camera)placeBlock(_camera);});
+document.getElementById('build-remove-btn').addEventListener('click',()=>{if(_camera)removeBlockAt(_camera);});
 function renderCraftPanel(){
   const list=document.getElementById('craft-list');if(!list)return;list.innerHTML='';
   RECIPES.forEach(r=>{
@@ -4030,7 +4366,8 @@ function playerDeath(){
 }
 function respawnPlayer(){
   playerDead=false;player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;
-  _camera.position.set(0,terrainHeight(0,0)+EYE_H,0);yaw=0;pitch=0;
+  const sp=buildSpawnPoint||{x:0,z:0};
+  _camera.position.set(sp.x,terrainHeight(sp.x,sp.z)+EYE_H,sp.z);yaw=0;pitch=0;
   for(let i=mobs.length-1;i>=0;i--){_scene.remove(mobs[i].mesh);disposeMob(mobs[i]);}
   mobs.length=0;mobSpawnTimer=5;
   if(session.difficulty==='normal'){for(let i=1;i<INV_SIZE;i++)ITEMS[i]=null;buildItembar();}
@@ -4108,6 +4445,11 @@ function setupDesktopInput(){
       craftOpen=!craftOpen;document.getElementById('craft-panel').classList.toggle('open',craftOpen);
       if(craftOpen)renderCraftPanel();}
     if(e.code==='KeyM'){e.preventDefault();toggleFullMap();}
+    if(e.code==='KeyB'){e.preventDefault();toggleBuildMode();}
+    if(buildMode&&_camera){
+      if(e.code==='KeyQ'){e.preventDefault();placeBlock(_camera);}
+      if(e.code==='KeyX'){e.preventDefault();removeBlockAt(_camera);}
+    }
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
   document.addEventListener('click',()=>{if(!document.pointerLockElement)document.body.requestPointerLock();});
@@ -4117,9 +4459,16 @@ function setupDesktopInput(){
     pitch=THREE.MathUtils.clamp(pitch,-Math.PI/2+0.05,Math.PI/2-0.05);
   });
   document.addEventListener('mousedown',e=>{
-    if(!document.pointerLockElement||e.button!==0)return;
+    if(!document.pointerLockElement)return;
+    if(buildMode){
+      if(e.button===0)placeBlock(_camera);
+      else if(e.button===2)removeBlockAt(_camera);
+      return;
+    }
+    if(e.button!==0)return;
     if(heldIsWand())casting=true;else meleeSwing();
   });
+  document.addEventListener('contextmenu',e=>{if(buildMode)e.preventDefault();});
   document.addEventListener('mouseup',e=>{if(e.button===0)casting=false;});
 }
 function setupMobileInput(){
@@ -4154,7 +4503,7 @@ function setupMobileInput(){
     joyKnob.style.left=(cx-26)+'px';joyKnob.style.top=(cy-26)+'px';}}};
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
-  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel');
+  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#map-btn');
   document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
       if(t.clientX>window.innerWidth*0.46&&!lookState.active){
@@ -4448,6 +4797,7 @@ function initWorld(){
     updateChunks(scene,camera);
     updateScenery(scene,camera);
     updateStructures(now);
+    checkPortals(camera,dt);
     updateProjectiles(dt);updateImpacts(dt);updateTargets(dt,now);
     updateMobs(dt,now,camera,scene);
     updateBosses(dt,now,camera);
@@ -4456,6 +4806,7 @@ function initWorld(){
     updateCompanion(dt,camera,scene);
     updateShadowMinions(dt,now,camera);
     updateFallingTrees(dt);
+    updateBuildGhost(camera);
     _activeNPC=findInteractNPC(camera);
     const ipEl=document.getElementById('interact-prompt');
     let nearChest=false;
