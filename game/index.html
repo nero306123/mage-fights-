@@ -2932,7 +2932,6 @@ function updateHUD(camera){
 function initWorld(){
   try{
   if(worldStarted)return;worldStarted=true;
-  showError('initWorld: start, isMobile='+isMobile);
   const renderer=new THREE.WebGLRenderer({antialias:!isMobile});
   renderer.setSize(window.innerWidth,window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?2:3));
@@ -2949,12 +2948,10 @@ function initWorld(){
   updateChunks(scene,camera);
   rebuildScenery(scene,camera.position.x,camera.position.z);
   buildStructures(scene);
-  showError('initWorld: structures done');
   buildNPCs(scene,LANDMARKS.village.x,LANDMARKS.village.z);
   buildTargets(scene);
   selectSpell(0);selectItem(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
-  showError('initWorld: input setup done');
   window.addEventListener('resize',()=>{
     camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth,window.innerHeight);
