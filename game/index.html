@@ -507,28 +507,28 @@
         <div class="class-name">Mag</div>
         <div class="class-tag">Wladca zywiolow. Rozdzka, mana i dziesiatki zaklec o roznej rzadkosci.</div>
       </div>
-      <div class="class-card locked" data-class="wampir">
-        <div class="class-lock">Wkrotce</div><div class="class-icon">🦇</div>
+      <div class="class-card" data-class="wampir">
+        <div class="class-icon">🦇</div>
         <div class="class-name">Wampir</div>
         <div class="class-tag">System krwi, slabosc na slonce, mroczne moce pasywne.</div>
       </div>
-      <div class="class-card locked" data-class="nekromanta">
-        <div class="class-lock">Wkrotce</div><div class="class-icon">💀</div>
+      <div class="class-card" data-class="nekromanta">
+        <div class="class-icon">💀</div>
         <div class="class-name">Nekromanta</div>
         <div class="class-tag">Przyzywa armie cieni. Punkty cienia i ewolucja pupila.</div>
       </div>
-      <div class="class-card locked" data-class="czlowiek">
-        <div class="class-lock">Wkrotce</div><div class="class-icon">⚔️</div>
+      <div class="class-card" data-class="czlowiek">
+        <div class="class-icon">⚔️</div>
         <div class="class-name">Czlowiek</div>
         <div class="class-tag">Wszechstronny wojownik. Balans, bron i adaptacja.</div>
       </div>
-      <div class="class-card locked" data-class="atlantyda">
-        <div class="class-lock">Wkrotce</div><div class="class-icon">🔱</div>
+      <div class="class-card" data-class="atlantyda">
+        <div class="class-icon">🔱</div>
         <div class="class-name">Atlantyda</div>
         <div class="class-tag">Starozytna magia wody i krysztalow z zatopionego miasta.</div>
       </div>
-      <div class="class-card locked" data-class="nieumarly">
-        <div class="class-lock">Wkrotce</div><div class="class-icon">🧟</div>
+      <div class="class-card" data-class="nieumarly">
+        <div class="class-icon">🧟</div>
         <div class="class-name">Nieumarly</div>
         <div class="class-tag">Nie czuje bolu. Trupia wytrzymalosc i mroczne klatwy.</div>
       </div>
@@ -587,8 +587,8 @@
     <div id="bars">
       <div class="bar-wrap bar-hp"><div class="bar-fill"></div>
         <div class="bar-label">HP 100/100</div></div>
-      <div class="bar-wrap bar-mana"><div class="bar-fill"></div>
-        <div class="bar-label">MANA 100/100</div></div>
+      <div class="bar-wrap bar-mana" id="resource-bar"><div class="bar-fill"></div>
+        <div class="bar-label" id="resource-label">MANA 100/100</div></div>
       <div class="bar-wrap bar-hunger"><div class="bar-fill"></div>
         <div class="bar-label">GLOD 100/100</div></div>
       <div class="bar-wrap bar-xp" style="width:120px;height:10px"><div class="bar-fill"></div>
@@ -814,21 +814,37 @@ ITEMS[0]={ id:'wand', name:'Rozdzka', icon:'🪄', type:'wand', wandTier:0 };
 
 // ═══ MOB TYPES (15 typow, biome-dependent) ═══════════════
 const MOB_TYPES = [
-  {id:'skeleton',name:'Szkielet',hp:60,dmg:8,speed:3.2,atkRange:2.2,aggroRange:18,xp:15,gold:5,atkCd:1.5,height:1.7,biomes:['forest','meadow']},
-  {id:'wolf',name:'Wilkolak',hp:110,dmg:14,speed:4.8,atkRange:2.5,aggroRange:22,xp:28,gold:9,atkCd:1.2,height:1.9,biomes:['forest']},
-  {id:'ghost',name:'Duch',hp:40,dmg:11,speed:2.2,atkRange:3.0,aggroRange:28,xp:22,gold:7,atkCd:2.0,height:1.5,biomes:['forest','arctic']},
-  {id:'bear',name:'Niedzwiedz',hp:180,dmg:20,speed:3.5,atkRange:2.8,aggroRange:15,xp:35,gold:12,atkCd:1.8,height:2.0,biomes:['forest','mountains']},
-  {id:'pig',name:'Dzik',hp:50,dmg:6,speed:3.0,atkRange:1.8,aggroRange:8,xp:8,gold:3,atkCd:2.0,height:1.0,biomes:['meadow','savanna'],passive:true},
-  {id:'mummy',name:'Mumia',hp:120,dmg:15,speed:2.5,atkRange:2.5,aggroRange:20,xp:30,gold:15,atkCd:2.0,height:1.8,biomes:['desert']},
-  {id:'scorpion',name:'Skorpion',hp:80,dmg:18,speed:4.2,atkRange:2.0,aggroRange:16,xp:25,gold:10,atkCd:1.3,height:0.8,biomes:['desert']},
-  {id:'yeti',name:'Yeti',hp:200,dmg:22,speed:3.0,atkRange:3.0,aggroRange:20,xp:40,gold:18,atkCd:2.2,height:2.4,biomes:['arctic']},
-  {id:'arcticwolf',name:'Wilk Arktyczny',hp:90,dmg:16,speed:5.5,atkRange:2.5,aggroRange:24,xp:30,gold:11,atkCd:1.1,height:1.5,biomes:['arctic']},
-  {id:'golem',name:'Kamienny Golem',hp:300,dmg:28,speed:2.0,atkRange:3.5,aggroRange:16,xp:50,gold:25,atkCd:2.8,height:2.8,biomes:['volcanic','mountains']},
-  {id:'firesnake',name:'Ognisty Waz',hp:100,dmg:20,speed:4.5,atkRange:2.0,aggroRange:22,xp:35,gold:15,atkCd:1.4,height:1.0,biomes:['volcanic']},
-  {id:'raptor',name:'Raptor',hp:130,dmg:22,speed:6.0,atkRange:2.5,aggroRange:25,xp:35,gold:14,atkCd:1.0,height:1.6,biomes:['jungle']},
-  {id:'spider',name:'Pajak',hp:70,dmg:12,speed:4.0,atkRange:2.0,aggroRange:18,xp:20,gold:8,atkCd:1.2,height:0.9,biomes:['jungle','forest']},
-  {id:'eagle',name:'Orzel',hp:70,dmg:12,speed:5.0,atkRange:3.0,aggroRange:30,xp:20,gold:8,atkCd:1.5,height:1.2,biomes:['mountains','savanna']},
-  {id:'lion',name:'Lew',hp:150,dmg:18,speed:5.2,atkRange:2.5,aggroRange:22,xp:32,gold:13,atkCd:1.2,height:1.5,biomes:['savanna']},
+  {id:'skeleton',name:'Szkielet',hp:300,dmg:15,speed:2.5,atkRange:2.2,aggroRange:18,xp:30,gold:5,atkCd:1.5,height:1.7,biomes:['forest','meadow'],drops:['bone']},
+  {id:'wolf',name:'Wilk',hp:200,dmg:15,speed:6,atkRange:2.5,aggroRange:20,xp:25,gold:5,atkCd:1.2,height:1.2,biomes:['forest'],tame:'bone',drops:['raw_meat','leather']},
+  {id:'ghost',name:'Duch',hp:250,dmg:18,speed:2.2,atkRange:3.0,aggroRange:28,xp:40,gold:8,atkCd:2.0,height:1.5,biomes:['forest','arctic'],night:true,drops:['shadow_gem']},
+  {id:'bear',name:'Niedzwiedz',hp:350,dmg:20,speed:4,atkRange:2.8,aggroRange:20,xp:40,gold:10,atkCd:1.8,height:2.0,biomes:['forest','mountains'],drops:['raw_meat','leather']},
+  {id:'pig',name:'Swinia',hp:50,dmg:3,speed:3,atkRange:1.8,aggroRange:8,xp:10,gold:2,atkCd:2.0,height:0.8,biomes:['forest','meadow','savanna'],passive:true,drops:['raw_meat']},
+  {id:'cow',name:'Krowa',hp:80,dmg:5,speed:3,atkRange:1.8,aggroRange:6,xp:15,gold:5,atkCd:2.0,height:1.2,biomes:['meadow'],passive:true,drops:['raw_meat','leather']},
+  {id:'sheep',name:'Owca',hp:60,dmg:2,speed:3,atkRange:1.5,aggroRange:6,xp:10,gold:3,atkCd:2.0,height:0.9,biomes:['meadow'],passive:true,drops:['raw_meat','wool']},
+  {id:'horse',name:'Kon',hp:120,dmg:8,speed:8,atkRange:2.0,aggroRange:8,xp:20,gold:8,atkCd:2.0,height:1.6,biomes:['meadow','savanna'],passive:true,tame:'saddle',drops:['leather']},
+  {id:'chicken',name:'Kurczak',hp:20,dmg:1,speed:3,atkRange:1.0,aggroRange:5,xp:5,gold:1,atkCd:2.0,height:0.5,biomes:['forest','meadow'],passive:true,drops:['raw_meat','egg']},
+  {id:'mummy',name:'Mumia',hp:400,dmg:20,speed:3,atkRange:2.5,aggroRange:25,xp:60,gold:15,atkCd:2.0,height:1.8,biomes:['desert'],drops:['bone','gold_ore']},
+  {id:'sphinx',name:'Sfinks',hp:600,dmg:30,speed:4,atkRange:3.0,aggroRange:28,xp:100,gold:25,atkCd:2.0,height:2.2,biomes:['desert'],drops:['gold_ore','diamond']},
+  {id:'scorpion',name:'Skorpion',hp:250,dmg:18,speed:5,atkRange:2.0,aggroRange:20,xp:40,gold:10,atkCd:1.3,height:0.8,biomes:['desert'],drops:['bone']},
+  {id:'yeti',name:'Yeti',hp:800,dmg:40,speed:3,atkRange:3.0,aggroRange:20,xp:150,gold:40,atkCd:2.2,height:2.4,biomes:['arctic'],tame:'yeti_tear',drops:['yeti_tear','leather']},
+  {id:'arcticwolf',name:'Wilk Arktyczny',hp:300,dmg:22,speed:6,atkRange:2.5,aggroRange:24,xp:50,gold:15,atkCd:1.1,height:1.3,biomes:['arctic'],tame:'bone',drops:['raw_meat','leather']},
+  {id:'penguin',name:'Pingwin',hp:100,dmg:5,speed:3,atkRange:1.5,aggroRange:5,xp:15,gold:5,atkCd:2.0,height:0.7,biomes:['arctic'],passive:true,drops:['raw_meat']},
+  {id:'golem',name:'Kamienny Golem',hp:800,dmg:35,speed:2,atkRange:3.5,aggroRange:16,xp:100,gold:20,atkCd:2.8,height:2.8,biomes:['mountains'],drops:['stone','iron_ore']},
+  {id:'crystal_golem',name:'Krysztalowy Golem',hp:1200,dmg:50,speed:2,atkRange:3.5,aggroRange:16,xp:200,gold:50,atkCd:2.8,height:3.0,biomes:['mountains'],drops:['crystal','diamond','mithril']},
+  {id:'firesnake',name:'Ognisty Waz',hp:400,dmg:25,speed:5,atkRange:2.0,aggroRange:22,xp:70,gold:18,atkCd:1.4,height:1.0,biomes:['volcanic'],drops:['fire_dust']},
+  {id:'magma_turtle',name:'Magmowy Zolw',hp:500,dmg:30,speed:2,atkRange:2.5,aggroRange:20,xp:80,gold:20,atkCd:2.5,height:1.5,biomes:['volcanic'],drops:['fire_dust','magma_heart']},
+  {id:'dragon_common',name:'Smok Zwykly',hp:2000,dmg:65,speed:5,atkRange:4.0,aggroRange:40,xp:300,gold:100,atkCd:2.0,height:3.5,biomes:['volcanic'],drops:['dragon_gem','fire_dust']},
+  {id:'moltres',name:'Moltres',hp:1400,dmg:45,speed:6,atkRange:3.0,aggroRange:30,xp:200,gold:60,atkCd:1.8,height:2.0,biomes:['volcanic'],tame:'fire_feather',drops:['fire_feather','fire_dust']},
+  {id:'monkey',name:'Malpa',hp:150,dmg:10,speed:5,atkRange:2.0,aggroRange:10,xp:30,gold:8,atkCd:1.5,height:1.2,biomes:['jungle'],tame:'banana',drops:['banana']},
+  {id:'saber_tiger',name:'Tygrys Szablozebny',hp:500,dmg:35,speed:7,atkRange:2.5,aggroRange:30,xp:120,gold:30,atkCd:1.0,height:1.6,biomes:['jungle'],drops:['leather','bone']},
+  {id:'raptor',name:'Warano-Raptor',hp:400,dmg:30,speed:7,atkRange:2.5,aggroRange:25,xp:90,gold:25,atkCd:1.0,height:1.6,biomes:['jungle'],tame:'dino_egg',drops:['dino_egg','leather']},
+  {id:'small_dino',name:'Maly Dinozaur',hp:250,dmg:18,speed:6,atkRange:2.0,aggroRange:22,xp:50,gold:15,atkCd:1.2,height:1.3,biomes:['jungle'],tame:'dino_egg',drops:['dino_egg','raw_meat']},
+  {id:'spider',name:'Pajak',hp:70,dmg:12,speed:4.0,atkRange:2.0,aggroRange:18,xp:20,gold:8,atkCd:1.2,height:0.9,biomes:['jungle','forest'],drops:['bone']},
+  {id:'eagle',name:'Orzel',hp:300,dmg:20,speed:8,atkRange:3.0,aggroRange:30,xp:50,gold:15,atkCd:1.5,height:1.2,biomes:['mountains','savanna'],drops:['raw_meat']},
+  {id:'lion',name:'Lew',hp:400,dmg:25,speed:6,atkRange:2.5,aggroRange:22,xp:80,gold:20,atkCd:1.2,height:1.5,biomes:['savanna'],tame:'golden_collar',drops:['leather','raw_meat']},
+  {id:'zombie',name:'Zombie',hp:300,dmg:15,speed:2.2,atkRange:2.0,aggroRange:18,xp:30,gold:5,atkCd:1.8,height:1.7,biomes:['forest'],night:true,drops:['bone','raw_meat']},
+  {id:'wieszcz',name:'Wieszcz',hp:300,dmg:25,speed:4,atkRange:3.5,aggroRange:25,xp:60,gold:18,atkCd:2.0,height:1.8,biomes:['forest'],night:true,drops:['shadow_gem','dark_ore']},
+  {id:'rock_lizard',name:'Jaszczurka Skalna',hp:300,dmg:15,speed:4,atkRange:2.0,aggroRange:15,xp:40,gold:10,atkCd:1.5,height:0.9,biomes:['mountains'],drops:['stone','iron_ore']},
 ];
 
 // ═══ BOSS TYPES ══════════════════════════════════════════
@@ -836,6 +852,7 @@ const BOSS_TYPES = [
   {id:'skeleton_king',name:'Krol Szkieletow',hp:10000,dmg:45,speed:3.5,atkRange:4,aggroRange:35,xp:500,gold:200,atkCd:1.5,height:3.5,struct:'cemetery'},
   {id:'dragon',name:'Smok Zeldras',hp:8000,dmg:60,speed:4.0,atkRange:6,aggroRange:40,xp:800,gold:350,atkCd:2.0,height:4.5,struct:'lair'},
   {id:'dark_lord',name:'Wladca Mroku',hp:15000,dmg:80,speed:3.0,atkRange:5,aggroRange:35,xp:1200,gold:500,atkCd:1.8,height:4.5,struct:'castle'},
+  {id:'pharaoh',name:'Faraon',hp:5000,dmg:35,speed:3.5,atkRange:4,aggroRange:30,xp:400,gold:300,atkCd:1.6,height:3.0,struct:'pyramid'},
 ];
 
 // ═══ EQUIPMENT DROPS TABLE ═══════════════════════════════
@@ -861,13 +878,14 @@ const EQUIP_DROPS = [
   {id:'leather_pants',name:'Skorzane Spodnie',icon:'👖',equip:'legs',bonus:{hp:10,speed:3},rarity:'common',sources:['wolf','pig'],chance:0.07},
   {id:'iron_legs',name:'Zelazne Nagolenniki',icon:'👖',equip:'legs',bonus:{hp:20,dmgRed:4},rarity:'rare',sources:['golem','bear'],chance:0.04},
 ];
-// Dropy wylacznie z bossow
 const BOSS_DROPS = [
   {id:'crown_bones',name:'Korona Kosci',icon:'👑',equip:'hood',bonus:{hp:50,dmg:10,mana:40},rarity:'legend',boss:'skeleton_king'},
   {id:'dragon_chest',name:'Smocza Zbroja',icon:'🦺',equip:'chest',bonus:{hp:80,dmgRed:15,dmg:8},rarity:'legend',boss:'dragon'},
   {id:'dark_cape',name:'Peleryna Mroku',icon:'🧣',equip:'cape',bonus:{dmg:15,speed:12,dmgRed:8},rarity:'legend',boss:'dark_lord'},
   {id:'dragon_wand',name:'Smocza Rozdzka',icon:'🪄',equip:'weapon',bonus:{dmg:20,mana:50},rarity:'legend',type:'wand',wandTier:3,boss:'dragon'},
   {id:'dark_staff',name:'Kostur Mroku',icon:'🪄',equip:'weapon',bonus:{dmg:25,mana:80},rarity:'legend',type:'wand',wandTier:3,boss:'dark_lord'},
+  {id:'pharaoh_mask',name:'Maska Faraona',icon:'🎭',equip:'hood',bonus:{hp:40,dmg:8,mana:60},rarity:'legend',boss:'pharaoh'},
+  {id:'pharaoh_staff',name:'Berlo Faraona',icon:'🪄',equip:'weapon',bonus:{dmg:18,mana:40},rarity:'legend',type:'wand',wandTier:2,boss:'pharaoh'},
 ];
 
 // ═══ SKLEP (rozszerzony) ═════════════════════════════════
@@ -888,9 +906,49 @@ const quest = {active:false,done:false,target:'skeleton',targetName:'Szkielet',n
 const RECIPES = [
   {id:'workbench',name:'Stol Rzemiosla',icon:'🪵',need:[{id:'wood',count:4}],desc:'Pozwala tworzyc przedmioty'},
   {id:'furnace',name:'Piec',icon:'🧱',need:[{id:'stone',count:8}],desc:'Pozwala wytapiac i gotowac'},
-  {id:'cooked_meat',name:'Pieczone Mieso',icon:'🍖',type:'food',need:[{id:'raw_meat',count:1}],station:'furnace',desc:'Przywraca 25 glodu + 5 HP',effect:{hunger:25,hp:5}},
-  {id:'wooden_pickaxe',name:'Drewniany Kilof',icon:'⛏️',type:'tool',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Pozwala kopac kamien'},
+  {id:'magic_table',name:'Stol Magiczny',icon:'🔮',need:[{id:'wood',count:4},{id:'crystal',count:2}],desc:'Pozwala tworzyc magiczne przedmioty'},
+  {id:'cooked_meat',name:'Pieczone Mieso',icon:'🍖',type:'food',need:[{id:'raw_meat',count:1}],desc:'Przywraca 25 glodu + 5 HP',effect:{hunger:25,hp:5}},
+  {id:'soup',name:'Zupa',icon:'🍲',type:'food',need:[{id:'raw_meat',count:2},{id:'herb',count:1}],desc:'+50 glodu +10 HP +10% dmg 60s',effect:{hunger:50,hp:10}},
+  {id:'hp_potion',name:'Mikstura HP',icon:'🧪',type:'consumable',need:[{id:'glass',count:1},{id:'herb',count:1}],desc:'Przywraca 50 HP',effect:{hp:50}},
+  {id:'mana_potion',name:'Mikstura Many',icon:'🔵',type:'consumable',need:[{id:'glass',count:1},{id:'crystal',count:1}],desc:'Przywraca 100 many',effect:{mana:100}},
+  {id:'fire_potion',name:'Mikstura Ognia',icon:'🔥',type:'consumable',need:[{id:'glass',count:1},{id:'fire_dust',count:1}],desc:'+20% dmg ognisty 30s',effect:{hp:0}},
+  {id:'glass_craft',name:'Szklo',icon:'🔲',type:'resource',need:[{id:'sand',count:2}],desc:'Potrzebne do mikstur i Orbow'},
+  {id:'wooden_pickaxe',name:'Drewniany Kilof',icon:'⛏️',type:'tool',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Pozwala kopac kamien i rudy'},
   {id:'wooden_axe',name:'Drewniany Topor',icon:'🪓',type:'tool',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Szybciej scinasz drzewa'},
+  {id:'torch',name:'Pochodnia',icon:'🔦',type:'tool',need:[{id:'wood',count:1},{id:'coal',count:1}],desc:'Oswietla okolice'},
+  {id:'bed',name:'Lozko',icon:'🛏️',type:'tool',need:[{id:'wood',count:3},{id:'wool',count:3}],desc:'Ustawia punkt odrodzenia'},
+  {id:'golden_collar',name:'Zlota Obroza',icon:'⭕',type:'resource',need:[{id:'gold_ore',count:3},{id:'leather',count:1}],desc:'Do oswojenia lwa'},
+  {id:'saddle',name:'Siodlo',icon:'🪑',type:'resource',need:[{id:'leather',count:4},{id:'iron_ore',count:2}],desc:'Do oswojenia konia'},
+  // Rozdzki
+  {id:'wand_wood',name:'Rozdzka Drewniana',icon:'🪄',type:'wand',wandTier:0,equip:'weapon',bonus:{dmg:3},rarity:'common',need:[{id:'wood',count:2}],desc:'+3% dmg zaklec'},
+  {id:'wand_stone',name:'Rozdzka Kamienna',icon:'🪄',type:'wand',wandTier:0,equip:'weapon',bonus:{dmg:5},rarity:'common',need:[{id:'stone',count:2},{id:'wood',count:1}],desc:'+5% dmg zaklec'},
+  {id:'wand_copper',name:'Rozdzka Miedziana',icon:'🪄',type:'wand',wandTier:1,equip:'weapon',bonus:{dmg:8,mana:20},rarity:'rare',need:[{id:'copper',count:4},{id:'wood',count:1}],desc:'+8% dmg +20 many'},
+  {id:'wand_silver',name:'Rozdzka Srebrna',icon:'🪄',type:'wand',wandTier:1,equip:'weapon',bonus:{dmg:10,mana:30},rarity:'rare',need:[{id:'silver',count:4},{id:'crystal',count:1}],desc:'+10% dmg +30 many'},
+  {id:'wand_gold',name:'Rozdzka Zlota',icon:'🪄',type:'wand',wandTier:1,equip:'weapon',bonus:{dmg:12,mana:50},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+12% dmg +50 many'},
+  {id:'wand_crystal',name:'Rozdzka Krysztalowa',icon:'🪄',type:'wand',wandTier:2,equip:'weapon',bonus:{dmg:15,mana:80},rarity:'epic',need:[{id:'crystal',count:6},{id:'gold_ore',count:2}],desc:'+15% dmg +80 many'},
+  {id:'wand_diamond',name:'Rozdzka Diamentowa',icon:'🪄',type:'wand',wandTier:2,equip:'weapon',bonus:{dmg:20,mana:100},rarity:'epic',need:[{id:'diamond',count:6},{id:'mithril',count:2}],desc:'+20% dmg +100 many'},
+  {id:'wand_mithril',name:'Rozdzka Mithrilowa',icon:'🪄',type:'wand',wandTier:3,equip:'weapon',bonus:{dmg:25,mana:150},rarity:'mythic',need:[{id:'mithril',count:8},{id:'diamond',count:4}],desc:'+25% dmg +150 many'},
+  // Miecze (Wampir/Czlowiek/Nieumarly)
+  {id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common',need:[{id:'iron_ore',count:4},{id:'wood',count:1}],desc:'Obrażenia: 30'},
+  {id:'sword_gold',name:'Zloty Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:15},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'wood',count:1}],desc:'Obrażenia: 45'},
+  {id:'sword_mithril',name:'Mithrilowy Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:20},rarity:'epic',need:[{id:'mithril',count:4},{id:'wood',count:1}],desc:'Obrażenia: 60'},
+  {id:'sword_diamond',name:'Diamentowy Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:30},rarity:'mythic',need:[{id:'diamond',count:4},{id:'wood',count:1}],desc:'Obrażenia: 75'},
+  {id:'sword_ruby',name:'Rubinowy Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:40},rarity:'legend',need:[{id:'ruby',count:4},{id:'wood',count:1}],desc:'Obrażenia: 90'},
+  {id:'sword_dark',name:'Mroczny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:50},rarity:'secret',need:[{id:'dark_ore',count:6},{id:'wood',count:1}],desc:'Obrażenia: 110'},
+  // Trójzęby (Atlantyda)
+  {id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common',need:[{id:'iron_ore',count:4},{id:'wood',count:1}],desc:'Obrażenia: 35'},
+  {id:'trident_gold',name:'Zloty Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:18},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'wood',count:1}],desc:'Obrażenia: 50'},
+  {id:'trident_mithril',name:'Mithrilowy Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:25},rarity:'epic',need:[{id:'mithril',count:4},{id:'wood',count:1}],desc:'Obrażenia: 70'},
+  // Zbroje
+  {id:'iron_helm',name:'Zelazny Helm',icon:'🪖',equip:'hood',bonus:{hp:20,dmgRed:5},rarity:'common',need:[{id:'iron_ore',count:5}],desc:'+20 HP +5% redukcji'},
+  {id:'iron_chest_craft',name:'Zelazny Napiersnik',icon:'🦺',equip:'chest',bonus:{hp:30,dmgRed:10},rarity:'common',need:[{id:'iron_ore',count:9}],desc:'+30 HP +10% redukcji'},
+  {id:'iron_legs_craft',name:'Zelazne Spodnie',icon:'👖',equip:'legs',bonus:{hp:20,dmgRed:8},rarity:'common',need:[{id:'iron_ore',count:8}],desc:'+20 HP +8% redukcji'},
+  {id:'iron_boots',name:'Zelazne Buty',icon:'🥾',equip:'boots',bonus:{hp:15,dmgRed:4,speed:3},rarity:'common',need:[{id:'iron_ore',count:4}],desc:'+15 HP +4% redukcji'},
+  {id:'iron_gloves',name:'Zelazne Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:5,hp:10},rarity:'common',need:[{id:'iron_ore',count:4},{id:'leather',count:1}],desc:'+5% dmg +10 HP'},
+  {id:'leather_cape',name:'Skorzana Peleryna',icon:'🧣',equip:'cape',bonus:{hp:20,speed:5},rarity:'common',need:[{id:'leather',count:5}],desc:'+20 HP +5% speed'},
+  {id:'wool_hood',name:'Welniany Kaptur',icon:'🎩',equip:'hood',bonus:{mana:50},rarity:'common',need:[{id:'wool',count:5}],desc:'+50 many'},
+  {id:'gold_ring',name:'Zloty Pierscien',icon:'💍',equip:'ring',bonus:{hp:10,mana:20},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+10 HP +20 many'},
+  {id:'gold_amulet',name:'Zloty Naszyjnik',icon:'📿',equip:'amulet',bonus:{mana:40,dmg:3},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+40 many +3% dmg'},
 ];
 const RESOURCES = [
   {id:'wood',name:'Drewno',icon:'🪵',type:'resource'},
@@ -898,6 +956,32 @@ const RESOURCES = [
   {id:'raw_meat',name:'Surowe Mieso',icon:'🥩',type:'resource'},
   {id:'iron_ore',name:'Ruda Zelaza',icon:'⚙️',type:'resource'},
   {id:'crystal',name:'Krysztal Many',icon:'💎',type:'resource'},
+  {id:'copper',name:'Miedz',icon:'🟤',type:'resource'},
+  {id:'silver',name:'Srebro',icon:'⬜',type:'resource'},
+  {id:'gold_ore',name:'Zloto',icon:'🟡',type:'resource'},
+  {id:'mithril',name:'Mithril',icon:'🔵',type:'resource'},
+  {id:'diamond',name:'Diament',icon:'💠',type:'resource'},
+  {id:'ruby',name:'Rubin',icon:'🔴',type:'resource'},
+  {id:'dark_ore',name:'Ruda Mroku',icon:'⚫',type:'resource'},
+  {id:'coal',name:'Wegiel',icon:'◼️',type:'resource'},
+  {id:'sand',name:'Piasek',icon:'🟨',type:'resource'},
+  {id:'glass',name:'Szklo',icon:'🔲',type:'resource'},
+  {id:'leather',name:'Skora',icon:'🟫',type:'resource'},
+  {id:'wool',name:'Welna',icon:'☁️',type:'resource'},
+  {id:'bone',name:'Kosc',icon:'🦴',type:'resource'},
+  {id:'fire_dust',name:'Pyl Ognia',icon:'🔥',type:'resource'},
+  {id:'yeti_tear',name:'Lza Yeti',icon:'💧',type:'resource'},
+  {id:'shadow_gem',name:'Klejnot Cienia',icon:'🖤',type:'resource'},
+  {id:'magma_heart',name:'Serce Magmy',icon:'❤️‍🔥',type:'resource'},
+  {id:'dragon_gem',name:'Smoczy Klejnot',icon:'🐉',type:'resource'},
+  {id:'fire_feather',name:'Plonace Pioro',icon:'🪶',type:'resource'},
+  {id:'dino_egg',name:'Jajo Dino',icon:'🥚',type:'resource'},
+  {id:'banana',name:'Banan',icon:'🍌',type:'food',effect:{hunger:10}},
+  {id:'egg',name:'Jajko',icon:'🥚',type:'food',effect:{hunger:5}},
+  {id:'golden_collar',name:'Zlota Obroza',icon:'⭕',type:'resource'},
+  {id:'saddle',name:'Siodlo',icon:'🪑',type:'resource'},
+  {id:'boss_heart',name:'Serce Bossa',icon:'💜',type:'resource'},
+  {id:'herb',name:'Ziolo',icon:'🌿',type:'resource'},
 ];
 
 // ═══ BIOMY (8 typow) ════════════════════════════════════
@@ -1117,13 +1201,34 @@ function showError(msg){
 window.onerror=function(m,s,l,c,e){showError('ERR: '+m+' @ line '+l);};
 window.addEventListener('unhandledrejection',e=>showError('PROMISE: '+e.reason));
 
+const CLASS_CONFIG={
+  mag:{name:'Mag',hp:100,mana:1000,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Rozdzka',icon:'🪄',type:'wand',wandTier:0},figure:'🧙'},
+  wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧛'},
+  nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Berlo Cieni',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
+  czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'⚔️'},
+  atlantyda:{name:'Atlantyda',hp:120,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
+  nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧟'},
+};
+let playerClass='mag';
+let blood=1000,maxBlood=1000;
+let strength=0,maxStrength=100;
+let decay=0,maxDecay=100;
+
 function startGame(){
   try{
   document.getElementById('menu').style.display='none';
   document.getElementById('game-ui').classList.add('active');
-  const names={mag:'Mag',wampir:'Wampir',nekromanta:'Nekromanta',
-    czlowiek:'Czlowiek',atlantyda:'Atlantyda',nieumarly:'Nieumarly'};
-  document.getElementById('classname').textContent=names[session.class]||'Mag';
+  playerClass=session.class||'mag';
+  const cfg=CLASS_CONFIG[playerClass];
+  document.getElementById('classname').textContent=cfg.name;
+  document.querySelector('.cp-figure').textContent=cfg.figure;
+  player.maxHp=cfg.hp;player.hp=cfg.hp;
+  player.maxMana=cfg.mana;player.mana=cfg.mana;
+  player.manaRegen=cfg.manaRegen;
+  ITEMS[0]={...cfg.startWeapon,count:1};
+  if(playerClass==='wampir'){blood=1000;maxBlood=1000;}
+  if(playerClass==='czlowiek'){strength=0;maxStrength=100;}
+  if(playerClass==='nieumarly'){decay=0;maxDecay=100;}
   skillPoints=5;
   applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
   hunger=100;
@@ -1249,6 +1354,10 @@ function updateChunks(scene,camera){
 const _scnGeos={},_scnMats={};
 let _scnMeshes=[];
 let _lastScnX=99999,_lastScnZ=99999;
+const _treePositions=[];
+const _rockPositions=[];
+const TREE_RADIUS=0.8;
+const ROCK_RADIUS=0.5;
 function initSceneryPools(){
   _scnGeos.trunk=new THREE.CylinderGeometry(0.16,0.22,2.5,6);
   _scnGeos.leaf=new THREE.ConeGeometry(1.25,2.0,6);
@@ -1292,6 +1401,8 @@ function _buildIM(scene,geo,mat,mats,cols){
 function rebuildScenery(scene,cx,cz){
   for(const m of _scnMeshes)if(m){scene.remove(m);m.dispose();}
   _scnMeshes.length=0;
+  _treePositions.length=0;
+  _rockPositions.length=0;
   const dummy=new THREE.Object3D();
   const leafColors=[0x2d5a1e,0x1e4a14,0x3a6b2a,0x1a3f12];
   const flowerColors=[0xff4466,0xffdd44,0x44aaff,0xff88cc,0xaa66ff];
@@ -1317,12 +1428,14 @@ function rebuildScenery(scene,cx,cz){
         if(rng()<0.08){const s=0.3+rng()*0.6;
           dummy.position.set(wx,h+s*0.3,wz);dummy.rotation.set(rng()*3,rng()*3,rng()*3);
           dummy.scale.set(s,s*(0.5+rng()*0.5),s);dummy.updateMatrix();
-          rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.3+rng()*0.12,0.3+rng()*0.12,0.31+rng()*0.12));}
+          rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.3+rng()*0.12,0.3+rng()*0.12,0.31+rng()*0.12));
+          _rockPositions.push({x:wx,z:wz,r:ROCK_RADIUS*s});}
         if(biome==='meadow'&&rng()<0.3){
           dummy.position.set(wx,h+0.15,wz);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);
           dummy.updateMatrix();flowerM.push(dummy.matrix.clone());
           flowerC.push(new THREE.Color(flowerColors[(rng()*flowerColors.length)|0]));}
         continue;}
+      _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*sc});
       dummy.position.set(wx,h+1.25*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(sc,sc,sc);
       dummy.updateMatrix();trunkM.push(dummy.matrix.clone());
       const lc=leafColors[(rng()*leafColors.length)|0];
@@ -1358,6 +1471,7 @@ function rebuildScenery(scene,cx,cz){
         rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.18,0.10,0.08));}
     }else if(biome==='jungle'){
       if(rng()<0.7){const js=1.0+rng()*0.8;
+        _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*js*1.2});
         dummy.position.set(wx,h+2.0*js,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(js,js,js);
         dummy.updateMatrix();jTrunkM.push(dummy.matrix.clone());
         for(let j=0;j<2;j++){const ls=(1.4-j*0.3)*js;
@@ -2106,7 +2220,7 @@ document.getElementById('craft-close').addEventListener('click',()=>{
   craftOpen=false;document.getElementById('craft-panel').classList.remove('open');
 });
 function renderCraftPanel(){
-  const list=document.getElementById('recipe-list');if(!list)return;list.innerHTML='';
+  const list=document.getElementById('craft-list');if(!list)return;list.innerHTML='';
   RECIPES.forEach(r=>{
     const hasAll=r.need.every(n=>{
       for(let i=0;i<INV_SIZE;i++){const it=ITEMS[i];if(it&&it.id===n.id&&it.count>=n.count)return true;}
@@ -2143,6 +2257,14 @@ function updateAttackIcon(){
   document.getElementById('spellname').style.display=wand?'block':'none';
 }
 let buffSpeedUntil=0,hasRevive=false,shieldHP=0;
+function getMeleeDmg(){
+  const held=ITEMS[player.heldItem];
+  if(held&&(held.type==='sword'||held.type==='trident')){
+    const base=({common:30,rare:45,epic:60,mythic:75,legend:90,secret:110})[held.rarity||'common']||30;
+    return base+(held.bonus?held.bonus.dmg||0:0);
+  }
+  return 5;
+}
 function meleeSwing(){
   if(playerDead)return;
   const now=performance.now();if(now-player.lastMelee<600)return;
@@ -2152,11 +2274,51 @@ function meleeSwing(){
   setTimeout(()=>{c.style.transform='translate(-50%,-50%)';},90);
   if(!_camera)return;
   const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+  const mDmg=getMeleeDmg();
   for(let i=mobs.length-1;i>=0;i--){
     const m=mobs[i];
     const toMob=new THREE.Vector3().copy(m.mesh.position).add(new THREE.Vector3(0,1,0)).sub(_camera.position);
     const dist=toMob.length();if(dist>3.5)continue;
-    toMob.normalize();if(dir.dot(toMob)>0.4){damageMob(i,5);break;}
+    toMob.normalize();if(dir.dot(toMob)>0.4){damageMob(i,mDmg);return;}
+  }
+  for(let i=bosses.length-1;i>=0;i--){
+    const b=bosses[i];
+    const toBoss=new THREE.Vector3().copy(b.mesh.position).add(new THREE.Vector3(0,1.5,0)).sub(_camera.position);
+    const dist=toBoss.length();if(dist>4)continue;
+    toBoss.normalize();if(dir.dot(toBoss)>0.3){damageBoss(i,mDmg);return;}
+  }
+  const px=_camera.position.x,pz=_camera.position.z;
+  const lookX=px+dir.x*2.5,lookZ=pz+dir.z*2.5;
+  for(const rk of _rockPositions){
+    const rdx=lookX-rk.x,rdz=lookZ-rk.z;
+    if(rdx*rdx+rdz*rdz<2.5*2.5){
+      const res=RESOURCES.find(r=>r.id==='stone');
+      if(res&&addToInventory({...res})){
+        toast('+1 Kamien');
+        const wp=new THREE.Vector3(rk.x,terrainHeight(rk.x,rk.z)+0.5,rk.z);
+        floatNumber(wp,'+1 🪨','#aaaaaa');
+      }
+      return;
+    }
+  }
+  const hasStone=ITEMS.some(it=>it&&it.id==='stone');
+  const hasAxe=ITEMS.some(it=>it&&it.id==='wooden_axe');
+  for(const tr of _treePositions){
+    const tdx=lookX-tr.x,tdz=lookZ-tr.z;
+    if(tdx*tdx+tdz*tdz<3*3){
+      if(!hasStone&&!hasAxe){toast('Potrzebujesz kamienia lub topora');return;}
+      const res=RESOURCES.find(r=>r.id==='wood');
+      if(res&&addToInventory({...res})){
+        toast('+1 Drewno');
+        const wp=new THREE.Vector3(tr.x,terrainHeight(tr.x,tr.z)+2,tr.z);
+        floatNumber(wp,'+1 🪵','#8a6a3a');
+        if(Math.random()<0.15){
+          const herb=RESOURCES.find(r=>r.id==='herb');
+          if(herb)addToInventory({...herb});
+        }
+      }
+      return;
+    }
   }
 }
 function spawnProjectile(scene,camera,sp){
@@ -2381,8 +2543,13 @@ function updateTargets(dt,now){
 function buildMobMesh(type){
   const g=new THREE.Group();
   const col=({skeleton:0xd4c9a8,wolf:0x4a3a2a,ghost:0x8888dd,bear:0x5a3a1a,pig:0xa87a5a,
-    mummy:0xc8b890,scorpion:0x6a4a2a,yeti:0xe0e0e8,arcticwolf:0xd0d0d8,golem:0x6a6a6a,
-    firesnake:0xff6622,raptor:0x4a6a3a,spider:0x2a2a2a,eagle:0x8a7a5a,lion:0xc8a040})[type.id]||0x888888;
+    cow:0xf0f0f0,sheep:0xeeeeee,horse:0x6a4a2a,chicken:0xc8a040,
+    mummy:0xc8b890,sphinx:0xd4b060,scorpion:0x6a4a2a,yeti:0xe0e0e8,arcticwolf:0xd0d0d8,
+    penguin:0x222222,golem:0x6a6a6a,crystal_golem:0x88ccee,
+    firesnake:0xff6622,magma_turtle:0x8a3010,dragon_common:0x881111,moltres:0xff4400,
+    monkey:0x8a5a30,saber_tiger:0xcc8822,raptor:0x4a6a3a,small_dino:0x5a8a3a,
+    spider:0x2a2a2a,eagle:0x8a7a5a,lion:0xc8a040,
+    zombie:0x556633,wieszcz:0x443355,rock_lizard:0x7a7a6a})[type.id]||0x888888;
   const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.85,flatShading:true,
     ...(type.id==='ghost'?{transparent:true,opacity:0.5,emissive:0x4444aa,emissiveIntensity:0.5}:{})});
   if(type.id==='scorpion'||type.id==='spider'){
@@ -2399,6 +2566,90 @@ function buildMobMesh(type){
       const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,0.6,5),mat);
       tail.position.set(0,type.height*0.7,-0.3);tail.rotation.x=-0.8;g.add(tail);
     }
+  }else if(type.id==='penguin'){
+    const body=new THREE.Mesh(new THREE.SphereGeometry(0.25,6,5),mat);
+    body.position.y=0.35;body.scale.set(1,1.3,1);g.add(body);
+    const belly=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,5),
+      new THREE.MeshStandardMaterial({color:0xf0f0f0,flatShading:true}));
+    belly.position.set(0,0.3,0.08);g.add(belly);
+    const beak=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.12,4),
+      new THREE.MeshStandardMaterial({color:0xff8800,flatShading:true}));
+    beak.position.set(0,0.55,0.2);beak.rotation.x=Math.PI/2;g.add(beak);
+  }else if(type.id==='chicken'){
+    const body=new THREE.Mesh(new THREE.SphereGeometry(0.18,6,5),mat);
+    body.position.y=0.25;g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.1,5,4),mat);
+    head.position.set(0,0.42,0.08);g.add(head);
+    const comb=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.08,0.06),
+      new THREE.MeshStandardMaterial({color:0xcc2222,flatShading:true}));
+    comb.position.set(0,0.5,0.08);g.add(comb);
+    const beak=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.06,4),
+      new THREE.MeshStandardMaterial({color:0xff8800,flatShading:true}));
+    beak.position.set(0,0.4,0.18);beak.rotation.x=Math.PI/2;g.add(beak);
+  }else if(type.id==='dragon_common'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.8,2.0),mat);
+    body.position.y=1.8;body.castShadow=true;g.add(body);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.5,0.7),mat);
+    head.position.set(0,2.5,1.0);g.add(head);
+    const eyeM=new THREE.MeshBasicMaterial({color:0xffcc00});
+    const eyeG=new THREE.SphereGeometry(0.08,4,4);
+    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(-0.2,2.6,1.3)}));
+    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(0.2,2.6,1.3)}));
+    const wingM=new THREE.MeshStandardMaterial({color:0x661111,flatShading:true,side:THREE.DoubleSide});
+    const wingG=new THREE.PlaneGeometry(2.0,1.2);
+    const wL=new THREE.Mesh(wingG,wingM);wL.position.set(-1.5,2.2,0);wL.rotation.y=0.3;g.add(wL);
+    const wR=new THREE.Mesh(wingG,wingM);wR.position.set(1.5,2.2,0);wR.rotation.y=-0.3;g.add(wR);
+    const tail=new THREE.Mesh(new THREE.ConeGeometry(0.2,1.5,5),mat);
+    tail.position.set(0,1.5,-1.5);tail.rotation.x=1.2;g.add(tail);
+    g.add(new THREE.PointLight(0xff4400,1.0,6));
+  }else if(type.id==='moltres'){
+    const body=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,5),
+      new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.4,flatShading:true}));
+    body.position.y=1.0;g.add(body);
+    const wingM=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400,emissiveIntensity:0.3,flatShading:true,side:THREE.DoubleSide});
+    const wingG=new THREE.PlaneGeometry(1.5,0.8);
+    const wL=new THREE.Mesh(wingG,wingM);wL.position.set(-0.9,1.2,0);wL.rotation.y=0.3;g.add(wL);
+    const wR=new THREE.Mesh(wingG,wingM);wR.position.set(0.9,1.2,0);wR.rotation.y=-0.3;g.add(wR);
+    const tail=new THREE.Mesh(new THREE.ConeGeometry(0.15,1.0,5),
+      new THREE.MeshStandardMaterial({color:0xffaa00,emissive:0xff4400,emissiveIntensity:0.5,flatShading:true}));
+    tail.position.set(0,0.8,-0.6);tail.rotation.x=0.8;g.add(tail);
+    g.add(new THREE.PointLight(0xff4400,1.2,8));
+  }else if(type.id==='magma_turtle'){
+    const shell=new THREE.Mesh(new THREE.SphereGeometry(0.5,6,5),mat);
+    shell.position.y=0.6;shell.scale.set(1.3,0.7,1.3);g.add(shell);
+    const glow=new THREE.Mesh(new THREE.SphereGeometry(0.45,6,5),
+      new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.3,transparent:true,opacity:0.4}));
+    glow.position.y=0.55;glow.scale.set(1.2,0.65,1.2);g.add(glow);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.15,5,4),mat);
+    head.position.set(0,0.5,0.5);g.add(head);
+    g.add(new THREE.PointLight(0xff4400,0.6,4));
+  }else if(type.id==='sphinx'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.6,1.4),mat);
+    body.position.y=0.8;g.add(body);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.6,0.5),
+      new THREE.MeshStandardMaterial({color:0xd4b060,flatShading:true}));
+    head.position.set(0,1.5,0.5);g.add(head);
+    const crown=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.3,4),
+      new THREE.MeshStandardMaterial({color:0xffcc00,metalness:0.8,roughness:0.2}));
+    crown.position.set(0,1.9,0.5);g.add(crown);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x00ccff});
+    const eyeG=new THREE.SphereGeometry(0.06,4,4);
+    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(-0.15,1.55,0.75)}));
+    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(0.15,1.55,0.75)}));
+  }else if(type.id==='crystal_golem'){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.6),
+      new THREE.MeshStandardMaterial({color:0x88ccee,transparent:true,opacity:0.8,metalness:0.4,roughness:0.2,flatShading:true}));
+    body.position.y=1.8;body.castShadow=true;g.add(body);
+    const head=new THREE.Mesh(new THREE.DodecahedronGeometry(0.4,0),
+      new THREE.MeshStandardMaterial({color:0xaaddff,transparent:true,opacity:0.7,metalness:0.5,roughness:0.1}));
+    head.position.y=2.7;g.add(head);
+    for(let i=0;i<3;i++){
+      const crystal=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.4,4),
+        new THREE.MeshStandardMaterial({color:0xccffff,transparent:true,opacity:0.6,emissive:0x44aaff,emissiveIntensity:0.3}));
+      crystal.position.set(Math.cos(i*2.1)*0.5,2.0+Math.random()*0.5,Math.sin(i*2.1)*0.4);
+      crystal.rotation.z=Math.random()-0.5;g.add(crystal);
+    }
+    g.add(new THREE.PointLight(0x44aaff,0.6,5));
   }else if(type.id==='eagle'){
     const body=new THREE.Mesh(new THREE.SphereGeometry(0.3,6,5),mat);
     body.position.y=type.height*0.5;g.add(body);
@@ -2447,6 +2698,29 @@ function buildMobMesh(type){
       const e2=new THREE.Mesh(earG,mat);e2.position.set(headS*0.6,type.height*0.92,0);g.add(e2);
     }
     if(type.id==='ghost'){g.add(new THREE.PointLight(0x6666cc,0.8,5));}
+    if(type.id==='zombie'){
+      body.material=new THREE.MeshStandardMaterial({color:0x556633,roughness:0.9,flatShading:true});
+    }
+    if(type.id==='wieszcz'){
+      g.add(new THREE.PointLight(0x8844aa,0.6,4));
+      head.material=new THREE.MeshStandardMaterial({color:0x443355,emissive:0x331144,emissiveIntensity:0.3,flatShading:true});
+    }
+    if(type.id==='saber_tiger'){
+      const fang1=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.15,4),
+        new THREE.MeshStandardMaterial({color:0xeeeeee}));
+      fang1.position.set(-headS*0.25,type.height*0.78,headS*0.6);g.add(fang1);
+      const fang2=fang1.clone();fang2.position.x=headS*0.25;g.add(fang2);
+    }
+    if(type.id==='horse'||type.id==='cow'||type.id==='sheep'){
+      body.scale.set(1,0.8,1.5);
+      const bL=new THREE.Mesh(legGeo,mat);bL.position.set(-bodyW*0.3,legH/2,-bodyW*0.5);g.add(bL);
+      const bR=new THREE.Mesh(legGeo,mat);bR.position.set(bodyW*0.3,legH/2,-bodyW*0.5);g.add(bR);
+      lL.position.z=bodyW*0.5;lR.position.z=bodyW*0.5;
+    }
+    if(type.id==='monkey'){
+      const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.015,0.5,4),mat);
+      tail.position.set(0,type.height*0.4,-bodyW*0.6);tail.rotation.x=0.8;g.add(tail);
+    }
   }
   return g;
 }
@@ -2471,7 +2745,8 @@ function spawnMob(scene,camera){
   if(h<SEA_LEVEL+0.8||Math.abs(x)>WORLD_HALF||Math.abs(z)>WORLD_HALF)return;
   if(inClearing(x,z))return;
   const biome=dominantBiome(x,z);
-  const valid=MOB_TYPES.filter(t=>t.biomes.includes(biome));
+  const nightNow=worldTime/CYCLE_LEN>0.5&&worldTime/CYCLE_LEN<0.9;
+  const valid=MOB_TYPES.filter(t=>t.biomes.includes(biome)&&(!t.night||nightNow));
   if(valid.length===0)return;
   const type=valid[(Math.random()*valid.length)|0];
   const mesh=buildMobMesh(type);
@@ -2521,14 +2796,14 @@ function killMob(idx){
       }
     }
   });
-  // resource drops
-  if(['pig','bear','wolf','lion','raptor','yeti','arcticwolf'].includes(m.type.id)){
-    if(Math.random()<(m.type.passive?1.0:0.5)){
-      const meat=RESOURCES.find(r=>r.id==='raw_meat');
-      if(meat)addToInventory({...meat});
+  if(m.type.drops){
+    for(const dropId of m.type.drops){
+      if(Math.random()<0.5){
+        const res=RESOURCES.find(r=>r.id===dropId);
+        if(res)addToInventory({...res});
+      }
     }
   }
-  if(m.type.id==='golem')addToInventory({...RESOURCES.find(r=>r.id==='stone')});
   if(Math.random()<0.05){const c=RESOURCES.find(r=>r.id==='crystal');if(c)addToInventory({...c});}
   // death particles
   const pos=m.mesh.position.clone();
@@ -2859,6 +3134,12 @@ function updatePlayer(dt,camera){
   let px=camera.position.x+(mx*cosY+mz*sinY)*spd;
   let pz=camera.position.z+(-mx*sinY+mz*cosY)*spd;
   px=THREE.MathUtils.clamp(px,-WORLD_HALF,WORLD_HALF);pz=THREE.MathUtils.clamp(pz,-WORLD_HALF,WORLD_HALF);
+  const PLAYER_R=0.35;
+  for(const t of _treePositions){
+    const tdx=px-t.x,tdz=pz-t.z;const td=Math.sqrt(tdx*tdx+tdz*tdz);
+    const minD=PLAYER_R+t.r;
+    if(td<minD&&td>0.01){const push=(minD-td)/td;px+=tdx*push;pz+=tdz*push;}
+  }
   velY-=GRAVITY*dt;let py=camera.position.y+velY*dt;
   const groundH=terrainHeight(px,pz)+EYE_H;
   if(py<=groundH){py=groundH;velY=0;onGround=true;}else{onGround=false;}
@@ -2908,8 +3189,25 @@ function updateHUD(camera){
   let a=((yaw*180/Math.PI)%360+360)%360;
   document.getElementById('compass').textContent=dirs[Math.round(a/45)%8];
   const p=camera.position;
-  document.querySelector('.bar-mana .bar-fill').style.width=(player.mana/player.maxMana*100)+'%';
-  document.querySelector('.bar-mana .bar-label').textContent=`MANA ${Math.round(player.mana)}/${player.maxMana}`;
+  const cc=CLASS_CONFIG[playerClass];
+  const rBar=document.getElementById('resource-bar');
+  const rLabel=document.getElementById('resource-label');
+  if(cc.resource==='mana'){
+    rBar.querySelector('.bar-fill').style.width=(player.mana/player.maxMana*100)+'%';
+    rLabel.textContent=`MANA ${Math.round(player.mana)}/${player.maxMana}`;
+  }else if(cc.resource==='blood'){
+    rBar.querySelector('.bar-fill').style.width=(blood/maxBlood*100)+'%';
+    rBar.querySelector('.bar-fill').style.background='linear-gradient(90deg,#8b0000,#cc2222)';
+    rLabel.textContent=`KREW ${Math.round(blood)}/${maxBlood}`;
+  }else if(cc.resource==='strength'){
+    rBar.querySelector('.bar-fill').style.width=(strength/maxStrength*100)+'%';
+    rBar.querySelector('.bar-fill').style.background='linear-gradient(90deg,#8b6914,#d4a017)';
+    rLabel.textContent=`SILA ${Math.round(strength)}/${maxStrength}`;
+  }else if(cc.resource==='decay'){
+    rBar.querySelector('.bar-fill').style.width=(decay/maxDecay*100)+'%';
+    rBar.querySelector('.bar-fill').style.background='linear-gradient(90deg,#2d4a1e,#5a8a3a)';
+    rLabel.textContent=`ROZKLAD ${Math.round(decay)}/${maxDecay}`;
+  }
   document.querySelector('.bar-hp .bar-fill').style.width=(player.hp/player.maxHp*100)+'%';
   document.querySelector('.bar-hp .bar-label').textContent=`HP ${Math.round(player.hp)}/${player.maxHp}`;
   document.querySelector('.bar-xp .bar-fill').style.width=(xpState.xp/xpState.xpNext*100)+'%';
