@@ -1107,7 +1107,18 @@ function buildInvGrid(){
     g.appendChild(slot);
   }
 }
+function showError(msg){
+  let d=document.getElementById('error-display');
+  if(!d){d=document.createElement('div');d.id='error-display';
+    d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:red;color:white;padding:12px;font-size:14px;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    document.body.appendChild(d);}
+  d.textContent+=msg+'\n';d.style.display='block';
+}
+window.onerror=function(m,s,l,c,e){showError('ERR: '+m+' @ line '+l);};
+window.addEventListener('unhandledrejection',e=>showError('PROMISE: '+e.reason));
+
 function startGame(){
+  try{
   document.getElementById('menu').style.display='none';
   document.getElementById('game-ui').classList.add('active');
   const names={mag:'Mag',wampir:'Wampir',nekromanta:'Nekromanta',
@@ -1120,6 +1131,7 @@ function startGame(){
   buildItembar();
   updateCharBtn();
   initWorld();
+  }catch(e){showError('startGame: '+e.message+'\n'+e.stack);}
 }
 
 // ═══ WORLD ════════════════════════════════════════════
@@ -2918,7 +2930,9 @@ function updateHUD(camera){
 // ═══ GAME LOOP ══════════════════════════════════════
 let worldStarted=false;
 function initWorld(){
+  try{
   if(worldStarted)return;worldStarted=true;
+  showError('initWorld: start, isMobile='+isMobile);
   const renderer=new THREE.WebGLRenderer({antialias:!isMobile});
   renderer.setSize(window.innerWidth,window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?2:3));
@@ -2935,10 +2949,12 @@ function initWorld(){
   updateChunks(scene,camera);
   rebuildScenery(scene,camera.position.x,camera.position.z);
   buildStructures(scene);
+  showError('initWorld: structures done');
   buildNPCs(scene,LANDMARKS.village.x,LANDMARKS.village.z);
   buildTargets(scene);
   selectSpell(0);selectItem(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
+  showError('initWorld: input setup done');
   window.addEventListener('resize',()=>{
     camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth,window.innerHeight);
@@ -2979,6 +2995,7 @@ function initWorld(){
     renderer.render(scene,camera);
   }
   requestAnimationFrame(loop);
+  }catch(e){showError('initWorld CRASH: '+e.message+'\n'+e.stack);}
 }
 </script>
 </body>
