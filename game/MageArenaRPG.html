@@ -2300,6 +2300,7 @@ function updateChunks(scene,camera){
 }
 
 // ═══ SCENERY (InstancedMesh) ═════════════════════════
+const _windUniform={value:0};
 const _scnGeos={},_scnMats={};
 let _scnMeshes=[];
 let _lastScnX=99999,_lastScnZ=99999;
@@ -2331,6 +2332,19 @@ function initSceneryPools(){
   // kepka trawy - kilka ostrych "ostrzy"
   _scnGeos.grass=new THREE.ConeGeometry(0.09,0.5,3);
   _scnMats.grass=new THREE.MeshStandardMaterial({color:0x3a7a2a,roughness:0.9,flatShading:true,side:THREE.DoubleSide});
+  // wiatr kolyszacy trawa (shader)
+  _scnMats.grass.onBeforeCompile=(shader)=>{
+    shader.uniforms.uWind=_windUniform;
+    shader.vertexShader='uniform float uWind;\n'+shader.vertexShader;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
+      `#include <begin_vertex>
+       #ifdef USE_INSTANCING
+       float ph=instanceMatrix[3][0]*0.3+instanceMatrix[3][2]*0.3;
+       float sway=sin(uWind*1.6+ph)*0.12+cos(uWind*1.1+ph*1.7)*0.06;
+       transformed.x+=sway*max(0.0,position.y+0.25);
+       transformed.z+=sway*0.5*max(0.0,position.y+0.25);
+       #endif`);
+  };
   _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x4a3728,roughness:0.9,flatShading:true});
   _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.85,flatShading:true});
   _scnMats.rock=new THREE.MeshStandardMaterial({roughness:0.9,flatShading:true});
@@ -2507,10 +2521,34 @@ function updateScenery(scene,camera){
   if(dx*dx+dz*dz>48*48)rebuildScenery(scene,camera.position.x,camera.position.z);
 }
 
+let _water=null,_waterDetail=null,_waterUniforms=null;
 function buildWater(scene){
-  const geo=new THREE.PlaneGeometry(WORLD_HALF*2.2,WORLD_HALF*2.2);geo.rotateX(-Math.PI/2);
-  const mat=new THREE.MeshStandardMaterial({color:0x1a3a4a,transparent:true,opacity:0.65,roughness:0.3,metalness:0.4});
-  const mesh=new THREE.Mesh(geo,mat);mesh.position.y=SEA_LEVEL;scene.add(mesh);
+  // bazowa tafla wody (cala mapa, plaska) - tania
+  const baseGeo=new THREE.PlaneGeometry(WORLD_HALF*2.2,WORLD_HALF*2.2);baseGeo.rotateX(-Math.PI/2);
+  const baseMat=new THREE.MeshStandardMaterial({color:0x163a4c,transparent:true,opacity:0.75,roughness:0.2,metalness:0.5});
+  _water=new THREE.Mesh(baseGeo,baseMat);_water.position.y=SEA_LEVEL-0.05;scene.add(_water);
+  // szczegolowa tafla z falami (shader), podaza za graczem
+  const D=isMobile?260:420, segs=isMobile?48:80;
+  const geo=new THREE.PlaneGeometry(D,D,segs,segs);geo.rotateX(-Math.PI/2);
+  const mat=new THREE.MeshStandardMaterial({color:0x1d4a5e,transparent:true,opacity:0.82,
+    roughness:0.12,metalness:0.65});
+  _waterUniforms={uTime:{value:0}};
+  mat.onBeforeCompile=(shader)=>{
+    shader.uniforms.uTime=_waterUniforms.uTime;
+    shader.vertexShader='uniform float uTime;\nvarying float vWave;\n'+shader.vertexShader;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
+      `#include <begin_vertex>
+       float wx=transformed.x+position.x; float wz=transformed.z+position.z;
+       float w=sin(wx*0.18+uTime*1.4)*0.18
+              +cos(wz*0.15-uTime*1.1)*0.15
+              +sin((wx+wz)*0.27+uTime*2.0)*0.08;
+       transformed.y+=w; vWave=w;`);
+    shader.fragmentShader='varying float vWave;\n'+shader.fragmentShader;
+    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',
+      `#include <color_fragment>
+       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.4,0.72,0.82),clamp((vWave+0.18)*1.6,0.0,0.45));`);
+  };
+  _waterDetail=new THREE.Mesh(geo,mat);_waterDetail.position.y=SEA_LEVEL;scene.add(_waterDetail);
 }
 let _ambient=null,_hemi=null;
 function setupLighting(scene){
@@ -2554,7 +2592,28 @@ function setupAtmosphere(scene){
   const dustMat=new THREE.PointsMaterial({color:0xffeedd,size:0.15,transparent:true,opacity:0.4});
   _dustParticles=new THREE.Points(dustGeo,dustMat);
   scene.add(_dustParticles);
+  // chmury (proste platy dryfujace wysoko)
+  _clouds=new THREE.Group();scene.add(_clouds);
+  const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:0.75,
+    roughness:1,emissive:0x445566,emissiveIntensity:0.15,depthWrite:false});
+  const cloudN=isMobile?10:18;
+  for(let i=0;i<cloudN;i++){
+    const puff=new THREE.Group();
+    const nBlobs=2+((Math.random()*3)|0);
+    for(let b=0;b<nBlobs;b++){
+      const s=8+Math.random()*14;
+      const blob=new THREE.Mesh(new THREE.SphereGeometry(s,6,5),cloudMat);
+      blob.scale.y=0.45;
+      blob.position.set((Math.random()-0.5)*30,(Math.random()-0.5)*4,(Math.random()-0.5)*30);
+      puff.add(blob);
+    }
+    const a=Math.random()*Math.PI*2,r=80+Math.random()*340;
+    puff.position.set(Math.cos(a)*r,120+Math.random()*60,Math.sin(a)*r);
+    puff.userData.drift=0.6+Math.random()*1.2;
+    _clouds.add(puff);
+  }
 }
+let _clouds=null;
 function updateDayNight(dt){
   worldTime=(worldTime+dt)%CYCLE_LEN;
   const t=worldTime/CYCLE_LEN;
@@ -4807,6 +4866,19 @@ function initWorld(){
     updateShadowMinions(dt,now,camera);
     updateFallingTrees(dt);
     updateBuildGhost(camera);
+    // animacja wody i wiatru
+    if(_waterUniforms)_waterUniforms.uTime.value+=dt;
+    _windUniform.value+=dt;
+    // dryf chmur (podazaja luzno za graczem)
+    if(_clouds){
+      _clouds.position.x=camera.position.x;_clouds.position.z=camera.position.z;
+      for(const c of _clouds.children){
+        c.position.x+=c.userData.drift*dt;
+        if(c.position.x>380)c.position.x=-380;
+      }
+    }
+    if(_waterDetail){_waterDetail.position.x=camera.position.x;_waterDetail.position.z=camera.position.z;}
+    if(_water){_water.position.x=camera.position.x;_water.position.z=camera.position.z;}
     _activeNPC=findInteractNPC(camera);
     const ipEl=document.getElementById('interact-prompt');
     let nearChest=false;
