@@ -129,14 +129,15 @@
 
   #bars{position:absolute;bottom:74px;left:50%;transform:translateX(-50%);
     display:flex;flex-direction:column;gap:4px;align-items:center}
-  .bar-wrap{width:140px;height:14px;background:rgba(0,0,0,.6);
-    border:1px solid rgba(255,255,255,.15);border-radius:7px;overflow:hidden;
-    position:relative}
-  .bar-fill{height:100%;border-radius:7px;transition:width .12s linear}
-  .bar-hp .bar-fill{background:linear-gradient(90deg,#8b1a1a,#c0392b);width:100%}
-  .bar-mana .bar-fill{background:linear-gradient(90deg,#1a3a8b,#2980b9);width:100%}
-  .bar-xp .bar-fill{background:linear-gradient(90deg,#6a5a1a,#e8c86a);width:0%}
-  .bar-hunger .bar-fill{background:linear-gradient(90deg,#8b5a1a,#c08a2b);width:100%}
+  .bar-wrap{width:150px;height:15px;background:rgba(0,0,0,.62);
+    border:1px solid rgba(255,255,255,.18);border-radius:8px;overflow:hidden;
+    position:relative;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+  .bar-fill{height:100%;border-radius:8px;transition:width .12s linear;
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.25)}
+  .bar-hp .bar-fill{background:linear-gradient(90deg,#a01818,#e64b3a);width:100%}
+  .bar-mana .bar-fill{background:linear-gradient(90deg,#1a3a8b,#3aa0e0);width:100%}
+  .bar-xp .bar-fill{background:linear-gradient(90deg,#7a6420,#ffd24a);width:0%}
+  .bar-hunger .bar-fill{background:linear-gradient(90deg,#8b5a1a,#e0a83b);width:100%}
   .bar-label{position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;font-size:10px;color:#ddd;
     text-shadow:0 1px 2px #000;font-weight:600}
@@ -144,10 +145,12 @@
   /* spell selector — top left, horizontal */
   #spellbar{position:absolute;top:10px;left:10px;display:flex;flex-direction:row;
     gap:5px;pointer-events:none}
-  .spell-slot{width:38px;height:38px;border-radius:8px;background:rgba(0,0,0,.55);
+  .spell-slot{width:40px;height:40px;border-radius:9px;
+    background:radial-gradient(circle at 50% 32%,rgba(50,60,90,.6),rgba(6,10,20,.7));
     border:2px solid rgba(255,255,255,.16);display:flex;align-items:center;
-    justify-content:center;font-size:18px;position:relative;pointer-events:auto}
-  .spell-slot.active{border-color:#9ad0ff;box-shadow:0 0 14px rgba(120,170,255,.55)}
+    justify-content:center;font-size:19px;position:relative;pointer-events:auto;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);text-shadow:0 1px 3px rgba(0,0,0,.6)}
+  .spell-slot.active{border-color:#9ad0ff;box-shadow:0 0 16px rgba(120,170,255,.6),0 2px 6px rgba(0,0,0,.4)}
   .spell-cost{position:absolute;bottom:-2px;right:2px;font-size:8px;color:#9ad0ff;
     text-shadow:0 1px 2px #000;font-weight:700}
   .spell-glow{position:absolute;inset:0;border-radius:6px;opacity:.16}
@@ -167,11 +170,13 @@
 
   #hotbar{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
     display:flex;gap:4px;z-index:3}
-  .slot{width:44px;height:44px;background:rgba(0,0,0,.6);
-    border:2px solid rgba(255,255,255,.18);border-radius:6px;position:relative;
-    display:flex;align-items:center;justify-content:center;font-size:22px;
-    pointer-events:auto}
-  .slot.active{border-color:#e8c86a;box-shadow:0 0 12px rgba(232,200,106,.4)}
+  .slot{width:46px;height:46px;
+    background:radial-gradient(circle at 50% 32%,rgba(54,64,92,.6),rgba(8,12,22,.72));
+    border:2px solid rgba(255,255,255,.18);border-radius:9px;position:relative;
+    display:flex;align-items:center;justify-content:center;font-size:24px;
+    pointer-events:auto;box-shadow:0 2px 7px rgba(0,0,0,.45);
+    text-shadow:0 2px 3px rgba(0,0,0,.5)}
+  .slot.active{border-color:#e8c86a;box-shadow:0 0 14px rgba(232,200,106,.5),0 2px 7px rgba(0,0,0,.45)}
   .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
   .slot-glow{position:absolute;inset:0;border-radius:4px;opacity:.18}
 
@@ -230,7 +235,18 @@
 
   /* level badge */
   #lvl-badge{color:#e8c86a;font-weight:700;font-size:12px}
-  #gold{color:#f0d070;font-weight:600}
+
+  /* gold + kryształy — czyste plakietki w rogu (lewy gorny, pod paskiem zaklec) */
+  #corner-stats{position:absolute;top:56px;left:10px;display:flex;flex-direction:column;
+    gap:5px;z-index:3}
+  #gold,#score{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:800;
+    padding:5px 12px;border-radius:20px;text-shadow:0 1px 3px #000;
+    backdrop-filter:blur(3px);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  #gold{color:#ffe27a;background:linear-gradient(180deg,rgba(90,68,20,.9),rgba(50,38,10,.92));
+    border:1.5px solid rgba(240,200,90,.6)}
+  #score{color:#d8a8ff;background:linear-gradient(180deg,rgba(58,38,80,.9),rgba(32,20,48,.92));
+    border:1.5px solid rgba(180,120,255,.5)}
+  #gold b,#score b{font-size:16px}
 
   /* item count badge */
   .slot-count{position:absolute;bottom:1px;right:3px;font-size:11px;
@@ -369,12 +385,14 @@
   .cp-spell-req{position:absolute;top:3px;right:4px;font-size:8px;color:#ffd24a;font-weight:700}
 
   #inv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
-  .inv-slot{width:100%;aspect-ratio:1;background:rgba(0,0,0,.35);
-    border:2px solid rgba(255,255,255,.12);border-radius:8px;
+  .inv-slot{width:100%;aspect-ratio:1;
+    background:radial-gradient(circle at 50% 35%,rgba(60,70,98,.5),rgba(10,14,24,.6));
+    border:2px solid rgba(255,255,255,.12);border-radius:9px;
     display:flex;align-items:center;justify-content:center;font-size:24px;
-    cursor:pointer;position:relative}
+    cursor:pointer;position:relative;transition:transform .1s}
   .inv-slot.hotbar-slot{border-color:rgba(232,200,106,.3)}
   .inv-slot:active{transform:scale(.95)}
+  .inv-ic{line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
   .inv-count{position:absolute;bottom:1px;right:3px;font-size:11px;
     color:#fff;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
 
@@ -559,10 +577,11 @@
       <span id="compass">N</span>
       <span id="classname">Mag</span>
       <span id="lvl-badge">Poz. 1</span>
-      <span id="gold">🪙 0</span>
-      <span id="score">💠 0</span>
-      <span id="coords">0, 0, 0</span>
       <span id="day-ind">☀️</span>
+    </div>
+    <div id="corner-stats">
+      <div id="gold">🪙 <b>0</b></div>
+      <div id="score">💠 <b>0</b></div>
     </div>
     <div id="landmark">📍 <span id="lm-name">Wioska</span> <span id="lm-dist">0m</span> <span id="lm-arrow">↑</span></div>
     <div id="bars">
@@ -1072,10 +1091,14 @@ function buildInvGrid(){
     const slot=document.createElement('div');
     slot.className='inv-slot'+(i<7?' hotbar-slot':'');
     slot.dataset.idx=i;
-    let inner=it?it.icon:'';
-    if(it&&(it.type==='consumable'||it.type==='food')&&it.count>1)inner+=`<span class="inv-count">${it.count}</span>`;
+    let inner=it?`<span class="inv-ic">${it.icon}</span>`:'';
+    if(it&&(it.type==='consumable'||it.type==='food'||it.type==='resource')&&it.count>1)inner+=`<span class="inv-count">${it.count}</span>`;
     slot.innerHTML=inner;
-    slot.title=it?it.name:'Pusty slot';
+    if(it&&it.rarity&&RARITY[it.rarity]){
+      slot.style.borderColor=RARITY[it.rarity].col;
+      slot.style.boxShadow='inset 0 0 12px '+RARITY[it.rarity].col+'55';
+    }
+    slot.title=it?(it.name+(it.bonus?' — '+bonusText(it.bonus):'')):'Pusty slot';
     slot.addEventListener('click',()=>{
       if(!it)return;
       if(it.type==='consumable'||it.type==='food'){useConsumable(i);buildInvGrid();buildItembar();}
@@ -1609,7 +1632,7 @@ function buildPyramid(scene,cx,cz){
   for(const sx of[-2,2]){
     const f=new THREE.Mesh(new THREE.SphereGeometry(0.2,5,5),new THREE.MeshBasicMaterial({color:0xff8822}));
     f.position.set(sx,4,11);grp.add(f);
-    grp.add(Object.assign(new THREE.PointLight(0xff6611,1,8),{position:new THREE.Vector3(sx,4.2,11)}));
+    const tl=new THREE.PointLight(0xff6611,1,8);tl.position.set(sx,4.2,11);grp.add(tl);
   }
   buildBeacon(scene,cx,cz,0xffcc22);
 }
@@ -2319,7 +2342,7 @@ function damageTarget(tg,dmg){
 }
 function shatterTarget(tg){
   tg.alive=false;tg.core.visible=false;destroyed++;
-  document.getElementById('score').textContent='💠 '+destroyed;
+  document.querySelector('#score b').textContent=destroyed;
   for(let i=0;i<10;i++){
     const g=new THREE.OctahedronGeometry(0.16,0);
     const m=new THREE.MeshBasicMaterial({color:0xbb66ff,transparent:true,opacity:1});
@@ -2468,7 +2491,7 @@ function damageMob(idx,dmg){
 function killMob(idx){
   const m=mobs[idx];
   xpState.kills++;destroyed++;
-  document.getElementById('score').textContent='💠 '+destroyed;
+  document.querySelector('#score b').textContent=destroyed;
   giveXP(m.type.xp);
   player.gold+=m.type.gold;
   if(quest.active&&!quest.done&&m.type.id===quest.target){
@@ -2875,7 +2898,6 @@ function updateHUD(camera){
   let a=((yaw*180/Math.PI)%360+360)%360;
   document.getElementById('compass').textContent=dirs[Math.round(a/45)%8];
   const p=camera.position;
-  document.getElementById('coords').textContent=`${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.z)}`;
   document.querySelector('.bar-mana .bar-fill').style.width=(player.mana/player.maxMana*100)+'%';
   document.querySelector('.bar-mana .bar-label').textContent=`MANA ${Math.round(player.mana)}/${player.maxMana}`;
   document.querySelector('.bar-hp .bar-fill').style.width=(player.hp/player.maxHp*100)+'%';
@@ -2885,7 +2907,7 @@ function updateHUD(camera){
   document.querySelector('.bar-hunger .bar-fill').style.width=(hunger)+'%';
   document.querySelector('.bar-hunger .bar-label').textContent=`GLOD ${Math.round(hunger)}/100`;
   document.getElementById('lvl-badge').textContent='Poz. '+xpState.level;
-  document.getElementById('gold').textContent='🪙 '+player.gold;
+  document.querySelector('#gold b').textContent=player.gold;
   const lm=nearestLandmark(p.x,p.z);
   if(lm){
     document.getElementById('lm-name').textContent=lm.l.name;
