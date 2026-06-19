@@ -661,7 +661,7 @@
     </div>
   </div>
   <div id="boss-bar"><div class="bar-fill"></div><div class="bar-label" id="boss-name">Boss</div></div>
-  <div id="overlay"><span>Kliknij aby grac</span></div>
+  <div id="overlay" class="hidden"><span>Kliknij aby grac</span></div>
   <div id="death-overlay">
     <div class="death-title" id="death-title">SMIERC</div>
     <div class="death-msg" id="death-msg"></div>
@@ -1126,7 +1126,7 @@ function startGame(){
 const EYE_H=1.75, WALK_SPD=6, SPRINT_MUL=1.6;
 const GRAVITY=20, JUMP_VEL=8, MOUSE_SENS=0.002, TOUCH_SENS=0.004;
 const SEA_LEVEL=0.5;
-const isMobile='ontouchstart' in window || navigator.maxTouchPoints>1;
+const isMobile='ontouchstart' in window || navigator.maxTouchPoints>0 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const MAX_MOBS=isMobile?12:18;
 const WORLD_SEED=20260617;
 const WORLD_HALF=2800;
@@ -2739,7 +2739,6 @@ function spellDmgMul(){return 1+gearBonus().dmg/100;}
 
 // ═══ INPUT ══════════════════════════════════════════
 function setupDesktopInput(){
-  const overlay=document.getElementById('overlay');
   document.addEventListener('keydown',e=>{
     keys[e.code]=true;
     if(e.code==='ShiftLeft')sprinting=true;
@@ -2754,8 +2753,7 @@ function setupDesktopInput(){
       if(craftOpen)renderCraftPanel();}
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
-  overlay.addEventListener('click',()=>document.body.requestPointerLock());
-  document.addEventListener('pointerlockchange',()=>overlay.classList.toggle('hidden',!!document.pointerLockElement));
+  document.addEventListener('click',()=>{if(!document.pointerLockElement)document.body.requestPointerLock();});
   document.addEventListener('mousemove',e=>{
     if(!document.pointerLockElement)return;
     yaw-=e.movementX*MOUSE_SENS;pitch-=e.movementY*MOUSE_SENS;
@@ -2768,7 +2766,6 @@ function setupDesktopInput(){
   document.addEventListener('mouseup',e=>{if(e.button===0)casting=false;});
 }
 function setupMobileInput(){
-  document.getElementById('overlay').classList.add('hidden');
   const joyZone=document.getElementById('joystick-zone');
   const joyBase=document.getElementById('joystick-base');
   const joyKnob=document.getElementById('joystick-knob');
