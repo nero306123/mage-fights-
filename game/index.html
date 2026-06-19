@@ -1135,6 +1135,7 @@ function startGame(){
 }
 
 // ═══ WORLD ════════════════════════════════════════════
+let worldStarted=false;
 const EYE_H=1.75, WALK_SPD=6, SPRINT_MUL=1.6;
 const GRAVITY=20, JUMP_VEL=8, MOUSE_SENS=0.002, TOUCH_SENS=0.004;
 const SEA_LEVEL=0.5;
@@ -2101,7 +2102,7 @@ document.getElementById('craft-btn').addEventListener('click',()=>{
   document.getElementById('craft-panel').classList.toggle('open',craftOpen);
   if(craftOpen)renderCraftPanel();
 });
-document.querySelector('#craft-panel .cp-close').addEventListener('click',()=>{
+document.getElementById('craft-close').addEventListener('click',()=>{
   craftOpen=false;document.getElementById('craft-panel').classList.remove('open');
 });
 function renderCraftPanel(){
@@ -2928,7 +2929,6 @@ function updateHUD(camera){
 }
 
 // ═══ GAME LOOP ══════════════════════════════════════
-let worldStarted=false;
 function initWorld(){
   try{
   if(worldStarted)return;worldStarted=true;
