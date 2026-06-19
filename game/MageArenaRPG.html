@@ -455,6 +455,23 @@
   #minimap{position:absolute;top:52px;right:10px;width:100px;height:100px;
     border-radius:50%;border:2px solid rgba(232,200,106,.4);
     background:rgba(0,0,0,.5);pointer-events:none;z-index:3}
+  #map-btn{position:absolute;top:156px;right:10px;width:38px;height:38px;
+    background:rgba(0,0,0,.55);border:1px solid rgba(232,200,106,.4);
+    border-radius:10px;color:#e8c86a;pointer-events:auto;cursor:pointer;
+    z-index:4;font-size:18px;display:flex;align-items:center;justify-content:center}
+  #map-btn:active{transform:scale(.95)}
+
+  /* ── FULL MAP ─────────────────────────────────────── */
+  #fullmap{position:fixed;inset:0;z-index:40;background:rgba(6,9,16,.92);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  #fullmap.hidden{display:none}
+  .fm-head{color:#e8c86a;font-size:18px;font-weight:700;display:flex;
+    align-items:center;gap:14px}
+  .fm-head button{background:rgba(192,57,43,.3);border:1px solid rgba(192,57,43,.6);
+    color:#ffaaaa;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px}
+  #fullmap-canvas{max-width:88vw;max-height:70vh;border:2px solid rgba(232,200,106,.5);
+    border-radius:12px;background:#0a0d14;touch-action:none}
+  .fm-legend{color:#aab;font-size:11px;max-width:88vw;text-align:center;line-height:1.6}
 
   /* ── CRAFT BUTTON ─────────────────────────────────── */
   #craft-btn{position:absolute;top:8px;left:50%;margin-left:140px;
@@ -614,6 +631,7 @@
         <div class="bar-label" style="font-size:8px">XP 0/100</div></div>
     </div>
     <canvas id="minimap" width="100" height="100"></canvas>
+    <button id="map-btn" title="Mapa">🗺️</button>
     <div id="spellbar"></div>
     <div id="spellname">Magiczny Pocisk</div>
     <div id="hotbar"></div>
@@ -682,6 +700,11 @@
   <div id="boss-bar"><div class="bar-fill"></div><div class="bar-label" id="boss-name">Boss</div></div>
   <div id="companion-hud"><div class="comp-name"></div><div class="comp-hp-bar"><div class="comp-hp-fill"></div></div><div class="comp-mode" id="comp-mode-btn">Tryb: Atakuj</div></div>
   <div id="climb-bar"><div class="climb-fill"></div></div>
+  <div id="fullmap" class="hidden">
+    <div class="fm-head">🗺️ Mapa Świata <button id="fm-close">✕</button></div>
+    <canvas id="fullmap-canvas" width="600" height="600"></canvas>
+    <div class="fm-legend">🟢 Las · 🟡 Pustynia · ⚪ Arktyka · 🔴 Wulkan · 🟩 Dżungla · 🟤 Sawanna · ⛰️ Góry</div>
+  </div>
   <div id="overlay" class="hidden"><span>Kliknij aby grac</span></div>
   <div id="death-overlay">
     <div class="death-title" id="death-title">SMIERC</div>
@@ -717,6 +740,9 @@ const ELEM = {
   buff: {ic:'✨', col:0x9affb0, light:0x66dd88, speed:0,  size:0,    life:0,   grav:0,  kind:'buff'},
   hybrid:{ic:'🌈',col:0xc06cff, light:0xaa55ff, speed:42, size:0.46, life:2.6, grav:2,  kind:'proj'},
   other:{ic:'🌀', col:0x9944dd, light:0x7733bb, speed:0,  size:0,    life:0,   grav:0,  kind:'util'},
+  shadow:{ic:'🌑',col:0x6622aa, light:0x4411aa, speed:44, size:0.4,  life:2.4, grav:0,  kind:'proj'},
+  summon:{ic:'💀',col:0x8844cc, light:0x5522aa, speed:0,  size:0,    life:0,   grav:0,  kind:'summon'},
+  necbuff:{ic:'🖤',col:0x9966cc, light:0x6644aa, speed:0,  size:0,    life:0,   grav:0,  kind:'buff'},
 };
 // Bazowy cooldown wg rzadkosci (sek)
 const RARITY_CD={common:0.42,rare:0.7,epic:1.1,mythic:2.0,legend:3.2,secret:5.0};
@@ -824,8 +850,45 @@ function buildSpells(){
       cost:r.pts, lvl:r.lvl, wandReq:r.wand, needScroll:r.scroll };
   });
 }
-const SPELLS = buildSpells();
-// Pierwsze zaklecie (Iskra) gracz ma od startu
+// ── ZAKLECIA NEKROMANTY (wlasny zestaw: przyzywanie cieni, mrok, klatwy) ──
+const NECRO_SPELL_DATA = [
+  // Przyzywanie (summonType: typ przyzwanego cienia)
+  ['przyzwij_szkielet','Przyzwij Szkielet','summon','common',40,2,0,'Przyzywa Szkielet-Cien','💀',{summon:'skeleton',sumHp:120,sumDmg:18}],
+  ['przyzwij_wojownik','Przyzwij Wojownika','summon','rare',90,2.5,0,'Przyzywa Cien-Wojownika','🗡️',{summon:'warrior',sumHp:250,sumDmg:30}],
+  ['przyzwij_lucznik','Przyzwij Lucznika','summon','rare',100,2.5,0,'Cien-Lucznik strzela z dystansu','🏹',{summon:'archer',sumHp:150,sumDmg:25}],
+  ['przyzwij_golem','Przyzwij Golema','summon','epic',220,3.5,0,'Cien-Golem - wytrzymaly tank','🗿',{summon:'golem',sumHp:600,sumDmg:40}],
+  ['przyzwij_smok','Przyzwij Smoka Cieni','summon','legend',900,5,0,'Potezny Smok-Cien','🐉',{summon:'dragon',sumHp:1200,sumDmg:80}],
+  // Obrazenia mroczne
+  ['mroczny_pocisk','Mroczny Pocisk','shadow','common',25,2.4,28,''],
+  ['kula_cieni','Kula Cieni','shadow','rare',80,2.6,65,'Spowolnienie 30% 4s'],
+  ['grad_kosci','Grad Kosci','shadow','rare',110,3,75,'AOE 5m'],
+  ['wybuch_mroku','Wybuch Mroku','shadow','epic',240,4,170,'AOE 6m + oslepienie 2s','💥'],
+  ['eksplozja_dusz','Eksplozja Dusz','shadow','mythic',780,7,440,'AOE 8m + kradnie HP','👻'],
+  ['zaglada_mroku','Zaglada Mroku','shadow','secret',3200,10,2000,'AOE 15m: niszczy wszystko','🌑'],
+  // Klatwy i wsparcie
+  ['wyssanie_zycia','Wyssanie Zycia','shadow','rare',90,2.5,60,'Kradnie 100% obrazen jako HP','🩸'],
+  ['klatwa_smierci','Klatwa Smierci','necbuff','rare',100,3,0,'-40% obrazen wrogow 12s','☠️'],
+  ['kostna_tarcza','Kostna Tarcza','necbuff','rare',80,2.5,0,'Blokuje 150 obrazen','🦴'],
+  ['mroczne_leczenie','Mroczne Leczenie','necbuff','epic',200,3,0,'Leczy 120 HP kosztem many','💜'],
+  ['aura_rozkladu','Aura Rozkladu','necbuff','epic',250,4,0,'Pole rozkladu wokol 10s (15dmg/s)','🟣'],
+  ['armia_umarlych','Armia Umarlych','summon','mythic',600,5,0,'Przyzywa 3 szkielety naraz','⚰️',{summon:'army',sumHp:120,sumDmg:18}],
+  ['wskrzeszenie','Wskrzeszenie','necbuff','legend',1500,8,0,'Odradza z 50% HP po smierci','♻️'],
+];
+function buildNecroSpells(){
+  return NECRO_SPELL_DATA.map(d=>{
+    const [id,name,el,rar,mana,cast,dmg,fx,icOv,extra]=d;
+    const e=ELEM[el], r=RARITY[rar];
+    return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
+      color:e.col, light:e.light, kind:e.kind,
+      mana, castTime:cast, dmg, fx:fx||'',
+      speed:e.speed, size:e.size+ (RARITY_ORDER.indexOf(rar))*0.03,
+      life:e.life, gravity:e.grav, cd:RARITY_CD[rar],
+      cost:r.pts, lvl:r.lvl, wandReq:r.wand, needScroll:r.scroll,
+      ...(extra||{}) };
+  });
+}
+let SPELLS = buildSpells();
+// Pierwsze zaklecie gracz ma od startu
 const ownedSpells = new Set([0]);
 
 // ═══ ITEMS (hotbar + plecak) ═════════════════════════════
@@ -1052,7 +1115,7 @@ const LANDMARKS={
 
 // ═══ CLEARINGS (rozszerzone) ═════════════════════════════
 const STRUCT_CLEARINGS=[
-  {x:150,z:110,r:40},       // wioska
+  {x:150,z:110,r:52},       // wioska
   {x:1500,z:1500,r:70},     // zamek
   {x:-680,z:640,r:26},      // portal
   {x:-400,z:-400,r:35},     // cmentarz
@@ -1250,6 +1313,10 @@ function startGame(){
   if(playerClass==='wampir'){blood=1000;maxBlood=1000;}
   if(playerClass==='czlowiek'){strength=0;maxStrength=100;}
   if(playerClass==='nieumarly'){decay=0;maxDecay=100;}
+  // Nekromanta ma wlasny zestaw zaklec (przyzywanie cieni, mrok, klatwy)
+  SPELLS=playerClass==='nekromanta'?buildNecroSpells():buildSpells();
+  ownedSpells.clear();ownedSpells.add(0);
+  player.selSpell=0;
   skillPoints=5;
   applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
   hunger=100;
@@ -1331,6 +1398,112 @@ document.getElementById('comp-mode-btn').addEventListener('click',()=>{
   document.getElementById('comp-mode-btn').textContent='Tryb: '+(companionMode==='attack'?'Atakuj':'Stoj');
 });
 
+// ═══ CIENIE NEKROMANTY (Shadow Minions) ════════════════
+const MAX_SHADOWS=6;
+const shadowMinions=[];
+const SHADOW_COLORS={skeleton:0x8866bb,warrior:0x7744aa,archer:0x9955cc,golem:0x553388,dragon:0x6622aa};
+function buildShadowMesh(stype){
+  const g=new THREE.Group();
+  const col=SHADOW_COLORS[stype]||0x8844cc;
+  const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.4,
+    transparent:true,opacity:0.78,roughness:0.6,flatShading:true});
+  const scale=stype==='golem'?1.8:stype==='dragon'?2.4:stype==='warrior'?1.3:1.0;
+  const bodyH=0.7*scale;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.3*scale,bodyH,0.2*scale),mat);
+  body.position.y=bodyH*0.55+0.3*scale;g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.15*scale,6,5),mat);
+  head.position.y=bodyH+0.45*scale;g.add(head);
+  const eyeM=new THREE.MeshBasicMaterial({color:0xff3366});
+  const eg=new THREE.SphereGeometry(0.03*scale,4,4);
+  const eL=new THREE.Mesh(eg,eyeM);eL.position.set(-0.06*scale,bodyH+0.47*scale,0.12*scale);g.add(eL);
+  const eR=new THREE.Mesh(eg,eyeM);eR.position.set(0.06*scale,bodyH+0.47*scale,0.12*scale);g.add(eR);
+  const legG=new THREE.CylinderGeometry(0.05*scale,0.04*scale,0.35*scale,4);
+  const lL=new THREE.Mesh(legG,mat);lL.position.set(-0.1*scale,0.18*scale,0);g.add(lL);
+  const lR=new THREE.Mesh(legG,mat);lR.position.set(0.1*scale,0.18*scale,0);g.add(lR);
+  if(stype==='warrior'||stype==='skeleton'){
+    const sword=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.5*scale,0.02),
+      new THREE.MeshBasicMaterial({color:0xaa88ff}));
+    sword.position.set(0.2*scale,bodyH*0.7,0.1);sword.rotation.z=-0.5;g.add(sword);
+  }
+  if(stype==='dragon'){
+    const wingM=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.3,transparent:true,opacity:0.6,side:THREE.DoubleSide});
+    const wg=new THREE.PlaneGeometry(1.2,0.7);
+    const wL=new THREE.Mesh(wg,wingM);wL.position.set(-0.7,bodyH,0);wL.rotation.y=0.4;g.add(wL);
+    const wR=new THREE.Mesh(wg,wingM);wR.position.set(0.7,bodyH,0);wR.rotation.y=-0.4;g.add(wR);
+  }
+  g.add(new THREE.PointLight(col,0.6,4));
+  return g;
+}
+function spawnShadowMinion(stype,hp,dmg){
+  if(shadowMinions.length>=MAX_SHADOWS)return false;
+  if(!_scene||!_camera)return false;
+  const mesh=buildShadowMesh(stype);
+  const a=Math.random()*Math.PI*2;
+  const x=_camera.position.x+Math.cos(a)*3,z=_camera.position.z+Math.sin(a)*3;
+  mesh.position.set(x,terrainHeight(x,z),z);
+  _scene.add(mesh);
+  shadowMinions.push({mesh,stype,hp,maxHp:hp,dmg,
+    ranged:stype==='archer'||stype==='dragon',
+    atkCd:stype==='golem'?1.6:1.0,lastAtk:0,life:60,phase:Math.random()*6.28});
+  return true;
+}
+function updateShadowMinions(dt,now,camera){
+  for(let i=shadowMinions.length-1;i>=0;i--){
+    const s=shadowMinions[i];
+    s.life-=dt;
+    if(s.life<=0||s.hp<=0){
+      _scene.remove(s.mesh);
+      s.mesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material)c.material.dispose&&c.material.dispose();});
+      shadowMinions.splice(i,1);continue;
+    }
+    // znajdz najblizszego wroga
+    let target=null,td=s.ranged?30:18,tIdx=-1;
+    for(let j=0;j<mobs.length;j++){
+      const m=mobs[j];if(m.type.passive)continue;
+      const d=m.mesh.position.distanceTo(s.mesh.position);
+      if(d<td){td=d;target=m;tIdx=j;}
+    }
+    let bossTarget=null;
+    for(const b of bosses){
+      const d=b.mesh.position.distanceTo(s.mesh.position);
+      if(d<td){td=d;bossTarget=b;target=null;tIdx=-1;}
+    }
+    const cpos=s.mesh.position;
+    if(target||bossTarget){
+      const tpos=(target?target.mesh.position:bossTarget.mesh.position);
+      const dx=tpos.x-cpos.x,dz=tpos.z-cpos.z;
+      const dist=Math.sqrt(dx*dx+dz*dz);
+      const atkRange=s.ranged?12:2.5;
+      if(dist>atkRange){
+        const spd=Math.min(5*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;
+      }else if(now-s.lastAtk>s.atkCd*1000){
+        s.lastAtk=now;
+        if(s.ranged){
+          const sp={dmg:s.dmg,color:0x8844cc,light:0x6622aa,speed:40,life:1.5,size:0.3,fx:'',id:'shadow_minion'};
+          const dir=new THREE.Vector3(dx,1,dz).normalize();
+          const geo=new THREE.SphereGeometry(0.2,6,6);
+          const mat=new THREE.MeshBasicMaterial({color:0x8844cc});
+          const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(cpos);mesh.position.y+=1;
+          _scene.add(mesh);
+          projectiles.push({mesh,mat,vel:dir.multiplyScalar(40),life:1.5,gravity:0,
+            color:0x8844cc,dmg:s.dmg,fx:'',spellId:'shadow_minion',elem:'shadow',friendly:true});
+        }else{
+          if(target&&tIdx>=0)damageMob(tIdx,s.dmg);
+          else if(bossTarget)damageBoss(bosses.indexOf(bossTarget),s.dmg);
+        }
+      }
+      s.mesh.lookAt(tpos.x,cpos.y,tpos.z);
+    }else{
+      // podazaj za graczem
+      const dx=camera.position.x-cpos.x,dz=camera.position.z-cpos.z;
+      const dist=Math.sqrt(dx*dx+dz*dz);
+      if(dist>5){const spd=Math.min(5*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;}
+      s.mesh.lookAt(camera.position.x,cpos.y,camera.position.z);
+    }
+    cpos.y=terrainHeight(cpos.x,cpos.z)+Math.sin(now*0.004+s.phase)*0.05;
+  }
+}
+
 // ═══ CHEST SYSTEM ═════════════════════════════════════
 const chests=[];
 const CHEST_LOOT=[
@@ -1379,33 +1552,43 @@ function openNearbyChest(camera){
 }
 
 // ═══ CLIMB SYSTEM ═════════════════════════════════════
-let climbStamina=100,isClimbing=false;
-function checkClimb(camera,dt){
-  if(playerDead)return false;
+let climbStamina=100,isClimbing=false,_clingTimer=0;
+function isNearWall(camera){
   const dir=new THREE.Vector3();camera.getWorldDirection(dir);
   const px=camera.position.x+dir.x*1.0,pz=camera.position.z+dir.z*1.0;
-  let nearWall=false;
   for(const t of _treePositions){
     const dx=px-t.x,dz=pz-t.z;
-    if(dx*dx+dz*dz<(t.r+0.8)*(t.r+0.8)){nearWall=true;break;}
+    if(dx*dx+dz*dz<(t.r+0.9)*(t.r+0.9))return true;
   }
   for(const t of _rockPositions){
     const dx=px-t.x,dz=pz-t.z;
-    if(dx*dx+dz*dz<(t.r+0.8)*(t.r+0.8)){nearWall=true;break;}
+    if(dx*dx+dz*dz<(t.r+0.9)*(t.r+0.9))return true;
   }
+  return false;
+}
+// skok: blisko sciany + szybkie klikanie = wspinaczka w gore
+function doJump(camera){
+  if(playerDead)return;
+  if(isNearWall(camera)&&climbStamina>5){
+    velY=6.5;onGround=false;
+    climbStamina=Math.max(0,climbStamina-12);
+    _clingTimer=0.35;isClimbing=true;
+  }else if(onGround){
+    velY=JUMP_VEL;onGround=false;
+  }
+}
+function checkClimb(camera,dt){
   const climbBar=document.getElementById('climb-bar');
-  if(nearWall&&!onGround&&climbStamina>0&&(isMobile?joyState.dy<-0.3:(keys['KeyW']||keys['ArrowUp']))){
-    isClimbing=true;climbStamina=Math.max(0,climbStamina-20*dt);
-    climbBar.classList.add('show');
-    climbBar.querySelector('.climb-fill').style.width=climbStamina+'%';
-    return true;
-  }
-  isClimbing=false;
+  if(playerDead){if(climbBar)climbBar.classList.remove('show');return false;}
+  // przyklejenie do sciany - zmniejszona grawitacja chwile po skoku przy scianie
+  const clinging=_clingTimer>0&&isNearWall(camera);
+  if(_clingTimer>0)_clingTimer-=dt;
   if(onGround)climbStamina=Math.min(100,climbStamina+30*dt);
-  if(climbStamina<100&&!onGround)climbBar.classList.add('show');
+  if(climbStamina<100&&!onGround||clinging)climbBar.classList.add('show');
   else climbBar.classList.remove('show');
   climbBar.querySelector('.climb-fill').style.width=climbStamina+'%';
-  return false;
+  if(!clinging)isClimbing=false;
+  return clinging;
 }
 
 // ═══ CLASS ABILITIES ═════════════════════════════════════
@@ -1593,6 +1776,12 @@ const _treePositions=[];
 const _rockPositions=[];
 const TREE_RADIUS=0.8;
 const ROCK_RADIUS=0.5;
+let _imTrunk=null,_imLeaf=null,_imRock=null,_imJTrunk=null,_imJLeaf=null;
+const _zeroMat=new THREE.Matrix4().makeScale(0.0001,0.0001,0.0001);
+function hideInstance(im,idx){
+  if(!im||idx==null||idx>=im.count)return;
+  im.setMatrixAt(idx,_zeroMat);im.instanceMatrix.needsUpdate=true;
+}
 function initSceneryPools(){
   _scnGeos.trunk=new THREE.CylinderGeometry(0.16,0.22,2.5,6);
   _scnGeos.leaf=new THREE.ConeGeometry(1.25,2.0,6);
@@ -1608,6 +1797,9 @@ function initSceneryPools(){
   _scnGeos.mPine=new THREE.ConeGeometry(0.8,2.5,5);
   _scnGeos.boulder=new THREE.DodecahedronGeometry(1.5,0);
   _scnGeos.flower=new THREE.SphereGeometry(0.15,4,4);
+  // kepka trawy - kilka ostrych "ostrzy"
+  _scnGeos.grass=new THREE.ConeGeometry(0.09,0.5,3);
+  _scnMats.grass=new THREE.MeshStandardMaterial({color:0x3a7a2a,roughness:0.9,flatShading:true,side:THREE.DoubleSide});
   _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x4a3728,roughness:0.9,flatShading:true});
   _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.85,flatShading:true});
   _scnMats.rock=new THREE.MeshStandardMaterial({roughness:0.9,flatShading:true});
@@ -1645,6 +1837,7 @@ function rebuildScenery(scene,cx,cz){
   const cactM=[],sTrunkM=[],sConeM=[],spikeM=[];
   const jTrunkM=[],jLeafM=[],acaciaM=[],aCrownM=[];
   const mPineM=[],boulderM=[],flowerM=[],flowerC=[];
+  const grassM=[],grassC=[];
   const r2=SCN_RAD*SCN_RAD;
   const minG=Math.floor((cx-SCN_RAD)/SCN_CELL),maxG=Math.floor((cx+SCN_RAD)/SCN_CELL);
   const minGZ=Math.floor((cz-SCN_RAD)/SCN_CELL),maxGZ=Math.floor((cz+SCN_RAD)/SCN_CELL);
@@ -1664,13 +1857,13 @@ function rebuildScenery(scene,cx,cz){
           dummy.position.set(wx,h+s*0.3,wz);dummy.rotation.set(rng()*3,rng()*3,rng()*3);
           dummy.scale.set(s,s*(0.5+rng()*0.5),s);dummy.updateMatrix();
           rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.3+rng()*0.12,0.3+rng()*0.12,0.31+rng()*0.12));
-          _rockPositions.push({x:wx,z:wz,r:ROCK_RADIUS*s});}
+          _rockPositions.push({x:wx,z:wz,r:ROCK_RADIUS*s,hits:0,h,s,rockIdx:rockM.length-1});}
         if(biome==='meadow'&&rng()<0.3){
           dummy.position.set(wx,h+0.15,wz);dummy.rotation.set(0,0,0);dummy.scale.set(1,1,1);
           dummy.updateMatrix();flowerM.push(dummy.matrix.clone());
           flowerC.push(new THREE.Color(flowerColors[(rng()*flowerColors.length)|0]));}
         continue;}
-      _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*sc});
+      _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*sc,hits:0,kind:'forest',h,sc,trunkIdx:trunkM.length,leafIdx:leafM.length,leafCount:3});
       dummy.position.set(wx,h+1.25*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(sc,sc,sc);
       dummy.updateMatrix();trunkM.push(dummy.matrix.clone());
       const lc=leafColors[(rng()*leafColors.length)|0];
@@ -1706,7 +1899,7 @@ function rebuildScenery(scene,cx,cz){
         rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.18,0.10,0.08));}
     }else if(biome==='jungle'){
       if(rng()<0.7){const js=1.0+rng()*0.8;
-        _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*js*1.2});
+        _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*js*1.2,hits:0,kind:'jungle',h,sc:js,trunkIdx:jTrunkM.length,leafIdx:jLeafM.length,leafCount:2});
         dummy.position.set(wx,h+2.0*js,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(js,js,js);
         dummy.updateMatrix();jTrunkM.push(dummy.matrix.clone());
         for(let j=0;j<2;j++){const ls=(1.4-j*0.3)*js;
@@ -1732,15 +1925,45 @@ function rebuildScenery(scene,cx,cz){
         boulderM.push(dummy.matrix.clone());}
     }
   }
-  _scnMeshes.push(_buildIM(scene,_scnGeos.trunk,_scnMats.trunk,trunkM,null));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.leaf,_scnMats.leaf,leafM,leafC));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.rock,_scnMats.rock,rockM,rockC));
+  // ── TRAWA (gesta, blisko gracza) ──
+  const grassRad=isMobile?38:64,grassCell=2.4;
+  const grassColors=[0x3a7a2a,0x4a8a30,0x2d6a22,0x55953a];
+  const gr2=grassRad*grassRad;
+  const gMinX=Math.floor((cx-grassRad)/grassCell),gMaxX=Math.floor((cx+grassRad)/grassCell);
+  const gMinZ=Math.floor((cz-grassRad)/grassCell),gMaxZ=Math.floor((cz+grassRad)/grassCell);
+  for(let gx=gMinX;gx<=gMaxX;gx++)for(let gz=gMinZ;gz<=gMaxZ;gz++){
+    const rng2=makeRNG(hashXZ(gx,gz)^0x5151);
+    const wx=gx*grassCell+rng2()*grassCell,wz=gz*grassCell+rng2()*grassCell;
+    const ddx=wx-cx,ddz=wz-cz;if(ddx*ddx+ddz*ddz>gr2)continue;
+    if(Math.abs(wx)>WORLD_HALF||Math.abs(wz)>WORLD_HALF)continue;
+    const h=terrainHeight(wx,wz);if(h<SEA_LEVEL+0.5)continue;
+    const biome=dominantBiome(wx,wz);
+    let dens=0,base=0x3a7a2a;
+    if(biome==='forest'){dens=0.7;}
+    else if(biome==='meadow'){dens=0.85;}
+    else if(biome==='jungle'){dens=0.8;base=0x2a6a18;}
+    else if(biome==='savanna'){dens=0.6;base=0x9a8a40;}
+    else if(biome==='mountains'){dens=0.25;base=0x5a7a3a;}
+    if(dens===0||rng2()>dens)continue;
+    const gs=0.7+rng2()*0.7;
+    dummy.position.set(wx,h+0.25*gs,wz);
+    dummy.rotation.set((rng2()-0.5)*0.3,rng2()*Math.PI*2,(rng2()-0.5)*0.3);
+    dummy.scale.set(gs,gs*(0.8+rng2()*0.6),gs);dummy.updateMatrix();
+    grassM.push(dummy.matrix.clone());
+    grassC.push(new THREE.Color(biome==='savanna'?base:grassColors[(rng2()*grassColors.length)|0]));
+  }
+  const grassIM=_buildIM(scene,_scnGeos.grass,_scnMats.grass,grassM,grassC);
+  if(grassIM)grassIM.castShadow=false;
+  _scnMeshes.push(grassIM);
+  _imTrunk=_buildIM(scene,_scnGeos.trunk,_scnMats.trunk,trunkM,null);_scnMeshes.push(_imTrunk);
+  _imLeaf=_buildIM(scene,_scnGeos.leaf,_scnMats.leaf,leafM,leafC);_scnMeshes.push(_imLeaf);
+  _imRock=_buildIM(scene,_scnGeos.rock,_scnMats.rock,rockM,rockC);_scnMeshes.push(_imRock);
   _scnMeshes.push(_buildIM(scene,_scnGeos.cactus,_scnMats.cactus,cactM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.sTrunk,_scnMats.sTrunk,sTrunkM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.sLeaf,_scnMats.sLeaf,sConeM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.spike,_scnMats.spike,spikeM,null));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.jTrunk,_scnMats.jTrunk,jTrunkM,null));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.jLeaf,_scnMats.jLeaf,jLeafM,null));
+  _imJTrunk=_buildIM(scene,_scnGeos.jTrunk,_scnMats.jTrunk,jTrunkM,null);_scnMeshes.push(_imJTrunk);
+  _imJLeaf=_buildIM(scene,_scnGeos.jLeaf,_scnMats.jLeaf,jLeafM,null);_scnMeshes.push(_imJLeaf);
   _scnMeshes.push(_buildIM(scene,_scnGeos.acacia,_scnMats.acacia,acaciaM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.aCrown,_scnMats.aCrown,aCrownM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.mPine,_scnMats.mPine,mPineM,null));
@@ -1758,15 +1981,16 @@ function buildWater(scene){
   const mat=new THREE.MeshStandardMaterial({color:0x1a3a4a,transparent:true,opacity:0.65,roughness:0.3,metalness:0.4});
   const mesh=new THREE.Mesh(geo,mat);mesh.position.y=SEA_LEVEL;scene.add(mesh);
 }
-let _ambient=null;
+let _ambient=null,_hemi=null;
 function setupLighting(scene){
-  _ambient=new THREE.AmbientLight(0x4a5568,0.6);scene.add(_ambient);
-  const sun=new THREE.DirectionalLight(0xffeedd,1.0);sun.position.set(50,80,30);sun.castShadow=true;
+  _ambient=new THREE.AmbientLight(0x4a5568,0.45);scene.add(_ambient);
+  _hemi=new THREE.HemisphereLight(0xaaccff,0x4a5a2a,0.5);scene.add(_hemi);
+  const sun=new THREE.DirectionalLight(0xfff0dd,1.1);sun.position.set(50,80,30);sun.castShadow=true;
   sun.shadow.mapSize.set(isMobile?1024:2048,isMobile?1024:2048);
   sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;
   sun.shadow.camera.near=0.5;sun.shadow.camera.far=240;sun.shadow.bias=-0.001;scene.add(sun);
   scene.add(sun.target);_sun=sun;
-  const fill=new THREE.DirectionalLight(0x8899bb,0.3);fill.position.set(-30,40,-20);scene.add(fill);
+  const fill=new THREE.DirectionalLight(0x8899bb,0.25);fill.position.set(-30,40,-20);scene.add(fill);
 }
 let _stars=null;
 let _dustParticles=null;
@@ -1818,6 +2042,7 @@ function updateDayNight(dt){
       Math.sin(ang)*80+20,_camera.position.z+30);
       _sun.target.position.copy(_camera.position);_sun.target.updateMatrixWorld();}}
   if(_ambient)_ambient.intensity=ambInt;
+  if(_hemi)_hemi.intensity=ambInt*0.8;
   if(_scene){_scene.background.setRGB(skyR,skyG,skyB);
     _scene.fog.color.setRGB(skyR,skyG,skyB);}
   if(_stars){
@@ -1831,50 +2056,112 @@ function updateDayNight(dt){
 
 // ═══ STRUKTURY ══════════════════════════════════════
 let _portal=null;
+// kolizje budynkow - swiatowe AABB (minX,maxX,minZ,maxZ)
+const _wallBoxes=[];
 function matStone(c,rough){return new THREE.MeshStandardMaterial({color:c,roughness:rough||0.9,flatShading:true});}
 function addBox(parent,w,h,d,x,y,z,mat){
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
   m.position.set(x,y,z);m.castShadow=!isMobile;m.receiveShadow=true;parent.add(m);return m;
 }
-function buildHouse(parent,hx,hz,rng){
+// dodaj sciane z kolizja (wsp. lokalne wzgledem srodka domu hx,hz)
+function addWall(g,hx,hz,lx,lz,w,h,d,mat){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(lx,h/2,lz);m.castShadow=!isMobile;m.receiveShadow=true;g.add(m);
+  _wallBoxes.push({minX:hx+lx-w/2,maxX:hx+lx+w/2,minZ:hz+lz-d/2,maxZ:hz+lz+d/2});
+  return m;
+}
+// dom z wnetrzem, drzwiami i skrzynia. doorDir: 'n','s','e','w'
+function buildHouse(scene,hx,hz,rng,withChest,doorDir){
   const baseH=terrainHeight(hx,hz);
-  const g=new THREE.Group();g.position.set(hx,baseH,hz);g.rotation.y=rng()*Math.PI*2;
-  const w=3.4+rng()*1.6,d=3.0+rng()*1.4,wallH=2.4+rng()*0.8;
-  const wallCol=[0xb89a6a,0xc8a878,0xa88858,0x9a8a6a][(rng()*4)|0];
+  const g=new THREE.Group();g.position.set(hx,baseH,hz);scene.add(g);
+  const w=5.5+rng()*1.5,d=5.0+rng()*1.5,wallH=3.0,th=0.25;
+  const hw=w/2,hd=d/2;
+  const wallCol=[0xc8b088,0xd8c098,0xb8a078,0xc0a880][(rng()*4)|0];
   const wallMat=matStone(wallCol,0.85);
-  addBox(g,w,wallH,d,0,wallH/2,0,wallMat);
-  const roofCol=[0x7a3a28,0x6a3020,0x8a4a30][(rng()*3)|0];
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.82,1.8+rng()*0.6,4),matStone(roofCol,0.8));
-  roof.position.y=wallH+0.9;roof.rotation.y=Math.PI/4;roof.castShadow=!isMobile;g.add(roof);
-  addBox(g,0.9,1.5,0.12,0,0.75,d/2,matStone(0x3a2818,0.9));
-  addBox(g,0.7,0.7,0.12,w*0.28,wallH*0.6,d/2,matStone(0x2a3a4a,0.6));
+  const beamMat=matStone(0x5a4030,0.9);
+  // podloga
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(w,0.2,d),matStone(0x6a4a30,0.9));
+  floor.position.y=0.1;floor.receiveShadow=true;g.add(floor);
+  const doorGap=1.6;
+  // sciany - door gap zostawiamy na wybranej scianie
+  // tyl (-z)
+  if(doorDir!=='s')addWall(g,hx,hz,0,-hd,w,wallH,th,wallMat);
+  else{addWall(g,hx,hz,-(hw+doorGap/2)/2-0.4,-hd,hw-doorGap/2,wallH,th,wallMat);
+       addWall(g,hx,hz,(hw+doorGap/2)/2+0.4,-hd,hw-doorGap/2,wallH,th,wallMat);}
+  // przod (+z)
+  if(doorDir!=='n')addWall(g,hx,hz,0,hd,w,wallH,th,wallMat);
+  else{addWall(g,hx,hz,-(hw+doorGap/2)/2-0.4,hd,hw-doorGap/2,wallH,th,wallMat);
+       addWall(g,hx,hz,(hw+doorGap/2)/2+0.4,hd,hw-doorGap/2,wallH,th,wallMat);}
+  // lewa (-x)
+  if(doorDir!=='w')addWall(g,hx,hz,-hw,0,th,wallH,d,wallMat);
+  else{addWall(g,hx,hz,-hw,-(hd+doorGap/2)/2-0.4,th,wallH,hd-doorGap/2,wallMat);
+       addWall(g,hx,hz,-hw,(hd+doorGap/2)/2+0.4,th,wallH,hd-doorGap/2,wallMat);}
+  // prawa (+x)
+  if(doorDir!=='e')addWall(g,hx,hz,hw,0,th,wallH,d,wallMat);
+  else{addWall(g,hx,hz,hw,-(hd+doorGap/2)/2-0.4,th,wallH,hd-doorGap/2,wallMat);
+       addWall(g,hx,hz,hw,(hd+doorGap/2)/2+0.4,th,wallH,hd-doorGap/2,wallMat);}
+  // belki narozne
+  for(const[bx,bz]of[[-hw,-hd],[hw,-hd],[-hw,hd],[hw,hd]])
+    addBox(g,0.3,wallH,0.3,bx,wallH/2,bz,beamMat);
+  // dach piramidowy
+  const roofCol=[0x8a3a28,0x7a3020,0x6a4030][(rng()*3)|0];
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.78,2.0,4),matStone(roofCol,0.8));
+  roof.position.y=wallH+1.0;roof.rotation.y=Math.PI/4;roof.castShadow=!isMobile;g.add(roof);
+  // okno
+  addBox(g,0.8,0.8,0.1,doorDir==='n'?hw*0.5:0,wallH*0.55,doorDir==='s'?hd-0.05:-hd+0.05,
+    new THREE.MeshStandardMaterial({color:0x88bbdd,roughness:0.2,metalness:0.3,emissive:0x223344,emissiveIntensity:0.3}));
+  // skrzynia w srodku (przy tylnej scianie)
+  if(withChest){
+    let chx=hx,chz=hz;
+    if(doorDir==='n')chz=hz-hd+0.8; else if(doorDir==='s')chz=hz+hd-0.8;
+    else if(doorDir==='w')chx=hx+hw-0.8; else chx=hx-hw+0.8;
+    spawnChest(scene,chx,chz,rng()<0.4?1:0);
+  }
+  // lampka w srodku
+  const lamp=new THREE.PointLight(0xffcc77,0.8,8);lamp.position.set(hx,baseH+2.2,hz);scene.add(lamp);
   return g;
 }
 function buildVillage(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0xABCDEF);
   const baseH=terrainHeight(cx,cz);
-  // ogrodzenie wioski
-  const fenceR=42,fenceSegs=28;
-  const fenceMat=matStone(0x6a5030,0.9);
-  for(let i=0;i<fenceSegs;i++){
-    const a=(i/fenceSegs)*Math.PI*2;
-    const a2=((i+1)/fenceSegs)*Math.PI*2;
-    if(Math.abs(a-Math.PI/2)<0.3)continue; // brama
+  // ── solidny plot dookola wioski z brama od poludnia ──
+  const fenceR=46;
+  const fenceMat=matStone(0x7a5a30,0.9);
+  const N=40;
+  for(let i=0;i<N;i++){
+    const a=(i/N)*Math.PI*2;
+    // brama na poludniu (a ~ PI/2)
+    if(Math.abs(((a-Math.PI/2+Math.PI)%(Math.PI*2))-Math.PI)<0.28)continue;
     const fx=cx+Math.cos(a)*fenceR,fz=cz+Math.sin(a)*fenceR;
+    const fh=terrainHeight(fx,fz);
+    // slupek
+    addBox(grp,0.28,2.4,0.28,fx-cx,fh+1.2-baseH,fz-cz,fenceMat);
+    // poprzeczka do nastepnego slupka
+    const a2=((i+1)/N)*Math.PI*2;
     const fx2=cx+Math.cos(a2)*fenceR,fz2=cz+Math.sin(a2)*fenceR;
-    const fh=terrainHeight((fx+fx2)/2,(fz+fz2)/2);
+    const mx=(fx+fx2)/2,mz=(fz+fz2)/2,mh=terrainHeight(mx,mz);
     const len=Math.sqrt((fx2-fx)**2+(fz2-fz)**2);
-    const post=addBox(grp,0.15,2.0,len,
-      (fx+fx2)/2-cx,fh+1.0-baseH,(fz+fz2)/2-cz,fenceMat);
-    post.rotation.y=Math.atan2(fx2-fx,fz2-fz);
+    const rail=addBox(grp,0.1,0.9,len,mx-cx,mh+1.4-baseH,mz-cz,fenceMat);
+    rail.rotation.y=Math.atan2(fx2-fx,fz2-fz);
+    // kolizja plotu
+    _wallBoxes.push({minX:fx-0.4,maxX:fx+0.4,minZ:fz-0.4,maxZ:fz+0.4});
   }
-  // 12 domkow
-  for(let i=0;i<12;i++){
-    const ang=(i/12)*Math.PI*2+rng()*0.3;
-    const rad=10+rng()*20;
+  // brama - dwa duze slupki
+  addBox(grp,0.5,3.2,0.5,-2.2,1.6,fenceR,fenceMat);
+  addBox(grp,0.5,3.2,0.5,2.2,1.6,fenceR,fenceMat);
+  addBox(grp,5,0.6,0.5,0,3.2,fenceR,fenceMat);
+  // ── domki (16, w pierscieniu) z kolejnymi skrzyniami ──
+  const houseCount=16;
+  for(let i=0;i<houseCount;i++){
+    const ang=(i/houseCount)*Math.PI*2+0.2;
+    const rad=14+(i%3)*8+rng()*4;
     const hx=cx+Math.cos(ang)*rad,hz=cz+Math.sin(ang)*rad;
-    grp.add(buildHouse(grp,hx,hz,rng));
+    if(terrainHeight(hx,hz)<SEA_LEVEL+0.5)continue;
+    // drzwi skierowane do centrum
+    const dx=cx-hx,dz=cz-hz;
+    const doorDir=Math.abs(dx)>Math.abs(dz)?(dx>0?'e':'w'):(dz>0?'s':'n');
+    buildHouse(scene,hx,hz,rng,true,doorDir);
   }
   // studnia
   const well=new THREE.Group();well.position.set(cx,baseH,cz);grp.add(well);
@@ -1888,19 +2175,20 @@ function buildVillage(scene,cx,cz){
   addBox(well,0.2,2.0,0.2,1.0,1.5,0,matStone(0x5a4030,0.9));
   const wroof=new THREE.Mesh(new THREE.ConeGeometry(1.5,0.9,4),matStone(0x6a3020,0.8));
   wroof.position.y=2.9;wroof.rotation.y=Math.PI/4;well.add(wroof);
-  // ognisko
+  // ognisko centralne (rynek)
   const fire=new THREE.Mesh(new THREE.ConeGeometry(0.5,0.9,6),new THREE.MeshBasicMaterial({color:0xff8822}));
-  fire.position.set(cx+4,baseH+0.5,cz+4);grp.add(fire);
-  const fl=new THREE.PointLight(0xff7722,1.6,14);fl.position.set(cx+4,baseH+1.2,cz+4);grp.add(fl);
-  // kuźnia (wiekszy budynek)
-  const smithH=terrainHeight(cx-8,cz-8);
-  const smith=new THREE.Group();smith.position.set(cx-8,smithH,cz-8);grp.add(smith);
-  addBox(smith,5,3.5,4,0,1.75,0,matStone(0x8a7a5a,0.85));
-  const sRoof=new THREE.Mesh(new THREE.ConeGeometry(4.5,2,4),matStone(0x5a2a18,0.8));
-  sRoof.position.y=4.5;sRoof.rotation.y=Math.PI/4;smith.add(sRoof);
-  // kowadlo
-  addBox(smith,0.6,0.3,0.4,1.5,0.5,1.8,matStone(0x444444,0.5));
-  addBox(smith,0.3,0.5,0.3,1.5,0.15,1.8,matStone(0x555555,0.6));
+  fire.position.set(cx+5,baseH+0.5,cz+5);grp.add(fire);
+  const fl=new THREE.PointLight(0xff7722,1.8,16);fl.position.set(cx+5,baseH+1.2,cz+5);grp.add(fl);
+  // kram targowy
+  for(let i=0;i<3;i++){
+    const sx=cx-6+i*3,sz=cz+8;
+    addBox(grp,2.2,0.2,1.4,sx-cx,baseH+1.0-baseH,sz-cz,matStone(0x8a6a40,0.9));
+    addBox(grp,0.15,1.0,0.15,sx-cx-1,baseH+0.5-baseH,sz-cz,matStone(0x6a4a30,0.9));
+    addBox(grp,0.15,1.0,0.15,sx-cx+1,baseH+0.5-baseH,sz-cz,matStone(0x6a4a30,0.9));
+    const awn=addBox(grp,2.4,0.1,1.6,sx-cx,baseH+1.6-baseH,sz-cz,matStone([0xcc4444,0x4488cc,0x44aa66][i],0.8));
+  }
+  // duza kuznia (enterable)
+  buildHouse(scene,cx-12,cz-12,rng,true,'e');
   buildBeacon(scene,cx,cz,0xffcc66);
 }
 function buildCastle(scene,cx,cz){
@@ -2065,6 +2353,7 @@ function buildBeacon(scene,cx,cz,color){
   const m=new THREE.Mesh(geo,mat);m.position.set(cx,baseH+80,cz);scene.add(m);
 }
 function buildStructures(scene){
+  _wallBoxes.length=0;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
   buildCastle(scene,LANDMARKS.castle.x,LANDMARKS.castle.z);
   buildPortal(scene,LANDMARKS.portal.x,LANDMARKS.portal.z);
@@ -2158,7 +2447,20 @@ function buildNPCs(scene,vx,vz){
   spawnNPC(scene,'villager','Mieszkanka','Zwykla mieszkanka wioski.',
     vx-3,vz-6,0x8a5a7a,0xe8c0a0,'·','#aaaaaa');
   spawnNPC(scene,'villager','Straznik','Pilnuje bramy wioski.',
-    vx,vz+40,0x4a4a5a,0xd0a080,'⚔️','#88aacc');
+    vx,vz+44,0x4a4a5a,0xd0a080,'⚔️','#88aacc');
+  // wiecej mieszkancow chodzacych po wiosce
+  const names=['Stary Jakub','Mloda Ania','Rybak Piotr','Piekarz Hans','Dziewczyna Lena',
+    'Chlopiec Tom','Babcia Greta','Wedrowiec','Pasterz Ivo','Tkaczka Mira'];
+  const vcols=[0x6a7a9a,0x9a6a8a,0x5a8a6a,0xaa8a5a,0x8a7aaa,0x7a9a8a,0x9a9a6a,0x6a6a8a,0x8a6a5a,0xaa7a9a];
+  for(let i=0;i<names.length;i++){
+    const a=(i/names.length)*Math.PI*2+0.5;
+    const r=8+((i*7)%18);
+    spawnNPC(scene,'villager',names[i],'Mieszkaniec wioski. Lubi pogawedki.',
+      vx+Math.cos(a)*r,vz+Math.sin(a)*r,vcols[i],i%2?0xe8c0a0:0xe0b890,'·','#cccccc');
+  }
+  // straznik przy bramie
+  spawnNPC(scene,'villager','Straznik Bramy','Strzeze wejscia do wioski.',
+    vx+2.5,vz+44,0x4a4a5a,0xd0a080,'🛡️','#88aacc');
 }
 function updateNPCs(dt,now,camera){
   for(const n of npcs){
@@ -2499,6 +2801,8 @@ document.getElementById('craft-btn').addEventListener('click',()=>{
 document.getElementById('craft-close').addEventListener('click',()=>{
   craftOpen=false;document.getElementById('craft-panel').classList.remove('open');
 });
+document.getElementById('map-btn').addEventListener('click',toggleFullMap);
+document.getElementById('fm-close').addEventListener('click',toggleFullMap);
 function renderCraftPanel(){
   const list=document.getElementById('craft-list');if(!list)return;list.innerHTML='';
   RECIPES.forEach(r=>{
@@ -2571,53 +2875,126 @@ function meleeSwing(){
   const lookX=px+dir.x*2.5,lookZ=pz+dir.z*2.5;
   const hasPickaxe=ITEMS.some(it=>it&&it.id==='wooden_pickaxe');
   for(const rk of _rockPositions){
+    if(rk.destroyed)continue;
     const rdx=lookX-rk.x,rdz=lookZ-rk.z;
     if(rdx*rdx+rdz*rdz<2.5*2.5){
-      const res=RESOURCES.find(r=>r.id==='stone');
-      if(res&&addToInventory({...res})){
-        toast('+1 Kamien');
-        const wp=new THREE.Vector3(rk.x,terrainHeight(rk.x,rk.z)+0.5,rk.z);
-        floatNumber(wp,'+1 🪨','#aaaaaa');
+      rk.hits=(rk.hits||0)+1;
+      const need=hasPickaxe?2:3;
+      shakeScenery(rk.x,rk.z,0.4);
+      spawnHitParticles(rk.x,rk.h+0.4,rk.z,0x999999);
+      if(rk.hits<need){
+        const wp=new THREE.Vector3(rk.x,rk.h+0.7,rk.z);
+        floatNumber(wp,'💥','#cccccc');
+        return;
       }
+      // skala pęka — daj materialy
+      rk.destroyed=true;rk.hits=0;
+      hideInstance(_imRock,rk.rockIdx);
+      const res=RESOURCES.find(r=>r.id==='stone');
+      const stoneN=2+Math.floor(Math.random()*2);
+      for(let k=0;k<stoneN;k++)if(res)addToInventory({...res});
+      const wp=new THREE.Vector3(rk.x,rk.h+0.7,rk.z);
+      floatNumber(wp,'+'+stoneN+' 🪨','#aaaaaa');
       if(hasPickaxe){
         const biome=dominantBiome(rk.x,rk.z);
         let oreId=null;
-        if(biome==='mountains'&&Math.random()<0.3)oreId=['iron_ore','copper','silver','gold_ore','mithril','diamond'][Math.floor(Math.random()*6)];
-        else if(biome==='volcanic'&&Math.random()<0.25)oreId=['iron_ore','coal','fire_dust'][Math.floor(Math.random()*3)];
-        else if(biome==='desert'&&Math.random()<0.2)oreId=['sand','gold_ore','copper'][Math.floor(Math.random()*3)];
-        else if(biome==='arctic'&&Math.random()<0.2)oreId=['silver','diamond','mithril'][Math.floor(Math.random()*3)];
-        else if(Math.random()<0.15)oreId=['iron_ore','copper','coal'][Math.floor(Math.random()*3)];
+        if(biome==='mountains'&&Math.random()<0.5)oreId=['iron_ore','copper','silver','gold_ore','mithril','diamond'][Math.floor(Math.random()*6)];
+        else if(biome==='volcanic'&&Math.random()<0.4)oreId=['iron_ore','coal','fire_dust'][Math.floor(Math.random()*3)];
+        else if(biome==='desert'&&Math.random()<0.35)oreId=['sand','gold_ore','copper'][Math.floor(Math.random()*3)];
+        else if(biome==='arctic'&&Math.random()<0.35)oreId=['silver','diamond','mithril'][Math.floor(Math.random()*3)];
+        else if(Math.random()<0.25)oreId=['iron_ore','copper','coal'][Math.floor(Math.random()*3)];
         if(oreId){const ore=RESOURCES.find(r=>r.id===oreId);
           if(ore&&addToInventory({...ore})){
-            toast('+1 '+ore.name);
-            const op=new THREE.Vector3(rk.x,terrainHeight(rk.x,rk.z)+0.8,rk.z);
+            const op=new THREE.Vector3(rk.x,rk.h+1.0,rk.z);
             floatNumber(op,'+1 '+ore.icon,'#ffcc44');
           }
         }
       }
+      // respawn po 30s
+      setTimeout(()=>{rk.destroyed=false;},30000);
       return;
     }
   }
   const hasStone=ITEMS.some(it=>it&&it.id==='stone');
   const hasAxe=ITEMS.some(it=>it&&it.id==='wooden_axe');
   for(const tr of _treePositions){
+    if(tr.destroyed)continue;
     const tdx=lookX-tr.x,tdz=lookZ-tr.z;
     if(tdx*tdx+tdz*tdz<3*3){
       if(!hasStone&&!hasAxe){toast('Potrzebujesz kamienia lub topora');return;}
-      const res=RESOURCES.find(r=>r.id==='wood');
-      if(res&&addToInventory({...res})){
-        toast('+1 Drewno');
-        const wp=new THREE.Vector3(tr.x,terrainHeight(tr.x,tr.z)+2,tr.z);
-        floatNumber(wp,'+1 🪵','#8a6a3a');
-        if(Math.random()<0.15){
-          const herb=RESOURCES.find(r=>r.id==='herb');
-          if(herb)addToInventory({...herb});
-        }
+      tr.hits=(tr.hits||0)+1;
+      const need=hasAxe?2:4;
+      shakeScenery(tr.x,tr.z,0.5);
+      spawnHitParticles(tr.x,tr.h+2,tr.z,0x6a8a3a);
+      if(tr.hits<need){
+        const wp=new THREE.Vector3(tr.x,tr.h+2.5,tr.z);
+        floatNumber(wp,'🪓','#8a6a3a');
+        return;
       }
+      // drzewo pada
+      tr.destroyed=true;tr.hits=0;
+      spawnFallingTree(tr);
+      const im=tr.kind==='jungle'?_imJTrunk:_imTrunk;
+      const imL=tr.kind==='jungle'?_imJLeaf:_imLeaf;
+      hideInstance(im,tr.trunkIdx);
+      for(let k=0;k<tr.leafCount;k++)hideInstance(imL,tr.leafIdx+k);
+      const res=RESOURCES.find(r=>r.id==='wood');
+      const woodN=3+Math.floor(Math.random()*3);
+      for(let k=0;k<woodN;k++)if(res)addToInventory({...res});
+      const wp=new THREE.Vector3(tr.x,tr.h+2.5,tr.z);
+      floatNumber(wp,'+'+woodN+' 🪵','#8a6a3a');
+      if(Math.random()<0.4){const herb=RESOURCES.find(r=>r.id==='herb');if(herb){addToInventory({...herb});}}
+      setTimeout(()=>{tr.destroyed=false;},45000);
       return;
     }
   }
 }
+// efekt drzewa padajacego
+const _fallingTrees=[];
+function spawnFallingTree(tr){
+  if(!_scene)return;
+  const g=new THREE.Group();
+  const sc=tr.sc||1;
+  const trunkCol=tr.kind==='jungle'?0x3a2a18:0x4a3728;
+  const leafCol=tr.kind==='jungle'?0x1a4a12:0x2d5a1e;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.18*sc,0.24*sc,2.6*sc,6),
+    new THREE.MeshStandardMaterial({color:trunkCol,roughness:0.9,flatShading:true}));
+  trunk.position.y=1.3*sc;g.add(trunk);
+  const leaf=new THREE.Mesh(new THREE.ConeGeometry(1.3*sc,2.2*sc,6),
+    new THREE.MeshStandardMaterial({color:leafCol,roughness:0.85,flatShading:true}));
+  leaf.position.y=3.0*sc;g.add(leaf);
+  g.position.set(tr.x,tr.h,tr.z);
+  _scene.add(g);
+  const fallDir=Math.random()*Math.PI*2;
+  _fallingTrees.push({mesh:g,angle:0,maxAngle:Math.PI/2,dir:fallDir,t:0});
+}
+function updateFallingTrees(dt){
+  for(let i=_fallingTrees.length-1;i>=0;i--){
+    const f=_fallingTrees[i];
+    f.t+=dt;
+    if(f.angle<f.maxAngle){
+      f.angle=Math.min(f.maxAngle,f.angle+dt*2.5);
+      f.mesh.rotation.set(Math.cos(f.dir)*f.angle,0,Math.sin(f.dir)*f.angle);
+    }
+    if(f.t>2.5){
+      f.mesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material)c.material.dispose();});
+      _scene.remove(f.mesh);_fallingTrees.splice(i,1);
+    }
+  }
+}
+// drobne czasteczki przy uderzeniu
+function spawnHitParticles(x,y,z,color){
+  if(!_scene)return;
+  for(let i=0;i<5;i++){
+    const g=new THREE.BoxGeometry(0.08,0.08,0.08);
+    const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:1});
+    const sh=new THREE.Mesh(g,m);sh.position.set(x,y,z);
+    const v=new THREE.Vector3((Math.random()-0.5)*3,Math.random()*2+1,(Math.random()-0.5)*3);
+    _scene.add(sh);shards.push({mesh:sh,mat:m,vel:v,life:0.6});
+  }
+}
+// chwilowe drgniecie - wizualny feedback (placeholder, scenery to instancing)
+function shakeScenery(x,z,amt){/* feedback realizowany przez czasteczki */}
 function spawnProjectile(scene,camera,sp){
   const geo=new THREE.SphereGeometry(sp.size,12,12);
   const mat=new THREE.MeshBasicMaterial({color:sp.color});
@@ -2647,9 +3024,19 @@ function attemptCast(now){
   }
   if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
   player.mana-=sp.mana;player.lastCast=now;
+  if(sp.kind==='summon'){castSummon(sp);return;}
   if(sp.kind==='buff'){castBuff(sp);return;}
   if(sp.kind==='util'){castUtil(sp);return;}
   spawnProjectile(_scene,_camera,sp);
+}
+function castSummon(sp){
+  if(sp.summon==='army'){
+    let n=0;for(let i=0;i<3;i++){if(spawnShadowMinion('skeleton',sp.sumHp,sp.sumDmg))n++;}
+    toast(n>0?'Armia Umarlych przyzwana!':'Limit cieni osiagniety');
+    return;
+  }
+  if(spawnShadowMinion(sp.summon,sp.sumHp,sp.sumDmg))toast(sp.name+'!');
+  else toast('Limit cieni osiagniety (max '+MAX_SHADOWS+')');
 }
 function castBuff(sp){
   const now=performance.now();
@@ -2664,6 +3051,12 @@ function castBuff(sp){
   else if(sp.id==='regeneracja'){statusEffects.push({type:'regen',until:now+10000,value:10});toast('+10 HP/s');}
   else if(sp.id==='boski_dotyk'){player.hp=player.maxHp;player.mana=player.maxMana;toast('Boski Dotyk!');}
   else if(sp.id==='niewidzialnosc'){toast('Niewidzialnosc 6s');}
+  // ── Nekromanta ──
+  else if(sp.id==='klatwa_smierci'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<15)m.dmgMul=0.6;});bosses.forEach(b=>{if(b.mesh.position.distanceTo(_camera.position)<20)b.dmgMul=0.6;});toast('Klatwa Smierci!');}
+  else if(sp.id==='kostna_tarcza'){shieldHP+=150;toast('Kostna Tarcza: 150 dmg');}
+  else if(sp.id==='mroczne_leczenie'){player.hp=Math.min(player.maxHp,player.hp+120);toast('+120 HP (Mrok)');}
+  else if(sp.id==='aura_rozkladu'){statusEffects.push({type:'decayAura',until:now+10000});toast('Aura Rozkladu!');}
+  else if(sp.id==='wskrzeszenie'){hasRevive=true;toast('Wskrzeszenie aktywne');}
   else toast(sp.name+': '+sp.fx);
 }
 function castUtil(sp){
@@ -2722,6 +3115,8 @@ function updateProjectiles(dt){
         damageMob(j,p.dmg);spawnImpact(_scene,p.mesh.position,p.color);
         if(p.fx&&p.fx.includes('AOE'))doAOE(p.mesh.position,6,p.dmg*0.5,p.color);
         if(p.spellId==='plomien_duszy')player.hp=Math.min(player.maxHp,player.hp+p.dmg*0.5);
+        if(p.spellId==='wyssanie_zycia')player.hp=Math.min(player.maxHp,player.hp+p.dmg);
+        if(p.spellId==='eksplozja_dusz')player.hp=Math.min(player.maxHp,player.hp+p.dmg*0.4);
         removeProjectile(i);hit=true;break;
       }
     }
@@ -2766,6 +3161,15 @@ function updateStatusEffects(dt){
     const e=statusEffects[i];
     if(now>e.until){statusEffects.splice(i,1);continue;}
     if(e.type==='regen')player.hp=Math.min(player.maxHp,player.hp+e.value*dt);
+    if(e.type==='decayAura'&&_camera){
+      e.tick=(e.tick||0)+dt;
+      if(e.tick>=0.5){e.tick=0;
+        for(let j=mobs.length-1;j>=0;j--){
+          if(mobs[j].mesh.position.distanceTo(_camera.position)<10)damageMob(j,8);
+        }
+        for(const b of bosses){if(b.mesh.position.distanceTo(_camera.position)<10)damageBoss(bosses.indexOf(b),8);}
+      }
+    }
   }
 }
 
@@ -3331,6 +3735,7 @@ function setupDesktopInput(){
   document.addEventListener('keydown',e=>{
     keys[e.code]=true;
     if(e.code==='ShiftLeft')sprinting=true;
+    if(e.code==='Space'&&_camera){e.preventDefault();doJump(_camera);}
     if(e.code>='Digit1'&&e.code<='Digit9')selectSpellByPos(parseInt(e.code.replace('Digit',''))-1);
     if(e.code==='KeyE'){
       if(dialogOpen){closeDialog();}
@@ -3344,6 +3749,7 @@ function setupDesktopInput(){
     if(e.code==='KeyC'){e.preventDefault();
       craftOpen=!craftOpen;document.getElementById('craft-panel').classList.toggle('open',craftOpen);
       if(craftOpen)renderCraftPanel();}
+    if(e.code==='KeyM'){e.preventDefault();toggleFullMap();}
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
   document.addEventListener('click',()=>{if(!document.pointerLockElement)document.body.requestPointerLock();});
@@ -3411,7 +3817,7 @@ function setupMobileInput(){
   const endLook=e=>{for(const t of e.changedTouches){if(t.identifier===lookState.id){lookState.active=false;lookState.id=null;}}};
   document.addEventListener('touchend',endLook,{passive:true});
   document.addEventListener('touchcancel',endLook,{passive:true});
-  jumpBtn.addEventListener('touchstart',e=>{e.stopPropagation();if(onGround){velY=JUMP_VEL;onGround=false;}},{passive:false});
+  jumpBtn.addEventListener('touchstart',e=>{e.stopPropagation();if(_camera)doJump(_camera);},{passive:false});
   castBtn.addEventListener('touchstart',e=>{e.stopPropagation();
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
@@ -3431,7 +3837,7 @@ function setupMobileInput(){
 
 // ═══ PLAYER MOVEMENT ════════════════════════════════
 function updatePlayer(dt,camera){
-  if(playerDead||dialogOpen||charOpen||craftOpen)return;
+  if(playerDead||dialogOpen||charOpen||craftOpen||fullmapOpen)return;
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
   else{
@@ -3439,7 +3845,6 @@ function updatePlayer(dt,camera){
     if(keys['KeyS']||keys['ArrowDown'])mz+=1;
     if(keys['KeyA']||keys['ArrowLeft'])mx-=1;
     if(keys['KeyD']||keys['ArrowRight'])mx+=1;
-    if(keys['Space']&&onGround){velY=JUMP_VEL;onGround=false;}
   }
   const len=Math.sqrt(mx*mx+mz*mz);if(len>0.01){mx/=len;mz/=len;}
   const speedBuff=performance.now()<buffSpeedUntil?1.3:1;
@@ -3452,11 +3857,24 @@ function updatePlayer(dt,camera){
   px=THREE.MathUtils.clamp(px,-WORLD_HALF,WORLD_HALF);pz=THREE.MathUtils.clamp(pz,-WORLD_HALF,WORLD_HALF);
   const PLAYER_R=0.35;
   for(const t of _treePositions){
+    if(t.destroyed)continue;
     const tdx=px-t.x,tdz=pz-t.z;const td=Math.sqrt(tdx*tdx+tdz*tdz);
     const minD=PLAYER_R+t.r;
     if(td<minD&&td>0.01){const push=(minD-td)/td;px+=tdx*push;pz+=tdz*push;}
   }
-  if(checkClimb(camera,dt)){velY=3.5;}
+  // kolizja ze scianami budynkow (AABB)
+  for(const b of _wallBoxes){
+    if(px>b.minX-PLAYER_R&&px<b.maxX+PLAYER_R&&pz>b.minZ-PLAYER_R&&pz<b.maxZ+PLAYER_R){
+      const penL=px-(b.minX-PLAYER_R),penR=(b.maxX+PLAYER_R)-px;
+      const penD=pz-(b.minZ-PLAYER_R),penU=(b.maxZ+PLAYER_R)-pz;
+      const minPen=Math.min(penL,penR,penD,penU);
+      if(minPen===penL)px=b.minX-PLAYER_R;
+      else if(minPen===penR)px=b.maxX+PLAYER_R;
+      else if(minPen===penD)pz=b.minZ-PLAYER_R;
+      else pz=b.maxZ+PLAYER_R;
+    }
+  }
+  if(checkClimb(camera,dt)){if(velY<0)velY*=0.3;velY-=GRAVITY*0.25*dt;}
   else{velY-=GRAVITY*dt;}
   let py=camera.position.y+velY*dt;
   const groundH=terrainHeight(px,pz)+EYE_H;
@@ -3531,6 +3949,52 @@ function updateMinimap(camera){
   }
   ctx.fillStyle='#33ff66';ctx.beginPath();ctx.arc(50,50,3,0,Math.PI*2);ctx.fill();
 }
+// ── PELNA MAPA SWIATA ──
+let _fullmapDrawn=false,fullmapOpen=false;
+const BIOME_MAP_COL={forest:'#2d6a2a',meadow:'#4a8a3a',desert:'#d8c070',arctic:'#dfe8f2',
+  volcanic:'#7a2218',jungle:'#1a5a1a',savanna:'#a88a48',mountains:'#8a8278'};
+function renderFullMap(){
+  const cv=document.getElementById('fullmap-canvas');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  const S=cv.width,steps=120,cell=S/steps;
+  // teren wg biomow (rysuj raz, cache)
+  if(!_fullmapDrawn){
+    for(let i=0;i<steps;i++)for(let j=0;j<steps;j++){
+      const wx=(i/steps*2-1)*WORLD_HALF,wz=(j/steps*2-1)*WORLD_HALF;
+      const h=terrainHeight(wx,wz);
+      if(h<SEA_LEVEL){ctx.fillStyle='#1a3a5a';}
+      else{ctx.fillStyle=BIOME_MAP_COL[dominantBiome(wx,wz)]||'#444';}
+      ctx.fillRect(i*cell,j*cell,cell+1,cell+1);
+    }
+    _fullmapDrawn=true;
+    _fullmapCache=ctx.getImageData(0,0,S,S);
+  }else if(_fullmapCache){ctx.putImageData(_fullmapCache,0,0);}
+  const w2s=v=>(v/WORLD_HALF*0.5+0.5)*S;
+  // landmarki
+  for(const k in LANDMARKS){
+    const l=LANDMARKS[k];const x=w2s(l.x),y=w2s(l.z);
+    ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#55ff99':
+      k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':'#88ccff';
+    ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='11px sans-serif';ctx.fillText(l.name,x+8,y+4);
+  }
+  // gracz
+  if(_camera){
+    const x=w2s(_camera.position.x),y=w2s(_camera.position.z);
+    ctx.fillStyle='#ff3366';ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    // kierunek patrzenia
+    ctx.strokeStyle='#ffff66';ctx.beginPath();ctx.moveTo(x,y);
+    ctx.lineTo(x+Math.sin(yaw)*14,y-Math.cos(yaw)*14);ctx.stroke();
+  }
+}
+let _fullmapCache=null;
+function toggleFullMap(){
+  fullmapOpen=!fullmapOpen;
+  const fm=document.getElementById('fullmap');
+  fm.classList.toggle('hidden',!fullmapOpen);
+  if(fullmapOpen)renderFullMap();
+}
 function updateHUD(camera){
   const dirs=['N','NW','W','SW','S','SE','E','NE'];
   let a=((yaw*180/Math.PI)%360+360)%360;
@@ -3581,7 +4045,8 @@ function initWorld(){
   renderer.setSize(window.innerWidth,window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?2:3));
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=0.9;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
   document.body.prepend(renderer.domElement);
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(isMobile?65:70,window.innerWidth/window.innerHeight,0.1,1200);
@@ -3605,7 +4070,7 @@ function initWorld(){
   function loop(now){
     requestAnimationFrame(loop);
     let dt=(now-last)/1000;last=now;if(dt>0.05)dt=0.05;
-    if(casting&&!playerDead&&!dialogOpen&&!charOpen&&!craftOpen)attemptCast(now);
+    if(casting&&!playerDead&&!dialogOpen&&!charOpen&&!craftOpen&&!fullmapOpen)attemptCast(now);
     if(!playerDead){
       player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
       updateHunger(dt);
@@ -3622,6 +4087,8 @@ function initWorld(){
     updateNPCs(dt,now,camera);
     updateStatusEffects(dt);
     updateCompanion(dt,camera,scene);
+    updateShadowMinions(dt,now,camera);
+    updateFallingTrees(dt);
     _activeNPC=findInteractNPC(camera);
     const ipEl=document.getElementById('interact-prompt');
     let nearChest=false;
