@@ -3609,6 +3609,7 @@ function renderCraftPanel(){
       const result={...r,count:1};
       addToInventory(result);toast('Stworzono: '+r.name);
       renderCraftPanel();buildItembar();
+      if(buildMode)renderBuildPanel();
     });
     row.appendChild(btn);list.appendChild(row);
   });
