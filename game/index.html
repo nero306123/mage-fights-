@@ -296,47 +296,76 @@
     background:linear-gradient(180deg,rgba(24,32,54,.98),rgba(14,18,32,.98));
     border:2px solid rgba(232,200,106,.4);border-radius:16px;padding:16px;
     box-shadow:0 12px 50px rgba(0,0,0,.6);animation:fade .25s ease}
-  .cp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .cp-title{font-size:20px;font-weight:700;color:#e8c86a;letter-spacing:1px}
+  .cp-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .cp-arrow{background:rgba(0,0,0,.3);border:1px solid rgba(232,200,106,.3);
+    border-radius:8px;color:#e8c86a;font-size:20px;width:34px;height:34px;
+    cursor:pointer;line-height:1}
+  .cp-arrow:active{transform:scale(.92)}
+  .cp-title{flex:1;text-align:center;font-size:19px;font-weight:700;
+    color:#e8c86a;letter-spacing:1px}
   .cp-close{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.2);
     border-radius:8px;color:#ccc;font-size:16px;width:34px;height:34px;cursor:pointer}
 
-  .cp-section{margin-bottom:14px}
-  .cp-label{font-size:12px;color:#8a98b4;text-transform:uppercase;letter-spacing:1px;
-    margin-bottom:6px;font-weight:600}
+  .cp-summary{display:flex;justify-content:space-around;flex-wrap:wrap;gap:6px;
+    background:rgba(0,0,0,.3);border-radius:8px;padding:7px 6px;margin-bottom:12px;
+    font-size:13px;color:#e8e0c8;font-weight:600}
+  .cp-label{font-size:11px;color:#8a98b4;text-transform:uppercase;letter-spacing:1px;
+    margin:12px 0 6px;font-weight:600}
 
-  .cp-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
-  .cp-stat{display:flex;align-items:center;gap:6px;
-    background:rgba(0,0,0,.3);border-radius:8px;padding:6px 10px}
-  .cp-stat-icon{font-size:16px;width:20px;text-align:center}
-  .cp-stat-info{flex:1;min-width:0}
-  .cp-stat-name{font-size:11px;color:#8a98b4}
-  .cp-stat-val{font-size:15px;color:#e8e0c8;font-weight:700}
+  /* set toggle */
+  .cp-setrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .cp-set-btn{background:rgba(0,0,0,.3);border:1px solid rgba(232,200,106,.3);
+    border-radius:8px;color:#c8ccd4;font-size:12px;font-weight:700;
+    padding:6px 14px;cursor:pointer}
+  .cp-set-btn.active{background:linear-gradient(180deg,rgba(60,52,30,.9),rgba(30,26,16,.9));
+    border-color:#e8c86a;color:#e8c86a}
 
+  /* character + equipment columns */
+  .cp-charview{display:flex;align-items:stretch;justify-content:space-between;
+    gap:6px;margin-bottom:6px}
+  .cp-equip-col{display:flex;flex-direction:column;gap:5px;flex:1}
+  .cp-figure{flex:0 0 92px;display:flex;align-items:center;justify-content:center;
+    font-size:62px;background:radial-gradient(ellipse at 50% 35%,rgba(120,90,180,.25),rgba(0,0,0,.2));
+    border:1px solid rgba(232,200,106,.18);border-radius:12px;margin:0 2px}
+  .cp-eq-slot{display:flex;align-items:center;gap:6px;
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
+    border-radius:8px;padding:5px 7px;cursor:default;min-height:34px}
+  .cp-eq-slot.filled{border-color:rgba(232,200,106,.45);cursor:pointer}
+  .cp-eq-slot.filled:active{transform:scale(.97)}
+  .cp-eq-ic{font-size:18px;width:22px;text-align:center}
+  .cp-eq-nm{font-size:10px;color:#a8b2c4;line-height:1.1}
+  .cp-eq-slot.filled .cp-eq-nm{color:#e8e0c8}
+
+  /* attributes (page 2) */
   .cp-attrs{display:flex;flex-direction:column;gap:5px}
   .cp-attr{display:flex;align-items:center;gap:8px;
     background:rgba(0,0,0,.28);border-radius:8px;padding:7px 10px}
-  .cp-attr-name{flex:1;font-size:13px;color:#d8d0c0;font-weight:600}
-  .cp-attr-desc{font-size:10px;color:#7a89a8;flex:2;line-height:1.3}
-  .cp-attr-val{font-size:15px;color:#e8c86a;font-weight:800;min-width:24px;text-align:center}
+  .cp-attr-name{flex:1;font-size:13px;color:#d8d0c0;font-weight:600;line-height:1.25}
+  .cp-attr-desc{font-size:10px;color:#7a89a8;font-weight:400}
+  .cp-attr-pips{font-size:13px;color:#e8c86a;letter-spacing:2px;min-width:62px;text-align:right}
   .cp-attr-btn{background:linear-gradient(180deg,#3a6b2a,#1e4a14);
     border:1px solid rgba(160,220,120,.5);border-radius:6px;color:#eaffe0;
-    font-size:16px;font-weight:800;width:28px;height:28px;cursor:pointer;
+    font-size:16px;font-weight:800;width:30px;height:30px;cursor:pointer;
     display:flex;align-items:center;justify-content:center}
   .cp-attr-btn:active{transform:scale(.9)}
   .cp-attr-btn:disabled{opacity:.3;background:#333;border-color:#444}
-  .cp-pts{text-align:center;font-size:13px;color:#e8c86a;font-weight:700;
-    margin-bottom:8px}
+  .cp-pts{text-align:center;font-size:13px;color:#cdd6e4;font-weight:600;
+    background:rgba(0,0,0,.25);border-radius:8px;padding:7px;margin-bottom:4px}
+  .cp-pts b{color:#e8c86a;font-size:15px}
 
-  .cp-spells{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  /* spellbook (page 2) */
+  .cp-spells{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+  @media(max-width:420px){.cp-spells{grid-template-columns:repeat(3,1fr)}}
   .cp-spell{display:flex;flex-direction:column;align-items:center;gap:2px;
-    background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.1);
-    border-radius:8px;padding:6px 4px;cursor:pointer;position:relative}
-  .cp-spell.active{border-color:#9ad0ff;box-shadow:0 0 10px rgba(120,170,255,.4)}
-  .cp-spell.locked{opacity:.35;cursor:not-allowed}
-  .cp-spell-icon{font-size:22px}
-  .cp-spell-name{font-size:8px;color:#8a98b4;text-align:center;line-height:1.2}
-  .cp-spell-lvl{position:absolute;top:2px;right:4px;font-size:8px;color:#e8c86a;font-weight:700}
+    background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);
+    border-radius:8px;padding:7px 3px;cursor:pointer;position:relative;min-height:74px;
+    justify-content:center}
+  .cp-spell.owned{background:rgba(20,28,48,.6)}
+  .cp-spell.active{box-shadow:0 0 12px rgba(120,170,255,.55)}
+  .cp-spell-ic{font-size:24px;line-height:1}
+  .cp-spell-nm{font-size:8.5px;color:#cdd6e4;text-align:center;line-height:1.15}
+  .cp-spell-rar{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+  .cp-spell-req{position:absolute;top:3px;right:4px;font-size:8px;color:#ffd24a;font-weight:700}
 
   #inv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
   .inv-slot{width:100%;aspect-ratio:1;background:rgba(0,0,0,.35);
@@ -348,15 +377,16 @@
   .inv-count{position:absolute;bottom:1px;right:3px;font-size:11px;
     color:#fff;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
 
-  #char-btn{position:absolute;top:10px;left:50%;margin-left:90px;
+  #char-btn{position:absolute;top:8px;left:50%;margin-left:96px;
     background:rgba(0,0,0,.55);border:1px solid rgba(232,200,106,.4);
-    border-radius:8px;color:#e8c86a;font-size:12px;font-weight:700;
-    padding:6px 10px;pointer-events:auto;cursor:pointer;z-index:3;
-    letter-spacing:.5px}
+    border-radius:10px;color:#e8c86a;width:38px;height:38px;
+    pointer-events:auto;cursor:pointer;z-index:3;
+    display:flex;align-items:center;justify-content:center}
   #char-btn:active{transform:scale(.95)}
-  #char-btn .pts-badge{background:#c0392b;color:#fff;border-radius:50%;
-    font-size:9px;width:16px;height:16px;display:inline-flex;align-items:center;
-    justify-content:center;margin-left:4px;vertical-align:middle}
+  #char-btn .pts-badge{position:absolute;top:-5px;right:-5px;
+    background:#c0392b;color:#fff;border-radius:50%;
+    font-size:10px;min-width:17px;height:17px;display:flex;align-items:center;
+    justify-content:center;font-weight:800;padding:0 3px}
 
   @media(max-width:900px){
     #hotbar .slot{width:48px;height:48px;font-size:22px}
@@ -491,29 +521,38 @@
       <div class="dlg-body" id="dlg-body"></div>
     </div>
   </div>
-  <button id="char-btn">POSTAC</button>
+  <button id="char-btn" title="Postac"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="6" r="3.4" fill="currentColor"/><path d="M5 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z" fill="currentColor"/></svg></button>
   <div id="char-panel">
     <div class="cp-wrap">
       <div class="cp-head">
-        <span class="cp-title">Postac</span>
+        <button class="cp-arrow" id="cp-prev">‹</button>
+        <span class="cp-title" id="cp-title">Postac</span>
+        <button class="cp-arrow" id="cp-next">›</button>
         <button class="cp-close" id="cp-close">✕</button>
       </div>
-      <div class="cp-section">
-        <div class="cp-label">Statystyki</div>
-        <div class="cp-stats" id="cp-stats"></div>
-      </div>
-      <div class="cp-section">
-        <div class="cp-pts" id="cp-pts"></div>
-        <div class="cp-label">Umiejetnosci</div>
-        <div class="cp-attrs" id="cp-attrs"></div>
-      </div>
-      <div class="cp-section">
-        <div class="cp-label">Zaklecia</div>
-        <div class="cp-spells" id="cp-spells"></div>
-      </div>
-      <div class="cp-section">
-        <div class="cp-label">Ekwipunek (20 slotow)</div>
+      <div class="cp-summary" id="cp-summary"></div>
+      <!-- STRONA 1: EKWIPUNEK -->
+      <div class="cp-page" id="cp-page-equip">
+        <div class="cp-setrow">
+          <span class="cp-label" style="margin:0">Zestaw:</span>
+          <button class="cp-set-btn active" data-set="0">Set 1</button>
+          <button class="cp-set-btn" data-set="1">Set 2</button>
+        </div>
+        <div class="cp-charview">
+          <div class="cp-equip-col" id="cp-equip-left"></div>
+          <div class="cp-figure">🧙</div>
+          <div class="cp-equip-col" id="cp-equip-right"></div>
+        </div>
+        <div class="cp-label">Plecak (20 slotow)</div>
         <div id="inv-grid"></div>
+      </div>
+      <!-- STRONA 2: PUNKTY I ZAKLECIA -->
+      <div class="cp-page" id="cp-page-points" style="display:none">
+        <div class="cp-pts" id="cp-pts"></div>
+        <div class="cp-label">Statystyki postaci</div>
+        <div class="cp-attrs" id="cp-attrs"></div>
+        <div class="cp-label">Ksiega zaklec</div>
+        <div class="cp-spells" id="cp-spells"></div>
       </div>
     </div>
   </div>
@@ -533,34 +572,120 @@
 <script type="module">
 import * as THREE from 'three';
 
-// ═══ SPELLS ═══════════════════════════════════════════
-const SPELLS = [
-  { id:'bolt',  name:'Magiczny Pocisk', icon:'✦', color:0x66ccff, light:0x4488ff,
-    mana:30,  dmg:18, speed:48, size:0.26, life:2.2, cd:0.32, gravity:0, lvl:1 },
-  { id:'fire',  name:'Kula Ognia',      icon:'🔥', color:0xff7a22, light:0xff5500,
-    mana:120, dmg:55, speed:38, size:0.46, life:2.6, cd:0.7,  gravity:5, lvl:1 },
-  { id:'frost', name:'Lodowa Iglica',   icon:'❄', color:0x9cf0ff, light:0x66ddff,
-    mana:65,  dmg:30, speed:56, size:0.22, life:2.0, cd:0.42, gravity:0, lvl:1 },
-  { id:'chain', name:'Lancuch Blyskawic',icon:'⚡', color:0xeedd44, light:0xddcc22,
-    mana:90,  dmg:38, speed:60, size:0.2,  life:1.6, cd:0.55, gravity:0, lvl:3 },
-  { id:'poison',name:'Trujaca Chmura',  icon:'☠️', color:0x55cc33, light:0x44aa22,
-    mana:75,  dmg:42, speed:30, size:0.52, life:3.0, cd:0.85, gravity:2, lvl:4 },
-  { id:'void',  name:'Pocisk Pustki',   icon:'🌀', color:0x9944dd, light:0x7733bb,
-    mana:150, dmg:70, speed:34, size:0.44, life:2.8, cd:1.0,  gravity:0, lvl:6 },
-  { id:'holy',  name:'Swiatlo Oczyszczenia', icon:'✨', color:0xffeebb, light:0xffdd88,
-    mana:100, dmg:48, speed:52, size:0.32, life:2.0, cd:0.6,  gravity:0, lvl:5 },
-  { id:'meteor',name:'Meteor',          icon:'☄️', color:0xff4400, light:0xdd3300,
-    mana:250, dmg:120,speed:28, size:0.7,  life:3.5, cd:2.0,  gravity:12,lvl:8 },
-  { id:'ice',   name:'Lodowa Burza',    icon:'🌨️', color:0xaaeeff, light:0x88ccff,
-    mana:180, dmg:65, speed:42, size:0.55, life:2.4, cd:1.2,  gravity:3, lvl:7 },
-  { id:'dark',  name:'Mroczna Kula',    icon:'🖤', color:0x440066, light:0x330044,
-    mana:200, dmg:90, speed:36, size:0.5,  life:3.0, cd:1.5,  gravity:0, lvl:10 },
+// ═══ SYSTEM ZAKLEC ════════════════════════════════════
+// Rzadkosci: koszt punktow, wymagany poziom, min. tier roszdzki, kolor, kartka?
+const RARITY = {
+  common:{nm:'Pospolite',  pts:5,  lvl:0,  wand:0, col:'#b8c0cc', scroll:false},
+  rare:  {nm:'Rzadkie',    pts:8,  lvl:5,  wand:0, col:'#4a9eff', scroll:false},
+  epic:  {nm:'Epickie',    pts:12, lvl:10, wand:1, col:'#b35cff', scroll:false},
+  mythic:{nm:'Mityczne',   pts:15, lvl:15, wand:2, col:'#ff8a3c', scroll:false},
+  legend:{nm:'Legendarne', pts:20, lvl:25, wand:2, col:'#ffd24a', scroll:false},
+  secret:{nm:'Sekretne',   pts:30, lvl:35, wand:3, col:'#ff3b6b', scroll:true },
+};
+const RARITY_ORDER=['common','rare','epic','mythic','legend','secret'];
+// Zywioly: ikona, kolor pocisku, kolor swiatla, domyslna fizyka pocisku
+const ELEM = {
+  fire: {ic:'🔥', col:0xff7a22, light:0xff5500, speed:38, size:0.42, life:2.6, grav:4,  kind:'proj'},
+  ice:  {ic:'❄', col:0x9cf0ff, light:0x66ddff, speed:54, size:0.28, life:2.2, grav:0,  kind:'proj'},
+  bolt: {ic:'⚡', col:0xeedd44, light:0xddcc22, speed:66, size:0.22, life:1.7, grav:0,  kind:'proj'},
+  earth:{ic:'🪨', col:0x9a7b4f, light:0x6a5733, speed:32, size:0.5,  life:2.4, grav:9,  kind:'proj'},
+  air:  {ic:'🌪️', col:0xcdeefb, light:0xaaddff, speed:52, size:0.4,  life:2.0, grav:0,  kind:'proj'},
+  buff: {ic:'✨', col:0x9affb0, light:0x66dd88, speed:0,  size:0,    life:0,   grav:0,  kind:'buff'},
+  hybrid:{ic:'🌈',col:0xc06cff, light:0xaa55ff, speed:42, size:0.46, life:2.6, grav:2,  kind:'proj'},
+  other:{ic:'🌀', col:0x9944dd, light:0x7733bb, speed:0,  size:0,    life:0,   grav:0,  kind:'util'},
+};
+// Bazowy cooldown wg rzadkosci (sek) — wieksza moc = wolniej
+const RARITY_CD={common:0.42,rare:0.7,epic:1.1,mythic:2.0,legend:3.2,secret:5.0};
+// Lista zaklec z dokumentu: [id, nazwa, zywiol, rzadkosc, mana, czasRzucania, dmg, efekt, ikonaOverride?]
+const SPELL_DATA = [
+  // ── OGIEN ──
+  ['iskra','Iskra','fire','common',15,2.5,10,'','✦'],
+  ['ognista_kula','Ognista Kula','fire','common',35,3,30,''],
+  ['lawowy_pocisk','Lawowy Pocisk','fire','common',30,2.6,26,''],
+  ['plomienny_pocisk','Plomienny Pocisk','fire','rare',70,2,60,'Podpalenie 5s (5 dmg/s)'],
+  ['sciana_ognia','Sciana Ognia','fire','rare',120,3,80,'AOE: pole ognia 8s (10 dmg/s)'],
+  ['eksplozja','Eksplozja','fire','epic',200,4,150,'AOE + odrzut'],
+  ['meteor','Meteor','fire','epic',350,6,250,'AOE 6m + podpalenie 10s','☄️'],
+  ['plomienny_wir','Plomienny Wir','fire','mythic',800,8,450,'AOE: przyciaga wrogow'],
+  ['spopielenie','Spopielenie','fire','legend',2500,9,900,'Instakill ponizej 20% HP'],
+  // ── LOD ──
+  ['lodowy_pocisk','Lodowy Pocisk','ice','common',20,2.5,15,''],
+  ['sopel','Sopel','ice','common',40,3,35,''],
+  ['mroz','Mroz','ice','rare',80,2,55,'Spowolnienie 40% na 5s'],
+  ['lodowa_sciana','Lodowa Sciana','ice','rare',130,3.5,70,'Bariera 3s'],
+  ['zamrozenie','Zamrozenie','ice','epic',220,4.5,160,'Spowolnienie 50% na 5s'],
+  ['sniezyca','Sniezyca','ice','epic',380,6,280,'AOE 6m: spowolnienie 30% na 10s','🌨️'],
+  ['lodowy_wir','Lodowy Wir','ice','mythic',850,8,500,'AOE: przyciaga + dmg/s'],
+  ['absolutne_zero','Absolutne Zero','ice','legend',2800,9,1000,'Zamrozenie 5s + 300 dmg po przebiciu'],
+  // ── PIORUN ──
+  ['iskra_el','Iskra Elektryczna','bolt','common',18,2,12,''],
+  ['blyskawica','Blyskawica','bolt','common',40,2.8,32,''],
+  ['lancuch','Lancuch Piorunow','bolt','rare',85,3.2,65,'Przeskok na 3 cele (-20% dmg)'],
+  ['piorunujacy_cios','Piorunujacy Cios','bolt','rare',140,4,100,'Paraliz 2s'],
+  ['burza','Burza','bolt','epic',250,5,180,'AOE 5m: paraliz 1.5s co 3s'],
+  ['blyskawiczny_wir','Blyskawiczny Wir','bolt','epic',400,6.5,300,'AOE: przyciaga + dmg co 0.5s'],
+  ['grom','Grom','bolt','mythic',900,8,550,'Oslepienie 3s'],
+  ['piorun_stworzyciela','Piorun Stworzyciela','bolt','legend',2250,9,1000,'Paraliz 4s + AOE 8m + oparzenie'],
+  // ── ZIEMIA ──
+  ['kamienny_pocisk','Kamienny Pocisk','earth','common',25,2.5,25,''],
+  ['trzesienie','Trzesienie Ziemi','earth','rare',120,4,80,'AOE: spowolnienie 20% na 5s'],
+  ['kamienna_tarcza','Kamienna Tarcza','earth','rare',150,3,0,'Blokuje 200 obrazen (pasywna)','🛡️'],
+  ['glaz','Glaz','earth','epic',280,5,220,'Odrzut 5m'],
+  ['mur_kamienny','Mur Kamienny','earth','epic',350,6,0,'Sciana 6m na 10s','🧱'],
+  ['lawa','Lawa','earth','mythic',750,8,450,'AOE: podpalenie 10s'],
+  ['potezna_moc','Potezna Moc','earth','legend',2200,9,1100,'Ignoruje pancerz'],
+  ['gwiezdny_pyl','Gwiezdny Pyl','earth','secret',3200,10,2000,'AOE 15m: oslepienie 5s','🌟'],
+  // ── POWIETRZE ──
+  ['podmuch','Podmuch Wiatru','air','common',20,2,15,'Odrzut 3m'],
+  ['ostre_powietrze','Ostre Powietrze','air','rare',90,3,70,'Przecina pancerz'],
+  ['traba','Traba Powietrzna','air','epic',300,5,200,'AOE: uniesienie 1.5s'],
+  ['huragan','Huragan','air','mythic',800,8,500,'AOE: odrzut 10m + spowolnienie 30%'],
+  // ── WSPARCIE / BUFFY ──
+  ['male_leczenie','Male Leczenie','buff','common',40,2,0,'Leczy 20 HP','💚'],
+  ['tarcza_many','Tarcza Many','buff','common',40,2.5,0,'Blokuje 50 obrazen na 10s','🔰'],
+  ['przyspieszenie','Przyspieszenie','buff','rare',70,2,0,'+30% szybkosci na 8s','💨'],
+  ['oczyszczenie','Oczyszczenie','buff','rare',100,3,0,'Usuwa negatywne efekty','🌿'],
+  ['wielkie_leczenie','Wielkie Leczenie','buff','epic',220,4,0,'Leczy 100 HP','💖'],
+  ['niewidzialnosc','Niewidzialnosc','buff','epic',250,5,0,'Niewidzialnosc 6s','👻'],
+  ['anielska_tarcza','Anielska Tarcza','buff','mythic',600,6,0,'Blokuje 500 dmg na 15s + 5 HP/s','😇'],
+  ['zmartwychwstanie','Zmartwychwstanie','buff','legend',1500,9,0,'Odradza z 50% HP po smierci','♻️'],
+  // ── HYBRYDOWE ──
+  ['lod_ogien_miecz','Lodowo-Ognisty Miecz','hybrid','rare',150,3.5,120,'60 ogien + 60 lod + podpalenie 3s','⚔️'],
+  ['blyskawica_burzowa','Blyskawica Burzowa','hybrid','epic',350,5,250,'Piorun + woda + paraliz 2s'],
+  ['piorunujacy_kamien','Piorunujacy Kamien','hybrid','mythic',900,7,600,'Ziemia + piorun + odrzut 8m'],
+  ['kosmiczny_cios','Kosmiczny Cios','hybrid','secret',3500,11,2500,'Wszystkie zywioly + AOE 20m','💥'],
+  // ── INNE / UNIKALNE ──
+  ['teleportacja','Teleportacja','other','epic',200,3,0,'Teleport 15m do przodu','🌀'],
+  ['lewitacja','Lewitacja','other','rare',100,2,0,'Unosi na 3s','🎈'],
+  ['niewidzialna_tarcza','Niewidzialna Tarcza','other','legend',1200,6,0,'Blokuje 100% dmg na 3s','🛡️'],
+  ['przywolanie_swiatla','Przywolanie Swiatla','other','epic',300,4,0,'Oswietla 30m na 30s','💡'],
+  ['klatwa_slabosci','Klatwa Slabosci','other','rare',130,3,0,'-30% obrazen wrogow na 10s','🔻'],
+  ['odbicie','Odbicie','other','mythic',700,5,0,'Odbija nastepne zaklecie (5s)','🪞'],
+  ['lot_smoka','Lot Smoka','other','secret',800,8,0,'Latanie 15s, 20 m/s','🐉'],
+  // ── SEKRETNE DODATKOWE ──
+  ['tornado_piorunow','Tornado Piorunow','bolt','secret',3000,10,1800,'AOE 12m: przyciaga, paraliz co 1s','🌪️'],
+  ['ksiega_wiedzy','Ksiega Wiedzy','other','secret',3000,10,0,'+50% XP na 5 min + lepsze dropy','📖'],
 ];
+function buildSpells(){
+  return SPELL_DATA.map(d=>{
+    const [id,name,el,rar,mana,cast,dmg,fx,icOv]=d;
+    const e=ELEM[el], r=RARITY[rar];
+    return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
+      color:e.col, light:e.light, kind:e.kind,
+      mana, castTime:cast, dmg, fx:fx||'',
+      speed:e.speed, size:e.size+ (RARITY_ORDER.indexOf(rar))*0.03,
+      life:e.life, gravity:e.grav, cd:RARITY_CD[rar],
+      cost:r.pts, lvl:r.lvl, wandReq:r.wand, needScroll:r.scroll };
+  });
+}
+const SPELLS = buildSpells();
+// Pierwsze zaklecie (Iskra) gracz ma od startu
+const ownedSpells = new Set([0]);
 
 // ═══ ITEMS (hotbar) ═══════════════════════════════════
 const INV_SIZE=20;
 const ITEMS = new Array(INV_SIZE).fill(null);
-ITEMS[0]={ id:'wand', name:'Rozdzka', icon:'🪄', type:'wand' };
+ITEMS[0]={ id:'wand', name:'Rozdzka', icon:'🪄', type:'wand', wandTier:0 };
 
 // ═══ MOB TYPES ═══════════════════════════════════════
 const MOB_TYPES = [
@@ -624,10 +749,12 @@ document.getElementById('start-game').addEventListener('click',()=>{
   if(session.class&&session.difficulty)startGame();
 });
 
+// kolejnosc posiadanych zaklec na pasku (indeksy do SPELLS)
+function ownedList(){return [...ownedSpells].sort((a,b)=>a-b);}
 function buildSpellbar(){
   const sb=document.getElementById('spellbar');sb.innerHTML='';
-  SPELLS.forEach((sp,i)=>{
-    if(sp.lvl>xpState.level)return;
+  ownedList().forEach(i=>{
+    const sp=SPELLS[i];
     const el=document.createElement('div');
     el.className='spell-slot'+(i===player.selSpell?' active':'');
     el.dataset.spell=i;
@@ -667,6 +794,7 @@ function buildInvGrid(){
     slot.addEventListener('click',()=>{
       if(!it)return;
       if(it.type==='consumable'){useConsumable(i);buildInvGrid();buildItembar();}
+      else if(it.equip){equipItem(i);}     // czesc pancerza -> zaloz
     });
     g.appendChild(slot);
   }
@@ -677,8 +805,11 @@ function startGame(){
   const names={mag:'Mag',wampir:'Wampir',nekromanta:'Nekromanta',
     czlowiek:'Czlowiek',atlantyda:'Atlantyda',nieumarly:'Nieumarly'};
   document.getElementById('classname').textContent=names[session.class]||'Mag';
+  skillPoints=5;  // startowe punkty na pierwsze zaklecie
+  applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
   buildSpellbar();
   buildItembar();
+  updateCharBtn();
   initWorld();
 }
 
@@ -748,10 +879,28 @@ let playerDead=false;
 const joyState={active:false,dx:0,dy:0,id:null};
 const lookState={active:false,id:null,lastX:0,lastY:0};
 
-const player={hp:100,maxHp:100,mana:1000,maxMana:1000,manaRegen:1000/120,
-              selSpell:0,lastCast:0,lastMelee:0,heldItem:0,gold:0};
-const stats={magPow:0,endurance:0,regen:0,spellPts:0};
-let charOpen=false,dialogOpen=false;
+const player={hp:100,maxHp:100,mana:1000,maxMana:1000,manaRegen:5,
+              selSpell:0,lastCast:0,lastMelee:0,heldItem:0,gold:0,wandTier:0};
+// Punkty inwestowane w staty (kazda max 5, +20% za punkt)
+const stats={hp:0,mana:0,speed:0,regen:0};
+let skillPoints=0;          // wolne punkty (5 co 5 poziomow)
+let lastPointLvl=0;         // ostatni poziom za ktory przyznano punkty
+// Ekwipunek: 2 sety, kazdy z slotami na czesci pancerza
+const EQUIP_SLOTS=[
+  {key:'hood',  nm:'Kaptur',    ic:'🎩'},
+  {key:'cape',  nm:'Peleryna',  ic:'🧣'},
+  {key:'chest', nm:'Napiersnik',ic:'🦺'},
+  {key:'legs',  nm:'Spodnie',   ic:'👖'},
+  {key:'boots', nm:'Buty',      ic:'🥾'},
+  {key:'gloves',nm:'Rekawice',  ic:'🧤'},
+  {key:'amulet',nm:'Naszyjnik', ic:'📿'},
+  {key:'ring',  nm:'Pierscien', ic:'💍'},
+  {key:'weapon',nm:'Roszdzka',  ic:'🪄'},
+  {key:'orb',   nm:'Orb',       ic:'🔮'},
+];
+const equipSets=[{},{}];    // set 0 i set 1: {slotKey:itemDef}
+let activeSet=0;
+let charOpen=false,charPage=0,dialogOpen=false;
 const xpState={level:1,xp:0,xpNext:100,kills:0};
 const projectiles=[];
 const impacts=[];
@@ -1287,14 +1436,24 @@ document.getElementById('interact-prompt').addEventListener('click',()=>{
 });
 document.getElementById('char-btn').addEventListener('click',toggleCharPanel);
 document.getElementById('cp-close').addEventListener('click',closeCharPanel);
+document.getElementById('cp-prev').addEventListener('click',()=>setCharPage(charPage-1));
+document.getElementById('cp-next').addEventListener('click',()=>setCharPage(charPage+1));
+document.querySelectorAll('.cp-set-btn').forEach(b=>b.addEventListener('click',()=>{
+  activeSet=+b.dataset.set;applyStats();renderCharPanel();
+}));
 
 // ── spell & item selection ──
 function selectSpell(idx){
-  if(!SPELLS[idx])return;
-  if(SPELLS[idx].lvl>xpState.level){toast('Wymaga poziomu '+SPELLS[idx].lvl);return;}
+  const sp=SPELLS[idx];if(!sp)return;
+  if(!ownedSpells.has(idx)){toast('Najpierw odblokuj to zaklecie (menu Postac)');return;}
   player.selSpell=idx;
-  document.querySelectorAll('.spell-slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
-  document.getElementById('spellname').textContent=SPELLS[idx].name;
+  document.querySelectorAll('#spellbar .spell-slot').forEach(s=>
+    s.classList.toggle('active',+s.dataset.spell===idx));
+  document.getElementById('spellname').textContent=sp.name+'  ('+RARITY[sp.rarity].nm+')';
+}
+// wybor zaklecia po pozycji na pasku (klawisze 1-9)
+function selectSpellByPos(pos){
+  const list=ownedList();if(pos<list.length)selectSpell(list[pos]);
 }
 function selectItem(idx){
   const it=ITEMS[idx];
@@ -1342,74 +1501,125 @@ function closeCharPanel(){
 function toggleCharPanel(){
   if(charOpen)closeCharPanel();else openCharPanel();
 }
+function setCharPage(p){
+  charPage=(p+2)%2;
+  document.getElementById('cp-page-equip').style.display=charPage===0?'block':'none';
+  document.getElementById('cp-page-points').style.display=charPage===1?'block':'none';
+  document.getElementById('cp-title').textContent=charPage===0?'Ekwipunek':'Punkty i Zaklecia';
+  renderCharPanel();
+}
 function renderCharPanel(){
-  const baseMaxHp=100+(xpState.level-1)*10;
-  const totalMaxHp=baseMaxHp+maxHpBonus();
-  const st=document.getElementById('cp-stats');
-  st.innerHTML=`
-    <div class="cp-stat"><span class="cp-stat-icon">❤️</span><div class="cp-stat-info">
-      <div class="cp-stat-name">Zdrowie</div><div class="cp-stat-val">${Math.round(player.hp)}/${totalMaxHp}</div></div></div>
-    <div class="cp-stat"><span class="cp-stat-icon">🔵</span><div class="cp-stat-info">
-      <div class="cp-stat-name">Mana</div><div class="cp-stat-val">${Math.round(player.mana)}/${player.maxMana}</div></div></div>
-    <div class="cp-stat"><span class="cp-stat-icon">⭐</span><div class="cp-stat-info">
-      <div class="cp-stat-name">Poziom</div><div class="cp-stat-val">${xpState.level}</div></div></div>
-    <div class="cp-stat"><span class="cp-stat-icon">✨</span><div class="cp-stat-info">
-      <div class="cp-stat-name">Doswiadczenie</div><div class="cp-stat-val">${xpState.xp}/${xpState.xpNext}</div></div></div>
-    <div class="cp-stat"><span class="cp-stat-icon">🪙</span><div class="cp-stat-info">
-      <div class="cp-stat-name">Zloto</div><div class="cp-stat-val">${player.gold}</div></div></div>
-    <div class="cp-stat"><span class="cp-stat-icon">💀</span><div class="cp-stat-info">
-      <div class="cp-stat-name">Zabojstwa</div><div class="cp-stat-val">${xpState.kills}</div></div></div>`;
-
+  // pasek podsumowania (zawsze widoczny)
+  document.getElementById('cp-summary').innerHTML=
+    `<span>❤️ ${Math.round(player.hp)}/${player.maxHp}</span>`+
+    `<span>🔵 ${Math.round(player.mana)}/${player.maxMana}</span>`+
+    `<span>⭐ Poz. ${xpState.level}</span>`+
+    `<span>🪙 ${player.gold}</span>`;
+  if(charPage===0)renderEquipPage();else renderPointsPage();
+}
+function renderEquipPage(){
+  // sety
+  document.querySelectorAll('.cp-set-btn').forEach(b=>
+    b.classList.toggle('active',+b.dataset.set===activeSet));
+  const left=document.getElementById('cp-equip-left');
+  const right=document.getElementById('cp-equip-right');
+  left.innerHTML='';right.innerHTML='';
+  const set=equipSets[activeSet];
+  EQUIP_SLOTS.forEach((sl,i)=>{
+    let it=set[sl.key];
+    // slot broni pokazuje trzymana roszdzke gdy nic nie zalozono
+    const heldWand=(sl.key==='weapon'&&!it&&ITEMS[0]&&ITEMS[0].type==='wand')?ITEMS[0]:null;
+    const show=it||heldWand;
+    const el=document.createElement('div');el.className='cp-eq-slot'+(show?' filled':'');
+    el.innerHTML=`<span class="cp-eq-ic">${show?show.icon:sl.ic}</span>`+
+      `<span class="cp-eq-nm">${show?show.name:sl.nm}</span>`;
+    el.title=show?(show.name+(show.bonus?' — '+bonusText(show.bonus):'')):sl.nm+' (pusty)';
+    if(it)el.addEventListener('click',()=>{unequip(sl.key);});
+    (i<5?left:right).appendChild(el);
+  });
+  buildInvGrid();
+}
+function bonusText(b){
+  const m={hp:'HP',mana:'many',dmg:'% dmg',speed:'% speed',dmgRed:'% redukcji'};
+  return Object.keys(b).map(k=>`+${b[k]} ${m[k]||k}`).join(', ');
+}
+function renderPointsPage(){
   const pts=document.getElementById('cp-pts');
-  pts.textContent=stats.spellPts>0?`Wolne punkty: ${stats.spellPts}`:'Brak wolnych punktow';
-
-  const ATTR_DEF=[
-    {key:'magPow',name:'Sila Magiczna',desc:'+8% obrazen zaklec za punkt',icon:'🔮'},
-    {key:'endurance',name:'Wytrzymalosc',desc:'+15 maks. HP za punkt',icon:'🛡️'},
-    {key:'regen',name:'Regeneracja',desc:'+12% regeneracji many za punkt',icon:'💧'},
+  pts.innerHTML=skillPoints>0
+    ?`Wolne punkty: <b>${skillPoints}</b> &nbsp;·&nbsp; co 5 poziomow +5 pkt`
+    :'Brak wolnych punktow (zdobywasz +5 co 5 poziomow)';
+  // staty postaci — kazda max 5, +20% za punkt
+  const ATTR=[
+    {key:'hp',    name:'Wytrzymalosc', desc:'+20% maks. HP',           icon:'❤️'},
+    {key:'mana',  name:'Moc Many',     desc:'+20% maks. many',          icon:'🔵'},
+    {key:'speed', name:'Szybkosc',     desc:'+20% szybkosci ruchu',     icon:'💨'},
+    {key:'regen', name:'Regeneracja',  desc:'+20% regeneracji many',    icon:'💧'},
   ];
   const at=document.getElementById('cp-attrs');at.innerHTML='';
-  for(const a of ATTR_DEF){
+  for(const a of ATTR){
+    const lvl=stats[a.key], maxed=lvl>=5;
     const row=document.createElement('div');row.className='cp-attr';
     row.innerHTML=`<span style="font-size:18px">${a.icon}</span>
-      <span class="cp-attr-name">${a.name}</span>
-      <span class="cp-attr-desc">${a.desc}</span>
-      <span class="cp-attr-val">${stats[a.key]}</span>`;
-    const btn=document.createElement('button');btn.className='cp-attr-btn';btn.textContent='+';
-    btn.disabled=stats.spellPts<=0;
+      <span class="cp-attr-name">${a.name}<br><span class="cp-attr-desc">${a.desc}</span></span>
+      <span class="cp-attr-pips">${'●'.repeat(lvl)+'○'.repeat(5-lvl)}</span>`;
+    const btn=document.createElement('button');btn.className='cp-attr-btn';btn.textContent=maxed?'✓':'+';
+    btn.disabled=maxed||skillPoints<=0;
     btn.addEventListener('click',()=>{
-      if(stats.spellPts<=0)return;
-      stats.spellPts--;stats[a.key]++;
-      if(a.key==='endurance'){
-        player.maxHp=100+(xpState.level-1)*10+maxHpBonus();
-        player.hp=Math.min(player.hp,player.maxHp);
-      }
+      if(skillPoints<=0||stats[a.key]>=5)return;
+      skillPoints--;stats[a.key]++;
       applyStats();renderCharPanel();updateCharBtn();
     });
     row.appendChild(btn);at.appendChild(row);
   }
-
+  // ksiega zaklec — pogrupowane, z odblokowaniem za punkty
   const sp=document.getElementById('cp-spells');sp.innerHTML='';
   SPELLS.forEach((s,i)=>{
-    const locked=s.lvl>xpState.level;
+    const owned=ownedSpells.has(i);
+    const r=RARITY[s.rarity];
+    const lvlOk=xpState.level>=s.lvl;
+    const ptsOk=skillPoints>=s.cost;
     const el=document.createElement('div');
-    el.className='cp-spell'+(i===player.selSpell?' active':'')+(locked?' locked':'');
-    el.innerHTML=`<span class="cp-spell-icon">${s.icon}</span>
-      <span class="cp-spell-name">${locked?'Poz. '+s.lvl:s.name}</span>
-      ${locked?'<span class="cp-spell-lvl">🔒'+s.lvl+'</span>':''}`;
-    if(!locked)el.addEventListener('click',()=>{selectSpell(i);renderCharPanel();});
+    el.className='cp-spell'+(i===player.selSpell?' active':'')+(owned?' owned':'');
+    el.style.borderColor=owned?r.col:'rgba(255,255,255,.1)';
+    el.innerHTML=`<span class="cp-spell-ic" style="filter:${owned?'none':'grayscale(1) brightness(.6)'}">${s.icon}</span>
+      <span class="cp-spell-nm">${s.name}</span>
+      <span class="cp-spell-rar" style="color:${r.col}">${r.nm}</span>
+      ${owned?'':`<span class="cp-spell-req">${lvlOk?'':'Poz.'+s.lvl+' '}💠${s.cost}</span>`}`;
+    el.addEventListener('click',()=>{
+      if(owned){selectSpell(i);renderCharPanel();return;}
+      // proba odblokowania
+      if(!lvlOk){toast('Wymaga poziomu '+s.lvl);return;}
+      if(!ptsOk){toast('Potrzebujesz '+s.cost+' punktow');return;}
+      if(s.needScroll){toast('To zaklecie wymaga Kartki (drop z bossa)');return;}
+      skillPoints-=s.cost;ownedSpells.add(i);
+      toast('Odblokowano: '+s.name);
+      buildSpellbar();renderCharPanel();updateCharBtn();
+    });
     sp.appendChild(el);
   });
-
-  buildInvGrid();
+}
+function equipItem(invIdx){
+  const it=ITEMS[invIdx];if(!it||!it.equip)return;
+  const slot=it.equip;
+  const prev=equipSets[activeSet][slot];
+  equipSets[activeSet][slot]=it;ITEMS[invIdx]=prev||null;
+  applyStats();buildItembar();renderCharPanel();toast('Zalozono: '+it.name);
+}
+function unequip(slotKey){
+  const it=equipSets[activeSet][slotKey];if(!it)return;
+  // wroc do plecaka
+  let free=-1;for(let i=1;i<INV_SIZE;i++)if(!ITEMS[i]){free=i;break;}
+  if(free<0){toast('Plecak pelny');return;}
+  ITEMS[free]=it;equipSets[activeSet][slotKey]=undefined;
+  applyStats();buildItembar();renderCharPanel();
 }
 function updateCharBtn(){
   const btn=document.getElementById('char-btn');
-  if(stats.spellPts>0){
-    btn.innerHTML='POSTAC <span class="pts-badge">'+stats.spellPts+'</span>';
-  }else{
-    btn.textContent='POSTAC';
-  }
+  let badge=btn.querySelector('.pts-badge');
+  if(skillPoints>0){
+    if(!badge){badge=document.createElement('span');badge.className='pts-badge';btn.appendChild(badge);}
+    badge.textContent=skillPoints;
+  } else if(badge){badge.remove();}
 }
 
 function heldIsWand(){
@@ -1464,10 +1674,25 @@ function attemptCast(now){
   if(!_scene||!_camera||playerDead)return;
   const sp=SPELLS[player.selSpell];if(!sp)return;
   if(now-player.lastCast<sp.cd*1000)return;
+  // wymagany tier roszdzki
+  if(player.wandTier<sp.wandReq){
+    toast('Potrzebujesz lepszej roszdzki ('+RARITY[sp.rarity].nm+')');
+    player.lastCast=now+400;return;
+  }
   if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
   player.mana-=sp.mana;player.lastCast=now;
+  if(sp.kind==='buff'){castBuff(sp);return;}
+  if(sp.kind==='util'){toast(sp.name+': '+(sp.fx||'efekt wkrotce'));return;}
   spawnProjectile(_scene,_camera,sp);
 }
+// proste efekty wsparcia (reszta dochodzi pozniej)
+function castBuff(sp){
+  if(sp.id==='male_leczenie'){player.hp=Math.min(player.maxHp,player.hp+20);toast('+20 HP');}
+  else if(sp.id==='wielkie_leczenie'){player.hp=Math.min(player.maxHp,player.hp+100);toast('+100 HP');}
+  else if(sp.id==='przyspieszenie'){buffSpeedUntil=performance.now()+8000;toast('Przyspieszenie!');}
+  else toast(sp.name+': '+sp.fx);
+}
+let buffSpeedUntil=0;
 function removeProjectile(i){
   const p=projectiles[i];
   _scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();projectiles.splice(i,1);
@@ -1881,23 +2106,44 @@ function giveXP(amount){
     xpState.xp-=xpState.xpNext;
     xpState.level++;
     xpState.xpNext=Math.floor(100*Math.pow(xpState.level,1.15));
-    player.maxHp=100+(xpState.level-1)*10+maxHpBonus();player.hp=player.maxHp;
-    player.maxMana=1000+(xpState.level-1)*50;player.mana=player.maxMana;
-    applyStats();
-    stats.spellPts+=2;
-    toast('Poziom '+xpState.level+'! +2 pkt umiejętności');
-    checkNewSpells();updateCharBtn();
+    // co 5 poziomow -> +5 punktow
+    if(xpState.level%5===0 && xpState.level>lastPointLvl){
+      lastPointLvl=xpState.level;skillPoints+=5;
+      toast('Poziom '+xpState.level+'! +5 punktow umiejetnosci');
+    } else {
+      toast('Poziom '+xpState.level+'!');
+    }
+    applyStats();updateCharBtn();
   }
 }
-function checkNewSpells(){
-  const unlocked=SPELLS.filter(s=>s.lvl<=xpState.level);
-  if(unlocked.length>document.querySelectorAll('.spell-slot').length)buildSpellbar();
+// Bonusy ze statow: kazdy punkt = +20%
+function hpMul(){return 1+stats.hp*0.20;}
+function manaMul(){return 1+stats.mana*0.20;}
+function speedMul(){return 1+stats.speed*0.20;}
+function regenMul(){return 1+stats.regen*0.20;}
+// Bonusy z ekwipunku (sumuje aktualny set)
+function gearBonus(){
+  const b={hp:0,mana:0,dmg:0,speed:0,dmgRed:0};
+  const set=equipSets[activeSet];
+  for(const k in set){const it=set[k];if(it&&it.bonus)for(const s in it.bonus)b[s]=(b[s]||0)+it.bonus[s];}
+  return b;
 }
 function applyStats(){
-  player.manaRegen=(player.maxMana/120)*(1+stats.regen*0.12);
+  const g=gearBonus();
+  const baseHp=100+(xpState.level-1)*10;
+  player.maxHp=Math.round(baseHp*hpMul()+g.hp);
+  const baseMana=1000+(xpState.level-1)*50;
+  player.maxMana=Math.round(baseMana*manaMul()+g.mana);
+  player.manaRegen=5*regenMul();
+  player.hp=Math.min(player.hp,player.maxHp);
+  player.mana=Math.min(player.mana,player.maxMana);
+  // tier roszdzki: najlepsza posiadana roszdzka w plecaku lub zalozona
+  let wt=0;
+  for(let i=0;i<INV_SIZE;i++){const it=ITEMS[i];if(it&&it.type==='wand')wt=Math.max(wt,it.wandTier||0);}
+  const ew=equipSets[activeSet].weapon;if(ew&&ew.wandTier!=null)wt=Math.max(wt,ew.wandTier);
+  player.wandTier=wt;
 }
-function spellDmgMul(){return 1+stats.magPow*0.08;}
-function maxHpBonus(){return stats.endurance*15;}
+function spellDmgMul(){return 1+gearBonus().dmg/100;}
 
 // ── input ──
 function setupDesktopInput(){
@@ -1905,7 +2151,7 @@ function setupDesktopInput(){
   document.addEventListener('keydown',e=>{
     keys[e.code]=true;
     if(e.code==='ShiftLeft')sprinting=true;
-    if(e.code>='Digit1'&&e.code<='Digit7')selectSpell(parseInt(e.code.replace('Digit',''))-1);
+    if(e.code>='Digit1'&&e.code<='Digit9')selectSpellByPos(parseInt(e.code.replace('Digit',''))-1);
     if(e.code==='KeyE'){
       if(dialogOpen){closeDialog();}
       else if(_activeNPC){openDialog(_activeNPC);}
@@ -2002,7 +2248,8 @@ function updatePlayer(dt,camera){
     if(keys['Space']&&onGround){velY=JUMP_VEL;onGround=false;}
   }
   const len=Math.sqrt(mx*mx+mz*mz);if(len>0.01){mx/=len;mz/=len;}
-  const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*dt;
+  const speedBuff=performance.now()<buffSpeedUntil?1.3:1;
+  const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*speedMul()*speedBuff*dt;
   const sinY=Math.sin(yaw),cosY=Math.cos(yaw);
   let px=camera.position.x+(mx*cosY+mz*sinY)*spd;
   let pz=camera.position.z+(-mx*sinY+mz*cosY)*spd;
