@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Mage Arena RPG</title>
+<title>Kroniki Żywiołów</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;
@@ -422,6 +422,25 @@
     text-shadow:0 1px 3px #000;font-weight:700;letter-spacing:.5px}
   #boss-bar.show{display:block}
 
+  /* ── COMPANION HUD ─────────────────────────────────── */
+  #companion-hud{position:absolute;bottom:140px;right:10px;
+    background:rgba(10,14,26,.85);border:1px solid rgba(100,200,100,.5);
+    border-radius:12px;padding:8px 12px;color:#bde0bd;font-size:12px;
+    display:none;z-index:6;min-width:100px}
+  #companion-hud.show{display:block}
+  #companion-hud .comp-name{font-weight:700;margin-bottom:4px;color:#66ff88}
+  #companion-hud .comp-hp-bar{width:90px;height:6px;background:#333;border-radius:3px;overflow:hidden}
+  #companion-hud .comp-hp-fill{height:100%;background:#44cc55;transition:width .15s}
+  #companion-hud .comp-mode{margin-top:4px;font-size:10px;cursor:pointer;text-decoration:underline}
+
+  /* ── CLIMB BAR ─────────────────────────────────────── */
+  #climb-bar{position:absolute;left:50%;bottom:180px;transform:translateX(-50%);
+    width:80px;height:8px;background:rgba(0,0,0,.6);border-radius:4px;
+    border:1px solid rgba(255,200,60,.4);display:none;z-index:6;overflow:hidden}
+  #climb-bar.show{display:block}
+  #climb-bar .climb-fill{height:100%;background:linear-gradient(90deg,#cc8800,#ffcc44);
+    width:100%;transition:width .1s}
+
   /* ── CHEST PROMPT ─────────────────────────────────── */
   .chest-prompt{position:absolute;bottom:240px;left:50%;transform:translateX(-50%);
     background:rgba(20,26,42,.94);border:2px solid rgba(192,168,80,.6);
@@ -492,8 +511,8 @@
   <button id="fs-menu" title="Pelny ekran">⛶</button>
 
   <div class="menu-screen active" id="screen-title">
-    <div class="game-title">MAGE ARENA</div>
-    <div class="game-sub">RPG</div>
+    <div class="game-title">KRONIKI ŻYWIOŁÓW</div>
+    <div class="game-sub">Otwarty Świat RPG</div>
     <button class="btn primary" data-go="screen-class">Nowa Gra</button>
     <button class="btn" disabled>Kontynuuj</button>
   </div>
@@ -661,6 +680,8 @@
     </div>
   </div>
   <div id="boss-bar"><div class="bar-fill"></div><div class="bar-label" id="boss-name">Boss</div></div>
+  <div id="companion-hud"><div class="comp-name"></div><div class="comp-hp-bar"><div class="comp-hp-fill"></div></div><div class="comp-mode" id="comp-mode-btn">Tryb: Atakuj</div></div>
+  <div id="climb-bar"><div class="climb-fill"></div></div>
   <div id="overlay" class="hidden"><span>Kliknij aby grac</span></div>
   <div id="death-overlay">
     <div class="death-title" id="death-title">SMIERC</div>
@@ -1239,6 +1260,220 @@ function startGame(){
   }catch(e){showError('startGame: '+e.message+'\n'+e.stack);}
 }
 
+// ═══ COMPANION (Taming) ════════════════════════════════
+let companion=null;
+let companionMesh=null;
+let companionMode='attack';
+function tryTame(mob){
+  if(companion)return;
+  if(!mob.type.tame)return;
+  const tameItem=mob.type.tame;
+  const idx=ITEMS.findIndex(it=>it&&it.id===tameItem);
+  if(idx<0){toast('Potrzebujesz: '+(RESOURCES.find(r=>r.id===tameItem)||{name:tameItem}).name);return;}
+  ITEMS[idx].count--;if(ITEMS[idx].count<=0)ITEMS[idx]=null;
+  buildItembar();
+  companion={type:mob.type,hp:mob.maxHp,maxHp:mob.maxHp,dmg:Math.round(mob.type.dmg*0.8),
+    speed:mob.type.speed,name:mob.type.name,level:1,xp:0,xpNext:100};
+  toast('Oswojono: '+mob.type.name+'!');
+  const hud=document.getElementById('companion-hud');
+  hud.classList.add('show');
+  hud.querySelector('.comp-name').textContent=companion.name+' Poz.'+companion.level;
+  updateCompanionHUD();
+}
+function updateCompanionHUD(){
+  if(!companion){document.getElementById('companion-hud').classList.remove('show');return;}
+  const hud=document.getElementById('companion-hud');
+  hud.querySelector('.comp-name').textContent=companion.name+' Poz.'+companion.level;
+  hud.querySelector('.comp-hp-fill').style.width=(companion.hp/companion.maxHp*100)+'%';
+}
+function updateCompanion(dt,camera,scene){
+  if(!companion||!_scene)return;
+  if(!companionMesh){
+    const mt=MOB_TYPES.find(t=>t.id===companion.type.id);
+    if(!mt)return;
+    companionMesh=buildMobMesh(mt);
+    _scene.add(companionMesh);
+  }
+  const target=camera.position.clone();
+  target.x-=Math.sin(yaw)*3;target.z-=Math.cos(yaw)*3;
+  target.y=terrainHeight(target.x,target.z);
+  const cpos=companionMesh.position;
+  const dx=target.x-cpos.x,dz=target.z-cpos.z;
+  const dist=Math.sqrt(dx*dx+dz*dz);
+  if(dist>2){
+    const spd=Math.min(companion.speed*dt,dist);
+    cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;
+  }
+  cpos.y=terrainHeight(cpos.x,cpos.z);
+  companionMesh.lookAt(camera.position.x,cpos.y,camera.position.z);
+  if(companionMode==='attack'){
+    for(let i=mobs.length-1;i>=0;i--){
+      const m=mobs[i];
+      const md=m.mesh.position.distanceTo(cpos);
+      if(md<companion.type.atkRange+1&&!m.type.passive){
+        damageMob(i,companion.dmg);
+        companion.xp+=5;
+        if(companion.xp>=companion.xpNext){
+          companion.level++;companion.xp=0;companion.xpNext=Math.round(companion.xpNext*1.5);
+          companion.maxHp=Math.round(companion.maxHp*1.15);companion.hp=companion.maxHp;
+          companion.dmg=Math.round(companion.dmg*1.1);
+          toast(companion.name+' awansowal na poz. '+companion.level+'!');
+        }
+        break;
+      }
+    }
+  }
+  updateCompanionHUD();
+}
+document.getElementById('comp-mode-btn').addEventListener('click',()=>{
+  if(!companion)return;
+  companionMode=companionMode==='attack'?'stay':'attack';
+  document.getElementById('comp-mode-btn').textContent='Tryb: '+(companionMode==='attack'?'Atakuj':'Stoj');
+});
+
+// ═══ CHEST SYSTEM ═════════════════════════════════════
+const chests=[];
+const CHEST_LOOT=[
+  [{id:'hp_pot',name:'Mikstura Zdrowia',icon:'🧪',type:'consumable',effect:{hp:50}},{id:'bread',name:'Chleb',icon:'🍞',type:'food',effect:{hunger:20}},{id:'iron_ore',name:'Ruda Zelaza',icon:'⚙️',type:'resource'}],
+  [{id:'crystal',name:'Krysztal Many',icon:'💎',type:'resource'},{id:'gold_ore',name:'Zloto',icon:'🟡',type:'resource'},{id:'mana_pot',name:'Mikstura Many',icon:'🔵',type:'consumable',effect:{mana:300}}],
+  [{id:'diamond',name:'Diament',icon:'💠',type:'resource'},{id:'ruby',name:'Rubin',icon:'🔴',type:'resource'},{id:'mithril',name:'Mithril',icon:'🔵',type:'resource'}],
+];
+function spawnChest(scene,x,z,tier){
+  const h=terrainHeight(x,z);
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.6,0.6),
+    new THREE.MeshStandardMaterial({color:[0x8a6a3a,0xb89a5a,0xd4a040][tier]||0x8a6a3a,roughness:0.7,flatShading:true}));
+  body.position.y=0.3;body.castShadow=true;g.add(body);
+  const lid=new THREE.Mesh(new THREE.BoxGeometry(0.82,0.15,0.62),
+    new THREE.MeshStandardMaterial({color:[0x6a4a2a,0x9a7a4a,0xb88a30][tier]||0x6a4a2a,roughness:0.6,flatShading:true}));
+  lid.position.y=0.65;g.add(lid);
+  const lock=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.12,0.08),
+    new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.8,roughness:0.2}));
+  lock.position.set(0,0.55,0.32);g.add(lock);
+  g.position.set(x,h,z);scene.add(g);
+  chests.push({mesh:g,x,z,tier,opened:false});
+}
+function openNearbyChest(camera){
+  for(const c of chests){
+    if(c.opened)continue;
+    const dx=camera.position.x-c.x,dz=camera.position.z-c.z;
+    if(dx*dx+dz*dz<4*4){
+      c.opened=true;
+      c.mesh.children[1].position.y=1.0;
+      c.mesh.children[1].rotation.x=-0.8;
+      const loot=CHEST_LOOT[Math.min(c.tier,CHEST_LOOT.length-1)];
+      let count=0;
+      for(const item of loot){
+        if(Math.random()<0.6){
+          addToInventory({...item,count:1});
+          toast('+1 '+item.name);count++;
+        }
+      }
+      if(count===0){addToInventory({...loot[0],count:1});toast('+1 '+loot[0].name);}
+      player.gold+=10*(c.tier+1);
+      toast('+'+(10*(c.tier+1))+' zlota');
+      return true;
+    }
+  }
+  return false;
+}
+
+// ═══ CLIMB SYSTEM ═════════════════════════════════════
+let climbStamina=100,isClimbing=false;
+function checkClimb(camera,dt){
+  if(playerDead)return false;
+  const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const px=camera.position.x+dir.x*1.0,pz=camera.position.z+dir.z*1.0;
+  let nearWall=false;
+  for(const t of _treePositions){
+    const dx=px-t.x,dz=pz-t.z;
+    if(dx*dx+dz*dz<(t.r+0.8)*(t.r+0.8)){nearWall=true;break;}
+  }
+  for(const t of _rockPositions){
+    const dx=px-t.x,dz=pz-t.z;
+    if(dx*dx+dz*dz<(t.r+0.8)*(t.r+0.8)){nearWall=true;break;}
+  }
+  const climbBar=document.getElementById('climb-bar');
+  if(nearWall&&!onGround&&climbStamina>0&&(isMobile?joyState.dy<-0.3:(keys['KeyW']||keys['ArrowUp']))){
+    isClimbing=true;climbStamina=Math.max(0,climbStamina-20*dt);
+    climbBar.classList.add('show');
+    climbBar.querySelector('.climb-fill').style.width=climbStamina+'%';
+    return true;
+  }
+  isClimbing=false;
+  if(onGround)climbStamina=Math.min(100,climbStamina+30*dt);
+  if(climbStamina<100&&!onGround)climbBar.classList.add('show');
+  else climbBar.classList.remove('show');
+  climbBar.querySelector('.climb-fill').style.width=climbStamina+'%';
+  return false;
+}
+
+// ═══ CLASS ABILITIES ═════════════════════════════════════
+let classAbilityCd=0;
+function useClassAbility(abilityId){
+  const now=performance.now();
+  if(now<classAbilityCd)return;
+  if(playerClass==='wampir'){
+    if(abilityId==='bat_form'){
+      if(blood<200){toast('Za malo krwi');return;}
+      blood-=200;buffSpeedUntil=now+8000;velY=8;toast('Forma Nietoperza!');classAbilityCd=now+12000;
+    }else if(abilityId==='blood_fury'){
+      if(blood<300){toast('Za malo krwi');return;}
+      blood-=300;statusEffects.push({type:'dmgBoost',until:now+10000,value:1.5});toast('Szal Krwi! +50% dmg');classAbilityCd=now+20000;
+    }else if(abilityId==='blood_drain'){
+      if(blood<100){toast('Za malo krwi');return;}
+      blood-=100;
+      for(let i=mobs.length-1;i>=0;i--){
+        const m=mobs[i];const d=m.mesh.position.distanceTo(_camera.position);
+        if(d<8){damageMob(i,80);player.hp=Math.min(player.maxHp,player.hp+40);break;}
+      }
+      toast('Drenaż Krwi!');classAbilityCd=now+8000;
+    }
+  }else if(playerClass==='czlowiek'){
+    if(abilityId==='strong_hit'){
+      if(strength<30){toast('Za malo sily');return;}
+      strength-=30;
+      const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+      for(let i=mobs.length-1;i>=0;i--){
+        const m=mobs[i];const toM=m.mesh.position.clone().sub(_camera.position);
+        if(toM.length()<5&&dir.dot(toM.normalize())>0.3){damageMob(i,getMeleeDmg()*3);break;}
+      }
+      toast('Silne Uderzenie!');classAbilityCd=now+6000;
+    }else if(abilityId==='war_cry'){
+      if(strength<50){toast('Za malo sily');return;}
+      strength-=50;
+      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12)m.dmgMul*=0.6;});
+      toast('Okrzyk Wojenny! Wrogowie oslabieni');classAbilityCd=now+15000;
+    }else if(abilityId==='shield'){
+      if(strength<40){toast('Za malo sily');return;}
+      strength-=40;shieldHP+=200;toast('Tarcza! +200 oslony');classAbilityCd=now+12000;
+    }
+  }else if(playerClass==='nieumarly'){
+    if(abilityId==='plague'){
+      if(decay<40){toast('Za malo rozkladu');return;}
+      decay-=40;
+      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){
+        damageMob(mobs.indexOf(m),60);
+        const fp=m.mesh.position.clone();fp.y+=1;floatNumber(fp,'Zaraza','#66ff33');
+      }});
+      toast('Zaraza!');classAbilityCd=now+10000;
+    }else if(abilityId==='bone_armor'){
+      if(decay<60){toast('Za malo rozkladu');return;}
+      decay-=60;shieldHP+=300;toast('Kostna Zbroja! +300 oslony');classAbilityCd=now+15000;
+    }else if(abilityId==='death_grip'){
+      if(decay<30){toast('Za malo rozkladu');return;}
+      decay-=30;
+      for(let i=mobs.length-1;i>=0;i--){
+        const m=mobs[i];if(m.mesh.position.distanceTo(_camera.position)<15){
+          const dir=_camera.position.clone().sub(m.mesh.position).normalize();
+          m.mesh.position.addScaledVector(dir,8);damageMob(i,40);break;
+        }
+      }
+      toast('Chwyt Smierci!');classAbilityCd=now+8000;
+    }
+  }
+}
+
 // ═══ WORLD ════════════════════════════════════════════
 let worldStarted=false;
 const EYE_H=1.75, WALK_SPD=6, SPRINT_MUL=1.6;
@@ -1533,9 +1768,37 @@ function setupLighting(scene){
   scene.add(sun.target);_sun=sun;
   const fill=new THREE.DirectionalLight(0x8899bb,0.3);fill.position.set(-30,40,-20);scene.add(fill);
 }
+let _stars=null;
+let _dustParticles=null;
 function setupAtmosphere(scene){
   scene.background=new THREE.Color(0x6688cc);
   scene.fog=new THREE.FogExp2(0x6688cc,isMobile?0.006:0.004);
+  const starCount=isMobile?200:500;
+  const starGeo=new THREE.BufferGeometry();
+  const starPos=new Float32Array(starCount*3);
+  for(let i=0;i<starCount;i++){
+    const theta=Math.random()*Math.PI*2,phi=Math.acos(Math.random()*2-1);
+    const r=400+Math.random()*200;
+    starPos[i*3]=r*Math.sin(phi)*Math.cos(theta);
+    starPos[i*3+1]=Math.abs(r*Math.cos(phi));
+    starPos[i*3+2]=r*Math.sin(phi)*Math.sin(theta);
+  }
+  starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+  const starMat=new THREE.PointsMaterial({color:0xffffff,size:1.2,transparent:true,opacity:0});
+  _stars=new THREE.Points(starGeo,starMat);
+  scene.add(_stars);
+  const dustCount=isMobile?80:200;
+  const dustGeo=new THREE.BufferGeometry();
+  const dustPos=new Float32Array(dustCount*3);
+  for(let i=0;i<dustCount;i++){
+    dustPos[i*3]=(Math.random()-0.5)*60;
+    dustPos[i*3+1]=Math.random()*15+1;
+    dustPos[i*3+2]=(Math.random()-0.5)*60;
+  }
+  dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
+  const dustMat=new THREE.PointsMaterial({color:0xffeedd,size:0.15,transparent:true,opacity:0.4});
+  _dustParticles=new THREE.Points(dustGeo,dustMat);
+  scene.add(_dustParticles);
 }
 function updateDayNight(dt){
   worldTime=(worldTime+dt)%CYCLE_LEN;
@@ -1557,6 +1820,11 @@ function updateDayNight(dt){
   if(_ambient)_ambient.intensity=ambInt;
   if(_scene){_scene.background.setRGB(skyR,skyG,skyB);
     _scene.fog.color.setRGB(skyR,skyG,skyB);}
+  if(_stars){
+    const nightFade=t>0.5&&t<0.9?1.0:t>0.45&&t<0.5?(t-0.45)/0.05:t>0.9&&t<0.95?1-(t-0.9)/0.05:0;
+    _stars.material.opacity=nightFade*0.8;
+    if(_camera)_stars.position.copy(_camera.position);
+  }
   const di=document.getElementById('day-ind');
   if(di)di.textContent=t>0.5&&t<0.9?'🌙':'☀️';
 }
@@ -1804,6 +2072,17 @@ function buildStructures(scene){
   buildDragonLair(scene,LANDMARKS.lair.x,LANDMARKS.lair.z);
   buildPyramid(scene,LANDMARKS.pyramid.x,LANDMARKS.pyramid.z);
   buildMine(scene,LANDMARKS.mine.x,LANDMARKS.mine.z);
+  const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
+  for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
+    spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
+  const cx=LANDMARKS.cemetery.x,cz=LANDMARKS.cemetery.z;
+  spawnChest(scene,cx+5,cz+3,1);spawnChest(scene,cx-4,cz-6,1);
+  const lx=LANDMARKS.lair.x,lz=LANDMARKS.lair.z;
+  spawnChest(scene,lx+2,lz-3,2);spawnChest(scene,lx-3,lz+2,2);
+  const kx=LANDMARKS.castle.x,kz=LANDMARKS.castle.z;
+  spawnChest(scene,kx+8,kz+5,2);spawnChest(scene,kx-6,kz-8,2);spawnChest(scene,kx,kz+12,1);
+  const px=LANDMARKS.pyramid.x,pz=LANDMARKS.pyramid.z;
+  spawnChest(scene,px+4,pz+6,1);spawnChest(scene,px-5,pz-3,2);
 }
 function updateStructures(now){
   if(_portal){
@@ -2036,6 +2315,7 @@ function renderVillager(body){
 document.getElementById('dlg-x').addEventListener('click',closeDialog);
 document.getElementById('interact-prompt').addEventListener('click',()=>{
   if(_activeNPC)openDialog(_activeNPC);
+  else if(_camera)openNearbyChest(_camera);
 });
 
 // ═══ CHARACTER PANEL ════════════════════════════════
@@ -2289,6 +2569,7 @@ function meleeSwing(){
   }
   const px=_camera.position.x,pz=_camera.position.z;
   const lookX=px+dir.x*2.5,lookZ=pz+dir.z*2.5;
+  const hasPickaxe=ITEMS.some(it=>it&&it.id==='wooden_pickaxe');
   for(const rk of _rockPositions){
     const rdx=lookX-rk.x,rdz=lookZ-rk.z;
     if(rdx*rdx+rdz*rdz<2.5*2.5){
@@ -2297,6 +2578,22 @@ function meleeSwing(){
         toast('+1 Kamien');
         const wp=new THREE.Vector3(rk.x,terrainHeight(rk.x,rk.z)+0.5,rk.z);
         floatNumber(wp,'+1 🪨','#aaaaaa');
+      }
+      if(hasPickaxe){
+        const biome=dominantBiome(rk.x,rk.z);
+        let oreId=null;
+        if(biome==='mountains'&&Math.random()<0.3)oreId=['iron_ore','copper','silver','gold_ore','mithril','diamond'][Math.floor(Math.random()*6)];
+        else if(biome==='volcanic'&&Math.random()<0.25)oreId=['iron_ore','coal','fire_dust'][Math.floor(Math.random()*3)];
+        else if(biome==='desert'&&Math.random()<0.2)oreId=['sand','gold_ore','copper'][Math.floor(Math.random()*3)];
+        else if(biome==='arctic'&&Math.random()<0.2)oreId=['silver','diamond','mithril'][Math.floor(Math.random()*3)];
+        else if(Math.random()<0.15)oreId=['iron_ore','copper','coal'][Math.floor(Math.random()*3)];
+        if(oreId){const ore=RESOURCES.find(r=>r.id===oreId);
+          if(ore&&addToInventory({...ore})){
+            toast('+1 '+ore.name);
+            const op=new THREE.Vector3(rk.x,terrainHeight(rk.x,rk.z)+0.8,rk.z);
+            floatNumber(op,'+1 '+ore.icon,'#ffcc44');
+          }
+        }
       }
       return;
     }
@@ -2805,6 +3102,10 @@ function killMob(idx){
     }
   }
   if(Math.random()<0.05){const c=RESOURCES.find(r=>r.id==='crystal');if(c)addToInventory({...c});}
+  if(playerClass==='wampir'&&!m.type.passive){blood=Math.min(maxBlood,blood+50);toast('+50 Krew');}
+  if(playerClass==='czlowiek'){strength=Math.min(maxStrength,strength+10);}
+  if(playerClass==='nieumarly'){decay=Math.min(maxDecay,decay+8);}
+  if(m.type.tame&&m.hp<=m.maxHp*0.1&&!companion){tryTame(m);}
   // death particles
   const pos=m.mesh.position.clone();
   for(let j=0;j<8;j++){
@@ -3034,7 +3335,11 @@ function setupDesktopInput(){
     if(e.code==='KeyE'){
       if(dialogOpen){closeDialog();}
       else if(_activeNPC){openDialog(_activeNPC);}
+      else if(_camera){openNearbyChest(_camera);}
     }
+    if(e.code==='KeyR'&&_camera){useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':playerClass==='nieumarly'?'plague':'');}
+    if(e.code==='KeyF'&&_camera){useClassAbility(playerClass==='wampir'?'bat_form':playerClass==='czlowiek'?'shield':playerClass==='nieumarly'?'bone_armor':'');}
+    if(e.code==='KeyG'&&_camera){useClassAbility(playerClass==='wampir'?'blood_drain':playerClass==='czlowiek'?'war_cry':playerClass==='nieumarly'?'death_grip':'');}
     if(e.code==='Tab'){e.preventDefault();toggleCharPanel();}
     if(e.code==='KeyC'){e.preventDefault();
       craftOpen=!craftOpen;document.getElementById('craft-panel').classList.toggle('open',craftOpen);
@@ -3111,6 +3416,17 @@ function setupMobileInput(){
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
+  if(playerClass!=='mag'&&playerClass!=='nekromanta'&&playerClass!=='atlantyda'){
+    const abilBtn=document.createElement('button');
+    abilBtn.id='abil-btn';abilBtn.textContent='⚡';
+    abilBtn.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;'+
+      'border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);'+
+      'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    document.getElementById('game-ui').appendChild(abilBtn);
+    abilBtn.addEventListener('touchstart',e=>{e.stopPropagation();
+      useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':'plague');
+    },{passive:false});
+  }
 }
 
 // ═══ PLAYER MOVEMENT ════════════════════════════════
@@ -3140,7 +3456,9 @@ function updatePlayer(dt,camera){
     const minD=PLAYER_R+t.r;
     if(td<minD&&td>0.01){const push=(minD-td)/td;px+=tdx*push;pz+=tdz*push;}
   }
-  velY-=GRAVITY*dt;let py=camera.position.y+velY*dt;
+  if(checkClimb(camera,dt)){velY=3.5;}
+  else{velY-=GRAVITY*dt;}
+  let py=camera.position.y+velY*dt;
   const groundH=terrainHeight(px,pz)+EYE_H;
   if(py<=groundH){py=groundH;velY=0;onGround=true;}else{onGround=false;}
   camera.position.set(px,py,pz);
@@ -3155,6 +3473,35 @@ function updateHunger(dt){
   if(hunger<=0&&!playerDead){player.hp-=dt;if(player.hp<=0){player.hp=0;playerDeath();}}
   _hungerWarnTimer-=dt;
   if(hunger<20&&_hungerWarnTimer<=0){toast('Jestes glodny!');_hungerWarnTimer=15;}
+}
+
+// ═══ CLASS PASSIVES ════════════════════════════════
+let _sunDmgTimer=0;
+function updateClassPassives(dt){
+  if(playerClass==='wampir'){
+    const t=worldTime/CYCLE_LEN;
+    const isDay=t<0.5||t>0.9;
+    if(isDay){
+      const hasCape=!!equipSets[activeSet].cape;
+      const dmgRate=hasCape?1:5;
+      _sunDmgTimer+=dt;
+      if(_sunDmgTimer>=1){_sunDmgTimer=0;
+        player.hp-=dmgRate;
+        if(player.hp<=0){player.hp=0;playerDeath();}
+        if(!hasCape&&Math.random()<0.1)toast('Slonce parzy! Zdobadz peleryne!');
+      }
+    }
+    blood=Math.min(maxBlood,blood+0.5*dt);
+  }
+  if(playerClass==='czlowiek'){
+    strength=Math.min(maxStrength,strength+2*dt);
+  }
+  if(playerClass==='nieumarly'){
+    decay=Math.min(maxDecay,decay+1.5*dt);
+    if(Math.random()<0.001*dt&&player.hp<player.maxHp*0.5){
+      player.hp=Math.min(player.maxHp,player.hp+1);
+    }
+  }
 }
 
 // ═══ HUD ════════════════════════════════════════════
@@ -3262,6 +3609,7 @@ function initWorld(){
     if(!playerDead){
       player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
       updateHunger(dt);
+      updateClassPassives(dt);
     }
     updatePlayer(dt,camera);
     updateDayNight(dt);
@@ -3273,10 +3621,21 @@ function initWorld(){
     updateBosses(dt,now,camera);
     updateNPCs(dt,now,camera);
     updateStatusEffects(dt);
+    updateCompanion(dt,camera,scene);
     _activeNPC=findInteractNPC(camera);
     const ipEl=document.getElementById('interact-prompt');
+    let nearChest=false;
+    for(const c of chests){
+      if(!c.opened){
+        const dx=camera.position.x-c.x,dz=camera.position.z-c.z;
+        if(dx*dx+dz*dz<4*4){nearChest=true;break;}
+      }
+    }
     if(_activeNPC&&!dialogOpen){
       document.getElementById('interact-name').textContent=_activeNPC.name;
+      ipEl.classList.add('show');
+    }else if(nearChest&&!dialogOpen){
+      document.getElementById('interact-name').textContent='Otworz Skrzynie';
       ipEl.classList.add('show');
     }else{ipEl.classList.remove('show');}
     // boss spawn proximity check
@@ -3285,6 +3644,17 @@ function initWorld(){
       const lm=LANDMARKS[bt.struct];if(!lm)continue;
       const dx=camera.position.x-lm.x,dz=camera.position.z-lm.z;
       if(dx*dx+dz*dz<30*30)spawnBoss(scene,bt,lm.x,lm.z);
+    }
+    if(_dustParticles){
+      _dustParticles.position.set(camera.position.x,0,camera.position.z);
+      _dustParticles.rotation.y+=dt*0.02;
+      const pa=_dustParticles.geometry.attributes.position.array;
+      for(let i=1;i<pa.length;i+=3)pa[i]+=Math.sin(now*0.001+i)*0.003;
+      _dustParticles.geometry.attributes.position.needsUpdate=true;
+      const t=worldTime/CYCLE_LEN;
+      const isNight=t>0.5&&t<0.9;
+      _dustParticles.material.color.setHex(isNight?0x88ccff:0xffeedd);
+      _dustParticles.material.opacity=isNight?0.6:0.3;
     }
     updateHUD(camera);
     renderer.render(scene,camera);
