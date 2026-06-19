@@ -5023,6 +5023,16 @@ function initWorld(){
   requestAnimationFrame(loop);
   }catch(e){showError('initWorld CRASH: '+e.message+'\n'+e.stack);}
 }
+// Hak debugowy (do automatycznych testow) - nie wplywa na rozgrywke
+window.__game={get camera(){return _camera;},get scene(){return _scene;},
+  get SPELLS(){return SPELLS;},get player(){return player;},
+  get shadowPoints(){return shadowPoints;},set shadowPoints(v){shadowPoints=v;},
+  get shadowMinions(){return shadowMinions;},get necroPet(){return necroPet;},
+  get placedBlocks(){return placedBlocks;},get portals(){return _portals;},
+  get worldRealm(){return worldRealm;},get ITEMS(){return ITEMS;},
+  toggleBuildMode,placeBlock,setBlock:(t)=>{buildBlockType=t;},
+  checkPortals,attemptCast,terrainHeight,spawnNecroPet:()=>spawnNecroPet(),
+  get bosses(){return bosses;},get mobs(){return mobs;}};
 </script>
 </body>
 </html>
