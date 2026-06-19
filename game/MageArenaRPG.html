@@ -220,6 +220,9 @@
   #dmg-flash{position:absolute;inset:0;pointer-events:none;z-index:4;
     background:radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(180,20,20,.4));
     opacity:0;transition:opacity .1s ease}
+  /* cinematyczna winieta */
+  #vignette{position:absolute;inset:0;pointer-events:none;z-index:3;
+    background:radial-gradient(ellipse at 50% 48%,transparent 55%,rgba(0,0,0,.42) 100%)}
 
   /* death overlay */
   #death-overlay{position:absolute;inset:0;z-index:20;
@@ -674,6 +677,7 @@
     <div id="hotbar"></div>
   </div>
   <div id="dmg-flash"></div>
+  <div id="vignette"></div>
   <div id="joystick-base"></div>
   <div id="joystick-knob"></div>
   <div id="joystick-zone"></div>
@@ -2361,7 +2365,7 @@ function initSceneryPools(){
        #endif`);
   };
   _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x4a3728,roughness:0.9,flatShading:true});
-  _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.85,flatShading:true});
+  _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.85,flatShading:true,emissive:0x0a2a08,emissiveIntensity:0.25});
   _scnMats.rock=new THREE.MeshStandardMaterial({roughness:0.9,flatShading:true});
   _scnMats.cactus=new THREE.MeshStandardMaterial({color:0x4a7a3a,roughness:0.8,flatShading:true});
   _scnMats.sTrunk=new THREE.MeshStandardMaterial({color:0x6a5a4a,roughness:0.9,flatShading:true});
@@ -2568,9 +2572,9 @@ function buildWater(scene){
 }
 let _ambient=null,_hemi=null;
 function setupLighting(scene){
-  _ambient=new THREE.AmbientLight(0x4a5568,0.45);scene.add(_ambient);
-  _hemi=new THREE.HemisphereLight(0xaaccff,0x4a5a2a,0.5);scene.add(_hemi);
-  const sun=new THREE.DirectionalLight(0xfff0dd,1.1);sun.position.set(50,80,30);sun.castShadow=true;
+  _ambient=new THREE.AmbientLight(0x556080,0.5);scene.add(_ambient);
+  _hemi=new THREE.HemisphereLight(0xbfdcff,0x5a6a3a,0.6);scene.add(_hemi);
+  const sun=new THREE.DirectionalLight(0xfff2d8,1.25);sun.position.set(50,80,30);sun.castShadow=true;
   sun.shadow.mapSize.set(isMobile?1024:2048,isMobile?1024:2048);
   sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;
   sun.shadow.camera.near=0.5;sun.shadow.camera.far=240;sun.shadow.bias=-0.001;scene.add(sun);
@@ -4924,7 +4928,7 @@ function initWorld(){
   renderer.setSize(window.innerWidth,window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?2:3));
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   document.body.prepend(renderer.domElement);
   const scene=new THREE.Scene();
