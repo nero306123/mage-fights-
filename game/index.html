@@ -4123,8 +4123,8 @@ function buildMobMesh(type){
     head.position.set(0,2.5,1.0);g.add(head);
     const eyeM=new THREE.MeshBasicMaterial({color:0xffcc00});
     const eyeG=new THREE.SphereGeometry(0.08,4,4);
-    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(-0.2,2.6,1.3)}));
-    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(0.2,2.6,1.3)}));
+    {const e1=new THREE.Mesh(eyeG,eyeM);e1.position.set(-0.2,2.6,1.3);g.add(e1);
+     const e2=new THREE.Mesh(eyeG,eyeM);e2.position.set(0.2,2.6,1.3);g.add(e2);}
     const wingM=new THREE.MeshStandardMaterial({color:0x661111,flatShading:true,side:THREE.DoubleSide});
     const wingG=new THREE.PlaneGeometry(2.0,1.2);
     const wL=new THREE.Mesh(wingG,wingM);wL.position.set(-1.5,2.2,0);wL.rotation.y=0.3;g.add(wL);
@@ -4164,8 +4164,8 @@ function buildMobMesh(type){
     crown.position.set(0,1.9,0.5);g.add(crown);
     const eyeM=new THREE.MeshBasicMaterial({color:0x00ccff});
     const eyeG=new THREE.SphereGeometry(0.06,4,4);
-    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(-0.15,1.55,0.75)}));
-    g.add(Object.assign(new THREE.Mesh(eyeG,eyeM),{position:new THREE.Vector3(0.15,1.55,0.75)}));
+    {const e1=new THREE.Mesh(eyeG,eyeM);e1.position.set(-0.15,1.55,0.75);g.add(e1);
+     const e2=new THREE.Mesh(eyeG,eyeM);e2.position.set(0.15,1.55,0.75);g.add(e2);}
   }else if(type.id==='crystal_golem'){
     const body=new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.6),
       new THREE.MeshStandardMaterial({color:0x88ccee,transparent:true,opacity:0.8,metalness:0.4,roughness:0.2,flatShading:true}));
@@ -4276,7 +4276,14 @@ function spawnMob(scene,camera){
   if(inClearing(x,z))return;
   const biome=dominantBiome(x,z);
   const nightNow=worldTime/CYCLE_LEN>0.5&&worldTime/CYCLE_LEN<0.9;
-  const valid=MOB_TYPES.filter(t=>t.biomes.includes(biome)&&(!t.night||nightNow));
+  let valid;
+  if(worldRealm==='dead'){
+    // Swiat Umarlych: tylko nieumarli (szkielety, zombie, duchy, wieszcze)
+    const undeadIds=['skeleton','zombie','ghost','wieszcz','mummy','scorpion'];
+    valid=MOB_TYPES.filter(t=>undeadIds.includes(t.id));
+  }else{
+    valid=MOB_TYPES.filter(t=>t.biomes.includes(biome)&&(!t.night||nightNow));
+  }
   if(valid.length===0)return;
   const type=valid[(Math.random()*valid.length)|0];
   const mesh=buildMobMesh(type);
@@ -5036,7 +5043,8 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get worldRealm(){return worldRealm;},get ITEMS(){return ITEMS;},
   toggleBuildMode,placeBlock,setBlock:(t)=>{buildBlockType=t;},
   checkPortals,attemptCast,terrainHeight,spawnNecroPet:()=>spawnNecroPet(),
-  get bosses(){return bosses;},get mobs(){return mobs;}};
+  get bosses(){return bosses;},get mobs(){return mobs;},
+  buildMobMesh,buildBossMesh,get MOB_TYPES(){return MOB_TYPES;},get BOSS_TYPES(){return BOSS_TYPES;}};
 </script>
 </body>
 </html>
