@@ -584,7 +584,7 @@
       <div class="class-card" data-class="wampir">
         <div class="class-icon">🦇</div>
         <div class="class-name">Wampir</div>
-        <div class="class-tag">System krwi, slabosc na slonce, mroczne moce pasywne.</div>
+        <div class="class-tag">21 zaklec krwi, lifesteal, slabosc na slonce, mroczne moce.</div>
       </div>
       <div class="class-card" data-class="nekromanta">
         <div class="class-icon">💀</div>
@@ -970,6 +970,46 @@ function buildNecroSpells(){
       ...(extra||{}) };
   });
 }
+// ── ZAKLECIA WAMPIRA (system krwi) ──
+const WAMPIR_SPELL_DATA = [
+  // ── ATAKI KRWI (8) ──
+  ['krwawy_pocisk','Krwawy Pocisk','shadow','common',30,2.2,22,'Kradnie 10 HP','🩸'],
+  ['szpon_nocy','Szpon Nocy','shadow','common',45,2.5,35,'','🦇'],
+  ['krwawa_fala','Krwawa Fala','shadow','rare',80,3,65,'AOE 5m','🌊'],
+  ['wir_krwi','Wir Krwi','shadow','rare',100,3.5,80,'AOE 6m + slow 30%','🌀'],
+  ['mroczne_ugryzienie','Mroczne Ugryzienie','shadow','epic',150,4,130,'Kradnie 60 HP','🧛'],
+  ['deszcz_krwi','Deszcz Krwi','shadow','epic',200,5,190,'AOE 8m','☔'],
+  ['krew_nocy','Krew Nocy','shadow','mythic',400,6,320,'AOE 10m + heal 50% dmg','🌙'],
+  ['klatwa_wampira','Klatwa Wampira','shadow','legend',800,8,600,'AOE 12m + lifesteal','🦇'],
+  // ── BUFFY KRWI (7) ──
+  ['krwawa_tarcza','Krwawa Tarcza','necbuff','common',40,1.5,0,'Oslona 80 HP','🛡️'],
+  ['regeneracja_krwi','Regeneracja Krwi','necbuff','common',60,2,0,'+8 HP/s przez 10s','💉'],
+  ['szal_krwi','Szal Krwi','necbuff','rare',100,2.5,0,'+50% dmg na 10s','😡'],
+  ['forma_nietoperza','Forma Nietoperza','necbuff','rare',120,2,0,'Szybkosc +80% na 8s + skok','🦇'],
+  ['krwawa_mgla','Krwawa Mgla','necbuff','epic',180,3,0,'Niewidzialnosc 5s + regen','🌫️'],
+  ['krew_przodkow','Krew Przodkow','necbuff','epic',250,4,0,'Pelne HP + oslona 200','👑'],
+  ['niesmiertelnosc','Niesmiertelnosc','necbuff','mythic',500,5,0,'Odpornosc na smierc 8s','💀'],
+  // ── NARZEDZIA (5) ──
+  ['teleportacja_krwi','Teleportacja Krwi','other','common',50,1.5,0,'Teleport 15m do przodu','🌀'],
+  ['echo_nocy','Echo Nocy','other','rare',80,2,0,'Swiatlo w mroku na 30s','👁️'],
+  ['portal_krwi','Portal Krwi','other','epic',250,4,0,'Teleport do wioski','🏠'],
+  ['drenaz_obszarowy','Drenaz Obszarowy','other','mythic',350,5,0,'Kradnie HP wszystkim wrogom w 12m','🩸'],
+  ['zmartwychwstanie_krwi','Zmartwychwstanie Krwi','other','legend',600,6,0,'Chroni przed smiercia (1 raz)','♻️'],
+  // ── SECRET ──
+  ['krew_starodawnych','Krew Starodawnych','shadow','secret',2000,10,1800,'Mega AOE 15m + pelne HP + 500 oslony','🩸'],
+];
+function buildWampirSpells(){
+  return WAMPIR_SPELL_DATA.map(d=>{
+    const [id,name,el,rar,bloodCost,cast,dmg,fx,icOv]=d;
+    const e=ELEM[el], r=RARITY[rar];
+    return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
+      color:e.col, light:e.light, kind:e.kind,
+      mana:bloodCost, bloodCost:true, castTime:cast, dmg, fx:fx||'',
+      speed:e.speed, size:e.size+(RARITY_ORDER.indexOf(rar))*0.03,
+      life:e.life, gravity:e.grav, cd:RARITY_CD[rar],
+      cost:r.pts, lvl:r.lvl, wandReq:0, needScroll:r.scroll };
+  });
+}
 let SPELLS = buildSpells();
 // Pierwsze zaklecie gracz ma od startu
 const ownedSpells = new Set([0]);
@@ -1023,6 +1063,7 @@ const BOSS_TYPES = [
   {id:'ice_titan',name:'Lodowy Tytan',hp:12000,dmg:55,speed:2.8,atkRange:5,aggroRange:35,xp:900,gold:400,atkCd:1.7,height:4.2,struct:'ice_tower'},
   {id:'spider_queen',name:'Krolowa Pajakow',hp:9000,dmg:48,speed:5.0,atkRange:4,aggroRange:38,xp:850,gold:380,atkCd:1.2,height:3.2,struct:'spider_nest'},
   {id:'lava_golem',name:'Golem Lawy',hp:14000,dmg:70,speed:2.4,atkRange:5,aggroRange:32,xp:1100,gold:450,atkCd:2.0,height:4.0,struct:'lava_forge'},
+  {id:'forest_queen',name:'Krolowa Lasu',hp:11000,dmg:52,speed:3.8,atkRange:4.5,aggroRange:36,xp:950,gold:420,atkCd:1.4,height:3.8,struct:'sacred_grove'},
 ];
 
 // ═══ EQUIPMENT DROPS TABLE ═══════════════════════════════
@@ -1062,6 +1103,9 @@ const BOSS_DROPS = [
   {id:'venom_gloves',name:'Jadowite Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:22,hp:30},rarity:'legend',boss:'spider_queen'},
   {id:'lava_chest',name:'Zbroja z Magmy',icon:'🦺',equip:'chest',bonus:{hp:100,dmgRed:22,dmg:10},rarity:'legend',boss:'lava_golem'},
   {id:'lava_staff',name:'Kostur Magmy',icon:'🪄',equip:'weapon',bonus:{dmg:32,mana:70},rarity:'legend',type:'wand',wandTier:3,boss:'lava_golem'},
+  {id:'crown_nature',name:'Korona Natury',icon:'👑',equip:'hood',bonus:{hp:60,mana:50,dmg:12},rarity:'legend',boss:'forest_queen'},
+  {id:'forest_cape',name:'Peleryna Lasu',icon:'🧣',equip:'cape',bonus:{hp:40,speed:15,dmgRed:10},rarity:'legend',boss:'forest_queen'},
+  {id:'nature_staff',name:'Berlo Natury',icon:'🪄',equip:'weapon',bonus:{dmg:26,mana:60},rarity:'legend',type:'wand',wandTier:3,boss:'forest_queen'},
 ];
 
 // ═══ SKLEP (rozszerzony) ═════════════════════════════════
@@ -1219,6 +1263,7 @@ const LANDMARKS={
   ice_tower:{x:-1500,z:-1200,name:'Lodowa Wieza'},
   spider_nest:{x:1200,z:-1600,name:'Gniazdo Pajakow'},
   lava_forge:{x:-1400,z:1500,name:'Kuznia Lawy'},
+  sacred_grove:{x:600,z:-500,name:'Swiety Gaj'},
 };
 
 // ═══ CLEARINGS (rozszerzone) ═════════════════════════════
@@ -1233,6 +1278,7 @@ const STRUCT_CLEARINGS=[
   {x:-1500,z:-1200,r:40},   // lodowa wieza
   {x:1200,z:-1600,r:38},    // gniazdo pajakow
   {x:-1400,z:1500,r:42},    // kuznia lawy
+  {x:600,z:-500,r:40},      // swiety gaj
 ];
 function inClearing(x,z){
   for(const c of STRUCT_CLEARINGS){const dx=x-c.x,dz=z-c.z;if(dx*dx+dz*dz<c.r*c.r)return true;}
@@ -1341,7 +1387,7 @@ function buildSpellbar(){
     const el=document.createElement('div');
     el.className='spell-slot'+(i===player.selSpell?' active':'');
     el.dataset.spell=i;
-    el.innerHTML=`${sp.icon}<span class="spell-cost">${sp.mana}</span>`;
+    el.innerHTML=`${sp.icon}<span class="spell-cost"${playerClass==='wampir'?' style="color:#ff4444"':''}>${sp.mana}</span>`;
     const g=document.createElement('div');g.className='spell-glow';
     g.style.background='#'+sp.color.toString(16).padStart(6,'0');
     el.appendChild(g);
@@ -1398,7 +1444,7 @@ window.addEventListener('unhandledrejection',e=>showError('PROMISE: '+e.reason))
 
 const CLASS_CONFIG={
   mag:{name:'Mag',hp:100,mana:1000,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Rozdzka',icon:'🪄',type:'wand',wandTier:0},figure:'🧙'},
-  wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧛'},
+  wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'blood_staff',name:'Berlo Krwi',icon:'🪄',type:'wand',wandTier:0},figure:'🧛'},
   nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
   czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'⚔️'},
   atlantyda:{name:'Atlantyda',hp:120,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
@@ -1429,7 +1475,7 @@ function startGame(){
     necroPet=null;necroPetMesh=null;
     ITEMS[1]={id:'ksiega_cieni',name:'Ksiega Cieni',icon:'📖',type:'tool',desc:'Pozwala przywolywac cienie'};
   }
-  SPELLS=playerClass==='nekromanta'?buildNecroSpells():buildSpells();
+  SPELLS=playerClass==='nekromanta'?buildNecroSpells():playerClass==='wampir'?buildWampirSpells():buildSpells();
   ownedSpells.clear();ownedSpells.add(0);
   player.selSpell=0;
   skillPoints=5;
@@ -3107,6 +3153,32 @@ function buildLavaForge(scene,cx,cz){
   {const tl=new THREE.PointLight(0xff5500,3,40);tl.position.set(0,4,0);grp.add(tl);}
   buildBeacon(scene,cx,cz,0xff5500);
 }
+function buildSacredGrove(scene,cx,cz){
+  const h=terrainHeight(cx,cz);const grp=new THREE.Group();grp.position.set(cx,h,cz);scene.add(grp);
+  const trunkMat=new THREE.MeshStandardMaterial({color:0x5a3a1a,flatShading:true});
+  const leafMat=new THREE.MeshStandardMaterial({color:0x22aa33,flatShading:true});
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2,r=14+Math.sin(i*2.3)*3;
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.8,8,6),trunkMat);
+    trunk.position.set(Math.cos(a)*r,4,Math.sin(a)*r);grp.add(trunk);
+    const leaves=new THREE.Mesh(new THREE.SphereGeometry(3,6,5),leafMat);
+    leaves.position.set(Math.cos(a)*r,9,Math.sin(a)*r);grp.add(leaves);
+  }
+  const altar=new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,1.5,8),
+    new THREE.MeshStandardMaterial({color:0x88aa66,metalness:0.3,roughness:0.5}));
+  altar.position.set(0,0.75,0);grp.add(altar);
+  const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(0.8,0),
+    new THREE.MeshStandardMaterial({color:0x44ff66,emissive:0x22aa44,emissiveIntensity:0.6,metalness:0.6}));
+  crystal.position.set(0,2.5,0);grp.add(crystal);
+  for(let i=0;i<12;i++){
+    const a=Math.random()*Math.PI*2,r=3+Math.random()*10;
+    const flower=new THREE.Mesh(new THREE.SphereGeometry(0.3,4,3),
+      new THREE.MeshStandardMaterial({color:[0xff66aa,0xffaa33,0xaa44ff,0x44aaff][i%4],emissive:[0xff2266,0xff6600,0x6622ff,0x2266ff][i%4],emissiveIntensity:0.3}));
+    flower.position.set(Math.cos(a)*r,0.3,Math.sin(a)*r);grp.add(flower);
+  }
+  const gl=new THREE.PointLight(0x44ff66,2,30);gl.position.set(0,4,0);grp.add(gl);
+  buildBeacon(scene,cx,cz,0x44ff66);
+}
 function buildStructures(scene){
   _wallBoxes.length=0;_portals.length=0;_portal=null;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
@@ -3122,6 +3194,7 @@ function buildStructures(scene){
   buildIceTower(scene,LANDMARKS.ice_tower.x,LANDMARKS.ice_tower.z);
   buildSpiderNest(scene,LANDMARKS.spider_nest.x,LANDMARKS.spider_nest.z);
   buildLavaForge(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z);
+  buildSacredGrove(scene,LANDMARKS.sacred_grove.x,LANDMARKS.sacred_grove.z);
   const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
   for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
     spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
@@ -3807,14 +3880,19 @@ function attemptCast(now){
     toast('Potrzebujesz lepszej roszdzki ('+RARITY[sp.rarity].nm+')');
     player.lastCast=now+400;return;
   }
-  if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
-  if(sp.mrokCost&&playerClass==='nekromanta'){
-    if(totalMrokUsed()+sp.mrokCost>shadowPoints){
-      toast('Za malo Punktow Mroku! ('+shadowPoints+' max, '+totalMrokUsed()+' uzyte)');
-      player.lastCast=now+200;return;
+  if(playerClass==='wampir'&&sp.bloodCost){
+    if(blood<sp.mana){toast('Za malo krwi');player.lastCast=now+200;return;}
+    blood-=sp.mana;player.lastCast=now;
+  }else{
+    if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
+    if(sp.mrokCost&&playerClass==='nekromanta'){
+      if(totalMrokUsed()+sp.mrokCost>shadowPoints){
+        toast('Za malo Punktow Mroku! ('+shadowPoints+' max, '+totalMrokUsed()+' uzyte)');
+        player.lastCast=now+200;return;
+      }
     }
+    player.mana-=sp.mana;player.lastCast=now;
   }
-  player.mana-=sp.mana;player.lastCast=now;
   // Nekromanta +20% shadow dmg bonus
   if(sp.kind==='summon'){castSummon(sp);return;}
   if(sp.kind==='buff'){castBuff(sp);return;}
@@ -3857,6 +3935,14 @@ function castBuff(sp){
     if(necroPet&&necroPetMesh&&necroPetMesh.position.distanceTo(_camera.position)<10)necroPet.hp=Math.min(necroPet.maxHp,necroPet.hp+80);
     toast('Mroczne Uzdrowienie: +80 HP sojusznikom!');
   }
+  // ── Wampir buffy ──
+  else if(sp.id==='krwawa_tarcza'){shieldHP+=80;toast('Krwawa Tarcza: +80 oslony');}
+  else if(sp.id==='regeneracja_krwi'){statusEffects.push({type:'regen',until:now+10000,value:8});toast('+8 HP/s przez 10s');}
+  else if(sp.id==='szal_krwi'){statusEffects.push({type:'dmgBoost',until:now+10000,value:1.5});toast('Szal Krwi! +50% dmg');}
+  else if(sp.id==='forma_nietoperza'){buffSpeedUntil=now+8000;velY=8;toast('Forma Nietoperza!');}
+  else if(sp.id==='krwawa_mgla'){statusEffects.push({type:'regen',until:now+5000,value:15});toast('Krwawa Mgla: regen + niewidzialnosc');}
+  else if(sp.id==='krew_przodkow'){player.hp=player.maxHp;shieldHP+=200;toast('Krew Przodkow: pelne HP + 200 oslony!');}
+  else if(sp.id==='niesmiertelnosc'){hasRevive=true;statusEffects.push({type:'regen',until:now+8000,value:20});toast('Niesmiertelnosc aktywna!');}
   else toast(sp.name+': '+sp.fx);
 }
 function castUtil(sp){
@@ -3895,6 +3981,28 @@ function castUtil(sp){
     if(necroPet&&necroPet.hp<necroPet.maxHp*0.5){necroPet.hp=Math.round(necroPet.maxHp*0.5);toast('Pupil wskrzeszony!');return;}
     toast('Brak sojusznikow do wskrzeszenia');
   }
+  // ── Wampir utility ──
+  else if(sp.id==='teleportacja_krwi'&&_camera){
+    const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+    _camera.position.addScaledVector(dir,15);
+    _camera.position.y=Math.max(terrainHeight(_camera.position.x,_camera.position.z)+EYE_H,_camera.position.y);
+    toast('Teleportacja Krwi!');
+  }else if(sp.id==='echo_nocy'&&_scene){
+    const l=new THREE.PointLight(0xff4444,3,25);l.position.copy(_camera.position);
+    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast('Echo Nocy!');
+  }else if(sp.id==='portal_krwi'&&_camera){
+    const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
+    _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);toast('Portal Krwi - wioska!');
+  }else if(sp.id==='drenaz_obszarowy'){
+    let totalDrain=0;
+    for(let j=mobs.length-1;j>=0;j--){
+      const m=mobs[j];if(m.mesh.position.distanceTo(_camera.position)<12){
+        const drain=60;damageMob(j,drain);totalDrain+=drain;
+      }
+    }
+    player.hp=Math.min(player.maxHp,player.hp+Math.round(totalDrain*0.5));
+    toast('Drenaz! Skradziono '+totalDrain+' HP');
+  }else if(sp.id==='zmartwychwstanie_krwi'){hasRevive=true;toast('Zmartwychwstanie Krwi aktywne!');}
   else toast(sp.name+': '+(sp.fx||'efekt wkrotce'));
 }
 function removeProjectile(i){
@@ -3944,6 +4052,11 @@ function updateProjectiles(dt){
         if(p.spellId==='klatwa_bolu'){
           statusEffects.push({type:'dmgBoost',until:performance.now()+5000,value:1.1});
         }
+        if(p.spellId==='krwawy_pocisk')player.hp=Math.min(player.maxHp,player.hp+10);
+        if(p.spellId==='mroczne_ugryzienie')player.hp=Math.min(player.maxHp,player.hp+60);
+        if(p.spellId==='krew_nocy')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.5));
+        if(p.spellId==='klatwa_wampira')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));
+        if(p.spellId==='krew_starodawnych'){player.hp=player.maxHp;shieldHP+=500;}
         if(p.spellId==='pet_attack'&&necroPet)addPetXP(mobs[j]?mobs[j].type.xp||10:10);
         removeProjectile(i);hit=true;break;
       }
@@ -4080,7 +4193,8 @@ function buildMobMesh(type){
     spider:0x2a2a2a,eagle:0x8a7a5a,lion:0xc8a040,
     zombie:0x556633,wieszcz:0x443355,rock_lizard:0x7a7a6a,
     ice_titan:0xaae0f5,spider_queen:0x2a2a3a,lava_golem:0xff5522,
-    skeleton_king:0xe8e0d0,dark_lord:0x442266,pharaoh:0xd4b060,dragon:0x881111})[type.id]||0x888888;
+    skeleton_king:0xe8e0d0,dark_lord:0x442266,pharaoh:0xd4b060,dragon:0x881111,
+    forest_queen:0x22aa44})[type.id]||0x888888;
   const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.85,flatShading:true,
     ...(type.id==='ghost'?{transparent:true,opacity:0.5,emissive:0x4444aa,emissiveIntensity:0.5}:{})});
   if(type.id==='scorpion'||type.id==='spider'){
@@ -4422,7 +4536,7 @@ function buildBossMesh(type){
   const crown=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,6),
     new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.8,roughness:0.2,flatShading:true}));
   crown.position.y=type.height*0.95;g.add(crown);
-  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0x88cc55,lava_golem:0xff5500}[type.id]||0x44ff44;
+  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0x88cc55,lava_golem:0xff5500,forest_queen:0x44ff66}[type.id]||0x44ff44;
   const aura=new THREE.PointLight(auraCol,2,15);
   aura.position.y=type.height*0.5;g.add(aura);
   return g;
@@ -4464,6 +4578,10 @@ function killBoss(idx){
     skillPoints+=bp;
     toast('+'+bp+' punktow umiejetnosci za bossa!');
     updateCharBtn();
+  }
+  if(playerClass==='wampir'){
+    blood=Math.min(maxBlood,blood+200);
+    toast('+200 Krew za bossa!');
   }
   _scene.remove(b.mesh);
   bosses.splice(idx,1);
@@ -4590,7 +4708,7 @@ function applyStats(){
 }
 function spellDmgMul(){
   let mul=1+gearBonus().dmg/100;
-  if(playerClass==='nekromanta'){
+  if(playerClass==='nekromanta'||playerClass==='wampir'){
     const sp=SPELLS[player.selSpell];
     if(sp&&sp.elem==='shadow')mul*=1.2;
   }
@@ -4817,7 +4935,8 @@ function updateMinimap(camera){
     if(rx<2||rx>98||rz<2||rz>98)continue;
     ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#9944dd':
       k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':
-      k==='ice_tower'?'#88ccff':k==='spider_nest'?'#88cc55':k==='lava_forge'?'#ff5500':'#aaaaaa';
+      k==='ice_tower'?'#88ccff':k==='spider_nest'?'#88cc55':k==='lava_forge'?'#ff5500':
+      k==='sacred_grove'?'#44ff66':'#aaaaaa';
     ctx.fillRect(rx-2,rz-2,4,4);
   }
   for(const m of mobs){
@@ -4856,7 +4975,7 @@ function renderFullMap(){
     ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#9944dd':
       k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':
       k==='ice_tower'?'#88ccff':k==='spider_nest'?'#88cc55':k==='lava_forge'?'#ff5500':
-      k==='mine'?'#bbbbbb':'#88ccff';
+      k==='sacred_grove'?'#44ff66':k==='mine'?'#bbbbbb':'#88ccff';
     ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='11px sans-serif';ctx.fillText(l.name,x+8,y+4);
   }
@@ -5045,7 +5164,8 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   toggleBuildMode,placeBlock,setBlock:(t)=>{buildBlockType=t;},
   checkPortals,attemptCast,terrainHeight,spawnNecroPet:()=>spawnNecroPet(),
   get bosses(){return bosses;},get mobs(){return mobs;},
-  buildMobMesh,buildBossMesh,get MOB_TYPES(){return MOB_TYPES;},get BOSS_TYPES(){return BOSS_TYPES;}};
+  buildMobMesh,buildBossMesh,get MOB_TYPES(){return MOB_TYPES;},get BOSS_TYPES(){return BOSS_TYPES;},
+  get blood(){return blood;},set blood(v){blood=v;},get playerClass(){return playerClass;}};
 </script>
 </body>
 </html>
