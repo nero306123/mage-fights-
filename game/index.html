@@ -1016,6 +1016,9 @@ const BOSS_TYPES = [
   {id:'dragon',name:'Smok Zeldras',hp:8000,dmg:60,speed:4.0,atkRange:6,aggroRange:40,xp:800,gold:350,atkCd:2.0,height:4.5,struct:'lair'},
   {id:'dark_lord',name:'Wladca Mroku',hp:15000,dmg:80,speed:3.0,atkRange:5,aggroRange:35,xp:1200,gold:500,atkCd:1.8,height:4.5,struct:'castle'},
   {id:'pharaoh',name:'Faraon',hp:5000,dmg:35,speed:3.5,atkRange:4,aggroRange:30,xp:400,gold:300,atkCd:1.6,height:3.0,struct:'pyramid'},
+  {id:'ice_titan',name:'Lodowy Tytan',hp:12000,dmg:55,speed:2.8,atkRange:5,aggroRange:35,xp:900,gold:400,atkCd:1.7,height:4.2,struct:'ice_tower'},
+  {id:'spider_queen',name:'Krolowa Pajakow',hp:9000,dmg:48,speed:5.0,atkRange:4,aggroRange:38,xp:850,gold:380,atkCd:1.2,height:3.2,struct:'spider_nest'},
+  {id:'lava_golem',name:'Golem Lawy',hp:14000,dmg:70,speed:2.4,atkRange:5,aggroRange:32,xp:1100,gold:450,atkCd:2.0,height:4.0,struct:'lava_forge'},
 ];
 
 // ═══ EQUIPMENT DROPS TABLE ═══════════════════════════════
@@ -1049,6 +1052,12 @@ const BOSS_DROPS = [
   {id:'dark_staff',name:'Kostur Mroku',icon:'🪄',equip:'weapon',bonus:{dmg:25,mana:80},rarity:'legend',type:'wand',wandTier:3,boss:'dark_lord'},
   {id:'pharaoh_mask',name:'Maska Faraona',icon:'🎭',equip:'hood',bonus:{hp:40,dmg:8,mana:60},rarity:'legend',boss:'pharaoh'},
   {id:'pharaoh_staff',name:'Berlo Faraona',icon:'🪄',equip:'weapon',bonus:{dmg:18,mana:40},rarity:'legend',type:'wand',wandTier:2,boss:'pharaoh'},
+  {id:'titan_helm',name:'Helm Tytana',icon:'🪖',equip:'hood',bonus:{hp:70,dmgRed:18},rarity:'legend',boss:'ice_titan'},
+  {id:'titan_wand',name:'Berlo Lodu',icon:'🪄',equip:'weapon',bonus:{dmg:28,mana:90},rarity:'legend',type:'wand',wandTier:3,boss:'ice_titan'},
+  {id:'spider_cape',name:'Peleryna Pajeczyny',icon:'🧣',equip:'cape',bonus:{speed:18,dmg:12,dmgRed:6},rarity:'legend',boss:'spider_queen'},
+  {id:'venom_gloves',name:'Jadowite Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:22,hp:30},rarity:'legend',boss:'spider_queen'},
+  {id:'lava_chest',name:'Zbroja z Magmy',icon:'🦺',equip:'chest',bonus:{hp:100,dmgRed:22,dmg:10},rarity:'legend',boss:'lava_golem'},
+  {id:'lava_staff',name:'Kostur Magmy',icon:'🪄',equip:'weapon',bonus:{dmg:32,mana:70},rarity:'legend',type:'wand',wandTier:3,boss:'lava_golem'},
 ];
 
 // ═══ SKLEP (rozszerzony) ═════════════════════════════════
@@ -1203,6 +1212,9 @@ const LANDMARKS={
   lair:{x:800,z:1200,name:'Smocza Jama'},
   pyramid:{x:1600,z:-800,name:'Piramida'},
   mine:{x:-200,z:1400,name:'Kopalnia'},
+  ice_tower:{x:-1500,z:-1200,name:'Lodowa Wieza'},
+  spider_nest:{x:1200,z:-1600,name:'Gniazdo Pajakow'},
+  lava_forge:{x:-1400,z:1500,name:'Kuznia Lawy'},
 };
 
 // ═══ CLEARINGS (rozszerzone) ═════════════════════════════
@@ -1214,6 +1226,9 @@ const STRUCT_CLEARINGS=[
   {x:800,z:1200,r:45},      // smocza jama
   {x:1600,z:-800,r:50},     // piramida
   {x:-200,z:1400,r:30},     // kopalnia
+  {x:-1500,z:-1200,r:40},   // lodowa wieza
+  {x:1200,z:-1600,r:38},    // gniazdo pajakow
+  {x:-1400,z:1500,r:42},    // kuznia lawy
 ];
 function inClearing(x,z){
   for(const c of STRUCT_CLEARINGS){const dx=x-c.x,dz=z-c.z;if(dx*dx+dz*dz<c.r*c.r)return true;}
@@ -3008,6 +3023,85 @@ function buildDeadWorld(scene,cx,cz){
   }
   buildBeacon(scene,cx,cz,0x9944dd);
 }
+function buildIceTower(scene,cx,cz){
+  const grp=new THREE.Group();scene.add(grp);
+  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const ice=new THREE.MeshStandardMaterial({color:0xaae0f5,roughness:0.1,metalness:0.3,
+    transparent:true,opacity:0.85,flatShading:true});
+  const iceDark=matStone(0x6a9ab5,0.3);
+  // wieza
+  for(let lvl=0;lvl<5;lvl++){
+    const r=6-lvl*0.9;
+    const seg=new THREE.Mesh(new THREE.CylinderGeometry(r,r+0.6,4,8),lvl%2?ice:iceDark);
+    seg.position.y=2+lvl*4;grp.add(seg);
+  }
+  // lodowy szpic
+  const spire=new THREE.Mesh(new THREE.ConeGeometry(2,8,8),ice);spire.position.y=24;grp.add(spire);
+  // krysztaly lodu wokol
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x1CE);
+  for(let i=0;i<14;i++){
+    const a=rng()*Math.PI*2,r=10+rng()*22;
+    const ch=2+rng()*4;
+    const cryst=new THREE.Mesh(new THREE.ConeGeometry(0.6,ch,5),ice);
+    cryst.position.set(Math.cos(a)*r,ch/2,Math.sin(a)*r);
+    cryst.rotation.z=(rng()-0.5)*0.4;grp.add(cryst);
+  }
+  grp.add(Object.assign(new THREE.PointLight(0x88ccff,2,40),{position:new THREE.Vector3(0,16,0)}));
+  buildBeacon(scene,cx,cz,0x88ccff);
+}
+function buildSpiderNest(scene,cx,cz){
+  const grp=new THREE.Group();scene.add(grp);
+  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const web=new THREE.MeshStandardMaterial({color:0xe8e8f0,roughness:0.8,transparent:true,opacity:0.5,
+    side:THREE.DoubleSide,flatShading:true});
+  const darkWood=matStone(0x2a1f14,0.9);
+  // martwe drzewa oplecione pajeczyna
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x5B1);
+  for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2,r=14;
+    const tx=Math.cos(a)*r,tz=Math.sin(a)*r;
+    addBox(grp,0.7,8,0.7,tx,4,tz,darkWood);
+  }
+  // pajeczyny - plaszczyzny
+  for(let i=0;i<10;i++){
+    const a=rng()*Math.PI*2,r=6+rng()*14;
+    const wm=new THREE.Mesh(new THREE.CircleGeometry(3+rng()*3,6),web);
+    wm.position.set(Math.cos(a)*r,2+rng()*5,Math.sin(a)*r);
+    wm.rotation.set(rng()*Math.PI,rng()*Math.PI,0);grp.add(wm);
+  }
+  // jaja pajakow
+  for(let i=0;i<12;i++){
+    const a=rng()*Math.PI*2,r=rng()*12;
+    const egg=new THREE.Mesh(new THREE.SphereGeometry(0.5+rng()*0.4,6,6),
+      new THREE.MeshStandardMaterial({color:0x9a8a6a,roughness:0.7,flatShading:true}));
+    egg.position.set(Math.cos(a)*r,0.5,Math.sin(a)*r);egg.scale.y=1.3;grp.add(egg);
+  }
+  grp.add(Object.assign(new THREE.PointLight(0x66aa44,1.5,30),{position:new THREE.Vector3(0,6,0)}));
+  buildBeacon(scene,cx,cz,0x88cc55);
+}
+function buildLavaForge(scene,cx,cz){
+  const grp=new THREE.Group();scene.add(grp);
+  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const obsidian=matStone(0x1a1418,0.4);
+  const lavaMat=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff3300,emissiveIntensity:0.8,roughness:0.6,flatShading:true});
+  // kuznia - obsydianowe filary
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2,r=12;
+    addBox(grp,2,7,2,Math.cos(a)*r,3.5,Math.sin(a)*r,obsidian);
+  }
+  // centralne palenisko z lawa
+  const forge=new THREE.Mesh(new THREE.CylinderGeometry(5,6,2,8),obsidian);forge.position.y=1;grp.add(forge);
+  const lava=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.5,0.4,8),lavaMat);lava.position.y=2.1;grp.add(lava);
+  // strumienie lawy
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x1A7A);
+  for(let i=0;i<10;i++){
+    const a=rng()*Math.PI*2,r=8+rng()*16;
+    const pool=new THREE.Mesh(new THREE.CircleGeometry(1+rng()*2,6),lavaMat);
+    pool.rotation.x=-Math.PI/2;pool.position.set(Math.cos(a)*r,0.1,Math.sin(a)*r);grp.add(pool);
+  }
+  grp.add(Object.assign(new THREE.PointLight(0xff5500,3,40),{position:new THREE.Vector3(0,4,0)}));
+  buildBeacon(scene,cx,cz,0xff5500);
+}
 function buildStructures(scene){
   _wallBoxes.length=0;_portals.length=0;_portal=null;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
@@ -3020,6 +3114,9 @@ function buildStructures(scene){
   buildDragonLair(scene,LANDMARKS.lair.x,LANDMARKS.lair.z);
   buildPyramid(scene,LANDMARKS.pyramid.x,LANDMARKS.pyramid.z);
   buildMine(scene,LANDMARKS.mine.x,LANDMARKS.mine.z);
+  buildIceTower(scene,LANDMARKS.ice_tower.x,LANDMARKS.ice_tower.z);
+  buildSpiderNest(scene,LANDMARKS.spider_nest.x,LANDMARKS.spider_nest.z);
+  buildLavaForge(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z);
   const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
   for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
     spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
@@ -3975,7 +4072,9 @@ function buildMobMesh(type){
     firesnake:0xff6622,magma_turtle:0x8a3010,dragon_common:0x881111,moltres:0xff4400,
     monkey:0x8a5a30,saber_tiger:0xcc8822,raptor:0x4a6a3a,small_dino:0x5a8a3a,
     spider:0x2a2a2a,eagle:0x8a7a5a,lion:0xc8a040,
-    zombie:0x556633,wieszcz:0x443355,rock_lizard:0x7a7a6a})[type.id]||0x888888;
+    zombie:0x556633,wieszcz:0x443355,rock_lizard:0x7a7a6a,
+    ice_titan:0xaae0f5,spider_queen:0x2a2a3a,lava_golem:0xff5522,
+    skeleton_king:0xe8e0d0,dark_lord:0x442266,pharaoh:0xd4b060,dragon:0x881111})[type.id]||0x888888;
   const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.85,flatShading:true,
     ...(type.id==='ghost'?{transparent:true,opacity:0.5,emissive:0x4444aa,emissiveIntensity:0.5}:{})});
   if(type.id==='scorpion'||type.id==='spider'){
@@ -4310,7 +4409,8 @@ function buildBossMesh(type){
   const crown=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,6),
     new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.8,roughness:0.2,flatShading:true}));
   crown.position.y=type.height*0.95;g.add(crown);
-  const aura=new THREE.PointLight(type.id==='dragon'?0xff4400:type.id==='dark_lord'?0x8800ff:0x44ff44,2,15);
+  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0x88cc55,lava_golem:0xff5500}[type.id]||0x44ff44;
+  const aura=new THREE.PointLight(auraCol,2,15);
   aura.position.y=type.height*0.5;g.add(aura);
   return g;
 }
@@ -4702,8 +4802,9 @@ function updateMinimap(camera){
     const rx=(l.x-camera.position.x)/scale+50;
     const rz=(l.z-camera.position.z)/scale+50;
     if(rx<2||rx>98||rz<2||rz>98)continue;
-    ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#55ff99':
-      k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':'#aaaaaa';
+    ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#9944dd':
+      k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':
+      k==='ice_tower'?'#88ccff':k==='spider_nest'?'#88cc55':k==='lava_forge'?'#ff5500':'#aaaaaa';
     ctx.fillRect(rx-2,rz-2,4,4);
   }
   for(const m of mobs){
@@ -4739,8 +4840,10 @@ function renderFullMap(){
   // landmarki
   for(const k in LANDMARKS){
     const l=LANDMARKS[k];const x=w2s(l.x),y=w2s(l.z);
-    ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#55ff99':
-      k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':'#88ccff';
+    ctx.fillStyle=k==='village'?'#ffcc66':k==='castle'?'#ff3322':k==='portal'?'#9944dd':
+      k==='cemetery'?'#33ff55':k==='lair'?'#ff4422':k==='pyramid'?'#ffcc22':
+      k==='ice_tower'?'#88ccff':k==='spider_nest'?'#88cc55':k==='lava_forge'?'#ff5500':
+      k==='mine'?'#bbbbbb':'#88ccff';
     ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='11px sans-serif';ctx.fillText(l.name,x+8,y+4);
   }
