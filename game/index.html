@@ -625,6 +625,8 @@
         <div class="bar-label">HP 100/100</div></div>
       <div class="bar-wrap bar-mana" id="resource-bar"><div class="bar-fill"></div>
         <div class="bar-label" id="resource-label">MANA 100/100</div></div>
+      <div class="bar-wrap bar-mrok" id="mrok-bar" style="display:none"><div class="bar-fill" style="background:linear-gradient(90deg,#4411aa,#8844cc)"></div>
+        <div class="bar-label" id="mrok-label">MROKU 0</div></div>
       <div class="bar-wrap bar-hunger"><div class="bar-fill"></div>
         <div class="bar-label">GLOD 100/100</div></div>
       <div class="bar-wrap bar-xp" style="width:120px;height:10px"><div class="bar-fill"></div>
@@ -850,29 +852,63 @@ function buildSpells(){
       cost:r.pts, lvl:r.lvl, wandReq:r.wand, needScroll:r.scroll };
   });
 }
-// ── ZAKLECIA NEKROMANTY (wlasny zestaw: przyzywanie cieni, mrok, klatwy) ──
+// ── ZAKLECIA NEKROMANTY (pelny system wg specyfikacji) ──
+// Punkty Mroku: osobny magazyn, NIE zuzywany, 1 pkt umiejetnosci = 5 mroku
+let shadowPoints=0, maxShadowPoints=0;
+// Pupil nekromanty (SECRET) - 10 poziomow ewolucji
+let necroPet=null, necroPetMesh=null;
+const PET_LEVELS=[
+  {name:'Ptak Cieni',hp:200,dmg:15,ability:'ranged',range:5,icon:'🐦'},
+  {name:'Kon Cieni',hp:400,dmg:25,ability:'speed',speed:10,icon:'🐴'},
+  {name:'Kon Cieni (lepszy)',hp:600,dmg:35,ability:'speed',speed:12,icon:'🐴'},
+  {name:'Lew Cieni',hp:800,dmg:45,ability:'stun',stunChance:0.2,icon:'🦁'},
+  {name:'Lew Cieni (lepszy)',hp:1000,dmg:55,ability:'dmgBoost',dmgBoost:0.1,icon:'🦁'},
+  {name:'Smok Niemowle',hp:1200,dmg:65,ability:'aoe',aoeR:3,icon:'🐲'},
+  {name:'Smok Cieni',hp:1500,dmg:80,ability:'aoe',aoeR:5,resist:0.3,icon:'🐉'},
+  {name:'Smok Cieni (dobry)',hp:1800,dmg:100,ability:'aoe',aoeR:6,dmgBoost:0.2,icon:'🐉'},
+  {name:'Smok Cieni (lepszy)',hp:2200,dmg:120,ability:'aoe',aoeR:8,resist:0.5,icon:'🐉'},
+  {name:'Najlepszy Smok Cieni',hp:3000,dmg:160,ability:'aoe',aoeR:10,resist:0.6,icon:'🐉'},
+];
+const PET_XP_REQ=[1000,2500,5000,10000,20000,35000,50000,75000,100000];
 const NECRO_SPELL_DATA = [
-  // Przyzywanie (summonType: typ przyzwanego cienia)
-  ['przyzwij_szkielet','Przyzwij Szkielet','summon','common',40,2,0,'Przyzywa Szkielet-Cien','💀',{summon:'skeleton',sumHp:120,sumDmg:18}],
-  ['przyzwij_wojownik','Przyzwij Wojownika','summon','rare',90,2.5,0,'Przyzywa Cien-Wojownika','🗡️',{summon:'warrior',sumHp:250,sumDmg:30}],
-  ['przyzwij_lucznik','Przyzwij Lucznika','summon','rare',100,2.5,0,'Cien-Lucznik strzela z dystansu','🏹',{summon:'archer',sumHp:150,sumDmg:25}],
-  ['przyzwij_golem','Przyzwij Golema','summon','epic',220,3.5,0,'Cien-Golem - wytrzymaly tank','🗿',{summon:'golem',sumHp:600,sumDmg:40}],
-  ['przyzwij_smok','Przyzwij Smoka Cieni','summon','legend',900,5,0,'Potezny Smok-Cien','🐉',{summon:'dragon',sumHp:1200,sumDmg:80}],
-  // Obrazenia mroczne
-  ['mroczny_pocisk','Mroczny Pocisk','shadow','common',25,2.4,28,''],
-  ['kula_cieni','Kula Cieni','shadow','rare',80,2.6,65,'Spowolnienie 30% 4s'],
-  ['grad_kosci','Grad Kosci','shadow','rare',110,3,75,'AOE 5m'],
-  ['wybuch_mroku','Wybuch Mroku','shadow','epic',240,4,170,'AOE 6m + oslepienie 2s','💥'],
-  ['eksplozja_dusz','Eksplozja Dusz','shadow','mythic',780,7,440,'AOE 8m + kradnie HP','👻'],
-  ['zaglada_mroku','Zaglada Mroku','shadow','secret',3200,10,2000,'AOE 15m: niszczy wszystko','🌑'],
-  // Klatwy i wsparcie
-  ['wyssanie_zycia','Wyssanie Zycia','shadow','rare',90,2.5,60,'Kradnie 100% obrazen jako HP','🩸'],
-  ['klatwa_smierci','Klatwa Smierci','necbuff','rare',100,3,0,'-40% obrazen wrogow 12s','☠️'],
-  ['kostna_tarcza','Kostna Tarcza','necbuff','rare',80,2.5,0,'Blokuje 150 obrazen','🦴'],
-  ['mroczne_leczenie','Mroczne Leczenie','necbuff','epic',200,3,0,'Leczy 120 HP kosztem many','💜'],
-  ['aura_rozkladu','Aura Rozkladu','necbuff','epic',250,4,0,'Pole rozkladu wokol 10s (15dmg/s)','🟣'],
-  ['armia_umarlych','Armia Umarlych','summon','mythic',600,5,0,'Przyzywa 3 szkielety naraz','⚰️',{summon:'army',sumHp:120,sumDmg:18}],
-  ['wskrzeszenie','Wskrzeszenie','necbuff','legend',1500,8,0,'Odradza z 50% HP po smierci','♻️'],
+  // ── PRZYWOLANIA (7) ── [id,name,elem,rarity,mana,cast,dmg,fx,icon,extra]
+  ['przyzwij_wojownika','Wojownik Cieni','summon','common',50,2,0,'Walka w zwarciu','🗡️',{summon:'warrior',sumHp:100,sumDmg:15,mrokCost:1}],
+  ['przyzwij_l_wojownika','Lepszy Wojownik','summon','rare',80,2.5,0,'+10% obrazen','⚔️',{summon:'elite_warrior',sumHp:180,sumDmg:25,mrokCost:2}],
+  ['przyzwij_lucznika','Lucznik Cieni','summon','rare',70,2,0,'Dystans 10m','🏹',{summon:'archer',sumHp:80,sumDmg:20,mrokCost:2}],
+  ['przyzwij_maga','Mag Cieni','summon','epic',100,3,0,'Atak dystansowy (magia)','🔮',{summon:'shadow_mage',sumHp:120,sumDmg:30,mrokCost:3}],
+  ['przyzwij_healera','Healer Cieni','summon','epic',120,3,0,'Leczy sojusznikow 20 HP/s','💚',{summon:'healer',sumHp:150,sumDmg:0,mrokCost:3}],
+  ['przyzwij_rycerza','Rycerz Cieni','summon','mythic',150,3.5,0,'Tarcza - tank','🛡️',{summon:'knight',sumHp:250,sumDmg:35,mrokCost:4}],
+  ['przyzwij_generala','General Cieni','summon','legend',200,4,0,'+20% dmg dla jednostek w 10m','👑',{summon:'general',sumHp:350,sumDmg:50,mrokCost:5}],
+  // ── WSPARCIE / BUFFY (10) ──
+  ['lekki_heal','Lekki Heal','necbuff','common',40,1.5,0,'Leczy 30 HP','💚'],
+  ['tarcza_cieni','Tarcza Cieni','necbuff','common',60,2,0,'Blokuje 50 obrazen na 10s','🛡️'],
+  ['wzmocnienie','Wzmocnienie','necbuff','rare',80,2,0,'+20% obrazen sojusznikow na 10s','⚔️'],
+  ['klatwa_slabosci_n','Klatwa Slabosci','necbuff','rare',100,2.5,0,'-30% obrazen wrogow na 5s','🔻'],
+  ['kolce_cieni','Kolce Cieni','necbuff','rare',120,2.5,0,'Odbija 20% obrazen na 8s','🌵'],
+  ['spowolnienie_n','Spowolnienie','necbuff','rare',90,2,0,'-40% szybkosci wrogow na 5s','🐌'],
+  ['przywolanie_tarczy','Przywolanie Tarczy','necbuff','epic',150,3,0,'Tarcza 200 HP na 15s','🔰'],
+  ['ochrona_smierci','Ochrona przed Smiercia','necbuff','epic',200,3,0,'Zapobiega smierci 10s (1 raz)','💀'],
+  ['wzmocnienie_armii','Wzmocnienie Armii','necbuff','mythic',250,3,0,'+30% obrazen przywolanych 15s','👑'],
+  ['mroczne_uzdrowienie','Mroczne Uzdrowienie','necbuff','mythic',300,3.5,0,'Leczy sojusznikow w 10m (80 HP)','💜'],
+  // ── OBRAZENIA (7) ──
+  ['cios_cienia','Cios Cienia','shadow','common',30,2,20,''],
+  ['mroczny_pocisk','Mroczny Pocisk','shadow','common',50,2.4,40,''],
+  ['klatwa_bolu','Klatwa Bolu','shadow','rare',80,2.5,60,'+10% obrazen na 5s','☠️'],
+  ['eksplozja_cieni','Eksplozja Cieni','shadow','epic',120,3,100,'AOE 5m + odrzut','💥'],
+  ['mroczna_fala','Mroczna Fala','shadow','epic',180,4,150,'AOE 8m + spowolnienie 30% 5s','🌊'],
+  ['krwawa_ofiara','Krwawa Ofiara','shadow','mythic',250,4.5,200,'AOE 10m + leczy 20% dmg','🩸'],
+  ['nekroza','Nekroza','shadow','legend',400,6,350,'AOE 12m + 50% vs zywe moby','💀'],
+  // ── INNE / UNIKALNE (8) ──
+  ['teleportacja_n','Teleportacja','other','epic',150,2,0,'Teleport 15m do przodu','🌀'],
+  ['lewitacja_n','Lewitacja','other','rare',100,1.5,0,'Unosi na 3s','🎈'],
+  ['niewidzialnosc_n','Niewidzialnosc','other','epic',200,3,0,'Niewidzialnosc 5s','👻'],
+  ['odbicie_n','Odbicie','other','mythic',300,2.5,0,'Odbija nastepne zaklecie (5s)','🪞'],
+  ['portal_nekro','Przywolanie Portalu','other','mythic',500,4,0,'Portal do punktu odrodzenia','🏠'],
+  ['mroczna_wizja','Mroczna Wizja','other','rare',120,2,0,'Oswietla 20m na 30s','👁️'],
+  ['klatwa_smierci_n','Klatwa Smierci','other','legend',400,5,0,'Wrog <10% HP ginie natychmiast','💀'],
+  ['zmartwychwstanie_n','Zmartwychwstanie','other','legend',800,6,0,'Przywraca sojusznika 50% HP','♻️'],
+  // ── SECRET: PUPIL ──
+  ['przywolanie_cienia','Przywolanie Cienia','summon','secret',40000,8,0,'Przyzywa pupila - ewoluuje 10 razy','🐉',{summon:'pet'}],
 ];
 function buildNecroSpells(){
   return NECRO_SPELL_DATA.map(d=>{
@@ -881,7 +917,7 @@ function buildNecroSpells(){
     return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
       color:e.col, light:e.light, kind:e.kind,
       mana, castTime:cast, dmg, fx:fx||'',
-      speed:e.speed, size:e.size+ (RARITY_ORDER.indexOf(rar))*0.03,
+      speed:e.speed, size:e.size+(RARITY_ORDER.indexOf(rar))*0.03,
       life:e.life, gravity:e.grav, cd:RARITY_CD[rar],
       cost:r.pts, lvl:r.lvl, wandReq:r.wand, needScroll:r.scroll,
       ...(extra||{}) };
@@ -1288,7 +1324,7 @@ window.addEventListener('unhandledrejection',e=>showError('PROMISE: '+e.reason))
 const CLASS_CONFIG={
   mag:{name:'Mag',hp:100,mana:1000,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Rozdzka',icon:'🪄',type:'wand',wandTier:0},figure:'🧙'},
   wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧛'},
-  nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Berlo Cieni',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
+  nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
   czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'⚔️'},
   atlantyda:{name:'Atlantyda',hp:120,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
   nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧟'},
@@ -1313,7 +1349,11 @@ function startGame(){
   if(playerClass==='wampir'){blood=1000;maxBlood=1000;}
   if(playerClass==='czlowiek'){strength=0;maxStrength=100;}
   if(playerClass==='nieumarly'){decay=0;maxDecay=100;}
-  // Nekromanta ma wlasny zestaw zaklec (przyzywanie cieni, mrok, klatwy)
+  if(playerClass==='nekromanta'){
+    shadowPoints=5;maxShadowPoints=5;
+    necroPet=null;necroPetMesh=null;
+    ITEMS[1]={id:'ksiega_cieni',name:'Ksiega Cieni',icon:'📖',type:'tool',desc:'Pozwala przywolywac cienie'};
+  }
   SPELLS=playerClass==='nekromanta'?buildNecroSpells():buildSpells();
   ownedSpells.clear();ownedSpells.add(0);
   player.selSpell=0;
@@ -1399,55 +1439,87 @@ document.getElementById('comp-mode-btn').addEventListener('click',()=>{
 });
 
 // ═══ CIENIE NEKROMANTY (Shadow Minions) ════════════════
-const MAX_SHADOWS=6;
 const shadowMinions=[];
-const SHADOW_COLORS={skeleton:0x8866bb,warrior:0x7744aa,archer:0x9955cc,golem:0x553388,dragon:0x6622aa};
+let _armyDmgBuff=0,_armyDmgBuffUntil=0;
+const SHADOW_COLORS={warrior:0x7744aa,elite_warrior:0x6633bb,archer:0x9955cc,
+  shadow_mage:0x5533dd,healer:0x44aa66,knight:0x4455cc,general:0xcc8833};
+const SHADOW_SCALES={warrior:1.0,elite_warrior:1.3,archer:1.0,shadow_mage:1.1,healer:1.0,knight:1.4,general:1.5};
 function buildShadowMesh(stype){
   const g=new THREE.Group();
   const col=SHADOW_COLORS[stype]||0x8844cc;
   const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.4,
     transparent:true,opacity:0.78,roughness:0.6,flatShading:true});
-  const scale=stype==='golem'?1.8:stype==='dragon'?2.4:stype==='warrior'?1.3:1.0;
+  const scale=SHADOW_SCALES[stype]||1.0;
   const bodyH=0.7*scale;
   const body=new THREE.Mesh(new THREE.BoxGeometry(0.3*scale,bodyH,0.2*scale),mat);
   body.position.y=bodyH*0.55+0.3*scale;g.add(body);
   const head=new THREE.Mesh(new THREE.SphereGeometry(0.15*scale,6,5),mat);
   head.position.y=bodyH+0.45*scale;g.add(head);
-  const eyeM=new THREE.MeshBasicMaterial({color:0xff3366});
+  const eyeM=new THREE.MeshBasicMaterial({color:stype==='healer'?0x44ff88:0xff3366});
   const eg=new THREE.SphereGeometry(0.03*scale,4,4);
   const eL=new THREE.Mesh(eg,eyeM);eL.position.set(-0.06*scale,bodyH+0.47*scale,0.12*scale);g.add(eL);
   const eR=new THREE.Mesh(eg,eyeM);eR.position.set(0.06*scale,bodyH+0.47*scale,0.12*scale);g.add(eR);
   const legG=new THREE.CylinderGeometry(0.05*scale,0.04*scale,0.35*scale,4);
   const lL=new THREE.Mesh(legG,mat);lL.position.set(-0.1*scale,0.18*scale,0);g.add(lL);
   const lR=new THREE.Mesh(legG,mat);lR.position.set(0.1*scale,0.18*scale,0);g.add(lR);
-  if(stype==='warrior'||stype==='skeleton'){
+  if(stype==='warrior'||stype==='elite_warrior'||stype==='knight'){
     const sword=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.5*scale,0.02),
-      new THREE.MeshBasicMaterial({color:0xaa88ff}));
+      new THREE.MeshBasicMaterial({color:stype==='knight'?0x6688ff:0xaa88ff}));
     sword.position.set(0.2*scale,bodyH*0.7,0.1);sword.rotation.z=-0.5;g.add(sword);
   }
-  if(stype==='dragon'){
-    const wingM=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.3,transparent:true,opacity:0.6,side:THREE.DoubleSide});
-    const wg=new THREE.PlaneGeometry(1.2,0.7);
-    const wL=new THREE.Mesh(wg,wingM);wL.position.set(-0.7,bodyH,0);wL.rotation.y=0.4;g.add(wL);
-    const wR=new THREE.Mesh(wg,wingM);wR.position.set(0.7,bodyH,0);wR.rotation.y=-0.4;g.add(wR);
+  if(stype==='knight'){
+    const shield=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.4*scale,0.3*scale),
+      new THREE.MeshStandardMaterial({color:0x4466cc,emissive:0x2244aa,emissiveIntensity:0.3,transparent:true,opacity:0.7}));
+    shield.position.set(-0.2*scale,bodyH*0.6,0.05);g.add(shield);
+  }
+  if(stype==='healer'){
+    const orb=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
+      new THREE.MeshBasicMaterial({color:0x44ff88,transparent:true,opacity:0.6}));
+    orb.position.set(0,bodyH+0.7*scale,0.15);g.add(orb);
+  }
+  if(stype==='general'){
+    const crown=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.15,5),
+      new THREE.MeshBasicMaterial({color:0xffcc00}));
+    crown.position.set(0,bodyH+0.6*scale,0);g.add(crown);
+  }
+  if(stype==='shadow_mage'){
+    const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.7*scale,4),
+      new THREE.MeshBasicMaterial({color:0x8855ee}));
+    staff.position.set(0.18*scale,bodyH*0.5,0.05);g.add(staff);
   }
   g.add(new THREE.PointLight(col,0.6,4));
   return g;
 }
-function spawnShadowMinion(stype,hp,dmg){
-  if(shadowMinions.length>=MAX_SHADOWS)return false;
+function totalMrokUsed(){
+  let used=0;
+  for(const s of shadowMinions)used+=(s.mrokCost||0);
+  return used;
+}
+function spawnShadowMinion(stype,hp,dmg,mrokCost){
   if(!_scene||!_camera)return false;
+  if(mrokCost&&totalMrokUsed()+mrokCost>shadowPoints){
+    toast('Za malo Punktow Mroku (masz '+shadowPoints+', uzyte '+totalMrokUsed()+')');return false;
+  }
   const mesh=buildShadowMesh(stype);
   const a=Math.random()*Math.PI*2;
   const x=_camera.position.x+Math.cos(a)*3,z=_camera.position.z+Math.sin(a)*3;
   mesh.position.set(x,terrainHeight(x,z),z);
   _scene.add(mesh);
-  shadowMinions.push({mesh,stype,hp,maxHp:hp,dmg,
-    ranged:stype==='archer'||stype==='dragon',
-    atkCd:stype==='golem'?1.6:1.0,lastAtk:0,life:60,phase:Math.random()*6.28});
+  const ranged=stype==='archer'||stype==='shadow_mage';
+  const isHealer=stype==='healer';
+  const isGeneral=stype==='general';
+  const isKnight=stype==='knight';
+  shadowMinions.push({mesh,stype,hp,maxHp:hp,dmg,mrokCost:mrokCost||0,
+    ranged,isHealer,isGeneral,isKnight,shieldHp:isKnight?100:0,
+    atkCd:isHealer?2.0:isGeneral?1.5:ranged?1.2:1.0,lastAtk:0,lastHeal:0,
+    life:120,phase:Math.random()*6.28});
   return true;
 }
 function updateShadowMinions(dt,now,camera){
+  let hasGeneral=false,generalPos=null;
+  for(const s of shadowMinions){
+    if(s.isGeneral&&s.hp>0){hasGeneral=true;generalPos=s.mesh.position.clone();break;}
+  }
   for(let i=shadowMinions.length-1;i>=0;i--){
     const s=shadowMinions[i];
     s.life-=dt;
@@ -1456,19 +1528,53 @@ function updateShadowMinions(dt,now,camera){
       s.mesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material)c.material.dispose&&c.material.dispose();});
       shadowMinions.splice(i,1);continue;
     }
+    const cpos=s.mesh.position;
+    // General aura: +20% dmg for nearby units
+    let dmgMul=1.0;
+    if(hasGeneral&&generalPos&&!s.isGeneral){
+      if(cpos.distanceTo(generalPos)<10)dmgMul=1.2;
+    }
+    if(_armyDmgBuffUntil>now)dmgMul*=(1+_armyDmgBuff);
+    // Healer: leczy sojusznikow zamiast atakowac
+    if(s.isHealer){
+      if(now-s.lastHeal>1000){
+        s.lastHeal=now;
+        // leczy gracza jesli blisko
+        if(cpos.distanceTo(camera.position)<10){
+          player.hp=Math.min(player.maxHp,player.hp+20);
+        }
+        // leczy inne cienie
+        for(const other of shadowMinions){
+          if(other===s||other.hp>=other.maxHp)continue;
+          if(other.mesh.position.distanceTo(cpos)<8){
+            other.hp=Math.min(other.maxHp,other.hp+20);
+          }
+        }
+        // leczy pupila
+        if(necroPet&&necroPetMesh&&necroPetMesh.position.distanceTo(cpos)<8){
+          necroPet.hp=Math.min(necroPet.maxHp,necroPet.hp+20);
+        }
+      }
+      // healer podaza za graczem
+      const dx=camera.position.x-cpos.x,dz=camera.position.z-cpos.z;
+      const dist=Math.sqrt(dx*dx+dz*dz);
+      if(dist>4){const spd=Math.min(4*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;}
+      cpos.y=terrainHeight(cpos.x,cpos.z)+Math.sin(now*0.004+s.phase)*0.05;
+      s.mesh.lookAt(camera.position.x,cpos.y,camera.position.z);
+      continue;
+    }
     // znajdz najblizszego wroga
     let target=null,td=s.ranged?30:18,tIdx=-1;
     for(let j=0;j<mobs.length;j++){
       const m=mobs[j];if(m.type.passive)continue;
-      const d=m.mesh.position.distanceTo(s.mesh.position);
+      const d=m.mesh.position.distanceTo(cpos);
       if(d<td){td=d;target=m;tIdx=j;}
     }
     let bossTarget=null;
     for(const b of bosses){
-      const d=b.mesh.position.distanceTo(s.mesh.position);
+      const d=b.mesh.position.distanceTo(cpos);
       if(d<td){td=d;bossTarget=b;target=null;tIdx=-1;}
     }
-    const cpos=s.mesh.position;
     if(target||bossTarget){
       const tpos=(target?target.mesh.position:bossTarget.mesh.position);
       const dx=tpos.x-cpos.x,dz=tpos.z-cpos.z;
@@ -1478,23 +1584,22 @@ function updateShadowMinions(dt,now,camera){
         const spd=Math.min(5*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;
       }else if(now-s.lastAtk>s.atkCd*1000){
         s.lastAtk=now;
+        const finalDmg=Math.round(s.dmg*dmgMul);
         if(s.ranged){
-          const sp={dmg:s.dmg,color:0x8844cc,light:0x6622aa,speed:40,life:1.5,size:0.3,fx:'',id:'shadow_minion'};
           const dir=new THREE.Vector3(dx,1,dz).normalize();
           const geo=new THREE.SphereGeometry(0.2,6,6);
-          const mat=new THREE.MeshBasicMaterial({color:0x8844cc});
+          const mat=new THREE.MeshBasicMaterial({color:SHADOW_COLORS[s.stype]||0x8844cc});
           const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(cpos);mesh.position.y+=1;
           _scene.add(mesh);
           projectiles.push({mesh,mat,vel:dir.multiplyScalar(40),life:1.5,gravity:0,
-            color:0x8844cc,dmg:s.dmg,fx:'',spellId:'shadow_minion',elem:'shadow',friendly:true});
+            color:SHADOW_COLORS[s.stype]||0x8844cc,dmg:finalDmg,fx:'',spellId:'shadow_minion',elem:'shadow',friendly:true});
         }else{
-          if(target&&tIdx>=0)damageMob(tIdx,s.dmg);
-          else if(bossTarget)damageBoss(bosses.indexOf(bossTarget),s.dmg);
+          if(target&&tIdx>=0)damageMob(tIdx,finalDmg);
+          else if(bossTarget)damageBoss(bosses.indexOf(bossTarget),finalDmg);
         }
       }
       s.mesh.lookAt(tpos.x,cpos.y,tpos.z);
     }else{
-      // podazaj za graczem
       const dx=camera.position.x-cpos.x,dz=camera.position.z-cpos.z;
       const dist=Math.sqrt(dx*dx+dz*dz);
       if(dist>5){const spd=Math.min(5*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;}
@@ -1502,6 +1607,169 @@ function updateShadowMinions(dt,now,camera){
     }
     cpos.y=terrainHeight(cpos.x,cpos.z)+Math.sin(now*0.004+s.phase)*0.05;
   }
+  // Update pet
+  updateNecroPet(dt,now,camera);
+}
+// ── PUPIL NEKROMANTY ──
+function buildPetMesh(level){
+  const g=new THREE.Group();
+  const pl=PET_LEVELS[level];
+  const col=0x8844cc;
+  const mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.5,transparent:true,opacity:0.82,roughness:0.5,flatShading:true});
+  if(level<2){
+    // Ptak
+    const body=new THREE.Mesh(new THREE.SphereGeometry(0.25,6,6),mat);body.position.y=1.5;g.add(body);
+    const wm=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.3,transparent:true,opacity:0.6,side:THREE.DoubleSide});
+    const wL=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.2),wm);wL.position.set(-0.35,1.5,0);wL.rotation.z=0.3;g.add(wL);
+    const wR=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.2),wm);wR.position.set(0.35,1.5,0);wR.rotation.z=-0.3;g.add(wR);
+  }else if(level<4){
+    // Kon
+    const sc=level===3?1.2:1.0;
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.6*sc,0.4*sc,0.3*sc),mat);body.position.y=0.8*sc;g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.15*sc,6,5),mat);head.position.set(0.35*sc,1.0*sc,0);g.add(head);
+    for(let lx of[-0.15,0.15]){for(let lz of[-0.08,0.08]){
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.04*sc,0.03*sc,0.5*sc,4),mat);
+      leg.position.set(lx*sc,0.25*sc,lz*sc);g.add(leg);
+    }}
+  }else if(level<6){
+    // Lew
+    const sc=level===5?1.3:1.1;
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.5*sc,0.35*sc,0.3*sc),mat);body.position.y=0.7*sc;g.add(body);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(0.18*sc,6,5),mat);head.position.set(0.3*sc,0.9*sc,0);g.add(head);
+    const mane=new THREE.Mesh(new THREE.SphereGeometry(0.22*sc,6,5),
+      new THREE.MeshStandardMaterial({color:0xaa66dd,emissive:0x7744aa,emissiveIntensity:0.3,transparent:true,opacity:0.5}));
+    mane.position.set(0.28*sc,0.9*sc,0);g.add(mane);
+    for(let lx of[-0.12,0.12]){for(let lz of[-0.06,0.06]){
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.04*sc,0.03*sc,0.4*sc,4),mat);
+      leg.position.set(lx*sc,0.2*sc,lz*sc);g.add(leg);
+    }}
+  }else{
+    // Smok (lvl 6-10)
+    const sc=0.8+level*0.15;
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.5*sc,0.4*sc,0.3*sc),mat);body.position.y=1.0*sc;g.add(body);
+    const head=new THREE.Mesh(new THREE.ConeGeometry(0.15*sc,0.3*sc,5),mat);
+    head.position.set(0.35*sc,1.2*sc,0);head.rotation.z=-Math.PI/2;g.add(head);
+    const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.06*sc,0.02*sc,0.6*sc,4),mat);
+    tail.position.set(-0.4*sc,0.9*sc,0);tail.rotation.z=0.5;g.add(tail);
+    const wm=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:0.3,transparent:true,opacity:0.6,side:THREE.DoubleSide});
+    const wL=new THREE.Mesh(new THREE.PlaneGeometry(0.8*sc,0.5*sc),wm);wL.position.set(-0.5*sc,1.3*sc,0);wL.rotation.y=0.4;g.add(wL);
+    const wR=new THREE.Mesh(new THREE.PlaneGeometry(0.8*sc,0.5*sc),wm);wR.position.set(0.5*sc,1.3*sc,0);wR.rotation.y=-0.4;g.add(wR);
+    for(let lx of[-0.12,0.12]){for(let lz of[-0.06,0.06]){
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(0.05*sc,0.04*sc,0.5*sc,4),mat);
+      leg.position.set(lx*sc,0.25*sc,lz*sc);g.add(leg);
+    }}
+  }
+  const eyeM=new THREE.MeshBasicMaterial({color:0xff3366});
+  const eg=new THREE.SphereGeometry(0.04,4,4);
+  const ey=g.children[0]?g.children[0].position.y+0.1:1.0;
+  const eL=new THREE.Mesh(eg,eyeM);eL.position.set(-0.08,ey,0.15);g.add(eL);
+  const eR=new THREE.Mesh(eg,eyeM);eR.position.set(0.08,ey,0.15);g.add(eR);
+  g.add(new THREE.PointLight(col,0.8,6));
+  return g;
+}
+function spawnNecroPet(){
+  if(necroPet)return;
+  if(!_scene||!_camera)return;
+  const lvl=0;
+  const pl=PET_LEVELS[lvl];
+  necroPet={level:lvl,hp:pl.hp,maxHp:pl.hp,dmg:pl.dmg,xp:0,xpNext:PET_XP_REQ[0],lastAtk:0};
+  necroPetMesh=buildPetMesh(lvl);
+  const a=Math.random()*Math.PI*2;
+  const x=_camera.position.x+Math.cos(a)*4,z=_camera.position.z+Math.sin(a)*4;
+  necroPetMesh.position.set(x,terrainHeight(x,z),z);
+  _scene.add(necroPetMesh);
+  toast(pl.name+' przywolany!');
+}
+function petLevelUp(){
+  if(!necroPet||necroPet.level>=9)return;
+  necroPet.level++;necroPet.xp=0;
+  necroPet.xpNext=necroPet.level<9?PET_XP_REQ[necroPet.level]:999999;
+  const pl=PET_LEVELS[necroPet.level];
+  necroPet.maxHp=pl.hp;necroPet.hp=pl.hp;necroPet.dmg=pl.dmg;
+  if(necroPetMesh&&_scene){
+    _scene.remove(necroPetMesh);
+    necroPetMesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material)c.material.dispose&&c.material.dispose();});
+    necroPetMesh=buildPetMesh(necroPet.level);
+    necroPetMesh.position.set(_camera.position.x+3,terrainHeight(_camera.position.x+3,_camera.position.z),_camera.position.z);
+    _scene.add(necroPetMesh);
+  }
+  toast('Pupil ewoluowal: '+pl.name+'! (Poz.'+((necroPet.level)+1)+')');
+}
+function addPetXP(amount){
+  if(!necroPet||necroPet.level>=9)return;
+  necroPet.xp+=amount;
+  while(necroPet.xp>=necroPet.xpNext&&necroPet.level<9)petLevelUp();
+}
+function updateNecroPet(dt,now,camera){
+  if(!necroPet||!necroPetMesh||!_scene)return;
+  if(necroPet.hp<=0){
+    _scene.remove(necroPetMesh);
+    necroPetMesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material)c.material.dispose&&c.material.dispose();});
+    necroPetMesh=null;necroPet=null;
+    toast('Pupil zginal! Przywolaj ponownie.');return;
+  }
+  const cpos=necroPetMesh.position;
+  const pl=PET_LEVELS[necroPet.level];
+  const isRanged=necroPet.level<2||necroPet.level>=5;
+  const moveSpeed=pl.speed||5;
+  // znajdz wroga
+  let target=null,td=isRanged?25:15,tIdx=-1;
+  for(let j=0;j<mobs.length;j++){
+    const m=mobs[j];if(m.type.passive)continue;
+    const d=m.mesh.position.distanceTo(cpos);
+    if(d<td){td=d;target=m;tIdx=j;}
+  }
+  let bossTarget=null;
+  for(const b of bosses){
+    const d=b.mesh.position.distanceTo(cpos);
+    if(d<td){td=d;bossTarget=b;target=null;tIdx=-1;}
+  }
+  if(target||bossTarget){
+    const tpos=(target?target.mesh.position:bossTarget.mesh.position);
+    const dx=tpos.x-cpos.x,dz=tpos.z-cpos.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    const atkRange=isRanged?10:3;
+    if(dist>atkRange){
+      const spd=Math.min(moveSpeed*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;
+    }else if(now-necroPet.lastAtk>1200){
+      necroPet.lastAtk=now;
+      const finalDmg=necroPet.dmg;
+      if(pl.ability==='aoe'&&pl.aoeR){
+        // AOE attack
+        const aoePos=tpos.clone();
+        for(let j=mobs.length-1;j>=0;j--){
+          const m=mobs[j];const d=m.mesh.position.distanceTo(aoePos);
+          if(d<pl.aoeR){
+            damageMob(j,finalDmg);
+            addPetXP(m.type.xp||10);
+          }
+        }
+        for(const b of bosses){
+          if(b.mesh.position.distanceTo(aoePos)<pl.aoeR)
+            damageBoss(bosses.indexOf(b),finalDmg);
+        }
+        doAOE(aoePos,pl.aoeR,finalDmg*0.3,0x8844cc);
+      }else if(isRanged){
+        const dir=new THREE.Vector3(dx,1,dz).normalize();
+        const geo=new THREE.SphereGeometry(0.25,6,6);
+        const mat=new THREE.MeshBasicMaterial({color:0xaa55ff});
+        const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(cpos);mesh.position.y+=1;
+        _scene.add(mesh);
+        projectiles.push({mesh,mat,vel:dir.multiplyScalar(35),life:1.5,gravity:0,
+          color:0xaa55ff,dmg:finalDmg,fx:'',spellId:'pet_attack',elem:'shadow',friendly:true,petOwned:true});
+      }else{
+        if(target&&tIdx>=0){damageMob(tIdx,finalDmg);addPetXP(target.type.xp||10);}
+        else if(bossTarget){damageBoss(bosses.indexOf(bossTarget),finalDmg);addPetXP(50);}
+      }
+    }
+    necroPetMesh.lookAt(tpos.x,cpos.y,tpos.z);
+  }else{
+    const dx=camera.position.x-cpos.x,dz=camera.position.z-cpos.z;
+    const dist=Math.sqrt(dx*dx+dz*dz);
+    if(dist>5){const spd=Math.min(moveSpeed*dt,dist);cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;}
+    necroPetMesh.lookAt(camera.position.x,cpos.y,camera.position.z);
+  }
+  cpos.y=terrainHeight(cpos.x,cpos.z)+(necroPet.level<2?1.0:0);
 }
 
 // ═══ CHEST SYSTEM ═════════════════════════════════════
@@ -2634,7 +2902,9 @@ function selectSpell(idx){
   player.selSpell=idx;
   document.querySelectorAll('#spellbar .spell-slot').forEach(s=>
     s.classList.toggle('active',+s.dataset.spell===idx));
-  document.getElementById('spellname').textContent=sp.name+'  ('+RARITY[sp.rarity].nm+')';
+  let label=sp.name+'  ('+RARITY[sp.rarity].nm+')';
+  if(sp.mrokCost)label+=' ['+sp.mrokCost+' Mroku]';
+  document.getElementById('spellname').textContent=label;
 }
 function selectSpellByPos(pos){const list=ownedList();if(pos<list.length)selectSpell(list[pos]);}
 function selectItem(idx){
@@ -2718,9 +2988,11 @@ function bonusText(b){
 }
 function renderPointsPage(){
   const pts=document.getElementById('cp-pts');
-  pts.innerHTML=skillPoints>0
+  let ptsHtml=skillPoints>0
     ?`Wolne punkty: <b>${skillPoints}</b> &nbsp;·&nbsp; co 5 poziomow +5 pkt`
     :'Brak wolnych punktow (zdobywasz +5 co 5 poziomow)';
+  if(playerClass==='nekromanta')ptsHtml+=`<br>Punkty Mroku: <b style="color:#8844cc">${shadowPoints}</b> (uzyte: ${totalMrokUsed()})`;
+  pts.innerHTML=ptsHtml;
   const ATTR=[
     {key:'hp',name:'Wytrzymalosc',desc:'+20% maks. HP',icon:'❤️'},
     {key:'mana',name:'Moc Many',desc:'+20% maks. many',icon:'🔵'},
@@ -2728,6 +3000,21 @@ function renderPointsPage(){
     {key:'regen',name:'Regeneracja',desc:'+20% regeneracji many',icon:'💧'},
   ];
   const at=document.getElementById('cp-attrs');at.innerHTML='';
+  // Nekromanta: przycisk zamiany punktow na mroku
+  if(playerClass==='nekromanta'&&skillPoints>0){
+    const mrokRow=document.createElement('div');mrokRow.className='cp-attr';
+    mrokRow.innerHTML=`<span style="font-size:18px">🌑</span>
+      <span class="cp-attr-name">Punkty Mroku<br><span class="cp-attr-desc">1 punkt = +5 mroku (wieksza armia)</span></span>
+      <span class="cp-attr-pips" style="color:#8844cc">${shadowPoints} pkt</span>`;
+    const mrokBtn=document.createElement('button');mrokBtn.className='cp-attr-btn';mrokBtn.textContent='+5';
+    mrokBtn.disabled=skillPoints<=0;
+    mrokBtn.addEventListener('click',()=>{
+      if(skillPoints<=0)return;
+      skillPoints--;shadowPoints+=5;
+      renderCharPanel();updateCharBtn();
+    });
+    mrokRow.appendChild(mrokBtn);at.appendChild(mrokRow);
+  }
   for(const a of ATTR){
     const lvl=stats[a.key],maxed=lvl>=5;
     const row=document.createElement('div');row.className='cp-attr';
@@ -3023,20 +3310,25 @@ function attemptCast(now){
     player.lastCast=now+400;return;
   }
   if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
+  if(sp.mrokCost&&playerClass==='nekromanta'){
+    if(totalMrokUsed()+sp.mrokCost>shadowPoints){
+      toast('Za malo Punktow Mroku! ('+shadowPoints+' max, '+totalMrokUsed()+' uzyte)');
+      player.lastCast=now+200;return;
+    }
+  }
   player.mana-=sp.mana;player.lastCast=now;
+  // Nekromanta +20% shadow dmg bonus
   if(sp.kind==='summon'){castSummon(sp);return;}
   if(sp.kind==='buff'){castBuff(sp);return;}
   if(sp.kind==='util'){castUtil(sp);return;}
   spawnProjectile(_scene,_camera,sp);
 }
 function castSummon(sp){
-  if(sp.summon==='army'){
-    let n=0;for(let i=0;i<3;i++){if(spawnShadowMinion('skeleton',sp.sumHp,sp.sumDmg))n++;}
-    toast(n>0?'Armia Umarlych przyzwana!':'Limit cieni osiagniety');
-    return;
+  if(sp.summon==='pet'){
+    if(necroPet){toast('Pupil juz istnieje!');player.mana+=sp.mana;return;}
+    spawnNecroPet();return;
   }
-  if(spawnShadowMinion(sp.summon,sp.sumHp,sp.sumDmg))toast(sp.name+'!');
-  else toast('Limit cieni osiagniety (max '+MAX_SHADOWS+')');
+  if(spawnShadowMinion(sp.summon,sp.sumHp,sp.sumDmg,sp.mrokCost||0))toast(sp.name+'!');
 }
 function castBuff(sp){
   const now=performance.now();
@@ -3051,32 +3343,60 @@ function castBuff(sp){
   else if(sp.id==='regeneracja'){statusEffects.push({type:'regen',until:now+10000,value:10});toast('+10 HP/s');}
   else if(sp.id==='boski_dotyk'){player.hp=player.maxHp;player.mana=player.maxMana;toast('Boski Dotyk!');}
   else if(sp.id==='niewidzialnosc'){toast('Niewidzialnosc 6s');}
-  // ── Nekromanta ──
-  else if(sp.id==='klatwa_smierci'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<15)m.dmgMul=0.6;});bosses.forEach(b=>{if(b.mesh.position.distanceTo(_camera.position)<20)b.dmgMul=0.6;});toast('Klatwa Smierci!');}
-  else if(sp.id==='kostna_tarcza'){shieldHP+=150;toast('Kostna Tarcza: 150 dmg');}
-  else if(sp.id==='mroczne_leczenie'){player.hp=Math.min(player.maxHp,player.hp+120);toast('+120 HP (Mrok)');}
-  else if(sp.id==='aura_rozkladu'){statusEffects.push({type:'decayAura',until:now+10000});toast('Aura Rozkladu!');}
-  else if(sp.id==='wskrzeszenie'){hasRevive=true;toast('Wskrzeszenie aktywne');}
+  // ── Nekromanta buffy ──
+  else if(sp.id==='lekki_heal'){player.hp=Math.min(player.maxHp,player.hp+30);toast('+30 HP');}
+  else if(sp.id==='tarcza_cieni'){shieldHP+=50;toast('Tarcza Cieni: 50 dmg na 10s');}
+  else if(sp.id==='wzmocnienie'){_armyDmgBuff=0.2;_armyDmgBuffUntil=now+10000;toast('+20% dmg sojusznikow!');}
+  else if(sp.id==='klatwa_slabosci_n'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<15)m.dmgMul=0.7;});bosses.forEach(b=>{if(b.mesh.position.distanceTo(_camera.position)<20)b.dmgMul=0.7;});toast('Klatwa Slabosci!');}
+  else if(sp.id==='kolce_cieni'){statusEffects.push({type:'thornsCieni',until:now+8000,value:0.2});toast('Kolce Cieni: odbijasz 20% dmg');}
+  else if(sp.id==='spowolnienie_n'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12){m.speed*=0.6;setTimeout(()=>{m.speed=m.type.speed;},5000);}});toast('Spowolnienie wrogow!');}
+  else if(sp.id==='przywolanie_tarczy'){shieldHP+=200;toast('Tarcza 200 HP!');}
+  else if(sp.id==='ochrona_smierci'){hasRevive=true;toast('Ochrona przed Smiercia aktywna!');}
+  else if(sp.id==='wzmocnienie_armii'){_armyDmgBuff=0.3;_armyDmgBuffUntil=now+15000;toast('+30% dmg armii na 15s!');}
+  else if(sp.id==='mroczne_uzdrowienie'){
+    player.hp=Math.min(player.maxHp,player.hp+80);
+    for(const s of shadowMinions){if(s.mesh.position.distanceTo(_camera.position)<10)s.hp=Math.min(s.maxHp,s.hp+80);}
+    if(necroPet&&necroPetMesh&&necroPetMesh.position.distanceTo(_camera.position)<10)necroPet.hp=Math.min(necroPet.maxHp,necroPet.hp+80);
+    toast('Mroczne Uzdrowienie: +80 HP sojusznikom!');
+  }
   else toast(sp.name+': '+sp.fx);
 }
 function castUtil(sp){
-  if(sp.id==='teleportacja'&&_camera){
+  if((sp.id==='teleportacja'||sp.id==='teleportacja_n')&&_camera){
     const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
     _camera.position.addScaledVector(dir,15);
     _camera.position.y=Math.max(terrainHeight(_camera.position.x,_camera.position.z)+EYE_H,_camera.position.y);
     toast('Teleportacja!');
-  }else if(sp.id==='portal_podrozny'&&_camera){
+  }else if((sp.id==='portal_podrozny'||sp.id==='portal_nekro')&&_camera){
     const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
     _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);
     toast('Teleport do wioski!');
-  }else if(sp.id==='lewitacja'){velY=6;toast('Lewitacja!');}
+  }else if(sp.id==='lewitacja'||sp.id==='lewitacja_n'){velY=6;toast('Lewitacja!');}
   else if(sp.id==='lot_smoka'){buffSpeedUntil=performance.now()+15000;velY=10;toast('Lot Smoka!');}
-  else if(sp.id==='przywolanie_swiatla'&&_scene){
-    const l=new THREE.PointLight(0xffffcc,3,40);l.position.copy(_camera.position);
-    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast('Swiatlo!');}
+  else if((sp.id==='przywolanie_swiatla'||sp.id==='mroczna_wizja')&&_scene){
+    const l=new THREE.PointLight(sp.id==='mroczna_wizja'?0xaa88ff:0xffffcc,3,sp.id==='mroczna_wizja'?20:40);
+    l.position.copy(_camera.position);
+    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast(sp.id==='mroczna_wizja'?'Mroczna Wizja!':'Swiatlo!');}
   else if(sp.id==='klatwa_slabosci'){
     mobs.forEach(m=>{const d=m.mesh.position.distanceTo(_camera.position);
       if(d<15)m.dmgMul=0.7;});toast('Klatwa Slabosci!');}
+  else if(sp.id==='niewidzialnosc_n'){toast('Niewidzialnosc 5s!');}
+  else if(sp.id==='odbicie_n'){statusEffects.push({type:'reflect',until:performance.now()+5000});toast('Odbicie aktywne!');}
+  else if(sp.id==='klatwa_smierci_n'){
+    for(let j=mobs.length-1;j>=0;j--){
+      const m=mobs[j];if(m.mesh.position.distanceTo(_camera.position)<15&&m.hp<m.maxHp*0.1){
+        damageMob(j,999999);toast('Klatwa Smierci - natychmiastowa smierc!');return;
+      }
+    }
+    toast('Brak wrogow ponizej 10% HP');
+  }
+  else if(sp.id==='zmartwychwstanie_n'){
+    for(const s of shadowMinions){
+      if(s.hp<s.maxHp*0.5){s.hp=s.maxHp*0.5;toast('Sojusznik wskrzeszony!');return;}
+    }
+    if(necroPet&&necroPet.hp<necroPet.maxHp*0.5){necroPet.hp=Math.round(necroPet.maxHp*0.5);toast('Pupil wskrzeszony!');return;}
+    toast('Brak sojusznikow do wskrzeszenia');
+  }
   else toast(sp.name+': '+(sp.fx||'efekt wkrotce'));
 }
 function removeProjectile(i){
@@ -3112,11 +3432,21 @@ function updateProjectiles(dt){
       const m=mobs[j];
       const mc=m.mesh.position.clone();mc.y+=m.type.height*0.5;
       if(p.mesh.position.distanceTo(mc)<1.2){
-        damageMob(j,p.dmg);spawnImpact(_scene,p.mesh.position,p.color);
-        if(p.fx&&p.fx.includes('AOE'))doAOE(p.mesh.position,6,p.dmg*0.5,p.color);
+        let mobDmg=p.dmg;
+        if(p.spellId==='nekroza'&&!mobs[j].type.passive)mobDmg=Math.round(mobDmg*1.5);
+        damageMob(j,mobDmg);spawnImpact(_scene,p.mesh.position,p.color);
+        if(p.fx&&p.fx.includes('AOE')){
+          const aoeR=p.fx.includes('12m')?12:p.fx.includes('10m')?10:p.fx.includes('8m')?8:p.fx.includes('5m')?5:6;
+          doAOE(p.mesh.position,aoeR,p.dmg*0.5,p.color);
+        }
         if(p.spellId==='plomien_duszy')player.hp=Math.min(player.maxHp,player.hp+p.dmg*0.5);
         if(p.spellId==='wyssanie_zycia')player.hp=Math.min(player.maxHp,player.hp+p.dmg);
         if(p.spellId==='eksplozja_dusz')player.hp=Math.min(player.maxHp,player.hp+p.dmg*0.4);
+        if(p.spellId==='krwawa_ofiara')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.2));
+        if(p.spellId==='klatwa_bolu'){
+          statusEffects.push({type:'dmgBoost',until:performance.now()+5000,value:1.1});
+        }
+        if(p.spellId==='pet_attack'&&necroPet)addPetXP(mobs[j]?mobs[j].type.xp||10:10);
         removeProjectile(i);hit=true;break;
       }
     }
@@ -3507,6 +3837,7 @@ function killMob(idx){
   }
   if(Math.random()<0.05){const c=RESOURCES.find(r=>r.id==='crystal');if(c)addToInventory({...c});}
   if(playerClass==='wampir'&&!m.type.passive){blood=Math.min(maxBlood,blood+50);toast('+50 Krew');}
+  if(playerClass==='nekromanta'&&necroPet)addPetXP(m.type.xp||10);
   if(playerClass==='czlowiek'){strength=Math.min(maxStrength,strength+10);}
   if(playerClass==='nieumarly'){decay=Math.min(maxDecay,decay+8);}
   if(m.type.tame&&m.hp<=m.maxHp*0.1&&!companion){tryTame(m);}
@@ -3618,6 +3949,14 @@ function killBoss(idx){
   BOSS_DROPS.filter(d=>d.boss===b.type.id).forEach(d=>{
     addToInventory({...d,count:1});toast('Drop: '+d.name+'!');
   });
+  // Nekromanta: bonus punkty za bossow
+  if(playerClass==='nekromanta'){
+    const bossBonus={skeleton_king:30,dragon:30,dark_lord:50,pharaoh:20};
+    const bp=bossBonus[b.type.id]||10;
+    skillPoints+=bp;
+    toast('+'+bp+' punktow umiejetnosci za bossa!');
+    updateCharBtn();
+  }
   _scene.remove(b.mesh);
   bosses.splice(idx,1);
   if(bosses.length===0)document.getElementById('boss-bar').classList.remove('show');
@@ -3657,6 +3996,14 @@ function hurtPlayer(dmg){
   if(shieldHP>0){const absorbed=Math.min(shieldHP,dmg);shieldHP-=absorbed;dmg-=absorbed;
     if(dmg<=0)return;}
   const g=gearBonus();dmg=Math.round(dmg*(1-g.dmgRed/100));
+  // Kolce Cieni: odbicie dmg
+  const thorns=statusEffects.find(e=>e.type==='thornsCieni'&&e.until>performance.now());
+  if(thorns){
+    const reflected=Math.round(dmg*thorns.value);
+    for(let j=mobs.length-1;j>=0;j--){
+      const m=mobs[j];if(m.mesh.position.distanceTo(_camera.position)<5){damageMob(j,reflected);break;}
+    }
+  }
   player.hp-=dmg;
   const flash=document.getElementById('dmg-flash');
   flash.style.opacity='0.35';setTimeout(()=>flash.style.opacity='0',150);
@@ -3716,11 +4063,15 @@ function gearBonus(){
 }
 function applyStats(){
   const g=gearBonus();
-  const baseHp=100+(xpState.level-1)*10;
-  player.maxHp=Math.round(baseHp*hpMul()+g.hp);
-  const baseMana=1000+(xpState.level-1)*50;
-  player.maxMana=Math.round(baseMana*manaMul()+g.mana);
-  player.manaRegen=5*regenMul();
+  const cfg=CLASS_CONFIG[playerClass];
+  const baseHp=(cfg?cfg.hp:100)+(xpState.level-1)*10;
+  // Nekromanta: bonusy many z ekwipunku ida jako HP
+  const extraHp=playerClass==='nekromanta'?g.hp+g.mana:g.hp;
+  player.maxHp=Math.round(baseHp*hpMul()+extraHp);
+  const baseMana=(cfg?cfg.mana:1000)+(xpState.level-1)*50;
+  const extraMana=playerClass==='nekromanta'?0:g.mana;
+  player.maxMana=Math.round(baseMana*manaMul()+extraMana);
+  player.manaRegen=(cfg?cfg.manaRegen:5)*regenMul();
   player.hp=Math.min(player.hp,player.maxHp);
   player.mana=Math.min(player.mana,player.maxMana);
   let wt=0;
@@ -3728,7 +4079,14 @@ function applyStats(){
   const ew=equipSets[activeSet].weapon;if(ew&&ew.wandTier!=null)wt=Math.max(wt,ew.wandTier);
   player.wandTier=wt;
 }
-function spellDmgMul(){return 1+gearBonus().dmg/100;}
+function spellDmgMul(){
+  let mul=1+gearBonus().dmg/100;
+  if(playerClass==='nekromanta'){
+    const sp=SPELLS[player.selSpell];
+    if(sp&&sp.elem==='shadow')mul*=1.2;
+  }
+  return mul;
+}
 
 // ═══ INPUT ══════════════════════════════════════════
 function setupDesktopInput(){
@@ -4025,6 +4383,15 @@ function updateHUD(camera){
   document.querySelector('.bar-xp .bar-label').textContent=`XP ${xpState.xp}/${xpState.xpNext}`;
   document.querySelector('.bar-hunger .bar-fill').style.width=(hunger)+'%';
   document.querySelector('.bar-hunger .bar-label').textContent=`GLOD ${Math.round(hunger)}/100`;
+  // Mroku bar
+  const mrokBar=document.getElementById('mrok-bar');
+  if(playerClass==='nekromanta'){
+    mrokBar.style.display='';
+    const used=totalMrokUsed();
+    const free=shadowPoints-used;
+    mrokBar.querySelector('.bar-fill').style.width=shadowPoints>0?(free/shadowPoints*100)+'%':'0%';
+    document.getElementById('mrok-label').textContent=`MROKU ${free}/${shadowPoints} (${shadowMinions.length} cieni`+(necroPet?', pupil':'')+')';}
+  else{mrokBar.style.display='none';}
   document.getElementById('lvl-badge').textContent='Poz. '+xpState.level;
   document.querySelector('#gold b').textContent=player.gold;
   const lm=nearestLandmark(p.x,p.z);
