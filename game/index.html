@@ -142,9 +142,9 @@
   #lm-dist{color:#9aa8c4}
   #lm-arrow{color:#9ad0ff;font-weight:700;display:inline-block}
 
-  #bars{position:absolute;bottom:74px;left:50%;transform:translateX(-50%);
-    display:flex;flex-direction:column;gap:4px;align-items:center}
-  .bar-wrap{width:150px;height:15px;background:rgba(0,0,0,.62);
+  #bars{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:3px;align-items:center;z-index:2}
+  .bar-wrap{width:140px;height:14px;background:rgba(0,0,0,.62);
     border:1px solid rgba(255,255,255,.18);border-radius:8px;overflow:hidden;
     position:relative;box-shadow:0 2px 6px rgba(0,0,0,.45)}
   .bar-fill{height:100%;border-radius:8px;transition:width .12s linear;
@@ -195,21 +195,22 @@
   .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
   .slot-glow{position:absolute;inset:0;border-radius:4px;opacity:.18}
 
-  #joystick-base{position:absolute;left:34px;bottom:74px;width:120px;height:120px;
-    border-radius:50%;background:rgba(255,255,255,.06);
-    border:2px solid rgba(255,255,255,.16);pointer-events:none}
-  #joystick-knob{position:absolute;width:52px;height:52px;border-radius:50%;
-    background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);
-    pointer-events:none}
-  #joystick-zone{position:absolute;left:0;bottom:0;width:46%;height:52%;
+  #joystick-base{position:absolute;left:24px;bottom:90px;width:110px;height:110px;
+    border-radius:50%;background:rgba(255,255,255,.1);
+    border:3px solid rgba(255,255,255,.3);pointer-events:none;
+    box-shadow:inset 0 0 20px rgba(255,255,255,.05)}
+  #joystick-knob{position:absolute;width:50px;height:50px;border-radius:50%;
+    background:rgba(255,255,255,.3);border:3px solid rgba(255,255,255,.5);
+    pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,.15)}
+  #joystick-zone{position:absolute;left:0;bottom:0;width:42%;height:48%;
     pointer-events:auto;z-index:1}
 
-  #jump-btn{position:absolute;bottom:150px;right:32px;width:56px;height:56px;
-    border-radius:50%;background:rgba(255,255,255,.1);
-    border:2px solid rgba(255,255,255,.2);color:#aaa;font-size:11px;
+  #jump-btn{position:absolute;bottom:165px;right:22px;width:52px;height:52px;
+    border-radius:50%;background:rgba(255,255,255,.12);
+    border:2px solid rgba(255,255,255,.25);color:#aaa;font-size:11px;
     display:none;align-items:center;justify-content:center;
     pointer-events:auto;font-weight:600}
-  #cast-btn{position:absolute;bottom:66px;right:24px;width:74px;height:74px;
+  #cast-btn{position:absolute;bottom:86px;right:18px;width:68px;height:68px;
     border-radius:50%;
     background:radial-gradient(circle at 50% 40%,rgba(120,170,255,.35),rgba(40,70,140,.5));
     border:2px solid rgba(150,200,255,.6);color:#dceaff;font-size:30px;
@@ -563,13 +564,15 @@
   .craft-do:disabled{opacity:.4;background:#333;border-color:#444}
 
   @media(max-width:900px){
-    #hotbar .slot{width:48px;height:48px;font-size:22px}
-    .bar-wrap{width:112px;height:12px}
+    #hotbar .slot{width:42px;height:42px;font-size:20px}
+    .bar-wrap{width:105px;height:12px}
+    .bar-label{font-size:9px}
     #topbar{font-size:11px;padding:3px 10px}
     #jump-btn{display:flex}
     #cast-btn{display:flex}
-    #minimap{width:80px;height:80px;top:48px;right:6px}
+    #minimap{width:75px;height:75px;top:48px;right:6px}
     #craft-btn{margin-left:120px}
+    #bars{left:52%;bottom:68px}
   }
 </style>
 </head>
@@ -5803,10 +5806,10 @@ function setupMobileInput(){
   const jumpBtn=document.getElementById('jump-btn');
   const castBtn=document.getElementById('cast-btn');
   jumpBtn.style.display='flex';castBtn.style.display='flex';
-  const R=58;let cx=0,cy=0;
+  const R=52;let cx=0,cy=0;
   function recenter(){
     const r=joyBase.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;
-    joyKnob.style.left=(cx-26)+'px';joyKnob.style.top=(cy-26)+'px';
+    joyKnob.style.left=(cx-25)+'px';joyKnob.style.top=(cy-25)+'px';
   }
   recenter();window.addEventListener('resize',recenter);
   joyZone.addEventListener('touchstart',e=>{
@@ -5821,11 +5824,11 @@ function setupMobileInput(){
     let dx=x-cx,dy=y-cy;const d=Math.sqrt(dx*dx+dy*dy);
     if(d>R){dx=dx/d*R;dy=dy/d*R;}
     joyState.dx=dx/R;joyState.dy=dy/R;
-    joyKnob.style.left=(cx+dx-26)+'px';joyKnob.style.top=(cy+dy-26)+'px';
+    joyKnob.style.left=(cx+dx-25)+'px';joyKnob.style.top=(cy+dy-25)+'px';
   }
   const endJoy=e=>{for(const t of e.changedTouches){if(t.identifier===joyState.id){
     joyState.active=false;joyState.dx=0;joyState.dy=0;joyState.id=null;
-    joyKnob.style.left=(cx-26)+'px';joyKnob.style.top=(cy-26)+'px';}}};
+    joyKnob.style.left=(cx-25)+'px';joyKnob.style.top=(cy-25)+'px';}}};
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
   const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#map-btn,#abil-btn,#interact-prompt,#boss-bar,#companion-hud,#bars,#corner-stats,#fullmap,.cp-close,.cp-arrow');
