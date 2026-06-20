@@ -574,7 +574,7 @@
 
   <div class="menu-screen" id="screen-class">
     <div class="screen-head">Wybierz Klase</div>
-    <div class="screen-desc">Kazda klasa to inny styl gry. Na razie dostepny jest Mag — reszta wkrotce.</div>
+    <div class="screen-desc">Kazda klasa to inny styl gry z unikalnymi zaklęciami i mechanikami.</div>
     <div class="class-grid" id="class-grid">
       <div class="class-card" data-class="mag">
         <div class="class-icon">🔮</div>
@@ -594,7 +594,7 @@
       <div class="class-card" data-class="czlowiek">
         <div class="class-icon">⚔️</div>
         <div class="class-name">Czlowiek</div>
-        <div class="class-tag">Wszechstronny wojownik. Balans, bron i adaptacja.</div>
+        <div class="class-tag">18 technik bojowych, sila jako zasob, szybkie cooldowny.</div>
       </div>
       <div class="class-card" data-class="atlantyda">
         <div class="class-icon">🔱</div>
@@ -604,7 +604,7 @@
       <div class="class-card" data-class="nieumarly">
         <div class="class-icon">🧟</div>
         <div class="class-name">Nieumarly</div>
-        <div class="class-tag">Nie czuje bolu. Trupia wytrzymalosc i mroczne klatwy.</div>
+        <div class="class-tag">18 mrocznych zaklec, rozklad jako zasob, lifesteal, trucizny.</div>
       </div>
     </div>
     <div class="nav-row">
@@ -1049,6 +1049,80 @@ function buildAtlantydaSpells(){
       cost:r.pts, lvl:r.lvl, wandReq:r.wand, needScroll:r.scroll };
   });
 }
+// ── TECHNIKI CZLOWIEKA (wojownicze umiejetnosci) ──
+const CZLOWIEK_SPELL_DATA = [
+  // ── ATAKI (7) ── (earth element, uses strength cost stored in mana field)
+  ['rzut_kamieniem','Rzut Kamieniem','earth','common',10,1.5,25,''],
+  ['lodowa_strzala_w','Lodowa Strzala','ice','common',15,2,30,''],
+  ['ognisty_rzut','Ognisty Rzut','fire','rare',25,2.5,55,'Podpalenie 3s'],
+  ['kusza_wiatrowa','Kusza Wiatrowa','air','rare',20,2,50,'Szybki pocisk'],
+  ['piorun_mocy','Piorun Mocy','bolt','epic',35,3,90,'Stun 1s'],
+  ['stalowy_grad','Stalowy Grad','earth','epic',40,3.5,120,'AOE 5m'],
+  ['gniew_wojownika','Gniew Wojownika','fire','mythic',60,5,220,'AOE 8m + podpalenie'],
+  // ── BUFFY (6) ──
+  ['bandaz','Bandaz','buff','common',8,1,0,'Leczy 30 HP'],
+  ['bojowa_postawa','Bojowa Postawa','buff','common',12,1.5,0,'+25% dmg na 8s'],
+  ['zelazna_wola','Zelazna Wola','buff','rare',20,2,0,'Oslona 100 HP'],
+  ['bitewny_krzyk','Bitewny Krzyk','buff','rare',25,2,0,'-30% dmg wrogow w 12m'],
+  ['stalowa_skora','Stalowa Skora','buff','epic',35,3,0,'Oslona 250 HP + regen'],
+  ['furia_bohatera','Furia Bohatera','buff','mythic',50,4,0,'+60% dmg +30% speed na 12s'],
+  // ── NARZEDZIA (4) ──
+  ['szybki_sprint','Szybki Sprint','other','common',10,1,0,'+50% szybkosci na 6s'],
+  ['zwiad','Zwiad','other','rare',15,2,0,'Swiatlo na 30s'],
+  ['punkt_zborny','Punkt Zborny','other','epic',35,3,0,'Teleport do wioski'],
+  ['drugie_zycie','Drugie Zycie','other','legend',80,5,0,'Chroni przed smiercia'],
+  // ── SECRET ──
+  ['boski_cios','Boski Cios','fire','secret',100,8,1500,'AOE 12m + stun + pelne HP','⚡'],
+];
+function buildCzlowiekSpells(){
+  return CZLOWIEK_SPELL_DATA.map(d=>{
+    const [id,name,el,rar,strCost,cast,dmg,fx,icOv]=d;
+    const e=ELEM[el], r=RARITY[rar];
+    return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
+      color:e.col, light:e.light, kind:e.kind,
+      mana:strCost, strengthCost:true, castTime:cast, dmg, fx:fx||'',
+      speed:e.speed?e.speed*0.9:0, size:e.size+(RARITY_ORDER.indexOf(rar))*0.03,
+      life:e.life, gravity:e.grav, cd:RARITY_CD[rar]*0.7,
+      cost:r.pts, lvl:r.lvl, wandReq:0, needScroll:r.scroll };
+  });
+}
+// ── TECHNIKI NIEUMARŁEGO (mroczne klatwy i trucizny) ──
+const NIEUMARLY_SPELL_DATA = [
+  // ── ATAKI (7) ──
+  ['trupia_kula','Trupia Kula','shadow','common',10,2,20,''],
+  ['jadowity_plwociek','Jadowity Plwociek','earth','common',12,2.2,28,''],
+  ['klatwa_gnicia','Klatwa Gnicia','shadow','rare',20,2.5,50,'DOT 5s'],
+  ['trucizna_smierci','Trucizna Smierci','shadow','rare',25,3,65,'Slow + DOT'],
+  ['fala_zgnilizny','Fala Zgnilizny','shadow','epic',35,3.5,100,'AOE 6m'],
+  ['plaga','Plaga','shadow','epic',45,4,140,'AOE 8m + slow wszystkich'],
+  ['dotyk_smierci','Dotyk Smierci','shadow','mythic',60,5,250,'AOE 10m + lifesteal 30%'],
+  // ── BUFFY (6) ──
+  ['trupi_heal','Trupi Heal','buff','common',8,1,0,'Leczy 25 HP'],
+  ['kostna_zbroja_s','Kostna Zbroja','buff','common',12,1.5,0,'Oslona 80 HP'],
+  ['aura_strachu','Aura Strachu','buff','rare',20,2,0,'-40% dmg wrogow w 10m'],
+  ['trupia_regeneracja','Trupia Regeneracja','buff','rare',25,2.5,0,'+12 HP/s przez 10s'],
+  ['niesmiertelna_skorupa','Niesmiertelna Skorupa','buff','epic',40,3,0,'Oslona 300 HP'],
+  ['gniew_nieumarłych','Gniew Nieumarłych','buff','mythic',60,4,0,'+50% dmg + 50% speed na 10s'],
+  // ── NARZEDZIA (4) ──
+  ['trupi_skok','Trupi Skok','other','common',10,1,0,'Teleport 12m do przodu'],
+  ['mroczne_oko','Mroczne Oko','other','rare',15,2,0,'Swiatlo na 30s'],
+  ['portal_umarłych','Portal Umarlych','other','epic',40,4,0,'Teleport do wioski'],
+  ['pakt_smierci','Pakt Smierci','other','legend',80,5,0,'Chroni przed smiercia'],
+  // ── SECRET ──
+  ['apokalipsa','Apokalipsa','shadow','secret',100,10,1800,'AOE 15m + lifesteal + oslona 500','💀'],
+];
+function buildNieumarlySpells(){
+  return NIEUMARLY_SPELL_DATA.map(d=>{
+    const [id,name,el,rar,decCost,cast,dmg,fx,icOv]=d;
+    const e=ELEM[el], r=RARITY[rar];
+    return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
+      color:e.col, light:e.light, kind:e.kind,
+      mana:decCost, decayCost:true, castTime:cast, dmg, fx:fx||'',
+      speed:e.speed?e.speed:0, size:e.size+(RARITY_ORDER.indexOf(rar))*0.03,
+      life:e.life, gravity:e.grav, cd:RARITY_CD[rar],
+      cost:r.pts, lvl:r.lvl, wandReq:0, needScroll:r.scroll };
+  });
+}
 let SPELLS = buildSpells();
 // Pierwsze zaklecie gracz ma od startu
 const ownedSpells = new Set([0]);
@@ -1426,7 +1500,8 @@ function buildSpellbar(){
     const el=document.createElement('div');
     el.className='spell-slot'+(i===player.selSpell?' active':'');
     el.dataset.spell=i;
-    el.innerHTML=`${sp.icon}<span class="spell-cost"${playerClass==='wampir'?' style="color:#ff4444"':''}>${sp.mana}</span>`;
+    const costCol=playerClass==='wampir'?' style="color:#ff4444"':playerClass==='czlowiek'?' style="color:#d4a017"':playerClass==='nieumarly'?' style="color:#5a8a3a"':'';
+    el.innerHTML=`${sp.icon}<span class="spell-cost"${costCol}>${sp.mana}</span>`;
     const g=document.createElement('div');g.className='spell-glow';
     g.style.background='#'+sp.color.toString(16).padStart(6,'0');
     el.appendChild(g);
@@ -1485,9 +1560,9 @@ const CLASS_CONFIG={
   mag:{name:'Mag',hp:100,mana:1000,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Rozdzka',icon:'🪄',type:'wand',wandTier:0},figure:'🧙'},
   wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'blood_staff',name:'Berlo Krwi',icon:'🪄',type:'wand',wandTier:0},figure:'🧛'},
   nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
-  czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'⚔️'},
+  czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'battle_staff',name:'Bojowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'⚔️'},
   atlantyda:{name:'Atlantyda',hp:120,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
-  nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'sword_iron',name:'Zelazny Miecz',icon:'⚔️',type:'sword',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧟'},
+  nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'decay_staff',name:'Berlo Rozkladu',icon:'🪄',type:'wand',wandTier:0},figure:'🧟'},
 };
 let playerClass='mag';
 let blood=1000,maxBlood=1000;
@@ -1514,7 +1589,7 @@ function startGame(){
     necroPet=null;necroPetMesh=null;
     ITEMS[1]={id:'ksiega_cieni',name:'Ksiega Cieni',icon:'📖',type:'tool',desc:'Pozwala przywolywac cienie'};
   }
-  SPELLS=playerClass==='nekromanta'?buildNecroSpells():playerClass==='wampir'?buildWampirSpells():playerClass==='atlantyda'?buildAtlantydaSpells():buildSpells();
+  SPELLS=playerClass==='nekromanta'?buildNecroSpells():playerClass==='wampir'?buildWampirSpells():playerClass==='atlantyda'?buildAtlantydaSpells():playerClass==='czlowiek'?buildCzlowiekSpells():playerClass==='nieumarly'?buildNieumarlySpells():buildSpells();
   ownedSpells.clear();ownedSpells.add(0);
   player.selSpell=0;
   skillPoints=5;
@@ -3949,6 +4024,12 @@ function attemptCast(now){
   if(playerClass==='wampir'&&sp.bloodCost){
     if(blood<sp.mana){toast('Za malo krwi');player.lastCast=now+200;return;}
     blood-=sp.mana;player.lastCast=now;
+  }else if(playerClass==='czlowiek'&&sp.strengthCost){
+    if(strength<sp.mana){toast('Za malo sily');player.lastCast=now+200;return;}
+    strength-=sp.mana;player.lastCast=now;
+  }else if(playerClass==='nieumarly'&&sp.decayCost){
+    if(decay<sp.mana){toast('Za malo rozkladu');player.lastCast=now+200;return;}
+    decay-=sp.mana;player.lastCast=now;
   }else{
     if(player.mana<sp.mana){toast('Za malo many');player.lastCast=now+200;return;}
     if(sp.mrokCost&&playerClass==='nekromanta'){
@@ -4001,6 +4082,20 @@ function castBuff(sp){
     if(necroPet&&necroPetMesh&&necroPetMesh.position.distanceTo(_camera.position)<10)necroPet.hp=Math.min(necroPet.maxHp,necroPet.hp+80);
     toast('Mroczne Uzdrowienie: +80 HP sojusznikom!');
   }
+  // ── Czlowiek buffy ──
+  else if(sp.id==='bandaz'){player.hp=Math.min(player.maxHp,player.hp+30);toast('+30 HP');}
+  else if(sp.id==='bojowa_postawa'){statusEffects.push({type:'dmgBoost',until:now+8000,value:1.25});toast('+25% dmg na 8s');}
+  else if(sp.id==='zelazna_wola'){shieldHP+=100;toast('Zelazna Wola: +100 oslony');}
+  else if(sp.id==='bitewny_krzyk'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12)m.dmgMul=0.7;});toast('Bitewny Krzyk!');}
+  else if(sp.id==='stalowa_skora'){shieldHP+=250;statusEffects.push({type:'regen',until:now+10000,value:5});toast('Stalowa Skora!');}
+  else if(sp.id==='furia_bohatera'){statusEffects.push({type:'dmgBoost',until:now+12000,value:1.6});buffSpeedUntil=now+12000;toast('Furia Bohatera!');}
+  // ── Nieumarly buffy ──
+  else if(sp.id==='trupi_heal'){player.hp=Math.min(player.maxHp,player.hp+25);toast('+25 HP');}
+  else if(sp.id==='kostna_zbroja_s'){shieldHP+=80;toast('Kostna Zbroja: +80 oslony');}
+  else if(sp.id==='aura_strachu'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10)m.dmgMul=0.6;});toast('Aura Strachu!');}
+  else if(sp.id==='trupia_regeneracja'){statusEffects.push({type:'regen',until:now+10000,value:12});toast('+12 HP/s przez 10s');}
+  else if(sp.id==='niesmiertelna_skorupa'){shieldHP+=300;toast('Niesmiertelna Skorupa: +300 oslony');}
+  else if(sp.id==='gniew_nieumarłych'){statusEffects.push({type:'dmgBoost',until:now+10000,value:1.5});buffSpeedUntil=now+10000;toast('Gniew Nieumarłych!');}
   // ── Atlantyda buffy ──
   else if(sp.id==='leczaca_woda'){player.hp=Math.min(player.maxHp,player.hp+40);toast('+40 HP');}
   else if(sp.id==='tarcza_wody'){shieldHP+=80;toast('Tarcza Wody: +80 oslony');}
@@ -4054,6 +4149,28 @@ function castUtil(sp){
     if(necroPet&&necroPet.hp<necroPet.maxHp*0.5){necroPet.hp=Math.round(necroPet.maxHp*0.5);toast('Pupil wskrzeszony!');return;}
     toast('Brak sojusznikow do wskrzeszenia');
   }
+  // ── Czlowiek utility ──
+  else if(sp.id==='szybki_sprint'){buffSpeedUntil=performance.now()+6000;toast('Sprint!');}
+  else if(sp.id==='zwiad'&&_scene){
+    const l=new THREE.PointLight(0xffffcc,3,35);l.position.copy(_camera.position);
+    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast('Zwiad!');
+  }else if(sp.id==='punkt_zborny'&&_camera){
+    const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
+    _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);toast('Punkt Zborny - wioska!');
+  }else if(sp.id==='drugie_zycie'){hasRevive=true;toast('Drugie Zycie aktywne!');}
+  // ── Nieumarly utility ──
+  else if(sp.id==='trupi_skok'&&_camera){
+    const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+    _camera.position.addScaledVector(dir,12);
+    _camera.position.y=Math.max(terrainHeight(_camera.position.x,_camera.position.z)+EYE_H,_camera.position.y);
+    toast('Trupi Skok!');
+  }else if(sp.id==='mroczne_oko'&&_scene){
+    const l=new THREE.PointLight(0x88ff44,3,25);l.position.copy(_camera.position);
+    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast('Mroczne Oko!');
+  }else if(sp.id==='portal_umarłych'&&_camera){
+    const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
+    _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);toast('Portal Umarlych - wioska!');
+  }else if(sp.id==='pakt_smierci'){hasRevive=true;toast('Pakt Smierci aktywny!');}
   // ── Atlantyda utility ──
   else if(sp.id==='teleport_wodny'&&_camera){
     const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
@@ -4145,6 +4262,9 @@ function updateProjectiles(dt){
         if(p.spellId==='klatwa_bolu'){
           statusEffects.push({type:'dmgBoost',until:performance.now()+5000,value:1.1});
         }
+        if(p.spellId==='dotyk_smierci')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));
+        if(p.spellId==='apokalipsa'){player.hp=player.maxHp;shieldHP+=500;}
+        if(p.spellId==='boski_cios'){player.hp=player.maxHp;}
         if(p.spellId==='gniew_oceanu'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(p.mesh.position)<12){m.speed*=0.4;setTimeout(()=>{m.speed=m.type.speed;},4000);}});}
         if(p.spellId==='lewiatan'){player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));}
         if(p.spellId==='krwawy_pocisk')player.hp=Math.min(player.maxHp,player.hp+10);
@@ -4803,7 +4923,7 @@ function applyStats(){
 }
 function spellDmgMul(){
   let mul=1+gearBonus().dmg/100;
-  if(playerClass==='nekromanta'||playerClass==='wampir'){
+  if(playerClass==='nekromanta'||playerClass==='wampir'||playerClass==='nieumarly'){
     const sp=SPELLS[player.selSpell];
     if(sp&&sp.elem==='shadow')mul*=1.2;
   }
