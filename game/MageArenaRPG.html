@@ -2494,12 +2494,12 @@ function hideInstance(im,idx){
   im.setMatrixAt(idx,_zeroMat);im.instanceMatrix.needsUpdate=true;
 }
 function initSceneryPools(){
-  _scnGeos.trunk=new THREE.CylinderGeometry(0.16,0.22,2.5,6);
-  _scnGeos.leaf=new THREE.ConeGeometry(1.25,2.0,6);
+  _scnGeos.trunk=new THREE.CylinderGeometry(0.18,0.30,2.2,7);
+  _scnGeos.leaf=new THREE.ConeGeometry(1.4,1.7,8);
   _scnGeos.rock=new THREE.DodecahedronGeometry(1,0);
   _scnGeos.cactus=new THREE.CylinderGeometry(0.32,0.4,2.6,6);
-  _scnGeos.sTrunk=new THREE.CylinderGeometry(0.16,0.22,2.5,6);
-  _scnGeos.sLeaf=new THREE.ConeGeometry(1.25,2.0,6);
+  _scnGeos.sTrunk=new THREE.CylinderGeometry(0.18,0.30,2.2,7);
+  _scnGeos.sLeaf=new THREE.ConeGeometry(1.4,1.7,8);
   _scnGeos.spike=new THREE.ConeGeometry(0.8,2.4,5);
   _scnGeos.jTrunk=new THREE.CylinderGeometry(0.25,0.35,4.0,6);
   _scnGeos.jLeaf=new THREE.SphereGeometry(1.8,5,4);
@@ -2508,8 +2508,8 @@ function initSceneryPools(){
   _scnGeos.mPine=new THREE.ConeGeometry(0.8,2.5,5);
   _scnGeos.boulder=new THREE.DodecahedronGeometry(1.5,0);
   _scnGeos.flower=new THREE.SphereGeometry(0.15,4,4);
-  // kepka trawy - kilka ostrych "ostrzy"
-  _scnGeos.grass=new THREE.ConeGeometry(0.09,0.5,3);
+  // kepka trawy - kilka ostrych "ostrzy" (wyzsze, smuklejsze ostrze)
+  _scnGeos.grass=new THREE.ConeGeometry(0.07,0.62,4);
   _scnMats.grass=new THREE.MeshStandardMaterial({color:0x3a7a2a,roughness:0.9,flatShading:true,side:THREE.DoubleSide});
   // wiatr kolyszacy trawa (shader)
   _scnMats.grass.onBeforeCompile=(shader)=>{
@@ -2524,8 +2524,8 @@ function initSceneryPools(){
        transformed.z+=sway*0.5*max(0.0,position.y+0.25);
        #endif`);
   };
-  _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x4a3728,roughness:0.9,flatShading:true});
-  _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.85,flatShading:true,emissive:0x0a2a08,emissiveIntensity:0.25});
+  _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x6b4a2a,roughness:0.92,flatShading:true});
+  _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.8,flatShading:true,emissive:0x0e3a0a,emissiveIntensity:0.2});
   _scnMats.rock=new THREE.MeshStandardMaterial({roughness:0.9,flatShading:true});
   _scnMats.cactus=new THREE.MeshStandardMaterial({color:0x4a7a3a,roughness:0.8,flatShading:true});
   _scnMats.sTrunk=new THREE.MeshStandardMaterial({color:0x6a5a4a,roughness:0.9,flatShading:true});
@@ -2555,7 +2555,7 @@ function rebuildScenery(scene,cx,cz){
   _treePositions.length=0;
   _rockPositions.length=0;
   const dummy=new THREE.Object3D();
-  const leafColors=[0x2d5a1e,0x1e4a14,0x3a6b2a,0x1a3f12];
+  const leafColors=[0x4a9a3a,0x3d8a2e,0x55a542,0x368227];
   const flowerColors=[0xff4466,0xffdd44,0x44aaff,0xff88cc,0xaa66ff];
   const trunkM=[],leafM=[],leafC=[],rockM=[],rockC=[];
   const cactM=[],sTrunkM=[],sConeM=[],spikeM=[];
@@ -2577,7 +2577,7 @@ function rebuildScenery(scene,cx,cz){
     if(biome==='forest'||biome==='meadow'){
       const dens=biome==='forest'?0.75:0.25;
       if(rng()>dens){
-        if(rng()<0.08){const s=0.3+rng()*0.6;
+        if(rng()<0.04){const s=0.3+rng()*0.6;
           dummy.position.set(wx,h+s*0.3,wz);dummy.rotation.set(rng()*3,rng()*3,rng()*3);
           dummy.scale.set(s,s*(0.5+rng()*0.5),s);dummy.updateMatrix();
           rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.3+rng()*0.12,0.3+rng()*0.12,0.31+rng()*0.12));
@@ -2587,12 +2587,14 @@ function rebuildScenery(scene,cx,cz){
           dummy.updateMatrix();flowerM.push(dummy.matrix.clone());
           flowerC.push(new THREE.Color(flowerColors[(rng()*flowerColors.length)|0]));}
         continue;}
-      _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*sc,hits:0,kind:'forest',h,sc,trunkIdx:trunkM.length,leafIdx:leafM.length,leafCount:3});
-      dummy.position.set(wx,h+1.25*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(sc,sc,sc);
+      _treePositions.push({x:wx,z:wz,r:TREE_RADIUS*sc,hits:0,kind:'forest',h,sc,trunkIdx:trunkM.length,leafIdx:leafM.length,leafCount:4});
+      dummy.position.set(wx,h+1.1*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(sc,sc,sc);
       dummy.updateMatrix();trunkM.push(dummy.matrix.clone());
       const lc=leafColors[(rng()*leafColors.length)|0];
-      for(let j=0;j<3;j++){const ls=(1.0-j*0.25)*sc;
-        dummy.position.set(wx,h+(2.9+j*1.15)*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(ls,ls,ls);
+      // 4 piramidalne pietra (kazde wezsze ku gorze) - styl niskopoligonowej choinki
+      const tierScale=[1.0,0.78,0.56,0.36], tierY=[2.0,2.85,3.65,4.4];
+      for(let j=0;j<4;j++){const ls=tierScale[j]*sc;
+        dummy.position.set(wx,h+tierY[j]*sc,wz);dummy.rotation.set(0,rot+j*0.4,0);dummy.scale.set(ls,ls*1.05,ls);
         dummy.updateMatrix();leafM.push(dummy.matrix.clone());leafC.push(lc);}
     }else if(biome==='desert'){
       if(rng()<0.14){const cs=0.8+rng()*0.8;
@@ -2604,10 +2606,11 @@ function rebuildScenery(scene,cx,cz){
         rockM.push(dummy.matrix.clone());rockC.push(new THREE.Color(0.65,0.55,0.38));}
     }else if(biome==='arctic'){
       if(rng()<0.35){
-        dummy.position.set(wx,h+1.25*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(sc,sc,sc);
+        dummy.position.set(wx,h+1.1*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(sc,sc,sc);
         dummy.updateMatrix();sTrunkM.push(dummy.matrix.clone());
-        for(let j=0;j<3;j++){const ls=(1.0-j*0.25)*sc;
-          dummy.position.set(wx,h+(2.9+j*1.15)*sc,wz);dummy.rotation.set(0,rot,0);dummy.scale.set(ls,ls,ls);
+        const aTierScale=[1.0,0.78,0.56,0.36], aTierY=[2.0,2.85,3.65,4.4];
+        for(let j=0;j<4;j++){const ls=aTierScale[j]*sc;
+          dummy.position.set(wx,h+aTierY[j]*sc,wz);dummy.rotation.set(0,rot+j*0.4,0);dummy.scale.set(ls,ls*1.05,ls);
           dummy.updateMatrix();sConeM.push(dummy.matrix.clone());}}
       else if(rng()<0.10){const s=0.3+rng()*0.5;
         dummy.position.set(wx,h+s*0.3,wz);dummy.rotation.set(rng()*3,rng()*3,rng()*3);
@@ -4397,6 +4400,7 @@ function updateTargets(dt,now){
 }
 
 // ═══ MOB SYSTEM ══════════════════════════════════════
+const QUADRUPEDS=new Set(['wolf','arcticwolf','bear','lion','saber_tiger','horse','cow','sheep','pig']);
 function buildMobMesh(type){
   const g=new THREE.Group();
   const col=({skeleton:0xd4c9a8,wolf:0x4a3a2a,ghost:0x8888dd,bear:0x5a3a1a,pig:0xa87a5a,
@@ -4523,8 +4527,109 @@ function buildMobMesh(type){
       seg.position.set(0,0.2,-i*0.25);g.add(seg);
     }
     g.add(new THREE.PointLight(0xff4400,0.8,4));
+  }else if(QUADRUPEDS.has(type.id)){
+    // ── PRAWDZIWY CZWORONOG (zwierze: cialo poziome, 4 nogi, glowa z przodu, ogon) ──
+    const H=type.height;
+    const legH=H*0.42, bodyThick=H*0.34, bodyLen=H*0.95, bodyW=H*0.34;
+    const cyB=legH+bodyThick*0.5;            // srodek tulowia
+    const body=new THREE.Mesh(new THREE.BoxGeometry(bodyW,bodyThick,bodyLen),mat);
+    body.position.set(0,cyB,0);body.castShadow=true;g.add(body);
+    // zad lekko uniesiony (klatka piersiowa z przodu)
+    const chest=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.05,bodyThick*1.1,bodyLen*0.4),mat);
+    chest.position.set(0,cyB+bodyThick*0.05,bodyLen*0.28);chest.castShadow=true;g.add(chest);
+    // szyja + glowa z przodu (+Z)
+    const neckLen=H*0.28;
+    const headFwd=bodyLen*0.5+H*0.04;
+    const headUp=cyB+bodyThick*0.35+(type.id==='horse'?H*0.18:H*0.05);
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(bodyW*0.28,bodyW*0.34,neckLen,6),mat);
+    neck.position.set(0,cyB+bodyThick*0.3,bodyLen*0.42);neck.rotation.x=type.id==='horse'?-0.5:-0.9;g.add(neck);
+    const headS=H*0.20;
+    const head=new THREE.Mesh(new THREE.BoxGeometry(headS*0.95,headS*0.95,headS*1.25),mat);
+    head.position.set(0,headUp,headFwd);head.castShadow=true;g.add(head);
+    // pysk
+    const snout=new THREE.Mesh(new THREE.BoxGeometry(headS*0.55,headS*0.5,headS*0.6),mat);
+    snout.position.set(0,headUp-headS*0.18,headFwd+headS*0.8);g.add(snout);
+    // oczy
+    const eyeCol=type.id==='wolf'||type.id==='arcticwolf'||type.id==='saber_tiger'?0xffcc22:0x110a06;
+    const eyeM=new THREE.MeshBasicMaterial({color:eyeCol});
+    const eyeG=new THREE.SphereGeometry(headS*0.16,5,4);
+    const eyeZ=headFwd+headS*0.35;
+    {const e1=new THREE.Mesh(eyeG,eyeM);e1.position.set(-headS*0.36,headUp+headS*0.12,eyeZ);g.add(e1);
+     const e2=new THREE.Mesh(eyeG,eyeM);e2.position.set(headS*0.36,headUp+headS*0.12,eyeZ);g.add(e2);}
+    // uszy
+    const earUp=headUp+headS*0.6;
+    if(type.id==='cow'||type.id==='horse'){
+      const earG=new THREE.ConeGeometry(headS*0.22,headS*0.5,4);
+      const e1=new THREE.Mesh(earG,mat);e1.position.set(-headS*0.5,earUp,headFwd-headS*0.1);e1.rotation.z=0.5;g.add(e1);
+      const e2=new THREE.Mesh(earG,mat);e2.position.set(headS*0.5,earUp,headFwd-headS*0.1);e2.rotation.z=-0.5;g.add(e2);
+    }else if(type.id==='pig'){
+      const earG=new THREE.ConeGeometry(headS*0.3,headS*0.4,4);
+      const e1=new THREE.Mesh(earG,mat);e1.position.set(-headS*0.4,earUp-headS*0.1,headFwd+headS*0.1);e1.rotation.x=0.6;g.add(e1);
+      const e2=new THREE.Mesh(earG,mat);e2.position.set(headS*0.4,earUp-headS*0.1,headFwd+headS*0.1);e2.rotation.x=0.6;g.add(e2);
+    }else if(type.id!=='sheep'){
+      // spiczaste uszy drapieznikow
+      const earG=new THREE.ConeGeometry(headS*0.28,headS*0.55,4);
+      const e1=new THREE.Mesh(earG,mat);e1.position.set(-headS*0.4,earUp,headFwd-headS*0.05);g.add(e1);
+      const e2=new THREE.Mesh(earG,mat);e2.position.set(headS*0.4,earUp,headFwd-headS*0.05);g.add(e2);
+    }
+    // 4 nogi w rogach
+    const legGeo=new THREE.CylinderGeometry(bodyW*0.16,bodyW*0.12,legH,5);
+    const lx=bodyW*0.32, lzF=bodyLen*0.32, lzB=-bodyLen*0.32;
+    [[-lx,lzF],[lx,lzF],[-lx,lzB],[lx,lzB]].forEach(([px,pz])=>{
+      const leg=new THREE.Mesh(legGeo,mat);leg.position.set(px,legH*0.5,pz);leg.castShadow=true;g.add(leg);
+    });
+    // ogon
+    if(type.id==='horse'||type.id==='lion'){
+      const tail=new THREE.Mesh(new THREE.CylinderGeometry(bodyW*0.08,bodyW*0.04,H*0.5,5),mat);
+      tail.position.set(0,cyB,-bodyLen*0.5);tail.rotation.x=0.7;g.add(tail);
+    }else if(type.id==='pig'){
+      const tail=new THREE.Mesh(new THREE.TorusGeometry(headS*0.18,headS*0.05,4,8),mat);
+      tail.position.set(0,cyB+bodyThick*0.2,-bodyLen*0.5);g.add(tail);
+    }else if(type.id!=='bear'){
+      const tail=new THREE.Mesh(new THREE.CylinderGeometry(bodyW*0.14,bodyW*0.05,H*0.45,5),mat);
+      tail.position.set(0,cyB+bodyThick*0.1,-bodyLen*0.5);tail.rotation.x=1.0;g.add(tail);
+    }
+    // ── cechy gatunkowe ──
+    if(type.id==='lion'){
+      const mane=new THREE.Mesh(new THREE.SphereGeometry(headS*1.5,7,6),
+        new THREE.MeshStandardMaterial({color:0x9a6a20,roughness:0.95,flatShading:true}));
+      mane.position.set(0,headUp,headFwd-headS*0.2);mane.scale.set(1,1,0.8);g.add(mane);
+    }
+    if(type.id==='saber_tiger'){
+      const fM=new THREE.MeshStandardMaterial({color:0xf4f4ee});
+      const fang1=new THREE.Mesh(new THREE.ConeGeometry(headS*0.07,headS*0.55,4),fM);
+      fang1.position.set(-headS*0.2,headUp-headS*0.5,headFwd+headS*0.7);fang1.rotation.x=Math.PI;g.add(fang1);
+      const fang2=fang1.clone();fang2.position.x=headS*0.2;g.add(fang2);
+      // pasy
+      const stripeM=new THREE.MeshStandardMaterial({color:0x6a3a10,flatShading:true});
+      for(let s=0;s<3;s++){const st=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.02,bodyThick*0.18,bodyLen*0.08),stripeM);
+        st.position.set(0,cyB+bodyThick*0.25,bodyLen*(0.18-s*0.18));g.add(st);}
+    }
+    if(type.id==='cow'){
+      const hornM=new THREE.MeshStandardMaterial({color:0xe8e0cc,flatShading:true});
+      const h1=new THREE.Mesh(new THREE.ConeGeometry(headS*0.12,headS*0.4,4),hornM);
+      h1.position.set(-headS*0.45,earUp+headS*0.1,headFwd);h1.rotation.z=0.8;g.add(h1);
+      const h2=h1.clone();h2.position.x=headS*0.45;h2.rotation.z=-0.8;g.add(h2);
+      // laty
+      const spotM=new THREE.MeshStandardMaterial({color:0x2a2a2a,flatShading:true});
+      for(let s=0;s<3;s++){const sp=new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.4,bodyThick*0.5,bodyLen*0.18),spotM);
+        sp.position.set((s-1)*bodyW*0.3,cyB+bodyThick*0.3,(s-1)*bodyLen*0.2);g.add(sp);}
+    }
+    if(type.id==='sheep'){
+      // welniana chmura na ciele
+      const woolM=new THREE.MeshStandardMaterial({color:0xf6f4ee,roughness:1,flatShading:true});
+      for(let w=0;w<5;w++){const a=w/5*Math.PI*2;
+        const wb=new THREE.Mesh(new THREE.SphereGeometry(bodyThick*0.62,5,4),woolM);
+        wb.position.set(Math.cos(a)*bodyW*0.3,cyB+bodyThick*0.3,Math.sin(a)*bodyLen*0.3);g.add(wb);}
+      head.material=new THREE.MeshStandardMaterial({color:0x33312e,flatShading:true});
+      snout.material=head.material;
+    }
+    if(type.id==='bear'||type.id==='lion'){body.scale.set(1.15,1.1,1.05);}
+    if(type.id==='horse'){const m2=new THREE.Mesh(new THREE.BoxGeometry(headS*0.2,headS*0.7,neckLen*0.7),
+      new THREE.MeshStandardMaterial({color:0x2a1c10,flatShading:true}));
+      m2.position.set(0,cyB+bodyThick*0.5,bodyLen*0.4);m2.rotation.x=-0.5;g.add(m2);}
   }else{
-    // generic humanoid/quadruped
+    // generic humanoid (szkielet, zombie, duch, mumia, yeti, golem, wieszcz, raptor, dino, malpa)
     const bodyH=type.height*0.35,bodyW=type.height*0.2;
     const body=new THREE.Mesh(new THREE.BoxGeometry(bodyW,bodyH,bodyW*0.7),mat);
     body.position.y=type.height*0.55;body.castShadow=true;g.add(body);
@@ -4537,49 +4642,73 @@ function buildMobMesh(type){
     const eyeG=new THREE.SphereGeometry(headS*0.2,4,4);
     const eL=new THREE.Mesh(eyeG,eyeM);eL.position.set(-headS*0.4,type.height*0.87,headS*0.7);g.add(eL);
     const eR=new THREE.Mesh(eyeG,eyeM);eR.position.set(headS*0.4,type.height*0.87,headS*0.7);g.add(eR);
+    // ramiona
+    const armGeo=new THREE.CylinderGeometry(bodyW*0.14,bodyW*0.12,bodyH*0.95,5);
+    const aL=new THREE.Mesh(armGeo,mat);aL.position.set(-bodyW*0.62,type.height*0.55,0);aL.rotation.z=0.18;g.add(aL);
+    const aR=new THREE.Mesh(armGeo,mat);aR.position.set(bodyW*0.62,type.height*0.55,0);aR.rotation.z=-0.18;g.add(aR);
     const legH=type.height*0.3;
     const legGeo=new THREE.CylinderGeometry(bodyW*0.2,bodyW*0.15,legH,5);
     const lL=new THREE.Mesh(legGeo,mat);lL.position.set(-bodyW*0.3,legH/2,0);g.add(lL);
     const lR=new THREE.Mesh(legGeo,mat);lR.position.set(bodyW*0.3,legH/2,0);g.add(lR);
-    if(type.id==='golem'){body.scale.set(1.3,1.3,1.3);head.scale.set(0.8,0.8,0.8);}
+    if(type.id==='golem'){body.scale.set(1.4,1.3,1.3);head.scale.set(0.8,0.8,0.8);aL.scale.set(1.6,1,1.6);aR.scale.set(1.6,1,1.6);}
     if(type.id==='skeleton'){
       const sword=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.6,0.02),
         new THREE.MeshStandardMaterial({color:0x888899,metalness:0.8,roughness:0.3}));
-      sword.position.set(bodyW*0.5,type.height*0.5,0.15);sword.rotation.z=-0.5;g.add(sword);
-    }
-    if(type.id==='lion'){
-      const mane=new THREE.Mesh(new THREE.SphereGeometry(headS*1.6,6,5),
-        new THREE.MeshStandardMaterial({color:0xb88830,roughness:0.9,flatShading:true}));
-      mane.position.y=type.height*0.85;g.add(mane);
+      sword.position.set(bodyW*0.8,type.height*0.5,0.15);sword.rotation.z=-0.5;g.add(sword);
+      // zebra
+      const ribM=new THREE.MeshStandardMaterial({color:0xe8e0c8,flatShading:true});
+      for(let r=0;r<3;r++){const rib=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.05,bodyH*0.1,bodyW*0.72),ribM);
+        rib.position.set(0,type.height*0.5+r*bodyH*0.22,0);g.add(rib);}
     }
     if(type.id==='bear'||type.id==='yeti'){
       const earG=new THREE.SphereGeometry(headS*0.4,4,4);
       const e1=new THREE.Mesh(earG,mat);e1.position.set(-headS*0.6,type.height*0.92,0);g.add(e1);
       const e2=new THREE.Mesh(earG,mat);e2.position.set(headS*0.6,type.height*0.92,0);g.add(e2);
     }
-    if(type.id==='ghost'){g.add(new THREE.PointLight(0x6666cc,0.8,5));}
+    if(type.id==='ghost'){g.add(new THREE.PointLight(0x6666cc,0.8,5));
+      body.scale.set(1,1.3,1);lL.visible=false;lR.visible=false;
+      const tail=new THREE.Mesh(new THREE.ConeGeometry(bodyW*0.6,type.height*0.4,6),mat);
+      tail.position.y=type.height*0.28;tail.rotation.x=Math.PI;g.add(tail);}
     if(type.id==='zombie'){
       body.material=new THREE.MeshStandardMaterial({color:0x556633,roughness:0.9,flatShading:true});
+      aL.rotation.x=-1.3;aR.rotation.x=-1.3;
+    }
+    if(type.id==='mummy'){
+      const wrapM=new THREE.MeshStandardMaterial({color:0xb8a888,flatShading:true});
+      for(let w=0;w<3;w++){const wr=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.06,bodyH*0.12,bodyW*0.74),wrapM);
+        wr.position.set(0,type.height*0.45+w*bodyH*0.25,0);wr.rotation.z=(w-1)*0.06;g.add(wr);}
     }
     if(type.id==='wieszcz'){
       g.add(new THREE.PointLight(0x8844aa,0.6,4));
       head.material=new THREE.MeshStandardMaterial({color:0x443355,emissive:0x331144,emissiveIntensity:0.3,flatShading:true});
+      const cloak=new THREE.Mesh(new THREE.ConeGeometry(bodyW*0.9,type.height*0.7,6),
+        new THREE.MeshStandardMaterial({color:0x2a2030,flatShading:true}));
+      cloak.position.y=type.height*0.4;g.add(cloak);
     }
-    if(type.id==='saber_tiger'){
-      const fang1=new THREE.Mesh(new THREE.ConeGeometry(0.02,0.15,4),
-        new THREE.MeshStandardMaterial({color:0xeeeeee}));
-      fang1.position.set(-headS*0.25,type.height*0.78,headS*0.6);g.add(fang1);
-      const fang2=fang1.clone();fang2.position.x=headS*0.25;g.add(fang2);
-    }
-    if(type.id==='horse'||type.id==='cow'||type.id==='sheep'){
-      body.scale.set(1,0.8,1.5);
-      const bL=new THREE.Mesh(legGeo,mat);bL.position.set(-bodyW*0.3,legH/2,-bodyW*0.5);g.add(bL);
-      const bR=new THREE.Mesh(legGeo,mat);bR.position.set(bodyW*0.3,legH/2,-bodyW*0.5);g.add(bR);
-      lL.position.z=bodyW*0.5;lR.position.z=bodyW*0.5;
+    if(type.id==='raptor'||type.id==='small_dino'){
+      // dinozaur dwunozny: pochylone cialo, dlugi ogon, glowa do przodu
+      body.rotation.x=0.5;body.scale.set(1,1,1.5);
+      head.position.set(0,type.height*0.78,headS*1.6);
+      eL.position.set(-headS*0.4,type.height*0.82,headS*2.2);
+      eR.position.set(headS*0.4,type.height*0.82,headS*2.2);
+      const snout=new THREE.Mesh(new THREE.BoxGeometry(headS*0.7,headS*0.6,headS*0.9),mat);
+      snout.position.set(0,type.height*0.74,headS*2.4);g.add(snout);
+      const tail=new THREE.Mesh(new THREE.ConeGeometry(headS*0.7,type.height*0.9,5),mat);
+      tail.position.set(0,type.height*0.5,-headS*2.2);tail.rotation.x=-1.4;g.add(tail);
+      aL.scale.set(0.5,0.5,0.5);aR.scale.set(0.5,0.5,0.5);
     }
     if(type.id==='monkey'){
-      const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.015,0.5,4),mat);
-      tail.position.set(0,type.height*0.4,-bodyW*0.6);tail.rotation.x=0.8;g.add(tail);
+      const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.02,type.height*0.6,4),mat);
+      tail.position.set(0,type.height*0.45,-bodyW*0.6);tail.rotation.x=0.8;g.add(tail);
+      const faceM=new THREE.MeshStandardMaterial({color:0xd8b088,flatShading:true});
+      const face=new THREE.Mesh(new THREE.SphereGeometry(headS*0.6,5,4),faceM);
+      face.position.set(0,type.height*0.85,headS*0.6);g.add(face);
+    }
+    if(type.id==='rock_lizard'){
+      body.rotation.x=0.3;
+      const spikeM=new THREE.MeshStandardMaterial({color:0x5a5a4a,flatShading:true});
+      for(let s=0;s<3;s++){const sp=new THREE.Mesh(new THREE.ConeGeometry(headS*0.3,headS*0.6,4),spikeM);
+        sp.position.set(0,type.height*0.7+s*0.04,(s-1)*bodyW*0.4);g.add(sp);}
     }
   }
   return g;
@@ -4747,13 +4876,74 @@ function updateMobs(dt,now,camera,scene){
 const bosses=[];
 let bossSpawned={};
 function buildBossMesh(type){
-  const g=buildMobMesh(type);g.scale.setScalar(2.0);
-  const crown=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,6),
-    new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.8,roughness:0.2,flatShading:true}));
-  crown.position.y=type.height*0.95;g.add(crown);
-  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0x88cc55,lava_golem:0xff5500,forest_queen:0x44ff66}[type.id]||0x44ff44;
-  const aura=new THREE.PointLight(auraCol,2,15);
-  aura.position.y=type.height*0.5;g.add(aura);
+  // mapuj bossa na bazowy model wizualny aby kazdy wygladal odpowiednio
+  const visualMap={dragon:'dragon_common',spider_queen:'spider',lava_golem:'golem',skeleton_king:'skeleton'};
+  const visId=visualMap[type.id]||type.id;
+  // proxy typu: ten sam rozmiar, ale id do wyboru modelu (kolor i tak ma wpis bossa)
+  const proxyType={...type,id:visId,_realId:type.id};
+  const g=buildMobMesh(proxyType);g.scale.setScalar(2.0);
+  const H=type.height;
+  const goldM=new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.85,roughness:0.2,flatShading:true});
+  // ── korona / nakrycie glowy wg bossa ──
+  if(type.id==='skeleton_king'||type.id==='dark_lord'||type.id==='pharaoh'||type.id==='forest_queen'){
+    if(type.id==='forest_queen'){
+      // poroze (geowie natury)
+      const antM=new THREE.MeshStandardMaterial({color:0x6a4a2a,flatShading:true});
+      for(const side of [-1,1]){
+        const ant=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.7,4),antM);
+        ant.position.set(side*0.25,H*0.95,0);ant.rotation.z=side*0.5;g.add(ant);
+        const ant2=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.4,4),antM);
+        ant2.position.set(side*0.45,H*1.05,0);ant2.rotation.z=side*0.9;g.add(ant2);
+      }
+    }else{
+      // korona z kolcami
+      const band=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.34,0.18,8),goldM);
+      band.position.y=H*0.96;g.add(band);
+      for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
+        const spike=new THREE.Mesh(new THREE.ConeGeometry(0.07,0.28,4),goldM);
+        spike.position.set(Math.cos(a)*0.3,H*1.08,Math.sin(a)*0.3);g.add(spike);}
+    }
+  }
+  // ── rogi dla Mrocznego Lorda ──
+  if(type.id==='dark_lord'){
+    const hornM=new THREE.MeshStandardMaterial({color:0x1a1020,flatShading:true});
+    for(const side of [-1,1]){
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.6,5),hornM);
+      horn.position.set(side*0.22,H*1.0,0);horn.rotation.z=side*-0.4;g.add(horn);
+    }
+    // peleryna
+    const cloak=new THREE.Mesh(new THREE.ConeGeometry(0.55,H*0.8,6),
+      new THREE.MeshStandardMaterial({color:0x2a1040,flatShading:true,side:THREE.DoubleSide}));
+    cloak.position.y=H*0.45;g.add(cloak);
+  }
+  // ── berlo / bron dla magicznych bossow ──
+  if(type.id==='dark_lord'||type.id==='pharaoh'||type.id==='forest_queen'){
+    const staffCol=type.id==='forest_queen'?0x4a8a2a:type.id==='pharaoh'?0xffd700:0x6622aa;
+    const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,H*0.9,5),
+      new THREE.MeshStandardMaterial({color:0x3a2a1a,flatShading:true}));
+    staff.position.set(0.5,H*0.5,0.2);g.add(staff);
+    const orb=new THREE.Mesh(new THREE.SphereGeometry(0.16,6,5),
+      new THREE.MeshStandardMaterial({color:staffCol,emissive:staffCol,emissiveIntensity:0.6,flatShading:true}));
+    orb.position.set(0.5,H*0.95,0.2);g.add(orb);
+  }
+  // ── lawowy blask dla golema lawy ──
+  if(type.id==='lava_golem'){
+    for(let i=0;i<5;i++){const a=i/5*Math.PI*2;
+      const crack=new THREE.Mesh(new THREE.SphereGeometry(0.1,5,4),
+        new THREE.MeshStandardMaterial({color:0xff5500,emissive:0xff3300,emissiveIntensity:0.8}));
+      crack.position.set(Math.cos(a)*0.35,H*0.5+Math.sin(i)*0.3,Math.sin(a)*0.3);g.add(crack);}
+  }
+  // ── lodowe kolce dla tytana ──
+  if(type.id==='ice_titan'){
+    const iceM=new THREE.MeshStandardMaterial({color:0xbbeeff,transparent:true,opacity:0.7,emissive:0x4499cc,emissiveIntensity:0.4,flatShading:true});
+    for(let i=0;i<4;i++){const a=i/4*Math.PI*2;
+      const shard=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.6,4),iceM);
+      shard.position.set(Math.cos(a)*0.3,H*0.85,Math.sin(a)*0.3);shard.rotation.x=Math.cos(a)*0.3;shard.rotation.z=Math.sin(a)*0.3;g.add(shard);}
+  }
+  // ── aura swietlna bossa ──
+  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0x88cc55,lava_golem:0xff5500,forest_queen:0x44ff66,pharaoh:0xffcc22,skeleton_king:0x66ff88}[type.id]||0x44ff44;
+  const aura=new THREE.PointLight(auraCol,2.2,16);
+  aura.position.y=H*0.5;g.add(aura);
   return g;
 }
 function spawnBoss(scene,type,x,z){
