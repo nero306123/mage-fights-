@@ -2345,13 +2345,12 @@ function removeBlockAt(camera){
   }
   if(best<0){toast('Brak bloku do usuniecia');return false;}
   const pb=placedBlocks[best];
+  const def=BLOCK_DEFS[pb.blockType];
+  const recipe=RECIPES.find(r=>r.blockType===pb.blockType);
+  if(recipe&&!addToInventory({...recipe,count:1})){toast('Plecak pelny!');return false;}
   _scene.remove(pb.mesh);
   pb.mesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material&&c.material.dispose)c.material.dispose();});
   if(pb.box){const bi=_wallBoxes.indexOf(pb.box);if(bi>=0)_wallBoxes.splice(bi,1);}
-  // zwroc item
-  const def=BLOCK_DEFS[pb.blockType];
-  const recipe=RECIPES.find(r=>r.blockType===pb.blockType);
-  if(recipe)addToInventory({...recipe,count:1});
   placedBlocks.splice(best,1);
   toast(def.name+' usuniety (+1 do plecaka)');
   return true;
@@ -4234,6 +4233,7 @@ function changeClass(newClass){
   else if(newClass==='nieumarly')SPELLS=buildNieumarlySpells();
   else SPELLS=buildSpells();
   ownedSpells.clear();ownedSpells.add(0);player.selSpell=0;
+  statusEffects.length=0;shieldHP=0;player.lastCast=0;
   applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
   buildSpellbar();buildItembar();updateCharBtn();
   toast('Przemiana w: '+cfg.name+'!');
@@ -4389,12 +4389,13 @@ function renderCraftPanel(){
     const btn=document.createElement('button');btn.className='shop-buy';
     btn.textContent='Stworz';btn.disabled=!hasAll;
     btn.addEventListener('click',()=>{
+      const result={...r,count:1};
+      if(!addToInventory(result)){toast('Plecak pelny!');return;}
       r.need.forEach(n=>{
         for(let i=0;i<INV_SIZE;i++){const it=ITEMS[i];
           if(it&&it.id===n.id){it.count-=n.count;if(it.count<=0)ITEMS[i]=null;break;}}
       });
-      const result={...r,count:1};
-      addToInventory(result);toast('Stworzono: '+r.name);
+      toast('Stworzono: '+r.name);
       renderCraftPanel();buildItembar();
       if(buildMode)renderBuildPanel();
     });
@@ -4405,9 +4406,9 @@ function renderCraftPanel(){
 // ═══ SPELL & COMBAT ═════════════════════════════════
 function heldIsWand(){
   const it=ITEMS[player.heldItem];
-  if(it&&(it.type==='wand'||it.type==='trident'))return true;
-  // Wampir/Czlowiek/Nieumarły moga rzucac zaklecia bronia startowa
-  if(playerClass==='wampir'||playerClass==='czlowiek'||playerClass==='nieumarly')return true;
+  if(it&&(it.type==='wand'||it.type==='trident'||it.canCast))return true;
+  // Wampir/Czlowiek/Nieumarły moga rzucac zaklecia bronia klasowa
+  if((playerClass==='wampir'||playerClass==='czlowiek'||playerClass==='nieumarly')&&it&&it.type==='melee'&&it.equip==='weapon')return true;
   return false;
 }
 // Zwraca indeks moba na ktorego celujesz, jesli da sie go oswoic (masz item + brak towarzysza)
@@ -4674,7 +4675,7 @@ function attemptCast(now){
 }
 function castSummon(sp){
   if(sp.summon==='pet'){
-    if(necroPet){toast('Pupil juz istnieje!');player.mana+=sp.mana;return;}
+    if(necroPet){toast('Pupil juz istnieje!');player.mana+=sp.mana;player.lastCast=0;return;}
     spawnNecroPet();return;
   }
   if(spawnShadowMinion(sp.summon,sp.sumHp,sp.sumDmg,sp.mrokCost||0))toast(sp.name+'!');
@@ -4696,7 +4697,7 @@ function castBuff(sp){
   else if(sp.id==='lekki_heal'){player.hp=Math.min(player.maxHp,player.hp+30);toast('+30 HP');}
   else if(sp.id==='tarcza_cieni'){shieldHP+=50;toast('Tarcza Cieni: 50 dmg na 10s');}
   else if(sp.id==='wzmocnienie'){_armyDmgBuff=0.2;_armyDmgBuffUntil=now+10000;toast('+20% dmg sojusznikow!');}
-  else if(sp.id==='klatwa_slabosci_n'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<15)m.dmgMul=0.7;});bosses.forEach(b=>{if(b.mesh.position.distanceTo(_camera.position)<20)b.dmgMul=0.7;});toast('Klatwa Slabosci!');}
+  else if(sp.id==='klatwa_slabosci_n'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<15){m.dmgMul=0.7;setTimeout(()=>{m.dmgMul=1.0;},5000);}});bosses.forEach(b=>{if(b.mesh.position.distanceTo(_camera.position)<20){b.dmgMul=0.7;setTimeout(()=>{b.dmgMul=1.0;},5000);}});toast('Klatwa Slabosci!');}
   else if(sp.id==='kolce_cieni'){statusEffects.push({type:'thornsCieni',until:now+8000,value:0.2});toast('Kolce Cieni: odbijasz 20% dmg');}
   else if(sp.id==='spowolnienie_n'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12){m.speed*=0.6;setTimeout(()=>{m.speed=m.type.speed;},5000);}});toast('Spowolnienie wrogow!');}
   else if(sp.id==='przywolanie_tarczy'){shieldHP+=200;toast('Tarcza 200 HP!');}
@@ -4712,13 +4713,13 @@ function castBuff(sp){
   else if(sp.id==='bandaz'){player.hp=Math.min(player.maxHp,player.hp+30);toast('+30 HP');}
   else if(sp.id==='bojowa_postawa'){statusEffects.push({type:'dmgBoost',until:now+8000,value:1.25});toast('+25% dmg na 8s');}
   else if(sp.id==='zelazna_wola'){shieldHP+=100;toast('Zelazna Wola: +100 oslony');}
-  else if(sp.id==='bitewny_krzyk'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12)m.dmgMul=0.7;});toast('Bitewny Krzyk!');}
+  else if(sp.id==='bitewny_krzyk'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12){m.dmgMul=0.7;setTimeout(()=>{m.dmgMul=1.0;},8000);}});toast('Bitewny Krzyk!');}
   else if(sp.id==='stalowa_skora'){shieldHP+=250;statusEffects.push({type:'regen',until:now+10000,value:5});toast('Stalowa Skora!');}
   else if(sp.id==='furia_bohatera'){statusEffects.push({type:'dmgBoost',until:now+12000,value:1.6});buffSpeedUntil=now+12000;toast('Furia Bohatera!');}
   // ── Nieumarly buffy ──
   else if(sp.id==='trupi_heal'){player.hp=Math.min(player.maxHp,player.hp+25);toast('+25 HP');}
   else if(sp.id==='kostna_zbroja_s'){shieldHP+=80;toast('Kostna Zbroja: +80 oslony');}
-  else if(sp.id==='aura_strachu'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10)m.dmgMul=0.6;});toast('Aura Strachu!');}
+  else if(sp.id==='aura_strachu'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){m.dmgMul=0.6;setTimeout(()=>{m.dmgMul=1.0;},6000);}});toast('Aura Strachu!');}
   else if(sp.id==='trupia_regeneracja'){statusEffects.push({type:'regen',until:now+10000,value:12});toast('+12 HP/s przez 10s');}
   else if(sp.id==='niesmiertelna_skorupa'){shieldHP+=300;toast('Niesmiertelna Skorupa: +300 oslony');}
   else if(sp.id==='gniew_nieumarłych'){statusEffects.push({type:'dmgBoost',until:now+10000,value:1.5});buffSpeedUntil=now+10000;toast('Gniew Nieumarłych!');}
@@ -6343,6 +6344,11 @@ function playerDeath(){
 }
 function respawnPlayer(){
   playerDead=false;player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;
+  blood=maxBlood;strength=maxStrength;decay=maxDecay;
+  _breath=100;player.lastCast=0;statusEffects.length=0;shieldHP=0;
+  if(companion&&companionMesh){_scene.remove(companionMesh);companionMesh=null;companion=null;}
+  if(necroPet&&necroPetMesh){_scene.remove(necroPetMesh);necroPetMesh=null;necroPet=null;}
+  for(let i=shadowMinions.length-1;i>=0;i--){_scene.remove(shadowMinions[i].mesh);}shadowMinions.length=0;
   const sp=buildSpawnPoint||_classSpawn||{x:0,z:0};
   _camera.position.set(sp.x,terrainHeight(sp.x,sp.z)+EYE_H,sp.z);yaw=0;pitch=0;
   for(let i=mobs.length-1;i>=0;i--){_scene.remove(mobs[i].mesh);disposeMob(mobs[i]);}
@@ -6651,6 +6657,7 @@ function updateUnderwater(){
   }else{
     ov.classList.remove('show');
     _breath=Math.min(100,_breath+40*dt);
+    _drownTimer=0;
     if(_breath>=99.5)bb.classList.remove('show');
     else bf.style.width=_breath+'%';
   }
