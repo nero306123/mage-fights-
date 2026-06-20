@@ -5010,38 +5010,58 @@ function buildMobMesh(type){
       f.position.set(sx*H*0.07,H*0.4,H*0.5);f.rotation.x=Math.PI;g.add(f);}
   }else if(type.id==='scorpion'){
     const H=type.height;
-    const body=new THREE.Mesh(new THREE.BoxGeometry(H*0.4,H*0.25,H*0.7),mat);
-    body.position.set(0,H*0.35,0);body.castShadow=true;g.add(body);
-    const head=new THREE.Mesh(new THREE.BoxGeometry(H*0.35,H*0.2,H*0.3),mat);
-    head.position.set(0,H*0.38,H*0.45);g.add(head);
-    const eyeM=new THREE.MeshBasicMaterial({color:0x222222});
-    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,4,4),eyeM);
-      e.position.set(sx*H*0.12,H*0.48,H*0.55);g.add(e);}
-    const legGeo=new THREE.CylinderGeometry(0.025,0.015,H*0.4,4);
+    const shellM=new THREE.MeshStandardMaterial({color:0x6a4a2a,roughness:0.7,flatShading:true,metalness:0.15});
+    const darkM=new THREE.MeshStandardMaterial({color:0x4a3018,roughness:0.75,flatShading:true});
+    // segmentowany odwlok (3 czesci)
+    for(let s=0;s<3;s++){
+      const seg=new THREE.Mesh(new THREE.SphereGeometry(H*0.22-s*H*0.03,7,5),shellM);
+      seg.position.set(0,H*0.32,-s*H*0.22);seg.scale.set(1.1,0.7,1.05);seg.castShadow=true;g.add(seg);
+    }
+    // glowotulow
+    const ceph=new THREE.Mesh(new THREE.SphereGeometry(H*0.2,7,5),shellM);
+    ceph.position.set(0,H*0.34,H*0.28);ceph.scale.set(1.1,0.7,1.1);g.add(ceph);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x110000});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.035,4,4),eyeM);
+      e.position.set(sx*H*0.08,H*0.42,H*0.4);g.add(e);}
+    // 8 nog segmentowych
+    const legGeo=new THREE.CylinderGeometry(0.02,0.012,H*0.28,4);
+    const footGeo=new THREE.CylinderGeometry(0.012,0.008,H*0.2,4);
     for(let i=0;i<8;i++){
       const side=i<4?1:-1;const idx=i%4;
-      const lz=(idx-1.5)*H*0.18;
-      const leg=new THREE.Mesh(legGeo,mat);
-      leg.position.set(side*H*0.32,H*0.18,lz);leg.rotation.z=side*-0.7;g.add(leg);
+      const lz=H*0.25-idx*H*0.16;
+      const upper=new THREE.Mesh(legGeo,shellM);
+      upper.position.set(side*H*0.22,H*0.28,lz);upper.rotation.z=side*-0.9;g.add(upper);
+      const lower=new THREE.Mesh(footGeo,darkM);
+      lower.position.set(side*H*0.36,H*0.12,lz);lower.rotation.z=side*-0.3;g.add(lower);
     }
-    const pincerM=new THREE.MeshStandardMaterial({color:0x5a3a1a,flatShading:true});
+    // szczypce: ramie + 2-czesciowy szczypiec
     for(const sx of [-1,1]){
-      const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.02,H*0.35,4),pincerM);
-      arm.position.set(sx*H*0.25,H*0.4,H*0.6);arm.rotation.z=sx*-0.5;arm.rotation.x=-0.3;g.add(arm);
-      const claw1=new THREE.Mesh(new THREE.ConeGeometry(0.02,H*0.15,4),pincerM);
-      claw1.position.set(sx*H*0.3,H*0.42,H*0.78);claw1.rotation.x=-0.5;g.add(claw1);
-      const claw2=claw1.clone();claw2.position.set(sx*H*0.22,H*0.42,H*0.78);g.add(claw2);
+      const arm=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.025,H*0.3,5),shellM);
+      arm.position.set(sx*H*0.22,H*0.32,H*0.5);arm.rotation.z=sx*-0.4;arm.rotation.x=-0.4;g.add(arm);
+      const fore=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.03,H*0.22,5),shellM);
+      fore.position.set(sx*H*0.32,H*0.3,H*0.7);fore.rotation.x=-0.8;g.add(fore);
+      const palm=new THREE.Mesh(new THREE.SphereGeometry(H*0.09,6,5),shellM);
+      palm.position.set(sx*H*0.34,H*0.3,H*0.82);palm.scale.set(0.8,0.8,1.2);g.add(palm);
+      const claw1=new THREE.Mesh(new THREE.ConeGeometry(0.03,H*0.18,4),darkM);
+      claw1.position.set(sx*H*0.37,H*0.33,H*0.95);claw1.rotation.x=-1.4;g.add(claw1);
+      const claw2=new THREE.Mesh(new THREE.ConeGeometry(0.025,H*0.16,4),darkM);
+      claw2.position.set(sx*H*0.30,H*0.27,H*0.95);claw2.rotation.x=-1.4;g.add(claw2);
     }
-    const tailSegs=5;
+    // zakrzywiony ogon (8 segmentow w luku do przodu nad cialem)
+    const tailSegs=8;
     for(let i=0;i<tailSegs;i++){
-      const t=i/tailSegs;const segR=H*0.07*(1-t*0.3);
-      const seg=new THREE.Mesh(new THREE.SphereGeometry(segR,5,4),mat);
-      const ty=H*0.4+t*H*0.7;const tz=-H*0.35-t*H*0.25+t*t*H*0.4;
+      const t=i/tailSegs;const segR=H*0.08*(1-t*0.35);
+      const seg=new THREE.Mesh(new THREE.SphereGeometry(segR,6,5),shellM);
+      const ang=t*2.2;
+      const ty=H*0.35+Math.sin(ang)*H*0.75;
+      const tz=-H*0.45+( -Math.cos(ang)*H*0.4 + H*0.4 )*0.6 - t*H*0.05;
       seg.position.set(0,ty,tz);g.add(seg);
+      if(i===tailSegs-1){
+        const stinger=new THREE.Mesh(new THREE.ConeGeometry(0.04,H*0.22,5),
+          new THREE.MeshStandardMaterial({color:0x2a0a00,roughness:0.5,flatShading:true}));
+        stinger.position.set(0,ty-H*0.05,tz+H*0.12);stinger.rotation.x=2.2;g.add(stinger);
+      }
     }
-    const stinger=new THREE.Mesh(new THREE.ConeGeometry(0.03,H*0.15,4),
-      new THREE.MeshStandardMaterial({color:0x1a0a00,flatShading:true}));
-    stinger.position.set(0,H*1.1,-H*0.1);stinger.rotation.x=0.5;g.add(stinger);
   }else if(type.id==='penguin'){
     const H=type.height;
     const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.3,7,6),mat);
