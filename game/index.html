@@ -1708,6 +1708,7 @@ let _classSpawn=null;
 let companion=null;
 let companionMesh=null;
 let companionMode='attack';
+let _atkIconTimer=0;
 function tryTame(mob){
   if(companion)return;
   if(!mob.type.tame)return;
@@ -1750,11 +1751,13 @@ function updateCompanion(dt,camera,scene){
   }
   cpos.y=terrainHeight(cpos.x,cpos.z);
   companionMesh.lookAt(camera.position.x,cpos.y,camera.position.z);
-  if(companionMode==='attack'){
+  const nowMs=performance.now();
+  if(companionMode==='attack'&&nowMs-(companion.lastAtk||0)>=(companion.type.atkCd||1.2)*1000){
     for(let i=mobs.length-1;i>=0;i--){
       const m=mobs[i];
       const md=m.mesh.position.distanceTo(cpos);
       if(md<companion.type.atkRange+1&&!m.type.passive){
+        companion.lastAtk=nowMs;
         damageMob(i,companion.dmg);
         companion.xp+=5;
         if(companion.xp>=companion.xpNext){
@@ -1851,6 +1854,18 @@ function spawnShadowMinion(stype,hp,dmg,mrokCost){
     atkCd:isHealer?2.0:isGeneral?1.5:ranged?1.2:1.0,lastAtk:0,lastHeal:0,
     life:120,phase:Math.random()*6.28});
   return true;
+}
+// Wchlon/usun cala armie cieni (odzyskuje Punkty Mroku)
+function recallShadowArmy(){
+  if(shadowMinions.length===0){toast('Brak cieni do wchloniecia');return;}
+  const count=shadowMinions.length;
+  for(let i=shadowMinions.length-1;i>=0;i--){
+    const s=shadowMinions[i];
+    if(_scene)_scene.remove(s.mesh);
+    s.mesh.traverse(c=>{if(c.geometry)c.geometry.dispose();if(c.material&&c.material.dispose)c.material.dispose();});
+    shadowMinions.splice(i,1);
+  }
+  toast('Wchlonieto '+count+' cieni — Punkty Mroku odzyskane');
 }
 function updateShadowMinions(dt,now,camera){
   let hasGeneral=false,generalPos=null;
@@ -2533,13 +2548,15 @@ function terrainCore(x,z){
     h+=w[i]*bh;r+=w[i]*bi.color[0];g+=w[i]*bi.color[1];b+=w[i]*bi.color[2];}
   return{h,r,g,b,lava};
 }
-const OCEAN_BASINS=[{x:-2200,z:-2200,r:520,depth:14}];  // glebokie oceany (Leviatan)
+const OCEAN_BASINS=[{x:-2200,z:-2200,r:620,depth:38}];  // bardzo gleboki ocean (Leviatan)
 function terrainHeight(x,z){
   let h=terrainCore(x,z).h;
   for(const c of STRUCT_CLEARINGS){
     const dx=x-c.x,dz=z-c.z,d2=dx*dx+dz*dz,r=c.r;
     if(d2<r*r){const d=Math.sqrt(d2),t=d/r;
-      const flatH=terrainCore(c.x,c.z).h;
+      let flatH=terrainCore(c.x,c.z).h;
+      // struktury ladowe zawsze nad woda (oprocz oznaczonych jako ocean)
+      if(!c.ocean&&flatH<SEA_LEVEL+1.5)flatH=SEA_LEVEL+1.5;
       h=flatH+(h-flatH)*Math.pow(t,2);
     }
   }
@@ -2875,7 +2892,7 @@ function buildWater(scene){
   // piaszczyste dno (widoczne pod woda) - podaza za graczem
   const sbGeo=new THREE.PlaneGeometry(D,D,1,1);sbGeo.rotateX(-Math.PI/2);
   const sbMat=new THREE.MeshStandardMaterial({color:0xd8c894,roughness:1,flatShading:true});
-  _seabed=new THREE.Mesh(sbGeo,sbMat);_seabed.position.y=SEA_LEVEL-7;_seabed.receiveShadow=false;scene.add(_seabed);
+  _seabed=new THREE.Mesh(sbGeo,sbMat);_seabed.position.y=SEA_LEVEL-40;_seabed.receiveShadow=false;scene.add(_seabed);
 }
 let _seabed=null;
 let _ambient=null,_hemi=null;
@@ -3598,7 +3615,7 @@ function buildLeviathanLair(scene,cx,cz){
   // swiatlo otchlanic
   const light=new THREE.PointLight(0x22aacc,2.0,60);
   light.position.set(cx,SEA_LEVEL-3,cz);scene.add(light);
-  STRUCT_CLEARINGS.push({x:cx,z:cz,r:35});
+  STRUCT_CLEARINGS.push({x:cx,z:cz,r:35,ocean:true});
 }
 function buildStructures(scene){
   _wallBoxes.length=0;_portals.length=0;_portal=null;
@@ -3910,23 +3927,28 @@ function selectItem(idx){
 }
 function useConsumable(idx){
   const it=ITEMS[idx];if(!it||playerDead)return;
+  const fx=it.effect||{};
+  let used=false;
   if(it.type==='food'){
-    if(it.effect&&it.effect.hunger)hunger=Math.min(100,hunger+(it.effect.hunger||0));
-    if(it.effect&&it.effect.hp)player.hp=Math.min(player.maxHp,player.hp+(it.effect.hp||0));
-    toast('Zjedzono: '+it.name);
+    if(fx.hunger){hunger=Math.min(100,hunger+fx.hunger);used=true;}
+    if(fx.hp){player.hp=Math.min(player.maxHp,player.hp+fx.hp);used=true;}
+    if(!fx.hunger&&!fx.hp){hunger=Math.min(100,hunger+10);used=true;}  // domyslnie najedzenie
+    if(used)toast('Zjedzono: '+it.name);
   }else{
-    if(it.effect.hp){
-      if(player.hp>=player.maxHp){toast('HP juz pelne');return;}
-      player.hp=Math.min(player.maxHp,player.hp+it.effect.hp);
+    if(fx.hp){
+      if(player.hp<player.maxHp){player.hp=Math.min(player.maxHp,player.hp+fx.hp);used=true;}
+      else{toast('HP juz pelne');return;}
     }
-    if(it.effect.mana){
-      if(player.mana>=player.maxMana){toast('Mana juz pelna');return;}
-      player.mana=Math.min(player.maxMana,player.mana+it.effect.mana);
+    if(fx.mana){
+      if(player.mana<player.maxMana){player.mana=Math.min(player.maxMana,player.mana+fx.mana);used=true;}
+      else if(!fx.hp){toast('Mana juz pelna');return;}
     }
-    toast('Wypito: '+it.name);
+    if(fx.speed){buffSpeedUntil=performance.now()+(fx.dur||10000);used=true;}
+    if(!used){toast('Nie mozna uzyc tego przedmiotu');return;}
+    toast('Uzyto: '+it.name);
   }
-  it.count--;if(it.count<=0)ITEMS[idx]=null;
-  buildItembar();
+  it.count=(it.count||1)-1;if(it.count<=0)ITEMS[idx]=null;
+  buildItembar();buildInvGrid();
 }
 function addToInventory(def){
   for(let i=1;i<INV_SIZE;i++){
@@ -4279,13 +4301,46 @@ function renderCraftPanel(){
 
 // ═══ SPELL & COMBAT ═════════════════════════════════
 function heldIsWand(){const it=ITEMS[player.heldItem];return !!(it&&(it.type==='wand'||it.type==='trident'));}
+// Zwraca indeks moba na ktorego celujesz, jesli da sie go oswoic (masz item + brak towarzysza)
+function getTameTarget(){
+  if(companion||!_camera)return -1;
+  const held=ITEMS[player.heldItem];
+  const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+  let best=-1,bestDot=0.5;
+  for(let i=0;i<mobs.length;i++){
+    const m=mobs[i];if(!m.type.tame)continue;
+    // musisz trzymac wlasciwy item do oswajania
+    if(!held||held.id!==m.type.tame)continue;
+    const toMob=new THREE.Vector3().copy(m.mesh.position).add(new THREE.Vector3(0,1,0)).sub(_camera.position);
+    const dist=toMob.length();if(dist>8)continue;
+    toMob.normalize();const d=dir.dot(toMob);
+    if(d>bestDot){bestDot=d;best=i;}
+  }
+  return best;
+}
 function updateAttackIcon(){
   const btn=document.getElementById('cast-btn');
+  const tameTarget=getTameTarget();
+  if(tameTarget>=0){
+    btn.textContent='🤝';btn.classList.add('melee');btn.dataset.tame='1';
+    document.getElementById('spellbar').style.display='none';
+    document.getElementById('spellname').style.display='none';
+    return;
+  }
+  btn.dataset.tame='';
   const wand=heldIsWand();
   if(wand){btn.textContent='✦';btn.classList.remove('melee');}
   else{btn.textContent='👊';btn.classList.add('melee');}
   document.getElementById('spellbar').style.display=wand?'flex':'none';
   document.getElementById('spellname').style.display=wand?'block':'none';
+}
+function tryTameAimed(){
+  const idx=getTameTarget();
+  if(idx<0)return false;
+  tryTame(mobs[idx]);
+  // usun oswojonego moba ze swiata (staje sie towarzyszem)
+  if(companion){const m=mobs[idx];if(m){_scene.remove(m.mesh);disposeMob(m);mobs.splice(idx,1);}}
+  return true;
 }
 let buffSpeedUntil=0,hasRevive=false,shieldHP=0;
 function getMeleeDmg(){
@@ -5587,7 +5642,7 @@ function killMob(idx){
   if(playerClass==='nekromanta'&&necroPet)addPetXP(m.type.xp||10);
   if(playerClass==='czlowiek'){strength=Math.min(maxStrength,strength+10);}
   if(playerClass==='nieumarly'){decay=Math.min(maxDecay,decay+8);}
-  if(m.type.tame&&m.hp<=m.maxHp*0.1&&!companion){tryTame(m);}
+  // (oswajanie teraz tylko przez przycisk 🤝, nie przypadkowo przy zabiciu)
   // death particles
   const pos=m.mesh.position.clone();
   for(let j=0;j<8;j++){
@@ -5661,7 +5716,21 @@ function updateMobs(dt,now,camera,scene){
       }
     }
     const gh=terrainHeight(m.mesh.position.x,m.mesh.position.z);
-    if(m.type.id==='ghost'||m.type.id==='eagle'){
+    if(m.type.water){
+      // potwory wodne plywaja miedzy dnem a powierzchnia; gina na ladzie
+      if(gh>SEA_LEVEL-0.4){
+        // wyszly na lad - dusza sie (szybka utrata HP)
+        m.outOfWater=(m.outOfWater||0)+dt;
+        if(m.outOfWater>0.5){m.outOfWater=0;damageMob(i,Math.max(20,m.maxHp*0.08));
+          if(!mobs[i])continue;}
+        // pchnij z powrotem do wody (w strone gracza jesli gracz w wodzie, inaczej w dol stoku)
+        m.mesh.position.y=Math.max(gh,SEA_LEVEL-0.5);
+      }else{
+        m.outOfWater=0;
+        const floatY=SEA_LEVEL-1.0+Math.sin(now*0.002+m.phase)*0.5;
+        m.mesh.position.y=Math.max(gh+0.5,Math.min(floatY,SEA_LEVEL-0.3));
+      }
+    }else if(m.type.id==='ghost'||m.type.id==='eagle'){
       m.mesh.position.y=gh+0.4+Math.sin(now*0.003+m.phase)*0.35;
     }else{m.mesh.position.y=gh;}
     m.mesh.position.x=THREE.MathUtils.clamp(m.mesh.position.x,-WORLD_HALF,WORLD_HALF);
@@ -5964,23 +6033,30 @@ function buildBossMesh(type){
       // pletwy grzbietowe
       if(i%2===0&&i<10){const fin=new THREE.Mesh(new THREE.ConeGeometry(r*0.5,H*0.5,3),scaleM);
         fin.position.set(wave,H*0.9+Math.cos(i*0.5)*H*0.3+r*0.8,-i*H*0.55);g.add(fin);}}
-    // glowa
-    const head=new THREE.Mesh(new THREE.BoxGeometry(H*0.6,H*0.55,H*0.8),bodyM);
-    head.position.set(0,H*0.95,H*0.5);head.castShadow=true;g.add(head);
-    const jaw=new THREE.Mesh(new THREE.BoxGeometry(H*0.55,H*0.2,H*0.6),bellyM);
-    jaw.position.set(0,H*0.72,H*0.6);g.add(jaw);
-    // rogi/kolce na glowie
+    // glowa (gorna szczeka)
+    const head=new THREE.Mesh(new THREE.BoxGeometry(H*0.6,H*0.45,H*0.8),bodyM);
+    head.position.set(0,H*1.0,H*0.5);head.castShadow=true;g.add(head);
+    // dolna szczeka (przed glowa, ponizej)
+    const jaw=new THREE.Mesh(new THREE.BoxGeometry(H*0.52,H*0.18,H*0.65),bodyM);
+    jaw.position.set(0,H*0.74,H*0.6);g.add(jaw);
+    const mouthInner=new THREE.Mesh(new THREE.BoxGeometry(H*0.46,H*0.08,H*0.55),bellyM);
+    mouthInner.position.set(0,H*0.82,H*0.62);g.add(mouthInner);
+    // rogi/kolce na glowie (do tylu, nie zaslaniaja pyska)
     const hornM=_bMat(0x1a4a5a);
     for(const sx of [-1,1]){const h1=new THREE.Mesh(new THREE.ConeGeometry(H*0.06,H*0.5,4),hornM);
-      h1.position.set(sx*H*0.22,H*1.3,H*0.4);h1.rotation.z=sx*0.4;h1.rotation.x=-0.3;g.add(h1);}
-    // oczy swiecace
+      h1.position.set(sx*H*0.22,H*1.25,H*0.25);h1.rotation.z=sx*0.4;h1.rotation.x=-0.5;g.add(h1);}
+    // oczy swiecace (na bokach glowy)
     const eyeM=new THREE.MeshBasicMaterial({color:0x22ffcc});
     for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.07,6,5),eyeM);
-      e.position.set(sx*H*0.2,H*1.05,H*0.85);g.add(e);}
-    // zeby
+      e.position.set(sx*H*0.28,H*1.05,H*0.7);g.add(e);}
+    // zeby - gorne (z gornej szczeki w dol) i dolne (z dolnej szczeki w gore)
     const teethM=new THREE.MeshBasicMaterial({color:0xffffff});
-    for(let i=0;i<8;i++){const t=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.16,3),teethM);
-      t.position.set((i-3.5)*H*0.13,H*0.82,H*0.9);t.rotation.x=Math.PI;g.add(t);}
+    for(let i=0;i<7;i++){
+      const upper=new THREE.Mesh(new THREE.ConeGeometry(H*0.035,H*0.14,3),teethM);
+      upper.position.set((i-3)*H*0.14,H*0.84,H*0.88);upper.rotation.x=Math.PI;g.add(upper);
+      const lower=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.11,3),teethM);
+      lower.position.set((i-3)*H*0.14,H*0.78,H*0.86);g.add(lower);
+    }
     // pletwy boczne
     for(const sx of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(H*0.2,H*0.7,3),scaleM);
       fin.position.set(sx*H*0.45,H*0.85,H*0.2);fin.rotation.z=sx*1.3;g.add(fin);}
@@ -6216,6 +6292,7 @@ function setupDesktopInput(){
       return;
     }
     if(e.button!==0)return;
+    if(getTameTarget()>=0){tryTameAimed();return;}
     if(heldIsWand())casting=true;else meleeSwing();
   });
   document.addEventListener('contextmenu',e=>{if(buildMode)e.preventDefault();});
@@ -6276,6 +6353,7 @@ function setupMobileInput(){
   document.addEventListener('touchcancel',endLook,{passive:true});
   jumpBtn.addEventListener('touchstart',e=>{e.stopPropagation();if(_camera)doJump(_camera);},{passive:false});
   castBtn.addEventListener('touchstart',e=>{e.stopPropagation();
+    if(getTameTarget()>=0){tryTameAimed();return;}
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
@@ -6286,9 +6364,21 @@ function setupMobileInput(){
       'border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);'+
       'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(abilBtn);
-    abilBtn.addEventListener('touchstart',e=>{e.stopPropagation();
-      useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':'plague');
-    },{passive:false});
+    const trig=e=>{e.stopPropagation();
+      useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':'plague');};
+    abilBtn.addEventListener('touchstart',trig,{passive:false});
+    abilBtn.addEventListener('click',trig);
+  }
+  if(playerClass==='nekromanta'){
+    const recallBtn=document.createElement('button');
+    recallBtn.id='recall-btn';recallBtn.textContent='🌀';recallBtn.title='Wchlon armie cieni';
+    recallBtn.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;'+
+      'border-radius:50%;background:rgba(90,30,140,.8);border:2px solid rgba(200,120,255,.6);'+
+      'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    document.getElementById('game-ui').appendChild(recallBtn);
+    const trig=e=>{e.stopPropagation();recallShadowArmy();};
+    recallBtn.addEventListener('touchstart',trig,{passive:false});
+    recallBtn.addEventListener('click',trig);
   }
 }
 
@@ -6307,7 +6397,7 @@ function updatePlayer(dt,camera){
   const speedBuff=performance.now()<buffSpeedUntil?1.3:1;
   const hungerPenalty=hunger<20?0.7:1;
   const gearSpeed=1+gearBonus().speed/100;
-  const swimBonus=_swimming?(playerClass==='atlantyda'?1.4:0.6):1;
+  const swimBonus=_swimming?(playerClass==='atlantyda'?1.9:0.5):1;
   const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*speedMul()*speedBuff*hungerPenalty*gearSpeed*swimBonus*dt;
   const sinY=Math.sin(yaw),cosY=Math.cos(yaw);
   let px=camera.position.x+(mx*cosY+mz*sinY)*spd;
@@ -6339,18 +6429,27 @@ function updatePlayer(dt,camera){
   const inWaterZone=seabed<SEA_LEVEL-0.4;
   if(inWaterZone){
     _swimming=true;
-    // wyporn: lekka grawitacja, powolne tonniecie jesli nie naciskasz skoku
-    const sinkRate=playerClass==='atlantyda'?2.5:5.5;
-    velY-=sinkRate*dt;                          // tonie powoli
-    if(velY<-4)velY=-4;
-    let py=camera.position.y+velY*dt;
-    // nie pozwol zejsc pod dno
+    const isAtl=playerClass==='atlantyda';
+    let py=camera.position.y;
+    if(isAtl){
+      // Atlantyda: swobodne nurkowanie 3D w kierunku patrzenia, prawie zerowe tonniecie
+      const swimSpd=WALK_SPD*1.9*speedMul()*dt;   // duzo szybszy pod woda
+      const vertFromLook=-Math.sin(pitch)*len;     // patrzysz w dol -> nurkujesz
+      py+=vertFromLook*swimSpd;
+      velY-=0.6*dt;                                // bardzo lekkie opadanie
+      if(velY<-2)velY=-2;
+      py+=velY*dt;
+    }else{
+      // pozostali: tona, trzeba naciskac SKOK by sie wynurzac (wolni)
+      velY-=6.0*dt;
+      if(velY<-4)velY=-4;
+      py+=velY*dt;
+    }
     const floorEye=seabed+EYE_H*0.5;
-    if(py<floorEye){py=floorEye;velY=0;}
-    // nie wyskakuj ponad powierzchnie za wysoko
+    if(py<floorEye){py=floorEye;if(velY<0)velY=0;}
     if(py>waterSurfaceEye+0.3){py=waterSurfaceEye+0.3;if(velY>0)velY*=0.4;}
     camera.position.set(px,py,pz);
-    _underwater=py<waterSurfaceEye-0.25;        // oko pod powierzchnia
+    _underwater=py<waterSurfaceEye-0.25;
     onGround=false;
   }else{
     _swimming=false;_underwater=false;
@@ -6763,6 +6862,9 @@ function initWorld(){
     updateShadowMinions(dt,now,camera);
     updateFallingTrees(dt);
     updateBuildGhost(camera);
+    // odswiez przycisk ataku/oswajania co kilka klatek
+    _atkIconTimer=(_atkIconTimer||0)+dt;
+    if(_atkIconTimer>0.2){_atkIconTimer=0;updateAttackIcon();}
     // animacja wody i wiatru
     if(_waterUniforms)_waterUniforms.uTime.value+=dt;
     _windUniform.value+=dt;
@@ -6850,7 +6952,9 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   hurtPlayer,adminSpawnMob,adminSpawnBoss,changeClass,
   get RESOURCES(){return RESOURCES;},get RECIPES(){return RECIPES;},
   get swimming(){return _swimming;},get underwater(){return _underwater;},
-  spawnMob:()=>spawnMob(_scene,_camera),get MAX_MOBS(){return MAX_MOBS;},get isMobile(){return isMobile;}};
+  spawnMob:()=>spawnMob(_scene,_camera),get MAX_MOBS(){return MAX_MOBS;},get isMobile(){return isMobile;},
+  useConsumable,recallShadowArmy,getTameTarget,tryTameAimed,
+  get companion(){return companion;}};
 </script>
 </body>
 </html>
