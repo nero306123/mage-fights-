@@ -5028,75 +5028,289 @@ function updateMobs(dt,now,camera,scene){
 // ═══ BOSS SYSTEM ════════════════════════════════════
 const bosses=[];
 let bossSpawned={};
+function _bMat(color,opts){return new THREE.MeshStandardMaterial({color,roughness:0.8,flatShading:true,...(opts||{})});}
+// elegancka postac humanoidalna (suknia/szata + tors + glowa + ramiona)
+function buildHumanoidBoss(H,c){
+  const g=new THREE.Group();
+  const robeM=_bMat(c.robe);
+  const robe2M=_bMat(c.robe2||c.robe);
+  const skinM=_bMat(c.skin,{roughness:0.6});
+  const bw=c.slender?0.34:0.46;
+  const skirt=new THREE.Mesh(new THREE.ConeGeometry(H*bw,H*1.05,9),robeM);
+  skirt.position.y=H*0.52;skirt.castShadow=true;g.add(skirt);
+  const skirt2=new THREE.Mesh(new THREE.ConeGeometry(H*bw*0.72,H*0.6,9),robe2M);
+  skirt2.position.y=H*0.85;g.add(skirt2);
+  const tw=c.slender?0.13:0.19;
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(H*tw,H*tw*1.5,H*0.4,7),robeM);
+  torso.position.y=H*1.08;torso.castShadow=true;g.add(torso);
+  // ramiona barkowe
+  const shoulder=new THREE.Mesh(new THREE.CylinderGeometry(H*tw*1.6,H*tw*1.3,H*0.1,7),robe2M);
+  shoulder.position.y=H*1.26;g.add(shoulder);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(H*0.05,H*0.06,H*0.1,6),skinM);
+  neck.position.y=H*1.33;g.add(neck);
+  const headS=H*0.13;
+  const head=new THREE.Mesh(new THREE.SphereGeometry(headS,8,7),skinM);
+  head.position.y=H*1.45;head.scale.set(0.9,1.05,0.95);head.castShadow=true;g.add(head);
+  // ramiona
+  const armGeo=new THREE.CylinderGeometry(H*0.045,H*0.038,H*0.5,6);
+  for(const side of [-1,1]){
+    const arm=new THREE.Mesh(armGeo,robeM);
+    arm.position.set(side*H*0.22,H*1.05,0.02);arm.rotation.z=side*0.22;g.add(arm);
+    const hand=new THREE.Mesh(new THREE.SphereGeometry(H*0.05,5,4),skinM);
+    hand.position.set(side*H*0.3,H*0.82,0.05);g.add(hand);
+  }
+  return {g,headY:H*1.45,headS,handX:H*0.34,handY:H*0.95};
+}
 function buildBossMesh(type){
-  // mapuj bossa na bazowy model wizualny aby kazdy wygladal odpowiednio
-  const visualMap={dragon:'dragon_common',spider_queen:'spider',lava_golem:'golem',skeleton_king:'skeleton'};
-  const visId=visualMap[type.id]||type.id;
-  // proxy typu: ten sam rozmiar, ale id do wyboru modelu (kolor i tak ma wpis bossa)
-  const proxyType={...type,id:visId,_realId:type.id};
-  const g=buildMobMesh(proxyType);g.scale.setScalar(2.0);
   const H=type.height;
-  const goldM=new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.85,roughness:0.2,flatShading:true});
-  // ── korona / nakrycie glowy wg bossa ──
-  if(type.id==='skeleton_king'||type.id==='dark_lord'||type.id==='pharaoh'||type.id==='forest_queen'){
-    if(type.id==='forest_queen'){
-      // poroze (geowie natury)
-      const antM=new THREE.MeshStandardMaterial({color:0x6a4a2a,flatShading:true});
-      for(const side of [-1,1]){
-        const ant=new THREE.Mesh(new THREE.ConeGeometry(0.08,0.7,4),antM);
-        ant.position.set(side*0.25,H*0.95,0);ant.rotation.z=side*0.5;g.add(ant);
-        const ant2=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.4,4),antM);
-        ant2.position.set(side*0.45,H*1.05,0);ant2.rotation.z=side*0.9;g.add(ant2);
-      }
-    }else{
-      // korona z kolcami
-      const band=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.34,0.18,8),goldM);
-      band.position.y=H*0.96;g.add(band);
-      for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
-        const spike=new THREE.Mesh(new THREE.ConeGeometry(0.07,0.28,4),goldM);
-        spike.position.set(Math.cos(a)*0.3,H*1.08,Math.sin(a)*0.3);g.add(spike);}
-    }
-  }
-  // ── rogi dla Mrocznego Lorda ──
-  if(type.id==='dark_lord'){
-    const hornM=new THREE.MeshStandardMaterial({color:0x1a1020,flatShading:true});
+  let g;
+  if(type.id==='forest_queen'){
+    const b=buildHumanoidBoss(H,{robe:0x2e7d32,robe2:0x4caf50,skin:0xd2ecb4,slender:true});
+    g=b.g;
+    // wlosy z lisci (zielone pasma)
+    const hairM=_bMat(0x3a8a3a);
+    for(let i=0;i<5;i++){const a=(i/5-0.5)*2.2;
+      const strand=new THREE.Mesh(new THREE.ConeGeometry(H*0.045,H*0.45,4),hairM);
+      strand.position.set(Math.sin(a)*H*0.13,H*1.32,Math.cos(a)*H*0.12-H*0.04);
+      strand.rotation.x=Math.PI+0.2;strand.rotation.z=Math.sin(a)*0.3;g.add(strand);}
+    // korona z lisci
+    const leafM=_bMat(0x5ab54a,{emissive:0x1a5a1a,emissiveIntensity:0.3});
+    for(let i=0;i<7;i++){const a=i/7*Math.PI*2;
+      const leaf=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.16,4),leafM);
+      leaf.position.set(Math.cos(a)*H*0.13,b.headY+H*0.12,Math.sin(a)*H*0.13);
+      leaf.rotation.z=Math.cos(a)*0.6;leaf.rotation.x=Math.sin(a)*0.6;g.add(leaf);}
+    // rozgaleziajace sie poroze
+    const antM=_bMat(0x8a6a3a);
     for(const side of [-1,1]){
-      const horn=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.6,5),hornM);
-      horn.position.set(side*0.22,H*1.0,0);horn.rotation.z=side*-0.4;g.add(horn);
+      const main=new THREE.Mesh(new THREE.CylinderGeometry(H*0.018,H*0.04,H*0.5,5),antM);
+      main.position.set(side*H*0.1,b.headY+H*0.25,0);main.rotation.z=side*0.45;g.add(main);
+      for(let k=0;k<3;k++){const br=new THREE.Mesh(new THREE.CylinderGeometry(H*0.01,H*0.022,H*0.2,4),antM);
+        br.position.set(side*(H*0.16+k*H*0.07),b.headY+H*0.28+k*H*0.13,0);
+        br.rotation.z=side*(0.9+k*0.2);g.add(br);}
     }
-    // peleryna
-    const cloak=new THREE.Mesh(new THREE.ConeGeometry(0.55,H*0.8,6),
-      new THREE.MeshStandardMaterial({color:0x2a1040,flatShading:true,side:THREE.DoubleSide}));
-    cloak.position.y=H*0.45;g.add(cloak);
-  }
-  // ── berlo / bron dla magicznych bossow ──
-  if(type.id==='dark_lord'||type.id==='pharaoh'||type.id==='forest_queen'){
-    const staffCol=type.id==='forest_queen'?0x4a8a2a:type.id==='pharaoh'?0xffd700:0x6622aa;
-    const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,H*0.9,5),
-      new THREE.MeshStandardMaterial({color:0x3a2a1a,flatShading:true}));
-    staff.position.set(0.5,H*0.5,0.2);g.add(staff);
-    const orb=new THREE.Mesh(new THREE.SphereGeometry(0.16,6,5),
-      new THREE.MeshStandardMaterial({color:staffCol,emissive:staffCol,emissiveIntensity:0.6,flatShading:true}));
-    orb.position.set(0.5,H*0.95,0.2);g.add(orb);
-  }
-  // ── lawowy blask dla golema lawy ──
-  if(type.id==='lava_golem'){
-    for(let i=0;i<5;i++){const a=i/5*Math.PI*2;
-      const crack=new THREE.Mesh(new THREE.SphereGeometry(0.1,5,4),
-        new THREE.MeshStandardMaterial({color:0xff5500,emissive:0xff3300,emissiveIntensity:0.8}));
-      crack.position.set(Math.cos(a)*0.35,H*0.5+Math.sin(i)*0.3,Math.sin(a)*0.3);g.add(crack);}
-  }
-  // ── lodowe kolce dla tytana ──
-  if(type.id==='ice_titan'){
-    const iceM=new THREE.MeshStandardMaterial({color:0xbbeeff,transparent:true,opacity:0.7,emissive:0x4499cc,emissiveIntensity:0.4,flatShading:true});
-    for(let i=0;i<4;i++){const a=i/4*Math.PI*2;
-      const shard=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.6,4),iceM);
-      shard.position.set(Math.cos(a)*0.3,H*0.85,Math.sin(a)*0.3);shard.rotation.x=Math.cos(a)*0.3;shard.rotation.z=Math.sin(a)*0.3;g.add(shard);}
+    // oczy swiecace
+    const eyeM=new THREE.MeshBasicMaterial({color:0x88ff66});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.022,5,4),eyeM);
+      e.position.set(sx*H*0.05,b.headY+H*0.01,b.headS*0.85);g.add(e);}
+    // kwiatowy kolnierz
+    const collarM=_bMat(0x66cc55);
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2;
+      const petal=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,5,4),collarM);
+      petal.position.set(Math.cos(a)*H*0.16,H*1.26,Math.sin(a)*H*0.16);petal.scale.set(1,0.5,1.4);g.add(petal);}
+    // naturalne berlo z drewna i swiecaca kula
+    const staff=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.03,H*1.1,6),_bMat(0x6a4a2a));
+    staff.position.set(H*0.36,H*0.7,0.1);staff.rotation.z=0.05;g.add(staff);
+    const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.1,0),
+      _bMat(0x66ff66,{emissive:0x33cc33,emissiveIntensity:0.8}));
+    orb.position.set(H*0.38,H*1.28,0.1);g.add(orb);
+    // wijace sie pnacza wokol berla
+    for(let i=0;i<3;i++){const vine=new THREE.Mesh(new THREE.TorusGeometry(H*0.05,H*0.012,4,8),_bMat(0x4a8a3a));
+      vine.position.set(H*0.36,H*0.45+i*H*0.22,0.1);vine.rotation.x=1.2;g.add(vine);}
+    g.add(new THREE.PointLight(0x66ff66,1.5,10));
+  }else if(type.id==='dark_lord'){
+    const b=buildHumanoidBoss(H,{robe:0x1a0e2a,robe2:0x2e1850,skin:0x3a2a4a,slender:false});
+    g=b.g;
+    // kaptur (ciemny stozek nad glowa)
+    const hood=new THREE.Mesh(new THREE.ConeGeometry(H*0.17,H*0.32,7),_bMat(0x140a22));
+    hood.position.y=b.headY+H*0.06;g.add(hood);
+    const hoodBack=new THREE.Mesh(new THREE.ConeGeometry(H*0.16,H*0.4,7,1,true),
+      _bMat(0x140a22,{side:THREE.DoubleSide}));
+    hoodBack.position.set(0,b.headY-H*0.05,-H*0.05);g.add(hoodBack);
+    // rogi
+    const hornM=_bMat(0x0a0510);
+    for(const side of [-1,1]){
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.4,5),hornM);
+      horn.position.set(side*H*0.13,b.headY+H*0.2,0);horn.rotation.z=side*-0.5;horn.rotation.x=-0.2;g.add(horn);}
+    // czerwone swiecace oczy
+    const eyeM=new THREE.MeshBasicMaterial({color:0xff2200});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,5,4),eyeM);
+      e.position.set(sx*H*0.05,b.headY,b.headS*0.8);g.add(e);}
+    // mroczne berlo
+    const staff=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.03,H*1.15,6),_bMat(0x2a1a30));
+    staff.position.set(H*0.38,H*0.72,0.1);g.add(staff);
+    const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.11,0),
+      _bMat(0x8800ff,{emissive:0x6600cc,emissiveIntensity:0.9}));
+    orb.position.set(H*0.38,H*1.32,0.1);g.add(orb);
+    g.add(new THREE.PointLight(0x8800ff,1.8,12));
+  }else if(type.id==='pharaoh'){
+    const b=buildHumanoidBoss(H,{robe:0xd4af37,robe2:0xb8941f,skin:0xd9b886,slender:false});
+    g=b.g;
+    // nemes (chusta faraona - niebiesko-zlote pasy po bokach glowy)
+    const nemesM=_bMat(0x1a4a9a);
+    const goldM=_bMat(0xffd700,{metalness:0.7,roughness:0.25});
+    const back=new THREE.Mesh(new THREE.BoxGeometry(H*0.32,H*0.3,H*0.08),nemesM);
+    back.position.set(0,b.headY+H*0.05,-b.headS*0.7);g.add(back);
+    for(const sx of [-1,1]){
+      const flap=new THREE.Mesh(new THREE.BoxGeometry(H*0.08,H*0.28,H*0.14),nemesM);
+      flap.position.set(sx*H*0.16,b.headY-H*0.04,b.headS*0.2);g.add(flap);
+      // zlote pasy
+      for(let s=0;s<3;s++){const stripe=new THREE.Mesh(new THREE.BoxGeometry(H*0.085,H*0.04,H*0.145),goldM);
+        stripe.position.set(sx*H*0.16,b.headY+H*0.05-s*H*0.08,b.headS*0.2);g.add(stripe);}
+    }
+    // korona/ureusz (kobra na czole)
+    const cobra=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.14,4),goldM);
+    cobra.position.set(0,b.headY+H*0.13,b.headS*0.5);cobra.rotation.x=0.3;g.add(cobra);
+    // zloty kolnierz
+    for(let i=0;i<7;i++){const a=(i/6-0.5)*2.4;
+      const bead=new THREE.Mesh(new THREE.SphereGeometry(H*0.035,5,4),goldM);
+      bead.position.set(Math.sin(a)*H*0.18,H*1.24,Math.cos(a)*H*0.05+H*0.13);g.add(bead);}
+    // oczy
+    const eyeM=new THREE.MeshBasicMaterial({color:0x22ccff});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.022,5,4),eyeM);
+      e.position.set(sx*H*0.05,b.headY,b.headS*0.85);g.add(e);}
+    // berlo wladzy (was/heka)
+    const crook=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.025,H*1.0,6),goldM);
+    crook.position.set(H*0.36,H*0.65,0.1);g.add(crook);
+    const crookTop=new THREE.Mesh(new THREE.TorusGeometry(H*0.06,H*0.025,4,8,Math.PI),goldM);
+    crookTop.position.set(H*0.36,H*1.15,0.1);g.add(crookTop);
+    g.add(new THREE.PointLight(0xffcc22,1.5,10));
+  }else if(type.id==='skeleton_king'){
+    const g2=new THREE.Group();g=g2;
+    const boneM=_bMat(0xe8e0d0,{roughness:0.7});
+    const robeM=_bMat(0x2a2a3a);
+    // szata
+    const robe=new THREE.Mesh(new THREE.ConeGeometry(H*0.42,H*1.0,8),robeM);
+    robe.position.y=H*0.5;robe.castShadow=true;g.add(robe);
+    // kregoslup + zebra
+    const spine=new THREE.Mesh(new THREE.CylinderGeometry(H*0.06,H*0.07,H*0.45,6),boneM);
+    spine.position.y=H*1.05;g.add(spine);
+    for(let r=0;r<4;r++){const rib=new THREE.Mesh(new THREE.TorusGeometry(H*0.12-r*0.01,H*0.018,4,8,Math.PI),boneM);
+      rib.position.set(0,H*0.92+r*H*0.08,0);rib.rotation.x=Math.PI/2;g.add(rib);}
+    // barki
+    const shoulder=new THREE.Mesh(new THREE.BoxGeometry(H*0.36,H*0.08,H*0.14),boneM);
+    shoulder.position.y=H*1.22;g.add(shoulder);
+    // czaszka
+    const skull=new THREE.Mesh(new THREE.SphereGeometry(H*0.14,7,6),boneM);
+    skull.position.y=H*1.4;skull.scale.set(0.95,1.05,1.0);skull.castShadow=true;g.add(skull);
+    const jaw=new THREE.Mesh(new THREE.BoxGeometry(H*0.18,H*0.06,H*0.14),boneM);
+    jaw.position.set(0,H*1.31,H*0.04);g.add(jaw);
+    // swiecace oczodoly
+    const eyeM=new THREE.MeshBasicMaterial({color:0x33ff66});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,5,4),eyeM);
+      e.position.set(sx*H*0.05,H*1.42,H*0.11);g.add(e);}
+    // ramiona kosciane
+    const armGeo=new THREE.CylinderGeometry(H*0.03,H*0.025,H*0.5,5);
+    for(const side of [-1,1]){const arm=new THREE.Mesh(armGeo,boneM);
+      arm.position.set(side*H*0.2,H*1.05,0);arm.rotation.z=side*0.2;g.add(arm);}
+    // zlota korona z kolcami
+    const goldM=_bMat(0xffd700,{metalness:0.8,roughness:0.2});
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(H*0.15,H*0.16,H*0.07,8),goldM);
+    band.position.y=H*1.52;g.add(band);
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
+      const spike=new THREE.Mesh(new THREE.ConeGeometry(H*0.035,H*0.16,4),goldM);
+      spike.position.set(Math.cos(a)*H*0.14,H*1.6,Math.sin(a)*H*0.14);g.add(spike);}
+    // miecz
+    const sword=new THREE.Mesh(new THREE.BoxGeometry(H*0.04,H*0.7,H*0.02),
+      _bMat(0x99aabb,{metalness:0.8,roughness:0.3}));
+    sword.position.set(H*0.34,H*0.85,0.1);g.add(sword);
+    const hilt=new THREE.Mesh(new THREE.BoxGeometry(H*0.16,H*0.04,H*0.04),goldM);
+    hilt.position.set(H*0.34,H*0.52,0.1);g.add(hilt);
+    g.add(new THREE.PointLight(0x33ff66,1.5,10));
+  }else if(type.id==='spider_queen'){
+    const proxyType={...type,id:'spider'};
+    g=buildMobMesh(proxyType);g.scale.setScalar(2.2);
+    g.traverse(o=>{if(o.isMesh&&o.material&&o.material.isMeshStandardMaterial)o.material=_bMat(0x4a2a6a);});
+    // korona
+    const goldM=_bMat(0xcc66ff,{metalness:0.6,roughness:0.3,emissive:0x6622aa,emissiveIntensity:0.4});
+    const band=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.2,0.1,8),goldM);
+    band.position.set(0,H*0.55,H*0.35);g.add(band);
+    for(let i=0;i<5;i++){const a=(i/4-0.5)*1.6;
+      const spike=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.22,4),goldM);
+      spike.position.set(Math.sin(a)*0.18,H*0.62,H*0.35+Math.cos(a)*0.05);g.add(spike);}
+    g.add(new THREE.PointLight(0xaa55ff,1.6,12));
+  }else if(type.id==='ice_titan'){
+    const g2=new THREE.Group();g=g2;
+    const iceM=_bMat(0xaaddf5,{transparent:true,opacity:0.85,metalness:0.3,roughness:0.15,
+      emissive:0x4499cc,emissiveIntensity:0.3});
+    const iceM2=_bMat(0xcceeff,{transparent:true,opacity:0.7,metalness:0.4,roughness:0.1});
+    // masywne nogi
+    for(const sx of [-1,1]){const leg=new THREE.Mesh(new THREE.BoxGeometry(H*0.18,H*0.55,H*0.2),iceM);
+      leg.position.set(sx*H*0.16,H*0.28,0);g.add(leg);}
+    // korpus krystaliczny
+    const torso=new THREE.Mesh(new THREE.BoxGeometry(H*0.5,H*0.55,H*0.32),iceM);
+    torso.position.y=H*0.82;torso.castShadow=true;g.add(torso);
+    const chest=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.22,0),iceM2);
+    chest.position.set(0,H*0.95,H*0.1);g.add(chest);
+    // ramiona masywne
+    for(const side of [-1,1]){const arm=new THREE.Mesh(new THREE.BoxGeometry(H*0.16,H*0.5,H*0.18),iceM);
+      arm.position.set(side*H*0.38,H*0.8,0);g.add(arm);
+      const fist=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.13,0),iceM2);
+      fist.position.set(side*H*0.38,H*0.52,0);g.add(fist);}
+    // glowa
+    const head=new THREE.Mesh(new THREE.DodecahedronGeometry(H*0.18,0),iceM);
+    head.position.y=H*1.25;head.castShadow=true;g.add(head);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x66ddff});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,5,4),eyeM);
+      e.position.set(sx*H*0.06,H*1.27,H*0.15);g.add(e);}
+    // lodowe kolce na plecach i barkach
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
+      const shard=new THREE.Mesh(new THREE.ConeGeometry(H*0.06,H*0.4,4),iceM2);
+      shard.position.set(Math.cos(a)*H*0.28,H*1.0+Math.sin(i)*H*0.1,Math.sin(a)*H*0.2-H*0.1);
+      shard.rotation.x=Math.cos(a)*0.4;shard.rotation.z=Math.sin(a)*0.4;g.add(shard);}
+    // korona z lodu
+    for(let i=0;i<5;i++){const a=(i/4-0.5)*1.8;
+      const cr=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.2,4),iceM2);
+      cr.position.set(Math.sin(a)*H*0.15,H*1.45,Math.cos(a)*H*0.05);g.add(cr);}
+    g.add(new THREE.PointLight(0x88ccff,2.0,14));
+  }else if(type.id==='lava_golem'){
+    const g2=new THREE.Group();g=g2;
+    const lavaBody=_bMat(0xff4400,{emissive:0xff2200,emissiveIntensity:0.7});
+    const rockM=_bMat(0x2a1810,{roughness:0.95});
+    const lavaM=_bMat(0xff7700,{emissive:0xff5500,emissiveIntensity:1.0});
+    // nogi (lawa rdzen + skalne plyty)
+    for(const sx of [-1,1]){
+      const leg=new THREE.Mesh(new THREE.BoxGeometry(H*0.16,H*0.5,H*0.18),lavaBody);
+      leg.position.set(sx*H*0.16,H*0.25,0);g.add(leg);
+      const lp=new THREE.Mesh(new THREE.BoxGeometry(H*0.18,H*0.3,H*0.2),rockM);
+      lp.position.set(sx*H*0.16,H*0.3,0);g.add(lp);
+    }
+    // korpus (swiecaca lawa)
+    const torso=new THREE.Mesh(new THREE.BoxGeometry(H*0.52,H*0.55,H*0.34),lavaBody);
+    torso.position.y=H*0.82;torso.castShadow=true;g.add(torso);
+    // skalne plyty na korpusie
+    const platePos=[[-0.18,0.95,0.18],[0.2,0.85,0.16],[0,0.7,0.2],[-0.1,1.05,0.15],[0.15,1.05,0.15]];
+    for(const[px,py,pz]of platePos){
+      const plate=new THREE.Mesh(new THREE.DodecahedronGeometry(H*0.14,0),rockM);
+      plate.position.set(px*H,py*H,pz*H);plate.rotation.set(px,py,pz);g.add(plate);
+    }
+    // swiecace szczeliny lawy
+    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
+      const crack=new THREE.Mesh(new THREE.BoxGeometry(H*0.04,H*0.25,H*0.04),lavaM);
+      crack.position.set(Math.cos(a)*H*0.27,H*0.8+Math.sin(i*1.7)*H*0.18,Math.sin(a)*H*0.18);
+      crack.rotation.z=Math.sin(a)*0.6;g.add(crack);}
+    // ramiona masywne
+    for(const side of [-1,1]){
+      const arm=new THREE.Mesh(new THREE.BoxGeometry(H*0.16,H*0.5,H*0.18),lavaBody);
+      arm.position.set(side*H*0.4,H*0.85,0);g.add(arm);
+      const rockArm=new THREE.Mesh(new THREE.DodecahedronGeometry(H*0.13,0),rockM);
+      rockArm.position.set(side*H*0.4,H*0.95,0);g.add(rockArm);
+      const fist=new THREE.Mesh(new THREE.DodecahedronGeometry(H*0.15,0),rockM);
+      fist.position.set(side*H*0.4,H*0.56,0);g.add(fist);}
+    // glowa
+    const head=new THREE.Mesh(new THREE.BoxGeometry(H*0.26,H*0.24,H*0.24),rockM);
+    head.position.y=H*1.22;head.castShadow=true;g.add(head);
+    const eyeM=new THREE.MeshBasicMaterial({color:0xffdd00});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.035,5,4),eyeM);
+      e.position.set(sx*H*0.07,H*1.24,H*0.13);g.add(e);}
+    const mouth=new THREE.Mesh(new THREE.BoxGeometry(H*0.14,H*0.04,H*0.04),lavaM);
+    mouth.position.set(0,H*1.15,H*0.13);g.add(mouth);
+    g.add(new THREE.PointLight(0xff5500,2.5,16));
+  }else if(type.id==='dragon'){
+    const proxyType={...type,id:'dragon_common'};
+    g=buildMobMesh(proxyType);g.scale.setScalar(1.6);
+    // rogi i kolce na grzbiecie dla bossa
+    const spM=_bMat(0x4a0808);
+    for(let i=0;i<5;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.18,4),spM);
+      sp.position.set(0,H*0.6,H*0.1-i*H*0.12);sp.scale.set(1,1,1);g.add(sp);}
+    g.add(new THREE.PointLight(0xff4400,2.0,14));
+  }else{
+    const proxyType={...type,_realId:type.id};
+    g=buildMobMesh(proxyType);g.scale.setScalar(2.0);
   }
   // ── aura swietlna bossa ──
-  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0x88cc55,lava_golem:0xff5500,forest_queen:0x44ff66,pharaoh:0xffcc22,skeleton_king:0x66ff88}[type.id]||0x44ff44;
-  const aura=new THREE.PointLight(auraCol,2.2,16);
-  aura.position.y=H*0.5;g.add(aura);
+  const auraCol={dragon:0xff4400,dark_lord:0x8800ff,ice_titan:0x88ccff,spider_queen:0xaa55ff,lava_golem:0xff5500,forest_queen:0x44ff66,pharaoh:0xffcc22,skeleton_king:0x33ff66}[type.id]||0x44ff44;
+  const aura=new THREE.PointLight(auraCol,1.5,16);
+  aura.position.y=H*0.6;g.add(aura);
   return g;
 }
 function spawnBoss(scene,type,x,z){
