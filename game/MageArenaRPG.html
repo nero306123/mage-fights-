@@ -195,15 +195,17 @@
   .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
   .slot-glow{position:absolute;inset:0;border-radius:4px;opacity:.18}
 
-  #joystick-base{position:absolute;left:18px;bottom:100px;width:100px;height:100px;
+  #joystick-zone{position:absolute;left:0;bottom:0;width:40%;height:50%;
+    pointer-events:auto;z-index:4}
+  #joystick-base{position:absolute;left:20px;bottom:22px;width:100px;height:100px;
     border-radius:50%;background:rgba(255,255,255,.08);
     border:2.5px solid rgba(255,255,255,.25);pointer-events:none;
-    box-shadow:inset 0 0 15px rgba(255,255,255,.04)}
-  #joystick-knob{position:absolute;width:44px;height:44px;border-radius:50%;
+    box-shadow:inset 0 0 15px rgba(255,255,255,.04);
+    display:flex;align-items:center;justify-content:center}
+  #joystick-knob{width:44px;height:44px;border-radius:50%;
     background:rgba(255,255,255,.25);border:2.5px solid rgba(255,255,255,.45);
-    pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.12)}
-  #joystick-zone{position:absolute;left:0;bottom:0;width:38%;height:45%;
-    pointer-events:auto;z-index:1}
+    pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.12);
+    transition:transform 0.05s ease-out}
 
   #jump-btn{position:absolute;bottom:165px;right:22px;width:52px;height:52px;
     border-radius:50%;background:rgba(255,255,255,.12);
@@ -700,9 +702,9 @@
   </div>
   <div id="dmg-flash"></div>
   <div id="vignette"></div>
-  <div id="joystick-base"></div>
-  <div id="joystick-knob"></div>
-  <div id="joystick-zone"></div>
+  <div id="joystick-zone">
+    <div id="joystick-base"><div id="joystick-knob"></div></div>
+  </div>
   <div id="jump-btn">SKOK</div>
   <div id="cast-btn">✦</div>
   <div id="interact-prompt">💬 <span id="interact-name">Rozmawiaj</span></div>
@@ -5808,12 +5810,11 @@ function setupMobileInput(){
   const jumpBtn=document.getElementById('jump-btn');
   const castBtn=document.getElementById('cast-btn');
   jumpBtn.style.display='flex';castBtn.style.display='flex';
-  const R=48;let cx=0,cy=0;
-  function recenter(){
-    const r=joyBase.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;
-    joyKnob.style.left=(cx-22)+'px';joyKnob.style.top=(cy-22)+'px';
+  const R=44;
+  function getBaseCenter(){
+    const r=joyBase.getBoundingClientRect();
+    return{x:r.left+r.width/2, y:r.top+r.height/2};
   }
-  recenter();window.addEventListener('resize',recenter);
   joyZone.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
       if(!joyState.active){joyState.active=true;joyState.id=t.identifier;moveKnob(t.clientX,t.clientY);}
@@ -5823,14 +5824,15 @@ function setupMobileInput(){
     for(const t of e.changedTouches){if(t.identifier===joyState.id)moveKnob(t.clientX,t.clientY);}
   },{passive:true});
   function moveKnob(x,y){
-    let dx=x-cx,dy=y-cy;const d=Math.sqrt(dx*dx+dy*dy);
+    const c=getBaseCenter();
+    let dx=x-c.x,dy=y-c.y;const d=Math.sqrt(dx*dx+dy*dy);
     if(d>R){dx=dx/d*R;dy=dy/d*R;}
     joyState.dx=dx/R;joyState.dy=dy/R;
-    joyKnob.style.left=(cx+dx-22)+'px';joyKnob.style.top=(cy+dy-22)+'px';
+    joyKnob.style.transform=`translate(${dx}px,${dy}px)`;
   }
   const endJoy=e=>{for(const t of e.changedTouches){if(t.identifier===joyState.id){
     joyState.active=false;joyState.dx=0;joyState.dy=0;joyState.id=null;
-    joyKnob.style.left=(cx-22)+'px';joyKnob.style.top=(cy-22)+'px';}}};
+    joyKnob.style.transform='translate(0,0)';}}};
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
   const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#map-btn,#abil-btn,#interact-prompt,#boss-bar,#companion-hud,#bars,#corner-stats,#fullmap,.cp-close,.cp-arrow');
