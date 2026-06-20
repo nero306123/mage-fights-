@@ -1309,6 +1309,28 @@ const SHOP_ITEMS = [
 ];
 
 // ═══ QUEST ═══════════════════════════════════════════════
+const QUEST_TARGETS=[
+  {id:'skeleton',name:'Szkielet',need:5,gold:60,xp:50},
+  {id:'wolf',name:'Wilk',need:4,gold:50,xp:40},
+  {id:'zombie',name:'Zombie',need:5,gold:70,xp:55},
+  {id:'bear',name:'Niedzwiedz',need:3,gold:80,xp:60},
+  {id:'ghost',name:'Duch',need:4,gold:75,xp:55},
+  {id:'spider',name:'Pajak',need:6,gold:65,xp:50},
+  {id:'scorpion',name:'Skorpion',need:4,gold:70,xp:55},
+  {id:'mummy',name:'Mumia',need:3,gold:90,xp:65},
+  {id:'golem',name:'Golem',need:3,gold:100,xp:70},
+  {id:'lion',name:'Lew',need:3,gold:85,xp:60},
+  {id:'saber_tiger',name:'Tygrys',need:3,gold:90,xp:65},
+  {id:'firesnake',name:'Ognisty Waz',need:4,gold:80,xp:60},
+  {id:'dragon_common',name:'Smok',need:2,gold:120,xp:80},
+  {id:'yeti',name:'Yeti',need:3,gold:95,xp:70},
+];
+function generateQuest(){
+  const t=QUEST_TARGETS[(Math.random()*QUEST_TARGETS.length)|0];
+  quest.target=t.id;quest.targetName=t.name;quest.need=t.need;
+  quest.rewardGold=t.gold;quest.rewardXp=t.xp;
+  quest.active=false;quest.done=false;quest.have=0;
+}
 const quest = {active:false,done:false,target:'skeleton',targetName:'Szkielet',need:5,have:0,rewardGold:60,rewardXp:50};
 
 // ═══ CRAFTING ════════════════════════════════════════════
@@ -3973,7 +3995,7 @@ function renderQuest(body){
     b.textContent='Odbierz nagrode';
     b.addEventListener('click',()=>{
       player.gold+=quest.rewardGold;giveXP(quest.rewardXp);
-      quest.active=false;quest.done=false;quest.have=0;
+      generateQuest();
       toast('Nagroda odebrana!');closeDialog();
     });
     body.appendChild(b);
@@ -6168,13 +6190,72 @@ function buildBossMesh(type){
     mouth.position.set(0,H*1.15,H*0.13);g.add(mouth);
     g.add(new THREE.PointLight(0xff5500,2.5,16));
   }else if(type.id==='dragon'){
-    const proxyType={...type,id:'dragon_common'};
-    g=buildMobMesh(proxyType);g.scale.setScalar(1.6);
-    // rogi i kolce na grzbiecie dla bossa
-    const spM=_bMat(0x4a0808);
-    for(let i=0;i<5;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.18,4),spM);
-      sp.position.set(0,H*0.6,H*0.1-i*H*0.12);sp.scale.set(1,1,1);g.add(sp);}
-    g.add(new THREE.PointLight(0xff4400,2.0,14));
+    g=new THREE.Group();
+    const drM=_bMat(0x6a1111,{roughness:0.7,metalness:0.2});
+    const drM2=_bMat(0x881111,{roughness:0.65});
+    const bellyM=_bMat(0xcc6622);
+    const body=new THREE.Mesh(new THREE.BoxGeometry(H*0.4,H*0.28,H*0.65),drM);
+    body.position.set(0,H*0.5,0);body.castShadow=true;g.add(body);
+    const chest=new THREE.Mesh(new THREE.BoxGeometry(H*0.38,H*0.3,H*0.35),drM);
+    chest.position.set(0,H*0.53,H*0.22);g.add(chest);
+    const belly=new THREE.Mesh(new THREE.BoxGeometry(H*0.32,H*0.12,H*0.5),bellyM);
+    belly.position.set(0,H*0.35,H*0.05);g.add(belly);
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(H*0.1,H*0.14,H*0.4,6),drM);
+    neck.position.set(0,H*0.75,H*0.4);neck.rotation.x=-0.55;g.add(neck);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(H*0.24,H*0.18,H*0.28),drM);
+    head.position.set(0,H*0.9,H*0.55);g.add(head);
+    const snout=new THREE.Mesh(new THREE.BoxGeometry(H*0.16,H*0.1,H*0.2),drM);
+    snout.position.set(0,H*0.86,H*0.72);g.add(snout);
+    const jawM=_bMat(0x4a0808);
+    const jaw=new THREE.Mesh(new THREE.BoxGeometry(H*0.18,H*0.06,H*0.22),jawM);
+    jaw.position.set(0,H*0.82,H*0.7);g.add(jaw);
+    const eyeM=new THREE.MeshBasicMaterial({color:0xffaa00});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.035,5,4),eyeM);
+      e.position.set(sx*H*0.09,H*0.94,H*0.64);g.add(e);}
+    const hornM=_bMat(0x2a0606,{metalness:0.3});
+    for(const sx of [-1,1]){
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.25,5),hornM);
+      horn.position.set(sx*H*0.09,H*1.05,H*0.45);horn.rotation.z=sx*0.3;horn.rotation.x=-0.4;g.add(horn);
+      const horn2=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.15,4),hornM);
+      horn2.position.set(sx*H*0.07,H*1.0,H*0.52);horn2.rotation.z=sx*0.4;g.add(horn2);
+    }
+    const crestM=_bMat(0xaa3333);
+    for(let i=0;i<3;i++){const cr=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.12,4),crestM);
+      cr.position.set(0,H*1.0,H*0.5-i*H*0.08);g.add(cr);}
+    const nostrilM=new THREE.MeshBasicMaterial({color:0xff4400});
+    for(const sx of [-1,1]){const n=new THREE.Mesh(new THREE.SphereGeometry(H*0.02,4,4),nostrilM);
+      n.position.set(sx*H*0.04,H*0.86,H*0.82);g.add(n);}
+    const wingM=_bMat(0x661111,{side:THREE.DoubleSide});
+    const wingM2=_bMat(0x881111,{side:THREE.DoubleSide});
+    for(const sx of [-1,1]){
+      const w1=new THREE.Mesh(new THREE.PlaneGeometry(H*0.8,H*0.45),wingM);
+      w1.position.set(sx*H*0.55,H*0.65,0);w1.rotation.z=sx*0.15;w1.rotation.y=sx*0.2;g.add(w1);
+      const w2=new THREE.Mesh(new THREE.PlaneGeometry(H*0.5,H*0.35),wingM2);
+      w2.position.set(sx*H*0.95,H*0.58,-H*0.1);w2.rotation.z=sx*0.3;w2.rotation.y=sx*0.3;g.add(w2);
+      const w3=new THREE.Mesh(new THREE.PlaneGeometry(H*0.3,H*0.2),wingM);
+      w3.position.set(sx*H*1.15,H*0.5,-H*0.15);w3.rotation.z=sx*0.45;w3.rotation.y=sx*0.35;g.add(w3);
+      const bone=new THREE.Mesh(new THREE.CylinderGeometry(H*0.02,H*0.015,H*0.8,4),hornM);
+      bone.position.set(sx*H*0.5,H*0.65,0);bone.rotation.z=sx*1.4;g.add(bone);
+    }
+    const legGeo=new THREE.CylinderGeometry(H*0.06,H*0.05,H*0.35,5);
+    for(const sx of [-1,1]){const leg=new THREE.Mesh(legGeo,drM);
+      leg.position.set(sx*H*0.18,H*0.18,H*0.08);g.add(leg);
+      const foot=new THREE.Mesh(new THREE.BoxGeometry(H*0.1,H*0.04,H*0.12),drM);
+      foot.position.set(sx*H*0.18,H*0.02,H*0.1);g.add(foot);
+      const clawM=_bMat(0x111111);
+      for(let c=0;c<3;c++){const cl=new THREE.Mesh(new THREE.ConeGeometry(H*0.015,H*0.08,3),clawM);
+        cl.position.set(sx*H*0.18+(c-1)*H*0.03,H*0.01,H*0.17);cl.rotation.x=Math.PI;g.add(cl);}
+    }
+    const spikeM=_bMat(0x4a0808);
+    for(let i=0;i<8;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(H*0.035,H*0.14,4),spikeM);
+      sp.position.set(0,H*0.7,H*0.2-i*H*0.12);g.add(sp);}
+    for(let i=0;i<8;i++){const t=i/8;const segR=H*0.08*(1-t*0.65);
+      const seg=new THREE.Mesh(new THREE.SphereGeometry(segR,5,4),drM2);
+      seg.position.set(Math.sin(i*0.5)*H*0.1,H*0.45-t*H*0.1,-H*0.33-t*H*0.3);g.add(seg);}
+    const tailTip=new THREE.Mesh(new THREE.ConeGeometry(H*0.05,H*0.22,4),spikeM);
+    tailTip.position.set(Math.sin(4)*H*0.1,H*0.28,-H*0.95);tailTip.rotation.x=1.5;g.add(tailTip);
+    g.add(new THREE.PointLight(0xff4400,2.5,16));
+    g.add(new THREE.PointLight(0xff2200,1.5,10));
   }else if(type.id==='leviathan'){
     g=new THREE.Group();
     const bodyM=_bMat(0x2a6a7a,{roughness:0.6,metalness:0.3});
