@@ -2552,24 +2552,24 @@ function initSceneryPools(){
   _scnGeos.boulder=new THREE.DodecahedronGeometry(1.5,0);
   _scnGeos.flower=new THREE.SphereGeometry(0.15,4,4);
   {const gV=[],gN=[];
-  for(let b=0;b<5;b++){
-    const ba=b*Math.PI*2/5+Math.sin(b*1.7)*0.3;
-    const bx=Math.sin(ba)*0.1*(b%2+1),bz=Math.cos(ba)*0.1*(b%2+1);
-    const bh=0.4+b*0.08;const bw=0.14+b*0.01;const btw=0.015;
-    for(let p=0;p<3;p++){
-      const a=p*Math.PI/3+ba*0.5;
+  for(let b=0;b<3;b++){
+    const ba=b*Math.PI*2/3+Math.sin(b*2.1)*0.25;
+    const bx=Math.sin(ba)*0.04,bz=Math.cos(ba)*0.04;
+    const bh=0.22+b*0.04;const bw=0.06;const btw=0.008;
+    for(let p=0;p<2;p++){
+      const a=p*Math.PI/2+ba*0.4;
       const px=Math.sin(a),pz=Math.cos(a);
       const nx=Math.cos(a),nz=-Math.sin(a);
       gV.push(bx-px*bw,0,bz-pz*bw, bx+px*bw,0,bz+pz*bw, bx-px*btw,bh,bz-pz*btw);
       gV.push(bx+px*bw,0,bz+pz*bw, bx+px*btw,bh,bz+pz*btw, bx-px*btw,bh,bz-pz*btw);
-      for(let t=0;t<6;t++)gN.push(nx,0.6,nz);
+      for(let t=0;t<6;t++)gN.push(nx,0.7,nz);
     }
   }
   const grassGeo=new THREE.BufferGeometry();
   grassGeo.setAttribute('position',new THREE.Float32BufferAttribute(gV,3));
   grassGeo.setAttribute('normal',new THREE.Float32BufferAttribute(gN,3));
   _scnGeos.grass=grassGeo;}
-  _scnMats.grass=new THREE.MeshStandardMaterial({color:0x4da032,roughness:0.75,flatShading:true,side:THREE.DoubleSide,emissive:0x1a4a0a,emissiveIntensity:0.18});
+  _scnMats.grass=new THREE.MeshStandardMaterial({color:0x48952e,roughness:0.78,flatShading:true,side:THREE.DoubleSide,emissive:0x184508,emissiveIntensity:0.15});
   // wiatr kolyszacy trawa (shader)
   _scnMats.grass.onBeforeCompile=(shader)=>{
     shader.uniforms.uWind=_windUniform;
@@ -2710,9 +2710,9 @@ function rebuildScenery(scene,cx,cz){
         boulderM.push(dummy.matrix.clone());}
     }
   }
-  // ── TRAWA (gesta, blisko gracza) ──
-  const grassRad=isMobile?40:68,grassCell=1.5;
-  const grassColors=[0x4a9a3a,0x5aaa44,0x3d8a30,0x65b54a];
+  // ── TRAWA (duzo malych kkepek zamiast duzych) ──
+  const grassRad=isMobile?38:62,grassCell=0.7;
+  const grassColors=[0x4a9a3a,0x5aaa44,0x3d8a30,0x65b54a,0x3a8828,0x58a840,0x4d9435];
   const gr2=grassRad*grassRad;
   const gMinX=Math.floor((cx-grassRad)/grassCell),gMaxX=Math.floor((cx+grassRad)/grassCell);
   const gMinZ=Math.floor((cz-grassRad)/grassCell),gMaxZ=Math.floor((cz+grassRad)/grassCell);
@@ -2724,16 +2724,16 @@ function rebuildScenery(scene,cx,cz){
     const h=terrainHeight(wx,wz);if(h<SEA_LEVEL+0.5)continue;
     const biome=dominantBiome(wx,wz);
     let dens=0,base=0x3a7a2a;
-    if(biome==='forest'){dens=0.7;}
-    else if(biome==='meadow'){dens=0.85;}
-    else if(biome==='jungle'){dens=0.8;base=0x2a6a18;}
-    else if(biome==='savanna'){dens=0.6;base=0x9a8a40;}
-    else if(biome==='mountains'){dens=0.25;base=0x5a7a3a;}
+    if(biome==='forest'){dens=0.75;}
+    else if(biome==='meadow'){dens=0.9;}
+    else if(biome==='jungle'){dens=0.85;base=0x2a6a18;}
+    else if(biome==='savanna'){dens=0.55;base=0x9a8a40;}
+    else if(biome==='mountains'){dens=0.3;base=0x5a7a3a;}
     if(dens===0||rng2()>dens)continue;
-    const gs=1.0+rng2()*1.0;
-    dummy.position.set(wx,h+0.02,wz);
+    const gs=0.5+rng2()*0.6;
+    dummy.position.set(wx,h+0.01,wz);
     dummy.rotation.set(0,rng2()*Math.PI*2,0);
-    dummy.scale.set(gs,gs*(1.0+rng2()*0.6),gs);dummy.updateMatrix();
+    dummy.scale.set(gs,gs*(0.8+rng2()*0.5),gs);dummy.updateMatrix();
     grassM.push(dummy.matrix.clone());
     grassC.push(new THREE.Color(biome==='savanna'?base:grassColors[(rng2()*grassColors.length)|0]));
   }
