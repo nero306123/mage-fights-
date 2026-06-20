@@ -641,7 +641,7 @@
       <div class="class-card" data-class="wampir">
         <div class="class-icon">🦇</div>
         <div class="class-name">Wampir</div>
-        <div class="class-tag">21 zaklec krwi, lifesteal, slabosc na slonce, mroczne moce.</div>
+        <div class="class-tag">18 zaklec krwi, lifesteal, slabosc na slonce, mroczne moce.</div>
       </div>
       <div class="class-card" data-class="nekromanta">
         <div class="class-icon">💀</div>
@@ -1043,11 +1043,28 @@ function buildNecroSpells(){
 }
 // ── ZAKLECIA WAMPIRA (system krwi) ──
 const WAMPIR_SPELL_DATA = [
+  // ── ATAKI (7) ──
   ['krwawy_pocisk','Krwawy Pocisk','shadow','common',30,2.2,25,'Kradnie 10 HP','🩸'],
+  ['szpon_cienia','Szpon Cienia','shadow','common',35,2,30,'Szybki atak','🖐️'],
   ['krwawa_fala','Krwawa Fala','shadow','rare',60,3,55,'AOE 5m','🌊'],
+  ['grymas_smierci','Grymas Smierci','shadow','rare',70,2.8,70,'Lifesteal 20%','💀'],
+  ['wampirzy_ugryzienie','Wampirzy Ugryzienie','shadow','epic',100,3.5,120,'Lifesteal 30% + slow','🧛'],
+  ['krwawy_wir','Krwawy Wir','shadow','mythic',150,5,220,'AOE 8m + lifesteal 25%','🌀'],
+  ['pocalunek_smierci','Pocalunek Smierci','shadow','legend',250,6,400,'AOE 10m + pelny lifesteal','💋'],
+  // ── BUFFY (6) ──
   ['krwawa_tarcza','Krwawa Tarcza','necbuff','common',40,1.5,0,'Oslona 80 HP','🛡️'],
   ['regeneracja_krwi','Regeneracja Krwi','necbuff','common',50,2,0,'+8 HP/s przez 10s','💉'],
   ['forma_nietoperza','Forma Nietoperza','necbuff','rare',80,2,0,'Szybkosc +80% na 8s + skok','🦇'],
+  ['nocna_sila','Nocna Sila','necbuff','rare',90,2.5,0,'+40% dmg w nocy na 12s','🌙'],
+  ['krwawa_zbroja','Krwawa Zbroja','necbuff','epic',130,3,0,'Oslona 250 HP + odbija 15% dmg','🩸'],
+  ['niesmiertelnosc_w','Niesmiertelnosc','necbuff','mythic',200,4,0,'+100% HP regen na 8s + oslona 400','♾️'],
+  // ── NARZEDZIA (4) ──
+  ['cien_teleport','Teleport Cienia','other','common',40,1.5,0,'Teleport 15m do przodu','🌑'],
+  ['nocne_widzenie','Nocne Widzenie','other','rare',60,2,0,'Swiatlo na 30s','👁️'],
+  ['portal_krwi','Portal Krwi','other','epic',150,4,0,'Teleport do wioski','🏠'],
+  ['przebudzenie','Przebudzenie','other','legend',300,5,0,'Chroni przed smiercia','⚰️'],
+  // ── SECRET ──
+  ['krew_prastarego','Krew Prastarego','shadow','secret',500,10,1500,'AOE 15m + pelny lifesteal + nieśmiertelność 5s','🧛‍♂️'],
 ];
 function buildWampirSpells(){
   return WAMPIR_SPELL_DATA.map(d=>{
@@ -3143,6 +3160,59 @@ function buildVillage(scene,cx,cz){
   // duza kuznia (enterable)
   buildHouse(scene,cx-12,cz-12,rng,true,'e');
   buildBeacon(scene,cx,cz,0xffcc66);
+  // ── droga/sciezka z kamieni od bramy do studni ──
+  const pathM=matStone(0x8a8a78,0.95);
+  for(let i=0;i<14;i++){
+    const t=i/13;
+    const px2=cx+((rng()-0.5)*1.5), pz2=cz+fenceR*t;
+    const ph=terrainHeight(px2,pz2);
+    const stone2=new THREE.Mesh(new THREE.CylinderGeometry(0.5+rng()*0.3,0.6+rng()*0.3,0.12,6),pathM);
+    stone2.position.set(px2-cx,ph-baseH+0.06,pz2-cz);stone2.rotation.y=rng()*Math.PI;grp.add(stone2);
+  }
+  // ── latarnie (6 wzdluz drogi) ──
+  const lampPost=matStone(0x3a3a3a,0.8);
+  for(let i=0;i<6;i++){
+    const la=i/5*Math.PI*2;
+    const lx=cx+Math.cos(la)*22, lz=cz+Math.sin(la)*22;
+    const lh=terrainHeight(lx,lz);
+    addBox(grp,0.15,2.5,0.15,lx-cx,lh+1.25-baseH,lz-cz,lampPost);
+    addBox(grp,0.5,0.12,0.5,lx-cx,lh+2.5-baseH,lz-cz,matStone(0x5a4a3a,0.8));
+    const ll=new THREE.PointLight(0xffaa55,0.6,10);ll.position.set(lx-cx,lh+2.8-baseH,lz-cz);grp.add(ll);
+  }
+  // ── beczki i skrzynki przy domach ──
+  const barrelM=matStone(0x6a4a28,0.85);
+  const crateM=matStone(0x8a6a3a,0.85);
+  for(let i=0;i<6;i++){
+    const ba=rng()*Math.PI*2, br=12+rng()*18;
+    const bx2=Math.cos(ba)*br, bz2=Math.sin(ba)*br;
+    const bh=terrainHeight(cx+bx2,cz+bz2)-baseH;
+    if(bh<-2)continue;
+    if(i%2===0){
+      const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.38,0.8,8),barrelM);
+      barrel.position.set(bx2,bh+0.4,bz2);grp.add(barrel);
+      const band=new THREE.Mesh(new THREE.TorusGeometry(0.36,0.03,4,8),matStone(0x4a4a4a,0.5));
+      band.position.set(bx2,bh+0.55,bz2);band.rotation.x=Math.PI/2;grp.add(band);
+    }else{
+      const crate=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.7,0.7),crateM);
+      crate.position.set(bx2,bh+0.35,bz2);crate.rotation.y=rng()*0.5;grp.add(crate);
+    }
+  }
+  // ── doniczki z kwiatami ──
+  const potM=matStone(0x8a4a2a,0.9);
+  for(let i=0;i<4;i++){
+    const pa=rng()*Math.PI*2, pr=6+rng()*8;
+    const px3=Math.cos(pa)*pr, pz3=Math.sin(pa)*pr;
+    const ph2=terrainHeight(cx+px3,cz+pz3)-baseH;
+    const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.28,0.35,6),potM);
+    pot.position.set(px3,ph2+0.18,pz3);grp.add(pot);
+    const flwr=new THREE.Mesh(new THREE.SphereGeometry(0.15,5,4),
+      new THREE.MeshStandardMaterial({color:[0xff4466,0xffaa22,0xff66cc,0x44aaff][i],flatShading:true}));
+    flwr.position.set(px3,ph2+0.45,pz3);grp.add(flwr);
+  }
+  // ── tablica wioskowa przy bramie ──
+  const signM=matStone(0x6a4a30,0.9);
+  addBox(grp,0.15,1.8,0.15,0,0.9,fenceR-2,signM);
+  addBox(grp,1.6,0.8,0.08,0,1.9,fenceR-2,signM);
 }
 function buildCastle(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
@@ -4623,11 +4693,10 @@ function castBuff(sp){
   // ── Wampir buffy ──
   else if(sp.id==='krwawa_tarcza'){shieldHP+=80;toast('Krwawa Tarcza: +80 oslony');}
   else if(sp.id==='regeneracja_krwi'){statusEffects.push({type:'regen',until:now+10000,value:8});toast('+8 HP/s przez 10s');}
-  else if(sp.id==='szal_krwi'){statusEffects.push({type:'dmgBoost',until:now+10000,value:1.5});toast('Szal Krwi! +50% dmg');}
   else if(sp.id==='forma_nietoperza'){buffSpeedUntil=now+8000;velY=8;toast('Forma Nietoperza!');}
-  else if(sp.id==='krwawa_mgla'){statusEffects.push({type:'regen',until:now+5000,value:15});toast('Krwawa Mgla: regen + niewidzialnosc');}
-  else if(sp.id==='krew_przodkow'){player.hp=player.maxHp;shieldHP+=200;toast('Krew Przodkow: pelne HP + 200 oslony!');}
-  else if(sp.id==='niesmiertelnosc'){hasRevive=true;statusEffects.push({type:'regen',until:now+8000,value:20});toast('Niesmiertelnosc aktywna!');}
+  else if(sp.id==='nocna_sila'){statusEffects.push({type:'dmgBoost',until:now+12000,value:1.4});toast('Nocna Sila! +40% dmg');}
+  else if(sp.id==='krwawa_zbroja'){shieldHP+=250;statusEffects.push({type:'thornsCieni',until:now+10000,value:0.15});toast('Krwawa Zbroja: +250 oslony + odbicie 15%');}
+  else if(sp.id==='niesmiertelnosc_w'){hasRevive=true;shieldHP+=400;statusEffects.push({type:'regen',until:now+8000,value:20});toast('Niesmiertelnosc aktywna!');}
   else toast(sp.name+': '+sp.fx);
 }
 function castUtil(sp){
@@ -4707,27 +4776,18 @@ function castUtil(sp){
     toast('Fontanna: +60 HP sojusznikom!');
   }else if(sp.id==='odrodzenie_wody'){hasRevive=true;toast('Odrodzenie Wody aktywne!');}
   // ── Wampir utility ──
-  else if(sp.id==='teleportacja_krwi'&&_camera){
+  else if(sp.id==='cien_teleport'&&_camera){
     const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
     _camera.position.addScaledVector(dir,15);
     _camera.position.y=Math.max(terrainHeight(_camera.position.x,_camera.position.z)+EYE_H,_camera.position.y);
-    toast('Teleportacja Krwi!');
-  }else if(sp.id==='echo_nocy'&&_scene){
+    toast('Teleport Cienia!');
+  }else if(sp.id==='nocne_widzenie'&&_scene){
     const l=new THREE.PointLight(0xff4444,3,25);l.position.copy(_camera.position);
-    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast('Echo Nocy!');
+    _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast('Nocne Widzenie!');
   }else if(sp.id==='portal_krwi'&&_camera){
     const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
     _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);toast('Portal Krwi - wioska!');
-  }else if(sp.id==='drenaz_obszarowy'){
-    let totalDrain=0;
-    for(let j=mobs.length-1;j>=0;j--){
-      const m=mobs[j];if(m.mesh.position.distanceTo(_camera.position)<12){
-        const drain=60;damageMob(j,drain);totalDrain+=drain;
-      }
-    }
-    player.hp=Math.min(player.maxHp,player.hp+Math.round(totalDrain*0.5));
-    toast('Drenaz! Skradziono '+totalDrain+' HP');
-  }else if(sp.id==='zmartwychwstanie_krwi'){hasRevive=true;toast('Zmartwychwstanie Krwi aktywne!');}
+  }else if(sp.id==='przebudzenie'){hasRevive=true;toast('Przebudzenie aktywne!');}
   else toast(sp.name+': '+(sp.fx||'efekt wkrotce'));
 }
 function removeProjectile(i){
@@ -4785,10 +4845,11 @@ function updateProjectiles(dt){
         if(p.spellId==='gniew_oceanu'){mobs.forEach(m=>{if(m.mesh.position.distanceTo(p.mesh.position)<12){m.speed*=0.4;setTimeout(()=>{m.speed=m.type.speed;},4000);}});}
         if(p.spellId==='lewiatan'){player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));}
         if(p.spellId==='krwawy_pocisk')player.hp=Math.min(player.maxHp,player.hp+10);
-        if(p.spellId==='mroczne_ugryzienie')player.hp=Math.min(player.maxHp,player.hp+60);
-        if(p.spellId==='krew_nocy')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.5));
-        if(p.spellId==='klatwa_wampira')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));
-        if(p.spellId==='krew_starodawnych'){player.hp=player.maxHp;shieldHP+=500;}
+        if(p.spellId==='grymas_smierci')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.2));
+        if(p.spellId==='wampirzy_ugryzienie')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));
+        if(p.spellId==='krwawy_wir')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.25));
+        if(p.spellId==='pocalunek_smierci')player.hp=Math.min(player.maxHp,player.hp+mobDmg);
+        if(p.spellId==='krew_prastarego'){player.hp=player.maxHp;shieldHP+=500;hasRevive=true;}
         if(p.spellId==='pet_attack'&&necroPet)addPetXP(mobs[j]?mobs[j].type.xp||10:10);
         removeProjectile(i);hit=true;break;
       }
@@ -5150,11 +5211,29 @@ function buildMobMesh(type){
       leg.position.set(sx*H*0.15,H*0.2,H*0.05);g.add(leg);
       const foot=new THREE.Mesh(new THREE.BoxGeometry(H*0.08,H*0.03,H*0.1),mat);
       foot.position.set(sx*H*0.15,H*0.04,H*0.08);g.add(foot);}
-    for(let i=0;i<4;i++){const t=i/4;const segR=H*0.06*(1-t*0.5);
+    for(let i=0;i<6;i++){const t=i/6;const segR=H*0.06*(1-t*0.6);
       const seg=new THREE.Mesh(new THREE.SphereGeometry(segR,5,4),mat);
-      seg.position.set(0,H*0.45-t*H*0.1,-H*0.28-t*H*0.22);g.add(seg);}
-    const tailTip=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.15,4),mat);
-    tailTip.position.set(0,H*0.28,-H*0.65);tailTip.rotation.x=1.5;g.add(tailTip);
+      seg.position.set(0,H*0.45-t*H*0.08,-H*0.28-t*H*0.2);g.add(seg);}
+    const tailTip=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.18,4),mat);
+    tailTip.position.set(0,H*0.28,-H*0.82);tailTip.rotation.x=1.5;g.add(tailTip);
+    // kolce na grzbiecie
+    const spikeM=new THREE.MeshStandardMaterial({color:0x441111,flatShading:true});
+    for(let i=0;i<5;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(H*0.025,H*0.1,4),spikeM);
+      sp.position.set(0,H*0.65,H*0.15-i*H*0.12);g.add(sp);}
+    // brzuch (jasniejszy)
+    const bellyM=new THREE.MeshStandardMaterial({color:0xcc6622,flatShading:true});
+    const belly=new THREE.Mesh(new THREE.BoxGeometry(H*0.28,H*0.1,H*0.4),bellyM);
+    belly.position.set(0,H*0.38,H*0.05);g.add(belly);
+    // pazury
+    const clawM=new THREE.MeshStandardMaterial({color:0x222222,flatShading:true});
+    for(const sx of [-1,1]){for(let c=0;c<3;c++){const cl=new THREE.Mesh(new THREE.ConeGeometry(H*0.012,H*0.06,3),clawM);
+      cl.position.set(sx*H*0.15+(c-1)*H*0.025,H*0.02,H*0.14);cl.rotation.x=Math.PI;g.add(cl);}}
+    // nosdrza (poswiatla)
+    const nostrilM=new THREE.MeshBasicMaterial({color:0xff4400});
+    for(const sx of [-1,1]){const n=new THREE.Mesh(new THREE.SphereGeometry(H*0.015,4,4),nostrilM);
+      n.position.set(sx*H*0.03,H*0.73,H*0.65);g.add(n);}
+    // poswiatla ognia
+    g.add(new THREE.PointLight(0xff4400,0.8,6));
     g.add(new THREE.PointLight(0xff4400,1.0,6));
   }else if(type.id==='moltres'){
     const body=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,5),
@@ -5431,6 +5510,24 @@ function buildMobMesh(type){
       // krotki ogon
       const bt=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.12,5,4),mat);
       bt.position.set(0,cyB,-bodyLen*0.52);g.add(bt);
+    }
+    if(type.id==='wolf'||type.id==='arcticwolf'){
+      // grzywa/futerko na szyi
+      const furCol=type.id==='arcticwolf'?0xc8c8d0:0x3a2a1a;
+      const furM=new THREE.MeshStandardMaterial({color:furCol,roughness:1,flatShading:true});
+      for(let i=0;i<5;i++){const a=(i/5-0.5)*2.0;
+        const tuft=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.2,4,4),furM);
+        tuft.position.set(Math.sin(a)*bodyW*0.25,cyB+bodyThick*0.4,bodyLen*0.25+Math.cos(a)*bodyW*0.08);g.add(tuft);}
+      // ciemniejszy pysk
+      const muzzleCol=type.id==='arcticwolf'?0xa0a0a8:0x2a1a10;
+      snout.material=new THREE.MeshStandardMaterial({color:muzzleCol,flatShading:true});
+      // nos
+      const noseM=new THREE.MeshBasicMaterial({color:0x111111});
+      const nose=new THREE.Mesh(new THREE.SphereGeometry(headS*0.1,4,4),noseM);
+      nose.position.set(0,headUp-headS*0.05,headFwd+headS*0.75);g.add(nose);
+      // puszysty ogon (grubszy)
+      const tailFur=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.18,5,4),furM);
+      tailFur.position.set(0,cyB+bodyThick*0.4,-bodyLen*0.55);g.add(tailFur);
     }
     if(type.id==='horse'){const m2=new THREE.Mesh(new THREE.BoxGeometry(headS*0.2,headS*0.7,neckLen*0.7),
       new THREE.MeshStandardMaterial({color:0x2a1c10,flatShading:true}));
@@ -6442,7 +6539,14 @@ function updatePlayer(dt,camera){
       else pz=b.maxZ+PLAYER_R;
     }
   }
-  const seabed=terrainHeight(px,pz);
+  // Blokuj wchodzenie w strome zbocza (zapobiega wchodzeniu pod gory)
+  let seabed=terrainHeight(px,pz);
+  const curSeabed=terrainHeight(camera.position.x,camera.position.z);
+  const heightDiff=seabed-curSeabed;
+  if(heightDiff>1.8&&!_swimming){
+    px=camera.position.x;pz=camera.position.z;
+    seabed=curSeabed;
+  }
   const groundH=seabed+EYE_H;
   const waterSurfaceEye=SEA_LEVEL+EYE_H;      // wysokosc oka gdy glowa na powierzchni
   // Strefa wody: dno wyraznie ponizej poziomu morza
