@@ -222,6 +222,44 @@
     border-color:rgba(230,190,130,.6);color:#ffe6c0;text-shadow:0 0 10px rgba(230,180,120,.8)}
   #cast-btn:active{transform:scale(.93)}
 
+  /* podwodny niebieski filtr (jak w MC) */
+  #underwater-overlay{position:absolute;inset:0;pointer-events:none;z-index:9;
+    background:radial-gradient(circle at 50% 45%,rgba(20,90,140,.32),rgba(8,40,80,.55));
+    opacity:0;transition:opacity .35s ease}
+  #underwater-overlay.show{opacity:1}
+  #breath-bar{position:absolute;top:90px;left:50%;transform:translateX(-50%);
+    width:150px;height:12px;background:rgba(0,0,0,.55);border:1px solid rgba(120,200,255,.5);
+    border-radius:7px;overflow:hidden;display:none;z-index:11}
+  #breath-bar.show{display:block}
+  #breath-fill{height:100%;width:100%;border-radius:7px;
+    background:linear-gradient(90deg,#1a6aa0,#5ad0ff);transition:width .15s linear}
+
+  /* ── PANEL ADMINA ── */
+  #admin-btn{position:absolute;top:120px;left:10px;
+    background:rgba(40,10,40,.8);border:1px solid rgba(220,120,255,.6);
+    border-radius:10px;color:#e0a0ff;width:38px;height:38px;font-size:18px;
+    pointer-events:auto;cursor:pointer;z-index:12;display:flex;align-items:center;justify-content:center}
+  #admin-btn:active{transform:scale(.95)}
+  #admin-panel{position:absolute;top:54px;left:50%;transform:translateX(-50%);
+    width:340px;max-width:94vw;max-height:74vh;overflow-y:auto;
+    background:rgba(14,8,20,.97);border:2px solid rgba(200,100,255,.5);
+    border-radius:12px;z-index:30;display:none;padding:10px;
+    box-shadow:0 8px 30px rgba(0,0,0,.6)}
+  #admin-panel.show{display:block}
+  .admin-head{display:flex;justify-content:space-between;align-items:center;
+    color:#e0a0ff;font-size:15px;font-weight:700;margin-bottom:8px;letter-spacing:1px}
+  .admin-head button{background:rgba(200,60,60,.6);border:none;color:#fff;
+    border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:13px}
+  .admin-sec{margin-bottom:10px;border-top:1px solid rgba(255,255,255,.1);padding-top:7px}
+  .admin-sec-t{color:#b8a0d0;font-size:11px;font-weight:700;margin-bottom:5px;text-transform:uppercase}
+  .admin-row{display:flex;gap:5px;align-items:center;margin-bottom:5px;flex-wrap:wrap}
+  .admin-btn2{background:linear-gradient(180deg,#5a2a7a,#3a1a5a);border:1px solid rgba(200,120,255,.4);
+    border-radius:7px;color:#f0e0ff;font-size:12px;font-weight:600;padding:7px 10px;cursor:pointer;flex:1;min-width:60px}
+  .admin-btn2:active{transform:scale(.95)}
+  .admin-btn2.on{background:linear-gradient(180deg,#2a8a3a,#1a5a2a);border-color:rgba(120,255,140,.5)}
+  .admin-sel{background:rgba(30,20,40,.9);border:1px solid rgba(180,120,220,.4);
+    border-radius:6px;color:#e8d8ff;font-size:12px;padding:6px;flex:2;min-width:120px}
+
   #fs-game{position:absolute;top:10px;right:10px;
     background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);
     border-radius:8px;color:#ccc;font-size:18px;width:40px;height:40px;
@@ -702,6 +740,8 @@
   </div>
   <div id="dmg-flash"></div>
   <div id="vignette"></div>
+  <div id="underwater-overlay"></div>
+  <div id="breath-bar"><div id="breath-fill"></div></div>
   <div id="joystick-zone">
     <div id="joystick-base"><div id="joystick-knob"></div></div>
   </div>
@@ -717,6 +757,11 @@
     </div>
   </div>
   <button id="char-btn" title="Postac"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="6" r="3.4" fill="currentColor"/><path d="M5 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z" fill="currentColor"/></svg></button>
+  <button id="admin-btn" title="Panel Admina">⚙️</button>
+  <div id="admin-panel">
+    <div class="admin-head">⚙️ PANEL ADMINA <button id="admin-close">✕</button></div>
+    <div class="admin-body" id="admin-body"></div>
+  </div>
   <button id="craft-btn" title="Rzemioslo">🔨</button>
   <button id="build-btn" title="Budowanie">🧱</button>
   <button id="build-place-btn" title="Postaw blok">✓</button>
@@ -1171,6 +1216,10 @@ const MOB_TYPES = [
   {id:'zombie',name:'Zombie',hp:300,dmg:15,speed:2.2,atkRange:2.0,aggroRange:18,xp:30,gold:5,atkCd:1.8,height:1.7,biomes:['forest'],night:true,drops:['bone','raw_meat']},
   {id:'wieszcz',name:'Wieszcz',hp:300,dmg:25,speed:4,atkRange:3.5,aggroRange:25,xp:60,gold:18,atkCd:2.0,height:1.8,biomes:['forest'],night:true,drops:['shadow_gem','dark_ore']},
   {id:'rock_lizard',name:'Jaszczurka Skalna',hp:300,dmg:15,speed:4,atkRange:2.0,aggroRange:15,xp:40,gold:10,atkCd:1.5,height:0.9,biomes:['mountains'],drops:['stone','iron_ore']},
+  // ── POTWORY WODNE (spawn w wodzie) ──
+  {id:'rekin',name:'Rekin',hp:450,dmg:30,speed:7,atkRange:2.5,aggroRange:28,xp:70,gold:20,atkCd:1.2,height:1.4,biomes:['water'],water:true,drops:['raw_meat','rybia_luska']},
+  {id:'meduza',name:'Meduza',hp:200,dmg:20,speed:3,atkRange:2.5,aggroRange:18,xp:40,gold:12,atkCd:1.6,height:1.0,biomes:['water'],water:true,drops:['rybia_luska']},
+  {id:'kraken_maly',name:'Maly Kraken',hp:700,dmg:38,speed:4,atkRange:3.5,aggroRange:30,xp:120,gold:35,atkCd:1.8,height:2.0,biomes:['water'],water:true,drops:['rybia_luska','atlantyda_perla']},
 ];
 
 // ═══ BOSS TYPES ══════════════════════════════════════════
@@ -1183,6 +1232,7 @@ const BOSS_TYPES = [
   {id:'spider_queen',name:'Krolowa Pajakow',hp:9000,dmg:48,speed:5.0,atkRange:4,aggroRange:38,xp:850,gold:380,atkCd:1.2,height:3.2,struct:'spider_nest'},
   {id:'lava_golem',name:'Golem Lawy',hp:14000,dmg:70,speed:2.4,atkRange:5,aggroRange:32,xp:1100,gold:450,atkCd:2.0,height:4.0,struct:'lava_forge'},
   {id:'forest_queen',name:'Krolowa Lasu',hp:11000,dmg:52,speed:3.8,atkRange:4.5,aggroRange:36,xp:950,gold:420,atkCd:1.4,height:3.8,struct:'sacred_grove'},
+  {id:'leviathan',name:'Leviatan',hp:25000,dmg:90,speed:4.5,atkRange:6,aggroRange:45,xp:2000,gold:800,atkCd:1.6,height:5.0,struct:'leviathan_lair',water:true},
 ];
 
 // ═══ EQUIPMENT DROPS TABLE ═══════════════════════════════
@@ -1225,6 +1275,9 @@ const BOSS_DROPS = [
   {id:'crown_nature',name:'Korona Natury',icon:'👑',equip:'hood',bonus:{hp:60,mana:50,dmg:12},rarity:'legend',boss:'forest_queen'},
   {id:'forest_cape',name:'Peleryna Lasu',icon:'🧣',equip:'cape',bonus:{hp:40,speed:15,dmgRed:10},rarity:'legend',boss:'forest_queen'},
   {id:'nature_staff',name:'Berlo Natury',icon:'🪄',equip:'weapon',bonus:{dmg:26,mana:60},rarity:'legend',type:'wand',wandTier:3,boss:'forest_queen'},
+  // ── Leviatan: luski (do trojzeba) + ultimatywny krysztal przemiany ──
+  {id:'luska_leviatana',name:'Luska Leviatana',icon:'🟦',type:'resource',boss:'leviathan',count:5},
+  {id:'krysztal_przemiany',name:'Krysztal Przemiany',icon:'🔮',type:'class_change',rarity:'secret',boss:'leviathan',desc:'ULTIMATE: Zmienia klase postaci (1 na swiat)'},
 ];
 
 // ═══ SKLEP (rozszerzony) ═════════════════════════════════
@@ -1291,6 +1344,7 @@ const RECIPES = [
   {id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common',need:[{id:'iron_ore',count:4},{id:'wood',count:1}],desc:'Obrażenia: 35'},
   {id:'trident_gold',name:'Zloty Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:18},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'wood',count:1}],desc:'Obrażenia: 50'},
   {id:'trident_mithril',name:'Mithrilowy Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:25},rarity:'epic',need:[{id:'mithril',count:4},{id:'wood',count:1}],desc:'Obrażenia: 70'},
+  {id:'trident_leviathan',name:'Trojzab Leviatana',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:65},rarity:'secret',need:[{id:'luska_leviatana',count:8},{id:'atlantyda_perla',count:3}],desc:'SECRET: Obrażenia 130, +100% w wodzie'},
   // Zbroje
   {id:'iron_helm',name:'Zelazny Helm',icon:'🪖',equip:'hood',bonus:{hp:20,dmgRed:5},rarity:'common',need:[{id:'iron_ore',count:5}],desc:'+20 HP +5% redukcji'},
   {id:'iron_chest_craft',name:'Zelazny Napiersnik',icon:'🦺',equip:'chest',bonus:{hp:30,dmgRed:10},rarity:'common',need:[{id:'iron_ore',count:9}],desc:'+30 HP +10% redukcji'},
@@ -1334,6 +1388,9 @@ const RESOURCES = [
   {id:'saddle',name:'Siodlo',icon:'🪑',type:'resource'},
   {id:'boss_heart',name:'Serce Bossa',icon:'💜',type:'resource'},
   {id:'herb',name:'Ziolo',icon:'🌿',type:'resource'},
+  {id:'rybia_luska',name:'Rybia Luska',icon:'🐟',type:'resource'},
+  {id:'atlantyda_perla',name:'Perla Atlantydy',icon:'🫧',type:'resource'},
+  {id:'luska_leviatana',name:'Luska Leviatana',icon:'🟦',type:'resource'},
 ];
 
 // ═══ BIOMY (8 typow) ════════════════════════════════════
@@ -1383,6 +1440,7 @@ const LANDMARKS={
   spider_nest:{x:1200,z:-1600,name:'Gniazdo Pajakow'},
   lava_forge:{x:-1400,z:1500,name:'Kuznia Lawy'},
   sacred_grove:{x:600,z:-500,name:'Swiety Gaj'},
+  leviathan_lair:{x:-2200,z:-2200,name:'Otchlan Leviatana'},
 };
 
 // ═══ CLEARINGS (rozszerzone) ═════════════════════════════
@@ -1450,6 +1508,7 @@ const projectiles=[];
 const impacts=[];
 const mobs=[];
 let mobSpawnTimer=3;
+let _villagePopulated=false;
 let _scene=null,_camera=null,_sun=null;
 
 // ═══ MENU FUNCTIONS ═════════════════════════════════════
@@ -1552,6 +1611,7 @@ function buildInvGrid(){
         buildInvGrid();buildItembar();updateHandItem();return;
       }
       if(!it)return;
+      if(it.type==='class_change'){openClassChange(i);return;}
       if(it.type==='consumable'||it.type==='food'){useConsumable(i);buildInvGrid();buildItembar();}
       else if(it.equip){equipItem(i);}
       else{_invDragFrom=i;buildInvGrid();}
@@ -1577,16 +1637,18 @@ window.addEventListener('unhandledrejection',e=>showError('PROMISE: '+e.reason))
 
 const CLASS_CONFIG={
   mag:{name:'Mag',hp:100,mana:1000,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Rozdzka',icon:'🪄',type:'wand',wandTier:0},figure:'🧙'},
-  wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'blood_blade',name:'Ostrze Krwi',icon:'🗡️',type:'melee',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧛'},
+  wampir:{name:'Wampir',hp:380,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'blood_blade',name:'Ostrze Krwi',icon:'🗡️',type:'melee',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧛'},
   nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
-  czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'iron_sword',name:'Zelazny Miecz',icon:'⚔️',type:'melee',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'⚔️'},
-  atlantyda:{name:'Atlantyda',hp:120,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
-  nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'bone_axe',name:'Kosciany Topor',icon:'🪓',type:'melee',equip:'weapon',bonus:{dmg:8},rarity:'common'},figure:'🧟'},
+  czlowiek:{name:'Czlowiek',hp:450,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'iron_sword',name:'Zelazny Miecz',icon:'⚔️',type:'melee',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'⚔️'},
+  atlantyda:{name:'Atlantyda',hp:300,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
+  nieumarly:{name:'Nieumarly',hp:350,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'bone_axe',name:'Kosciany Topor',icon:'🪓',type:'melee',equip:'weapon',bonus:{dmg:8},rarity:'common'},figure:'🧟'},
 };
 let playerClass='mag';
 let blood=1000,maxBlood=1000;
 let strength=0,maxStrength=100;
 let decay=0,maxDecay=100;
+let godMode=false;     // admin: niesmiertelnosc
+let _breath=100;       // tlen pod woda (0-100)
 
 function classSpawn(){
   if(playerClass==='wampir'){return{x:50,z:1850};}
@@ -2319,6 +2381,10 @@ function isNearWall(camera){
 // skok: blisko sciany + szybkie klikanie = wspinaczka w gore
 function doJump(camera){
   if(playerDead)return;
+  if(_swimming){
+    // plywanie: skok = ruch w gore (wynurzanie). Atlanta plywa mocniej.
+    velY=playerClass==='atlantyda'?6:4.5;onGround=false;return;
+  }
   if(isNearWall(camera)&&climbStamina>5){
     velY=6.5;onGround=false;
     climbStamina=Math.max(0,climbStamina-12);
@@ -2467,6 +2533,7 @@ function terrainCore(x,z){
     h+=w[i]*bh;r+=w[i]*bi.color[0];g+=w[i]*bi.color[1];b+=w[i]*bi.color[2];}
   return{h,r,g,b,lava};
 }
+const OCEAN_BASINS=[{x:-2200,z:-2200,r:520,depth:14}];  // glebokie oceany (Leviatan)
 function terrainHeight(x,z){
   let h=terrainCore(x,z).h;
   for(const c of STRUCT_CLEARINGS){
@@ -2474,6 +2541,14 @@ function terrainHeight(x,z){
     if(d2<r*r){const d=Math.sqrt(d2),t=d/r;
       const flatH=terrainCore(c.x,c.z).h;
       h=flatH+(h-flatH)*Math.pow(t,2);
+    }
+  }
+  // glebokie baseny oceaniczne (woda + Leviatan)
+  for(const o of OCEAN_BASINS){
+    const dx=x-o.x,dz=z-o.z,d2=dx*dx+dz*dz,r=o.r;
+    if(d2<r*r){const t=Math.sqrt(d2)/r;
+      const carve=o.depth*(1-t*t);    // misa
+      h-=carve;
     }
   }
   return h;
@@ -2797,7 +2872,12 @@ function buildWater(scene){
        diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.4,0.72,0.82),clamp((vWave+0.18)*1.6,0.0,0.45));`);
   };
   _waterDetail=new THREE.Mesh(geo,mat);_waterDetail.position.y=SEA_LEVEL;scene.add(_waterDetail);
+  // piaszczyste dno (widoczne pod woda) - podaza za graczem
+  const sbGeo=new THREE.PlaneGeometry(D,D,1,1);sbGeo.rotateX(-Math.PI/2);
+  const sbMat=new THREE.MeshStandardMaterial({color:0xd8c894,roughness:1,flatShading:true});
+  _seabed=new THREE.Mesh(sbGeo,sbMat);_seabed.position.y=SEA_LEVEL-7;_seabed.receiveShadow=false;scene.add(_seabed);
 }
+let _seabed=null;
 let _ambient=null,_hemi=null;
 function setupLighting(scene){
   _ambient=new THREE.AmbientLight(0x556080,0.5);scene.add(_ambient);
@@ -3261,6 +3341,37 @@ function buildDeadWorld(scene,cx,cz){
   addBox(grp,8,1,8,0,0.5,0,darkStone);
   addBox(grp,3,2.5,3,12,1.25,0,darkStone);
   addBox(grp,3,2.5,3,-12,1.25,0,darkStone);
+  // ── kosciane luki/arkady (zebra) wokol oltarza ──
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2,r=16;
+    const ax=Math.cos(a)*r,az=Math.sin(a)*r;
+    // dwa filary + luk
+    addBox(grp,0.6,5,0.6,ax-Math.sin(a)*1.5,2.5,az+Math.cos(a)*1.5,boneMat);
+    addBox(grp,0.6,5,0.6,ax+Math.sin(a)*1.5,2.5,az-Math.cos(a)*1.5,boneMat);
+    for(let r2=0;r2<4;r2++){
+      const rib=new THREE.Mesh(new THREE.TorusGeometry(1.6,0.18,4,8,Math.PI),boneMat);
+      rib.position.set(ax,5+r2*0.05,az);rib.rotation.y=a;rib.rotation.x=0;grp.add(rib);
+    }
+  }
+  // ── tron Krola Szkieletow (centralny) ──
+  addBox(grp,3,0.6,3,0,1.3,0,darkStone);
+  addBox(grp,2.4,3,0.4,0,3,-1.2,boneMat);   // oparcie
+  for(const sx of[-1,1]){
+    const skull=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,5),boneMat);
+    skull.position.set(sx*1.0,4.6,-1.2);grp.add(skull);}
+  // ── katedra kosci (duza klatka piersiowa) na obrzezu ──
+  for(let i=0;i<5;i++){
+    const cathArc=new THREE.Mesh(new THREE.TorusGeometry(4-i*0.3,0.4,5,10,Math.PI),boneMat);
+    cathArc.position.set(35,4,0);cathArc.rotation.y=Math.PI/2;cathArc.position.z=(i-2)*2.5;grp.add(cathArc);
+  }
+  // czaszki dekoracyjne
+  for(let i=0;i<12;i++){
+    const a=rng()*Math.PI*2,r=10+rng()*40;
+    const sk=new THREE.Mesh(new THREE.SphereGeometry(0.5,6,5),boneMat);
+    sk.position.set(Math.cos(a)*r,0.5,Math.sin(a)*r);grp.add(sk);
+    const jaw=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.15,0.3),boneMat);
+    jaw.position.set(Math.cos(a)*r,0.25,Math.sin(a)*r+0.25);grp.add(jaw);
+  }
   // fioletowe swiatla
   for(let i=0;i<6;i++){
     const a=(i/6)*Math.PI*2;
@@ -3463,6 +3574,29 @@ function buildWampirCave(scene,cx,cz){
   LANDMARKS.wampir_cave={x:cx,z:cz,name:'Jaskinia Wampira'};
   STRUCT_CLEARINGS.push({x:cx,z:cz,r:22});
 }
+function buildLeviathanLair(scene,cx,cz){
+  // pierscien skalnych ostanccow na powierzchni morza (oznacza otchlanc)
+  const rockM=new THREE.MeshStandardMaterial({color:0x3a4a52,roughness:0.95,flatShading:true});
+  const coralM=new THREE.MeshStandardMaterial({color:0x2a7a8a,roughness:0.8,flatShading:true,emissive:0x114a5a,emissiveIntensity:0.2});
+  for(let i=0;i<10;i++){
+    const a=i/10*Math.PI*2,r=40+Math.random()*12;
+    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+    const h=2+Math.random()*8;
+    const spire=new THREE.Mesh(new THREE.ConeGeometry(2+Math.random()*2,h,5),rockM);
+    spire.position.set(x,SEA_LEVEL+h*0.3,z);spire.rotation.y=Math.random();spire.castShadow=true;scene.add(spire);
+  }
+  // korale i swiecace krysztaly na dnie
+  for(let i=0;i<14;i++){
+    const a=Math.random()*Math.PI*2,r=Math.random()*30;
+    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+    const c=new THREE.Mesh(new THREE.ConeGeometry(0.6+Math.random()*0.8,2+Math.random()*2,5),coralM);
+    c.position.set(x,terrainHeight(x,z)+1,z);scene.add(c);
+  }
+  // swiatlo otchlanic
+  const light=new THREE.PointLight(0x22aacc,2.0,60);
+  light.position.set(cx,SEA_LEVEL-3,cz);scene.add(light);
+  STRUCT_CLEARINGS.push({x:cx,z:cz,r:35});
+}
 function buildStructures(scene){
   _wallBoxes.length=0;_portals.length=0;_portal=null;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
@@ -3480,6 +3614,7 @@ function buildStructures(scene){
   buildLavaForge(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z);
   buildSacredGrove(scene,LANDMARKS.sacred_grove.x,LANDMARKS.sacred_grove.z);
   buildWampirCave(scene,50,1850);
+  buildLeviathanLair(scene,LANDMARKS.leviathan_lair.x,LANDMARKS.leviathan_lair.z);
   const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
   for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
     spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
@@ -3950,6 +4085,167 @@ document.getElementById('build-btn').addEventListener('click',toggleBuildMode);
 document.getElementById('build-close').addEventListener('click',toggleBuildMode);
 document.getElementById('build-place-btn').addEventListener('click',()=>{if(_camera)placeBlock(_camera);});
 document.getElementById('build-remove-btn').addEventListener('click',()=>{if(_camera)removeBlockAt(_camera);});
+
+// ═══ ZMIANA KLASY (Krysztal Przemiany / Admin) ═══════════
+function changeClass(newClass){
+  if(!CLASS_CONFIG[newClass])return;
+  playerClass=newClass;session.class=newClass;
+  const cfg=CLASS_CONFIG[newClass];
+  document.getElementById('classname').textContent=cfg.name;
+  const fig=document.querySelector('.cp-figure');if(fig)fig.textContent=cfg.figure;
+  player.maxHp=cfg.hp;player.maxMana=cfg.mana;player.manaRegen=cfg.manaRegen;
+  ITEMS[0]={...cfg.startWeapon,count:1};
+  if(newClass==='wampir'){blood=1000;maxBlood=1000;}
+  if(newClass==='czlowiek'){strength=0;maxStrength=100;}
+  if(newClass==='nieumarly'){decay=0;maxDecay=100;}
+  if(newClass==='nekromanta'){shadowPoints=5;maxShadowPoints=5;}
+  if(newClass==='nekromanta')SPELLS=buildNecroSpells();
+  else if(newClass==='atlantyda')SPELLS=buildAtlantydaSpells();
+  else if(newClass==='wampir')SPELLS=buildWampirSpells();
+  else if(newClass==='czlowiek')SPELLS=buildCzlowiekSpells();
+  else if(newClass==='nieumarly')SPELLS=buildNieumarlySpells();
+  else SPELLS=buildSpells();
+  ownedSpells.clear();ownedSpells.add(0);player.selSpell=0;
+  applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
+  buildSpellbar();buildItembar();updateCharBtn();
+  toast('Przemiana w: '+cfg.name+'!');
+}
+
+function openClassChange(invIdx){
+  const ex=document.getElementById('classchange-overlay');if(ex)ex.remove();
+  const ov=document.createElement('div');ov.id='classchange-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:40;background:rgba(6,4,12,.85);'+
+    'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:auto';
+  const title=document.createElement('div');
+  title.textContent='🔮 KRYSZTAL PRZEMIANY — Wybierz nowa klase';
+  title.style.cssText='color:#e0a0ff;font-size:17px;font-weight:700;margin-bottom:8px;text-align:center;padding:0 20px';
+  ov.appendChild(title);
+  Object.keys(CLASS_CONFIG).forEach(c=>{
+    if(c===playerClass)return;
+    const cfg=CLASS_CONFIG[c];
+    const b=document.createElement('button');
+    b.textContent=cfg.figure+'  '+cfg.name+'  ('+cfg.hp+' HP)';
+    b.style.cssText='background:linear-gradient(180deg,#5a2a7a,#3a1a5a);border:2px solid rgba(200,120,255,.4);'+
+      'border-radius:10px;color:#f0e0ff;font-size:15px;font-weight:600;padding:12px 24px;cursor:pointer;width:240px';
+    b.onclick=()=>{
+      ITEMS[invIdx]=null;        // zuzyj krysztal
+      changeClass(c);buildInvGrid();ov.remove();
+    };
+    ov.appendChild(b);
+  });
+  const cancel=document.createElement('button');
+  cancel.textContent='Anuluj';
+  cancel.style.cssText='background:rgba(120,40,40,.7);border:none;border-radius:8px;color:#fff;'+
+    'font-size:13px;padding:8px 20px;cursor:pointer;margin-top:6px';
+  cancel.onclick=()=>ov.remove();
+  ov.appendChild(cancel);
+  document.getElementById('game-ui').appendChild(ov);
+}
+
+// ═══ PANEL ADMINA ════════════════════════════════════════
+let adminOpen=false;
+function renderAdminPanel(){
+  const body=document.getElementById('admin-body');if(!body)return;
+  const mobOpts=MOB_TYPES.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  const bossOpts=BOSS_TYPES.map(b=>`<option value="${b.id}">${b.name}</option>`).join('');
+  const allItems=[...RECIPES,...EQUIP_DROPS,...BOSS_DROPS,...RESOURCES];
+  const itemOpts=allItems.map((it,i)=>`<option value="${i}">${it.icon||''} ${it.name}</option>`).join('');
+  const classOpts=Object.keys(CLASS_CONFIG).map(c=>`<option value="${c}">${CLASS_CONFIG[c].name}</option>`).join('');
+  body.innerHTML=`
+    <div class="admin-sec">
+      <div class="admin-sec-t">Tryby</div>
+      <div class="admin-row">
+        <button class="admin-btn2 ${godMode?'on':''}" id="adm-god">${godMode?'GOD MODE: WL':'GOD MODE: WYL'}</button>
+        <button class="admin-btn2" id="adm-heal">Pelne HP/Mana</button>
+      </div>
+      <div class="admin-row">
+        <button class="admin-btn2" id="adm-gold">+1000 Zlota</button>
+        <button class="admin-btn2" id="adm-xp">+1000 XP</button>
+      </div>
+    </div>
+    <div class="admin-sec">
+      <div class="admin-sec-t">Spawn Moba</div>
+      <div class="admin-row">
+        <select class="admin-sel" id="adm-mob">${mobOpts}</select>
+        <button class="admin-btn2" id="adm-spawn-mob">Spawn</button>
+      </div>
+    </div>
+    <div class="admin-sec">
+      <div class="admin-sec-t">Spawn Bossa</div>
+      <div class="admin-row">
+        <select class="admin-sel" id="adm-boss">${bossOpts}</select>
+        <button class="admin-btn2" id="adm-spawn-boss">Spawn</button>
+      </div>
+    </div>
+    <div class="admin-sec">
+      <div class="admin-sec-t">Daj Przedmiot</div>
+      <div class="admin-row">
+        <select class="admin-sel" id="adm-item">${itemOpts}</select>
+        <button class="admin-btn2" id="adm-give">Daj</button>
+      </div>
+    </div>
+    <div class="admin-sec">
+      <div class="admin-sec-t">Zmien Klase</div>
+      <div class="admin-row">
+        <select class="admin-sel" id="adm-class">${classOpts}</select>
+        <button class="admin-btn2" id="adm-changeclass">Zmien</button>
+      </div>
+    </div>
+    <div class="admin-sec">
+      <div class="admin-sec-t">Czas / Teleport</div>
+      <div class="admin-row">
+        <button class="admin-btn2" id="adm-day">Dzien</button>
+        <button class="admin-btn2" id="adm-night">Noc</button>
+      </div>
+      <div class="admin-row">
+        <select class="admin-sel" id="adm-tp">${Object.keys(LANDMARKS).map(k=>`<option value="${k}">${LANDMARKS[k].name}</option>`).join('')}</select>
+        <button class="admin-btn2" id="adm-tpgo">TP</button>
+      </div>
+    </div>`;
+  body.querySelector('#adm-god').onclick=()=>{godMode=!godMode;renderAdminPanel();toast('God Mode: '+(godMode?'WLACZONY':'WYLACZONY'));};
+  body.querySelector('#adm-heal').onclick=()=>{player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;_breath=100;toast('Uzdrowiono!');};
+  body.querySelector('#adm-gold').onclick=()=>{player.gold+=1000;toast('+1000 zlota');};
+  body.querySelector('#adm-xp').onclick=()=>{giveXP(1000);toast('+1000 XP');};
+  body.querySelector('#adm-spawn-mob').onclick=()=>{
+    const id=body.querySelector('#adm-mob').value;adminSpawnMob(id);};
+  body.querySelector('#adm-spawn-boss').onclick=()=>{
+    const id=body.querySelector('#adm-boss').value;adminSpawnBoss(id);};
+  body.querySelector('#adm-give').onclick=()=>{
+    const it=allItems[+body.querySelector('#adm-item').value];
+    if(it){addToInventory({...it,count:it.count||1});toast('Dodano: '+it.name);}};
+  body.querySelector('#adm-changeclass').onclick=()=>{changeClass(body.querySelector('#adm-class').value);};
+  body.querySelector('#adm-day').onclick=()=>{worldTime=CYCLE_LEN*0.25;toast('Dzien');};
+  body.querySelector('#adm-night').onclick=()=>{worldTime=CYCLE_LEN*0.65;toast('Noc');};
+  body.querySelector('#adm-tpgo').onclick=()=>{
+    const lm=LANDMARKS[body.querySelector('#adm-tp').value];
+    if(lm&&_camera){_camera.position.set(lm.x,terrainHeight(lm.x,lm.z)+EYE_H,lm.z);
+      worldRealm='overworld';_lastChunkX=99999;toast('TP: '+lm.name);}};
+}
+function adminSpawnMob(id){
+  const type=MOB_TYPES.find(t=>t.id===id);if(!type||!_camera)return;
+  const a=Math.random()*Math.PI*2,d=8;
+  const x=_camera.position.x+Math.cos(a)*d,z=_camera.position.z+Math.sin(a)*d;
+  const mesh=buildMobMesh(type);mesh.position.set(x,type.water?SEA_LEVEL-1:terrainHeight(x,z),z);_scene.add(mesh);
+  const hpBar=createMobHPBar();hpBar.group.position.y=type.height+0.3;hpBar.group.visible=false;mesh.add(hpBar.group);
+  mobs.push({type,mesh,hp:type.hp,maxHp:type.hp,hpBar,state:type.passive?'idle':'idle',
+    wanderAngle:Math.random()*6.28,wanderTimer:Math.random()*3,lastAtk:0,phase:Math.random()*6.28,
+    hitTimer:0,walkCycle:Math.random()*6.28,dmgMul:1.0});
+  toast('Spawned: '+type.name);
+}
+function adminSpawnBoss(id){
+  const type=BOSS_TYPES.find(t=>t.id===id);if(!type||!_camera)return;
+  bossSpawned[type.id]=false;
+  const a=Math.random()*Math.PI*2,d=14;
+  spawnBoss(_scene,type,_camera.position.x+Math.cos(a)*d,_camera.position.z+Math.sin(a)*d);
+}
+document.getElementById('admin-btn').addEventListener('click',()=>{
+  adminOpen=!adminOpen;
+  document.getElementById('admin-panel').classList.toggle('show',adminOpen);
+  if(adminOpen)renderAdminPanel();
+});
+document.getElementById('admin-close').addEventListener('click',()=>{
+  adminOpen=false;document.getElementById('admin-panel').classList.remove('show');
+});
 function renderCraftPanel(){
   const list=document.getElementById('craft-list');if(!list)return;list.innerHTML='';
   RECIPES.forEach(r=>{
@@ -4572,10 +4868,64 @@ function buildMobMesh(type){
     zombie:0x556633,wieszcz:0x443355,rock_lizard:0x7a7a6a,
     ice_titan:0xaae0f5,spider_queen:0x2a2a3a,lava_golem:0xff5522,
     skeleton_king:0xe8e0d0,dark_lord:0x442266,pharaoh:0xd4b060,dragon:0x881111,
-    forest_queen:0x22aa44})[type.id]||0x888888;
+    forest_queen:0x22aa44,rekin:0x607a8a,meduza:0xcc88dd,kraken_maly:0x4a6a5a,
+    leviathan:0x2a6a7a})[type.id]||0x888888;
   const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.85,flatShading:true,
     ...(type.id==='ghost'?{transparent:true,opacity:0.5,emissive:0x4444aa,emissiveIntensity:0.5}:{})});
-  if(type.id==='spider'){
+  if(type.id==='rekin'){
+    const H=type.height;
+    const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.35,7,6),mat);
+    body.position.set(0,H*0.4,0);body.scale.set(0.7,0.7,1.8);body.castShadow=true;g.add(body);
+    const belly=new THREE.Mesh(new THREE.SphereGeometry(H*0.3,6,5),
+      new THREE.MeshStandardMaterial({color:0xe0e8ee,flatShading:true}));
+    belly.position.set(0,H*0.3,0);belly.scale.set(0.6,0.5,1.6);g.add(belly);
+    const head=new THREE.Mesh(new THREE.ConeGeometry(H*0.22,H*0.5,6),mat);
+    head.position.set(0,H*0.4,H*0.7);head.rotation.x=Math.PI/2;g.add(head);
+    const dorsal=new THREE.Mesh(new THREE.ConeGeometry(H*0.12,H*0.4,3),mat);
+    dorsal.position.set(0,H*0.75,0);g.add(dorsal);
+    for(const sx of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(H*0.1,H*0.35,3),mat);
+      fin.position.set(sx*H*0.28,H*0.28,H*0.15);fin.rotation.z=sx*1.2;fin.rotation.x=0.3;g.add(fin);}
+    const tailV=new THREE.Mesh(new THREE.ConeGeometry(H*0.18,H*0.5,3),mat);
+    tailV.position.set(0,H*0.5,-H*0.75);tailV.rotation.x=-0.4;g.add(tailV);
+    const tailB=new THREE.Mesh(new THREE.ConeGeometry(H*0.12,H*0.35,3),mat);
+    tailB.position.set(0,H*0.28,-H*0.72);tailB.rotation.x=0.5;g.add(tailB);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x111111});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,4,4),eyeM);
+      e.position.set(sx*H*0.13,H*0.45,H*0.55);g.add(e);}
+    const teethM=new THREE.MeshBasicMaterial({color:0xffffff});
+    for(let i=0;i<5;i++){const t=new THREE.Mesh(new THREE.ConeGeometry(H*0.02,H*0.08,3),teethM);
+      t.position.set((i-2)*H*0.05,H*0.34,H*0.82);g.add(t);}
+  }else if(type.id==='meduza'){
+    const H=type.height;
+    const bellM=new THREE.MeshStandardMaterial({color:0xcc88dd,transparent:true,opacity:0.6,
+      emissive:0x8844aa,emissiveIntensity:0.4,flatShading:true});
+    const dome=new THREE.Mesh(new THREE.SphereGeometry(H*0.4,8,6,0,Math.PI*2,0,Math.PI*0.55),bellM);
+    dome.position.set(0,H*0.7,0);dome.castShadow=true;g.add(dome);
+    const inner=new THREE.Mesh(new THREE.SphereGeometry(H*0.2,6,5),
+      new THREE.MeshStandardMaterial({color:0xffaaee,emissive:0xff66cc,emissiveIntensity:0.6}));
+    inner.position.set(0,H*0.62,0);g.add(inner);
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2;
+      const tent=new THREE.Mesh(new THREE.CylinderGeometry(H*0.02,H*0.008,H*0.6,4),bellM);
+      tent.position.set(Math.cos(a)*H*0.28,H*0.35,Math.sin(a)*H*0.28);g.add(tent);}
+    g.add(new THREE.PointLight(0xcc66ff,0.6,5));
+  }else if(type.id==='kraken_maly'){
+    const H=type.height;
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.32,7,6),mat);
+    head.position.set(0,H*0.6,0);head.scale.set(1,1.3,1);head.castShadow=true;g.add(head);
+    const eyeM=new THREE.MeshBasicMaterial({color:0xffcc22});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.07,5,5),eyeM);
+      e.position.set(sx*H*0.16,H*0.65,H*0.22);g.add(e);
+      const p=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,4,4),new THREE.MeshBasicMaterial({color:0x000000}));
+      p.position.set(sx*H*0.16,H*0.65,H*0.28);g.add(p);}
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2;
+      const seg=3;
+      for(let s=0;s<seg;s++){const r=H*0.06*(1-s*0.25);
+        const arm=new THREE.Mesh(new THREE.SphereGeometry(r,5,4),mat);
+        const bend=Math.sin(s*0.8)*H*0.1;
+        arm.position.set(Math.cos(a)*(H*0.25+s*H*0.12)+Math.cos(a)*bend,
+          H*0.35-s*H*0.12,Math.sin(a)*(H*0.25+s*H*0.12));g.add(arm);}}
+    g.add(new THREE.PointLight(0x22aa88,0.7,6));
+  }else if(type.id==='spider'){
     const H=type.height;
     const abdomen=new THREE.Mesh(new THREE.SphereGeometry(H*0.35,6,5),mat);
     abdomen.position.set(0,H*0.4,-H*0.15);abdomen.scale.set(1,0.8,1.2);abdomen.castShadow=true;g.add(abdomen);
@@ -5155,22 +5505,30 @@ function spawnMob(scene,camera){
   const x=camera.position.x+Math.cos(angle)*dist;
   const z=camera.position.z+Math.sin(angle)*dist;
   const h=terrainHeight(x,z);
-  if(h<SEA_LEVEL+0.8||Math.abs(x)>WORLD_HALF||Math.abs(z)>WORLD_HALF)return;
-  if(inClearing(x,z))return;
-  const biome=dominantBiome(x,z);
+  if(Math.abs(x)>WORLD_HALF||Math.abs(z)>WORLD_HALF)return;
+  const isWater=h<SEA_LEVEL-0.6;
   const nightNow=worldTime/CYCLE_LEN>0.5&&worldTime/CYCLE_LEN<0.9;
-  let valid;
+  let valid,spawnY=h;
   if(worldRealm==='dead'){
-    // Swiat Umarlych: tylko nieumarli (szkielety, zombie, duchy, wieszcze)
+    if(h<SEA_LEVEL+0.8||inClearing(x,z))return;
     const undeadIds=['skeleton','zombie','ghost','wieszcz','mummy','scorpion'];
     valid=MOB_TYPES.filter(t=>undeadIds.includes(t.id));
+  }else if(isWater){
+    // potwory wodne plywaja miedzy dnem a powierzchnia
+    valid=MOB_TYPES.filter(t=>t.water);
+    spawnY=SEA_LEVEL-0.8-Math.random()*Math.max(0.5,SEA_LEVEL-h-1);
   }else{
-    valid=MOB_TYPES.filter(t=>t.biomes.includes(biome)&&(!t.night||nightNow));
+    if(h<SEA_LEVEL+0.8)return;
+    // wioska: pozwol na moby (z dala od domow - kolizja scian zalatwi reszte)
+    const vlm=LANDMARKS.village;const inVillage=(x-vlm.x)**2+(z-vlm.z)**2<48*48;
+    if(!inVillage&&inClearing(x,z))return;
+    const biome=dominantBiome(x,z);
+    valid=MOB_TYPES.filter(t=>!t.water&&t.biomes.includes(biome)&&(!t.night||nightNow));
   }
   if(valid.length===0)return;
   const type=valid[(Math.random()*valid.length)|0];
   const mesh=buildMobMesh(type);
-  mesh.position.set(x,h,z);scene.add(mesh);
+  mesh.position.set(x,spawnY,z);scene.add(mesh);
   const hpBar=createMobHPBar();
   hpBar.group.position.y=type.height+0.3;hpBar.group.visible=false;
   mesh.add(hpBar.group);
@@ -5244,6 +5602,25 @@ function updateMobs(dt,now,camera,scene){
   mobSpawnTimer-=dt;
   if(mobSpawnTimer<=0&&mobs.length<MAX_MOBS&&!playerDead){
     spawnMob(scene,camera);mobSpawnTimer=2.5+Math.random()*3;
+  }
+  // gwarantowane zwierzeta w wiosce (raz, gdy gracz blisko)
+  if(!_villagePopulated&&worldRealm==='overworld'){
+    const vlm=LANDMARKS.village;
+    const vd=(camera.position.x-vlm.x)**2+(camera.position.z-vlm.z)**2;
+    if(vd<55*55){
+      _villagePopulated=true;
+      const farm=['cow','pig','chicken','sheep','chicken','pig'];
+      for(const fid of farm){
+        const type=MOB_TYPES.find(t=>t.id===fid);if(!type)continue;
+        const a=Math.random()*Math.PI*2,r=10+Math.random()*28;
+        const x=vlm.x+Math.cos(a)*r,z=vlm.z+Math.sin(a)*r;
+        const mesh=buildMobMesh(type);mesh.position.set(x,terrainHeight(x,z),z);scene.add(mesh);
+        const hpBar=createMobHPBar();hpBar.group.position.y=type.height+0.3;hpBar.group.visible=false;mesh.add(hpBar.group);
+        mobs.push({type,mesh,hp:type.hp,maxHp:type.hp,hpBar,state:'idle',
+          wanderAngle:Math.random()*6.28,wanderTimer:Math.random()*3,lastAtk:0,phase:Math.random()*6.28,
+          hitTimer:0,walkCycle:Math.random()*6.28,dmgMul:1.0});
+      }
+    }
   }
   for(let i=mobs.length-1;i>=0;i--){
     const m=mobs[i];
@@ -5569,6 +5946,42 @@ function buildBossMesh(type){
     for(let i=0;i<5;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.18,4),spM);
       sp.position.set(0,H*0.6,H*0.1-i*H*0.12);sp.scale.set(1,1,1);g.add(sp);}
     g.add(new THREE.PointLight(0xff4400,2.0,14));
+  }else if(type.id==='leviathan'){
+    g=new THREE.Group();
+    const bodyM=_bMat(0x2a6a7a,{roughness:0.6,metalness:0.3});
+    const scaleM=_bMat(0x3a8a9a,{emissive:0x115a6a,emissiveIntensity:0.3});
+    const bellyM=_bMat(0xa0d8e0);
+    // dlugie weze cialo z segmentow
+    for(let i=0;i<14;i++){const t=i/14;
+      const r=H*0.45*(1-t*0.6)*(i<2?0.7+i*0.15:1);
+      const seg=new THREE.Mesh(new THREE.SphereGeometry(r,8,6),i%2===0?bodyM:scaleM);
+      const wave=Math.sin(i*0.6)*H*0.5;
+      seg.position.set(wave,H*0.9+Math.cos(i*0.5)*H*0.3,-i*H*0.55);
+      seg.scale.set(1,0.85,1.15);seg.castShadow=true;g.add(seg);
+      // pletwy grzbietowe
+      if(i%2===0&&i<10){const fin=new THREE.Mesh(new THREE.ConeGeometry(r*0.5,H*0.5,3),scaleM);
+        fin.position.set(wave,H*0.9+Math.cos(i*0.5)*H*0.3+r*0.8,-i*H*0.55);g.add(fin);}}
+    // glowa
+    const head=new THREE.Mesh(new THREE.BoxGeometry(H*0.6,H*0.55,H*0.8),bodyM);
+    head.position.set(0,H*0.95,H*0.5);head.castShadow=true;g.add(head);
+    const jaw=new THREE.Mesh(new THREE.BoxGeometry(H*0.55,H*0.2,H*0.6),bellyM);
+    jaw.position.set(0,H*0.72,H*0.6);g.add(jaw);
+    // rogi/kolce na glowie
+    const hornM=_bMat(0x1a4a5a);
+    for(const sx of [-1,1]){const h1=new THREE.Mesh(new THREE.ConeGeometry(H*0.06,H*0.5,4),hornM);
+      h1.position.set(sx*H*0.22,H*1.3,H*0.4);h1.rotation.z=sx*0.4;h1.rotation.x=-0.3;g.add(h1);}
+    // oczy swiecace
+    const eyeM=new THREE.MeshBasicMaterial({color:0x22ffcc});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.07,6,5),eyeM);
+      e.position.set(sx*H*0.2,H*1.05,H*0.85);g.add(e);}
+    // zeby
+    const teethM=new THREE.MeshBasicMaterial({color:0xffffff});
+    for(let i=0;i<8;i++){const t=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.16,3),teethM);
+      t.position.set((i-3.5)*H*0.13,H*0.82,H*0.9);t.rotation.x=Math.PI;g.add(t);}
+    // pletwy boczne
+    for(const sx of [-1,1]){const fin=new THREE.Mesh(new THREE.ConeGeometry(H*0.2,H*0.7,3),scaleM);
+      fin.position.set(sx*H*0.45,H*0.85,H*0.2);fin.rotation.z=sx*1.3;g.add(fin);}
+    g.add(new THREE.PointLight(0x22ddbb,2.5,20));
   }else{
     const proxyType={...type,_realId:type.id};
     g=buildMobMesh(proxyType);g.scale.setScalar(2.0);
@@ -5581,7 +5994,7 @@ function buildBossMesh(type){
 }
 function spawnBoss(scene,type,x,z){
   if(bossSpawned[type.id])return;
-  const h=terrainHeight(x,z);
+  const h=type.water?SEA_LEVEL-2.5:terrainHeight(x,z);
   const mesh=buildBossMesh(type);mesh.position.set(x,h,z);scene.add(mesh);
   const hpBar=createMobHPBar();hpBar.group.position.y=type.height+1;mesh.add(hpBar.group);
   hpBar.group.visible=true;
@@ -5656,10 +6069,11 @@ function updateBosses(dt,now,camera){
 
 // ═══ PLAYER COMBAT / XP ═════════════════════════════
 function hurtPlayer(dmg){
-  if(playerDead)return;
+  if(playerDead||godMode)return;
   if(shieldHP>0){const absorbed=Math.min(shieldHP,dmg);shieldHP-=absorbed;dmg-=absorbed;
     if(dmg<=0)return;}
   const g=gearBonus();dmg=Math.round(dmg*(1-g.dmgRed/100));
+  if(playerClass==='atlantyda'&&_swimming)dmg=Math.round(dmg*0.5);  // pol obrazen w wodzie
   // Kolce Cieni: odbicie dmg
   const thorns=statusEffects.find(e=>e.type==='thornsCieni'&&e.until>performance.now());
   if(thorns){
@@ -5753,6 +6167,7 @@ function spellDmgMul(){
   if(playerClass==='atlantyda'){
     const sp=SPELLS[player.selSpell];
     if(sp&&sp.elem==='ice')mul*=1.2;
+    if(_swimming)mul*=1.6;   // Atlanta zadaje duzo wiecej obrazen w wodzie
   }
   return mul;
 }
@@ -5914,25 +6329,75 @@ function updatePlayer(dt,camera){
       else pz=b.maxZ+PLAYER_R;
     }
   }
-  if(checkClimb(camera,dt)){if(velY<0)velY*=0.3;velY-=GRAVITY*0.25*dt;}
-  else{velY-=GRAVITY*dt;}
-  let py=camera.position.y+velY*dt;
-  const groundH=terrainHeight(px,pz)+EYE_H;
-  const waterH=SEA_LEVEL+EYE_H-0.3;
-  const inWater=groundH<waterH;
-  if(inWater){
+  const seabed=terrainHeight(px,pz);
+  const groundH=seabed+EYE_H;
+  const waterSurfaceEye=SEA_LEVEL+EYE_H;      // wysokosc oka gdy glowa na powierzchni
+  // Strefa wody: dno wyraznie ponizej poziomu morza
+  const inWaterZone=seabed<SEA_LEVEL-0.4;
+  if(inWaterZone){
     _swimming=true;
-    if(py<waterH){py=waterH;velY=Math.max(velY,-1);onGround=true;}
-    if(velY<0)velY*=0.85;
+    // wyporn: lekka grawitacja, powolne tonniecie jesli nie naciskasz skoku
+    const sinkRate=playerClass==='atlantyda'?2.5:5.5;
+    velY-=sinkRate*dt;                          // tonie powoli
+    if(velY<-4)velY=-4;
+    let py=camera.position.y+velY*dt;
+    // nie pozwol zejsc pod dno
+    const floorEye=seabed+EYE_H*0.5;
+    if(py<floorEye){py=floorEye;velY=0;}
+    // nie wyskakuj ponad powierzchnie za wysoko
+    if(py>waterSurfaceEye+0.3){py=waterSurfaceEye+0.3;if(velY>0)velY*=0.4;}
+    camera.position.set(px,py,pz);
+    _underwater=py<waterSurfaceEye-0.25;        // oko pod powierzchnia
+    onGround=false;
   }else{
-    _swimming=false;
+    _swimming=false;_underwater=false;
+    if(checkClimb(camera,dt)){if(velY<0)velY*=0.3;velY-=GRAVITY*0.25*dt;}
+    else{velY-=GRAVITY*dt;}
+    let py=camera.position.y+velY*dt;
     if(py<=groundH){py=groundH;velY=0;onGround=true;}else{onGround=false;}
+    camera.position.set(px,py,pz);
   }
-  camera.position.set(px,py,pz);
   const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
   camera.quaternion.copy(quat);
+  updateUnderwater();
 }
-let _swimming=false;
+let _swimming=false,_underwater=false;
+let _drownTimer=0;
+function updateUnderwater(){
+  const ov=document.getElementById('underwater-overlay');
+  const bb=document.getElementById('breath-bar');
+  const bf=document.getElementById('breath-fill');
+  if(!ov)return;
+  const dt=1/60;
+  if(_underwater){
+    ov.classList.add('show');
+    if(playerClass==='atlantyda'){
+      // Atlanta oddycha pod woda - tlen sie nie zmniejsza
+      _breath=Math.min(100,_breath+30*dt);
+    }else{
+      _breath=Math.max(0,_breath-12*dt);
+      if(_breath<=0){
+        _drownTimer+=dt;
+        if(_drownTimer>=1){_drownTimer=0;hurtPlayer(8);toast('Toniesz! Naciskaj SKOK!');}
+      }
+    }
+    bb.classList.add('show');
+    bf.style.width=_breath+'%';
+  }else{
+    ov.classList.remove('show');
+    _breath=Math.min(100,_breath+40*dt);
+    if(_breath>=99.5)bb.classList.remove('show');
+    else bf.style.width=_breath+'%';
+  }
+  // efekt koloru sceny pod woda
+  if(_scene&&_scene.fog){
+    if(_underwater&&!_uwFogSaved){_uwFogSaved={color:_scene.fog.color.clone(),near:_scene.fog.near,far:_scene.fog.far};
+      _scene.fog.color.setHex(0x1a5a8a);_scene.fog.near=1;_scene.fog.far=isMobile?40:60;}
+    else if(!_underwater&&_uwFogSaved){_scene.fog.color.copy(_uwFogSaved.color);
+      _scene.fog.near=_uwFogSaved.near;_scene.fog.far=_uwFogSaved.far;_uwFogSaved=null;}
+  }
+}
+let _uwFogSaved=null;
 
 // ═══ HUNGER ═════════════════════════════════════════
 let _hungerWarnTimer=0;
@@ -5949,8 +6414,10 @@ function updateClassPassives(dt){
   if(playerClass==='wampir'){
     const t=worldTime/CYCLE_LEN;
     const isDay=t<0.5||t>0.9;
-    const inCave=_camera&&_wampirCave&&_camera.position.distanceTo(_wampirCave)<12;
-    if(isDay&&!inCave){
+    // Wampir bezpieczny: w jaskini (duzy promien), w Swiecie Umarlych, w nocy
+    const inCave=_camera&&_wampirCave&&_camera.position.distanceTo(_wampirCave)<24;
+    const safe=inCave||worldRealm==='dead';
+    if(isDay&&!safe&&!godMode){
       const hasCape=!!equipSets[activeSet].cape;
       const dmgRate=hasCape?1:5;
       _sunDmgTimer+=dt;
@@ -5971,9 +6438,12 @@ function updateClassPassives(dt){
       player.hp=Math.min(player.maxHp,player.hp+1);
     }
   }
-  if(playerClass==='atlantyda'&&_swimming){
-    player.hp=Math.min(player.maxHp,player.hp+3*dt);
-    player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*2*dt);
+  if(playerClass==='atlantyda'){
+    // regeneracja HP caly czas (lekko), mocniej w wodzie
+    player.hp=Math.min(player.maxHp,player.hp+(_swimming?6:1.2)*dt);
+    if(_swimming){
+      player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*2*dt);
+    }
   }
 }
 
@@ -6303,6 +6773,7 @@ function initWorld(){
     }
     if(_waterDetail){_waterDetail.position.x=camera.position.x;_waterDetail.position.z=camera.position.z;}
     if(_water){_water.position.x=camera.position.x;_water.position.z=camera.position.z;}
+    if(_seabed){_seabed.position.x=camera.position.x;_seabed.position.z=camera.position.z;}
     if(_dustParticles){_dustParticles.position.x=camera.position.x;_dustParticles.position.z=camera.position.z;}
     if(_fireflies){
       _fireflies.position.x=camera.position.x;_fireflies.position.z=camera.position.z;
@@ -6370,7 +6841,13 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   checkPortals,attemptCast,terrainHeight,spawnNecroPet:()=>spawnNecroPet(),
   get bosses(){return bosses;},get mobs(){return mobs;},
   buildMobMesh,buildBossMesh,get MOB_TYPES(){return MOB_TYPES;},get BOSS_TYPES(){return BOSS_TYPES;},
-  get blood(){return blood;},set blood(v){blood=v;},get playerClass(){return playerClass;}};
+  get blood(){return blood;},set blood(v){blood=v;},get playerClass(){return playerClass;},
+  get CLASS_CONFIG(){return CLASS_CONFIG;},get SEA_LEVEL(){return SEA_LEVEL;},
+  setGodMode:(v)=>{godMode=v;},get godMode(){return godMode;},
+  hurtPlayer,adminSpawnMob,adminSpawnBoss,changeClass,
+  get RESOURCES(){return RESOURCES;},get RECIPES(){return RECIPES;},
+  get swimming(){return _swimming;},get underwater(){return _underwater;},
+  spawnMob:()=>spawnMob(_scene,_camera),get MAX_MOBS(){return MAX_MOBS;},get isMobile(){return isMobile;}};
 </script>
 </body>
 </html>
