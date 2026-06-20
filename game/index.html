@@ -4725,9 +4725,14 @@ function buildMobMesh(type){
     }
     // ── cechy gatunkowe ──
     if(type.id==='lion'){
-      const mane=new THREE.Mesh(new THREE.SphereGeometry(headS*1.5,7,6),
-        new THREE.MeshStandardMaterial({color:0x9a6a20,roughness:0.95,flatShading:true}));
-      mane.position.set(0,headUp,headFwd-headS*0.2);mane.scale.set(1,1,0.8);g.add(mane);
+      // grzywa wokol glowy (pierscien sfer, nie zaslania pyska)
+      const maneM=new THREE.MeshStandardMaterial({color:0x8a5a18,roughness:0.95,flatShading:true});
+      for(let i=0;i<8;i++){const a=i/8*Math.PI*2;
+        const tuft=new THREE.Mesh(new THREE.SphereGeometry(headS*0.5,5,4),maneM);
+        tuft.position.set(Math.cos(a)*headS*0.95,headUp+Math.sin(a)*headS*0.7,headFwd-headS*0.35);g.add(tuft);}
+      // koncowka ogona
+      const tip=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.12,5,4),maneM);
+      tip.position.set(0,cyB+H*0.25,-bodyLen*0.62);g.add(tip);
     }
     if(type.id==='saber_tiger'){
       const fM=new THREE.MeshStandardMaterial({color:0xf4f4ee});
@@ -4758,7 +4763,20 @@ function buildMobMesh(type){
       head.material=new THREE.MeshStandardMaterial({color:0x33312e,flatShading:true});
       snout.material=head.material;
     }
-    if(type.id==='bear'||type.id==='lion'){body.scale.set(1.15,1.1,1.05);}
+    if(type.id==='lion'){body.scale.set(1.15,1.1,1.05);}
+    if(type.id==='bear'){
+      // masywne, zaokraglone cialo + garb na barkach
+      body.scale.set(1.3,1.25,1.15);
+      const hump=new THREE.Mesh(new THREE.SphereGeometry(bodyThick*0.85,6,5),mat);
+      hump.position.set(0,cyB+bodyThick*0.5,bodyLen*0.22);hump.scale.set(1.1,0.9,1.2);g.add(hump);
+      const rump=new THREE.Mesh(new THREE.SphereGeometry(bodyThick*0.8,6,5),mat);
+      rump.position.set(0,cyB+bodyThick*0.1,-bodyLen*0.3);rump.scale.set(1.1,1,1.1);g.add(rump);
+      // pysk jasniejszy
+      snout.material=new THREE.MeshStandardMaterial({color:0x7a5a3a,flatShading:true});
+      // krotki ogon
+      const bt=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.12,5,4),mat);
+      bt.position.set(0,cyB,-bodyLen*0.52);g.add(bt);
+    }
     if(type.id==='horse'){const m2=new THREE.Mesh(new THREE.BoxGeometry(headS*0.2,headS*0.7,neckLen*0.7),
       new THREE.MeshStandardMaterial({color:0x2a1c10,flatShading:true}));
       m2.position.set(0,cyB+bodyThick*0.5,bodyLen*0.4);m2.rotation.x=-0.5;g.add(m2);}
