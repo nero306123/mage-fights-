@@ -991,31 +991,11 @@ function buildNecroSpells(){
 }
 // ── ZAKLECIA WAMPIRA (system krwi) ──
 const WAMPIR_SPELL_DATA = [
-  // ── ATAKI KRWI (8) ──
-  ['krwawy_pocisk','Krwawy Pocisk','shadow','common',30,2.2,22,'Kradnie 10 HP','🩸'],
-  ['szpon_nocy','Szpon Nocy','shadow','common',45,2.5,35,'','🦇'],
-  ['krwawa_fala','Krwawa Fala','shadow','rare',80,3,65,'AOE 5m','🌊'],
-  ['wir_krwi','Wir Krwi','shadow','rare',100,3.5,80,'AOE 6m + slow 30%','🌀'],
-  ['mroczne_ugryzienie','Mroczne Ugryzienie','shadow','epic',150,4,130,'Kradnie 60 HP','🧛'],
-  ['deszcz_krwi','Deszcz Krwi','shadow','epic',200,5,190,'AOE 8m','☔'],
-  ['krew_nocy','Krew Nocy','shadow','mythic',400,6,320,'AOE 10m + heal 50% dmg','🌙'],
-  ['klatwa_wampira','Klatwa Wampira','shadow','legend',800,8,600,'AOE 12m + lifesteal','🦇'],
-  // ── BUFFY KRWI (7) ──
+  ['krwawy_pocisk','Krwawy Pocisk','shadow','common',30,2.2,25,'Kradnie 10 HP','🩸'],
+  ['krwawa_fala','Krwawa Fala','shadow','rare',60,3,55,'AOE 5m','🌊'],
   ['krwawa_tarcza','Krwawa Tarcza','necbuff','common',40,1.5,0,'Oslona 80 HP','🛡️'],
-  ['regeneracja_krwi','Regeneracja Krwi','necbuff','common',60,2,0,'+8 HP/s przez 10s','💉'],
-  ['szal_krwi','Szal Krwi','necbuff','rare',100,2.5,0,'+50% dmg na 10s','😡'],
-  ['forma_nietoperza','Forma Nietoperza','necbuff','rare',120,2,0,'Szybkosc +80% na 8s + skok','🦇'],
-  ['krwawa_mgla','Krwawa Mgla','necbuff','epic',180,3,0,'Niewidzialnosc 5s + regen','🌫️'],
-  ['krew_przodkow','Krew Przodkow','necbuff','epic',250,4,0,'Pelne HP + oslona 200','👑'],
-  ['niesmiertelnosc','Niesmiertelnosc','necbuff','mythic',500,5,0,'Odpornosc na smierc 8s','💀'],
-  // ── NARZEDZIA (5) ──
-  ['teleportacja_krwi','Teleportacja Krwi','other','common',50,1.5,0,'Teleport 15m do przodu','🌀'],
-  ['echo_nocy','Echo Nocy','other','rare',80,2,0,'Swiatlo w mroku na 30s','👁️'],
-  ['portal_krwi','Portal Krwi','other','epic',250,4,0,'Teleport do wioski','🏠'],
-  ['drenaz_obszarowy','Drenaz Obszarowy','other','mythic',350,5,0,'Kradnie HP wszystkim wrogom w 12m','🩸'],
-  ['zmartwychwstanie_krwi','Zmartwychwstanie Krwi','other','legend',600,6,0,'Chroni przed smiercia (1 raz)','♻️'],
-  // ── SECRET ──
-  ['krew_starodawnych','Krew Starodawnych','shadow','secret',2000,10,1800,'Mega AOE 15m + pelne HP + 500 oslony','🩸'],
+  ['regeneracja_krwi','Regeneracja Krwi','necbuff','common',50,2,0,'+8 HP/s przez 10s','💉'],
+  ['forma_nietoperza','Forma Nietoperza','necbuff','rare',80,2,0,'Szybkosc +80% na 8s + skok','🦇'],
 ];
 function buildWampirSpells(){
   return WAMPIR_SPELL_DATA.map(d=>{
@@ -1603,7 +1583,7 @@ let decay=0,maxDecay=100;
 
 function classSpawn(){
   if(playerClass==='wampir'){return{x:50,z:1850};}
-  if(playerClass==='nekromanta'){return{x:DEAD_WORLD.x,z:DEAD_WORLD.z,realm:'dead'};}
+  if(playerClass==='nekromanta'){return{x:DEAD_WORLD.x+15,z:DEAD_WORLD.z+15,realm:'dead'};}
   if(playerClass==='atlantyda'){return{x:-100,z:-50};}
   return{x:0,z:0};
 }
@@ -2480,7 +2460,17 @@ function terrainCore(x,z){
     h+=w[i]*bh;r+=w[i]*bi.color[0];g+=w[i]*bi.color[1];b+=w[i]*bi.color[2];}
   return{h,r,g,b,lava};
 }
-function terrainHeight(x,z){return terrainCore(x,z).h;}
+function terrainHeight(x,z){
+  let h=terrainCore(x,z).h;
+  for(const c of STRUCT_CLEARINGS){
+    const dx=x-c.x,dz=z-c.z,d2=dx*dx+dz*dz,r=c.r;
+    if(d2<r*r){const d=Math.sqrt(d2),t=d/r;
+      const flatH=terrainCore(c.x,c.z).h;
+      h=flatH+(h-flatH)*Math.pow(t,2);
+    }
+  }
+  return h;
+}
 function dominantBiome(x,z){
   const w=biomeWeights(x,z);let di=0,dv=-1;
   for(let i=0;i<w.length;i++)if(w[i]>dv){dv=w[i];di=i;}
@@ -2562,20 +2552,24 @@ function initSceneryPools(){
   _scnGeos.boulder=new THREE.DodecahedronGeometry(1.5,0);
   _scnGeos.flower=new THREE.SphereGeometry(0.15,4,4);
   {const gV=[],gN=[];
-  for(let p=0;p<3;p++){
-    const a=p*Math.PI/3;
-    const px=Math.sin(a),pz=Math.cos(a);
-    const w=0.18,h=0.55,tw=0.02;
-    const nx=Math.cos(a),nz=-Math.sin(a);
-    gV.push(-px*w,0,-pz*w, px*w,0,pz*w, -px*tw,h,-pz*tw);
-    gV.push(px*w,0,pz*w, px*tw,h,pz*tw, -px*tw,h,-pz*tw);
-    for(let t=0;t<6;t++)gN.push(nx,0.7,nz);
+  for(let b=0;b<5;b++){
+    const ba=b*Math.PI*2/5+Math.sin(b*1.7)*0.3;
+    const bx=Math.sin(ba)*0.1*(b%2+1),bz=Math.cos(ba)*0.1*(b%2+1);
+    const bh=0.4+b*0.08;const bw=0.14+b*0.01;const btw=0.015;
+    for(let p=0;p<3;p++){
+      const a=p*Math.PI/3+ba*0.5;
+      const px=Math.sin(a),pz=Math.cos(a);
+      const nx=Math.cos(a),nz=-Math.sin(a);
+      gV.push(bx-px*bw,0,bz-pz*bw, bx+px*bw,0,bz+pz*bw, bx-px*btw,bh,bz-pz*btw);
+      gV.push(bx+px*bw,0,bz+pz*bw, bx+px*btw,bh,bz+pz*btw, bx-px*btw,bh,bz-pz*btw);
+      for(let t=0;t<6;t++)gN.push(nx,0.6,nz);
+    }
   }
   const grassGeo=new THREE.BufferGeometry();
   grassGeo.setAttribute('position',new THREE.Float32BufferAttribute(gV,3));
   grassGeo.setAttribute('normal',new THREE.Float32BufferAttribute(gN,3));
   _scnGeos.grass=grassGeo;}
-  _scnMats.grass=new THREE.MeshStandardMaterial({color:0x5ab03a,roughness:0.82,flatShading:true,side:THREE.DoubleSide,emissive:0x1a3a0a,emissiveIntensity:0.15});
+  _scnMats.grass=new THREE.MeshStandardMaterial({color:0x4da032,roughness:0.75,flatShading:true,side:THREE.DoubleSide,emissive:0x1a4a0a,emissiveIntensity:0.18});
   // wiatr kolyszacy trawa (shader)
   _scnMats.grass.onBeforeCompile=(shader)=>{
     shader.uniforms.uWind=_windUniform;
@@ -2717,7 +2711,7 @@ function rebuildScenery(scene,cx,cz){
     }
   }
   // ── TRAWA (gesta, blisko gracza) ──
-  const grassRad=isMobile?38:64,grassCell=2.0;
+  const grassRad=isMobile?40:68,grassCell=1.5;
   const grassColors=[0x4a9a3a,0x5aaa44,0x3d8a30,0x65b54a];
   const gr2=grassRad*grassRad;
   const gMinX=Math.floor((cx-grassRad)/grassCell),gMaxX=Math.floor((cx+grassRad)/grassCell);
@@ -3374,28 +3368,93 @@ function buildSacredGrove(scene,cx,cz){
   buildBeacon(scene,cx,cz,0x44ff66);
 }
 let _wampirCave=null;
+let _coffinPos=null;
 function buildWampirCave(scene,cx,cz){
-  const grp=new THREE.Group();scene.add(grp);
-  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
-  const rock=new THREE.MeshStandardMaterial({color:0x4a4a4a,roughness:0.95,flatShading:true});
-  const darkRock=new THREE.MeshStandardMaterial({color:0x2a2a2a,roughness:0.95,flatShading:true});
-  const arch=new THREE.Mesh(new THREE.TorusGeometry(4,1.2,6,8,Math.PI),rock);
-  arch.position.set(0,0,0);arch.rotation.x=Math.PI/2;scene.add(arch);arch.position.set(cx,baseH,cz);
-  for(let i=0;i<6;i++){
-    const a=Math.random()*Math.PI*2,r=6+Math.random()*5;
-    const s=1+Math.random()*1.5;
-    const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),i%2===0?rock:darkRock);
-    m.position.set(cx+Math.cos(a)*r,baseH+s*0.5,cz+Math.sin(a)*r);
-    m.rotation.set(Math.random(),Math.random(),Math.random());
-    scene.add(m);
+  const baseH=terrainHeight(cx,cz);
+  const rock=new THREE.MeshStandardMaterial({color:0x3a3a3a,roughness:0.95,flatShading:true});
+  const darkRock=new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.95,flatShading:true});
+  const mossRock=new THREE.MeshStandardMaterial({color:0x2a3a2a,roughness:0.92,flatShading:true});
+  const caveFloor=new THREE.Mesh(new THREE.CircleGeometry(15,12),darkRock);
+  caveFloor.rotation.x=-Math.PI/2;caveFloor.position.set(cx,baseH+0.05,cz);scene.add(caveFloor);
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(16,12,10,0,Math.PI*2,0,Math.PI*0.5),darkRock);
+  dome.position.set(cx,baseH,cz);dome.scale.y=0.5;scene.add(dome);
+  for(let i=0;i<20;i++){
+    const a=i*Math.PI*2/20,r=13+Math.random()*3;
+    const h=3+Math.random()*5;const w=1.8+Math.random()*2.2;
+    const wm=Math.random()>0.6?mossRock:rock;
+    const wall=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),wm);
+    wall.position.set(cx+Math.cos(a)*r,baseH+h*0.5,cz+Math.sin(a)*r);
+    wall.rotation.y=a+Math.random()*0.3;wall.castShadow=true;scene.add(wall);
+    if(Math.random()>0.5){const extra=new THREE.Mesh(new THREE.DodecahedronGeometry(w*0.5,0),rock);
+      extra.position.set(cx+Math.cos(a)*(r-1),baseH+h*0.7+Math.random(),cz+Math.sin(a)*(r-1));scene.add(extra);}
   }
-  const ceil=new THREE.Mesh(new THREE.SphereGeometry(8,8,6,0,Math.PI*2,0,Math.PI/2),darkRock);
-  ceil.position.set(cx,baseH,cz);ceil.scale.y=0.5;scene.add(ceil);
-  const redLight=new THREE.PointLight(0xff2222,1.5,15);
-  redLight.position.set(cx,baseH+2,cz);scene.add(redLight);
+  for(let i=0;i<15;i++){
+    const a=Math.random()*Math.PI*2,r=Math.random()*10;
+    const sl=0.8+Math.random()*2.0;
+    const st=new THREE.Mesh(new THREE.ConeGeometry(0.15+Math.random()*0.25,sl,5),rock);
+    st.position.set(cx+Math.cos(a)*r,baseH+6+Math.random()*1.5,cz+Math.sin(a)*r);
+    st.rotation.x=Math.PI;scene.add(st);
+  }
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2,r=1+Math.random()*10;
+    const st=new THREE.Mesh(new THREE.ConeGeometry(0.1+Math.random()*0.15,0.3+Math.random()*0.6,5),rock);
+    st.position.set(cx+Math.cos(a)*r,baseH+0.01,cz+Math.sin(a)*r);scene.add(st);
+  }
+  const woodMat=new THREE.MeshStandardMaterial({color:0x3a2010,roughness:0.9,flatShading:true});
+  const coffinBase=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.4,2.2),woodMat);
+  coffinBase.position.set(cx+3,baseH+0.2,cz);coffinBase.castShadow=true;scene.add(coffinBase);
+  const coffinLid=new THREE.Mesh(new THREE.BoxGeometry(1.05,0.1,2.25),
+    new THREE.MeshStandardMaterial({color:0x4a2a10,roughness:0.85,flatShading:true}));
+  coffinLid.position.set(cx+3,baseH+0.45,cz);scene.add(coffinLid);
+  const rim1=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.42,2.2),woodMat);
+  rim1.position.set(cx+3-0.52,baseH+0.21,cz);scene.add(rim1);
+  const rim2=rim1.clone();rim2.position.set(cx+3+0.52,baseH+0.21,cz);scene.add(rim2);
+  const metalM=new THREE.MeshStandardMaterial({color:0x888888,roughness:0.5,metalness:0.5,flatShading:true});
+  const crs=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.32),metalM);
+  crs.position.set(cx+3,baseH+0.52,cz);scene.add(crs);
+  const crsV=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.22,0.06),metalM);
+  crsV.position.set(cx+3,baseH+0.58,cz);scene.add(crsV);
+  for(let i=0;i<3;i++){const hinge=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.06,0.04),metalM);
+    hinge.position.set(cx+3-0.48,baseH+0.15+i*0.12,cz-0.8+i*0.8);scene.add(hinge);}
+  const velvet=new THREE.Mesh(new THREE.BoxGeometry(0.85,0.05,1.9),
+    new THREE.MeshStandardMaterial({color:0x660022,roughness:0.6,flatShading:true}));
+  velvet.position.set(cx+3,baseH+0.15,cz);scene.add(velvet);
+  _coffinPos=new THREE.Vector3(cx+3,baseH,cz);
+  const redLight=new THREE.PointLight(0xff2222,2.5,25);
+  redLight.position.set(cx,baseH+4,cz);scene.add(redLight);
+  const purpLight=new THREE.PointLight(0x6622aa,1.2,18);
+  purpLight.position.set(cx-4,baseH+3,cz+3);scene.add(purpLight);
+  const ambLight=new THREE.PointLight(0x220044,0.6,12);
+  ambLight.position.set(cx+3,baseH+1,cz-3);scene.add(ambLight);
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI*2/6+Math.PI/6,r=6;
+    const torch=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.06,0.7,5),woodMat);
+    torch.position.set(cx+Math.cos(a)*r,baseH+1.8,cz+Math.sin(a)*r);scene.add(torch);
+    const flame=new THREE.Mesh(new THREE.ConeGeometry(0.06,0.15,4),
+      new THREE.MeshBasicMaterial({color:0xff6622}));
+    flame.position.set(cx+Math.cos(a)*r,baseH+2.2,cz+Math.sin(a)*r);scene.add(flame);
+    const fl=new THREE.PointLight(0xff4400,0.7,7);
+    fl.position.set(cx+Math.cos(a)*r,baseH+2.3,cz+Math.sin(a)*r);scene.add(fl);
+  }
+  const skullM=new THREE.MeshStandardMaterial({color:0xe8e0cc,roughness:0.7,flatShading:true});
+  for(let i=0;i<4;i++){const a=Math.random()*Math.PI*2,r=3+Math.random()*5;
+    const sk=new THREE.Mesh(new THREE.SphereGeometry(0.12,5,4),skullM);
+    sk.position.set(cx+Math.cos(a)*r,baseH+0.12,cz+Math.sin(a)*r);scene.add(sk);
+    const jaw=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.04,0.08),skullM);
+    jaw.position.set(cx+Math.cos(a)*r,baseH+0.06,cz+Math.sin(a)*r+0.06);scene.add(jaw);
+  }
+  for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=2+Math.random()*6;
+    const bone=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,0.4,4),skullM);
+    bone.position.set(cx+Math.cos(a)*r,baseH+0.05,cz+Math.sin(a)*r);
+    bone.rotation.z=Math.PI/2;bone.rotation.y=Math.random()*Math.PI;scene.add(bone);}
+  const webM=new THREE.MeshStandardMaterial({color:0xaaaaaa,transparent:true,opacity:0.15,side:THREE.DoubleSide,flatShading:true});
+  for(let i=0;i<3;i++){const a=i*Math.PI*2/3+0.5,r=11;
+    const web=new THREE.Mesh(new THREE.PlaneGeometry(3,3),webM);
+    web.position.set(cx+Math.cos(a)*r,baseH+3,cz+Math.sin(a)*r);
+    web.rotation.y=a;scene.add(web);}
   _wampirCave=new THREE.Vector3(cx,baseH+EYE_H,cz);
   LANDMARKS.wampir_cave={x:cx,z:cz,name:'Jaskinia Wampira'};
-  STRUCT_CLEARINGS.push({x:cx,z:cz,r:15});
+  STRUCT_CLEARINGS.push({x:cx,z:cz,r:22});
 }
 function buildStructures(scene){
   _wallBoxes.length=0;_portals.length=0;_portal=null;
@@ -3669,6 +3728,10 @@ function renderVillager(body){
 }
 document.getElementById('dlg-x').addEventListener('click',closeDialog);
 document.getElementById('interact-prompt').addEventListener('click',()=>{
+  if(_coffinPos&&playerClass==='wampir'&&_camera){
+    const cdx=_camera.position.x-_coffinPos.x,cdz=_camera.position.z-_coffinPos.z;
+    if(cdx*cdx+cdz*cdz<3.5*3.5){worldTime=CYCLE_LEN*0.6;player.hp=Math.min(player.maxHp,player.hp+50);toast('Drzemka w trumnie... nastala noc. +50 HP');return;}
+  }
   if(_activeNPC)openDialog(_activeNPC);
   else if(_camera)openNearbyChest(_camera);
 });
@@ -4565,25 +4628,63 @@ function buildMobMesh(type){
       new THREE.MeshStandardMaterial({color:0x1a0a00,flatShading:true}));
     stinger.position.set(0,H*1.1,-H*0.1);stinger.rotation.x=0.5;g.add(stinger);
   }else if(type.id==='penguin'){
-    const body=new THREE.Mesh(new THREE.SphereGeometry(0.25,6,5),mat);
-    body.position.y=0.35;body.scale.set(1,1.3,1);g.add(body);
-    const belly=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,5),
+    const H=type.height;
+    const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.3,7,6),mat);
+    body.position.y=H*0.4;body.scale.set(1,1.3,0.85);body.castShadow=true;g.add(body);
+    const belly=new THREE.Mesh(new THREE.SphereGeometry(H*0.24,7,6),
       new THREE.MeshStandardMaterial({color:0xf0f0f0,flatShading:true}));
-    belly.position.set(0,0.3,0.08);g.add(belly);
-    const beak=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.12,4),
+    belly.position.set(0,H*0.35,H*0.1);belly.scale.set(0.85,1.2,0.7);g.add(belly);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.16,6,5),mat);
+    head.position.set(0,H*0.72,0);head.castShadow=true;g.add(head);
+    const cheek=new THREE.Mesh(new THREE.SphereGeometry(H*0.12,5,4),
+      new THREE.MeshStandardMaterial({color:0xf0f0f0,flatShading:true}));
+    cheek.position.set(0,H*0.68,H*0.08);g.add(cheek);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x111111});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,4,4),eyeM);
+      e.position.set(sx*H*0.1,H*0.75,H*0.12);g.add(e);}
+    const beak=new THREE.Mesh(new THREE.ConeGeometry(H*0.06,H*0.14,4),
       new THREE.MeshStandardMaterial({color:0xff8800,flatShading:true}));
-    beak.position.set(0,0.55,0.2);beak.rotation.x=Math.PI/2;g.add(beak);
+    beak.position.set(0,H*0.68,H*0.2);beak.rotation.x=Math.PI/2;g.add(beak);
+    const wingM=new THREE.MeshStandardMaterial({color:0x1a1a1a,flatShading:true});
+    for(const sx of [-1,1]){const wing=new THREE.Mesh(new THREE.BoxGeometry(H*0.06,H*0.35,H*0.15),wingM);
+      wing.position.set(sx*H*0.28,H*0.4,0);wing.rotation.z=sx*0.2;g.add(wing);}
+    const footM=new THREE.MeshStandardMaterial({color:0xff8800,flatShading:true});
+    for(const sx of [-1,1]){const foot=new THREE.Mesh(new THREE.BoxGeometry(H*0.12,H*0.03,H*0.15),footM);
+      foot.position.set(sx*H*0.1,H*0.02,H*0.02);g.add(foot);}
+    const eyePatch=new THREE.Mesh(new THREE.SphereGeometry(H*0.08,4,4),
+      new THREE.MeshStandardMaterial({color:0xffcc44,flatShading:true}));
+    eyePatch.position.set(0,H*0.73,H*0.06);g.add(eyePatch);
   }else if(type.id==='chicken'){
-    const body=new THREE.Mesh(new THREE.SphereGeometry(0.18,6,5),mat);
-    body.position.y=0.25;g.add(body);
-    const head=new THREE.Mesh(new THREE.SphereGeometry(0.1,5,4),mat);
-    head.position.set(0,0.42,0.08);g.add(head);
-    const comb=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.08,0.06),
+    const H=type.height;
+    const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.25,6,5),mat);
+    body.position.set(0,H*0.35,0);body.scale.set(1,0.85,1.2);body.castShadow=true;g.add(body);
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(H*0.06,H*0.1,H*0.15,5),mat);
+    neck.position.set(0,H*0.55,H*0.12);neck.rotation.x=-0.3;g.add(neck);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.12,5,4),mat);
+    head.position.set(0,H*0.68,H*0.14);head.castShadow=true;g.add(head);
+    const comb=new THREE.Mesh(new THREE.BoxGeometry(H*0.04,H*0.12,H*0.1),
       new THREE.MeshStandardMaterial({color:0xcc2222,flatShading:true}));
-    comb.position.set(0,0.5,0.08);g.add(comb);
-    const beak=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.06,4),
+    comb.position.set(0,H*0.78,H*0.14);g.add(comb);
+    const wattle=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,4,4),
+      new THREE.MeshStandardMaterial({color:0xcc2222,flatShading:true}));
+    wattle.position.set(0,H*0.6,H*0.24);g.add(wattle);
+    const beak=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.08,4),
       new THREE.MeshStandardMaterial({color:0xff8800,flatShading:true}));
-    beak.position.set(0,0.4,0.18);beak.rotation.x=Math.PI/2;g.add(beak);
+    beak.position.set(0,H*0.65,H*0.26);beak.rotation.x=Math.PI/2;g.add(beak);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x222200});
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,4,4),eyeM);
+      e.position.set(sx*H*0.08,H*0.72,H*0.22);g.add(e);}
+    const wingM=new THREE.MeshStandardMaterial({color:0xb89030,flatShading:true});
+    for(const sx of [-1,1]){const wing=new THREE.Mesh(new THREE.BoxGeometry(H*0.04,H*0.18,H*0.22),wingM);
+      wing.position.set(sx*H*0.22,H*0.38,0);wing.rotation.z=sx*0.15;g.add(wing);}
+    const tailM=new THREE.MeshStandardMaterial({color:0xaa7a20,flatShading:true});
+    for(let i=0;i<3;i++){const tf=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.25,4),tailM);
+      tf.position.set((i-1)*H*0.06,H*0.45,-H*0.22);tf.rotation.x=-0.8;g.add(tf);}
+    const legM=new THREE.MeshStandardMaterial({color:0xddaa22,flatShading:true});
+    for(const sx of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(H*0.02,H*0.025,H*0.15,4),legM);
+      leg.position.set(sx*H*0.08,H*0.1,0);g.add(leg);
+      const foot=new THREE.Mesh(new THREE.BoxGeometry(H*0.08,H*0.02,H*0.1),legM);
+      foot.position.set(sx*H*0.08,H*0.02,H*0.02);g.add(foot);}
   }else if(type.id==='dragon_common'){
     const H=type.height;
     const body=new THREE.Mesh(new THREE.BoxGeometry(H*0.35,H*0.22,H*0.55),mat);
@@ -4700,45 +4801,75 @@ function buildMobMesh(type){
     g.add(new THREE.PointLight(0x44aaff,0.8,6));
   }else if(type.id==='eagle'){
     const H=type.height;
-    const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.25,6,5),mat);
+    const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.25,7,6),mat);
     body.position.set(0,H*0.5,0);body.scale.set(0.8,0.7,1.3);body.castShadow=true;g.add(body);
-    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.14,5,4),
-      new THREE.MeshStandardMaterial({color:0xf0f0e8,roughness:0.85,flatShading:true}));
-    head.position.set(0,H*0.72,H*0.2);g.add(head);
-    const beak=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.14,4),
-      new THREE.MeshStandardMaterial({color:0xddaa22,flatShading:true}));
-    beak.position.set(0,H*0.68,H*0.35);beak.rotation.x=Math.PI*0.55;g.add(beak);
-    const eyeM=new THREE.MeshBasicMaterial({color:0x222200});
-    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,4,4),eyeM);
-      e.position.set(sx*H*0.08,H*0.75,H*0.3);g.add(e);}
+    const chest=new THREE.Mesh(new THREE.SphereGeometry(H*0.2,6,5),
+      new THREE.MeshStandardMaterial({color:0x9a8a6a,roughness:0.85,flatShading:true}));
+    chest.position.set(0,H*0.52,H*0.1);chest.scale.set(0.7,0.65,0.9);g.add(chest);
+    const whiteM=new THREE.MeshStandardMaterial({color:0xf0f0e8,roughness:0.85,flatShading:true});
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.14,6,5),whiteM);
+    head.position.set(0,H*0.72,H*0.2);head.castShadow=true;g.add(head);
+    const beakM=new THREE.MeshStandardMaterial({color:0xddaa22,flatShading:true});
+    const beakTop=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.14,4),beakM);
+    beakTop.position.set(0,H*0.7,H*0.35);beakTop.rotation.x=Math.PI*0.55;g.add(beakTop);
+    const beakBot=new THREE.Mesh(new THREE.ConeGeometry(H*0.025,H*0.08,3),beakM);
+    beakBot.position.set(0,H*0.65,H*0.32);beakBot.rotation.x=Math.PI*0.6;g.add(beakBot);
+    const eyeM=new THREE.MeshBasicMaterial({color:0x442200});
+    const browM=new THREE.MeshStandardMaterial({color:0xf0f0e8,flatShading:true});
+    for(const sx of [-1,1]){
+      const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.035,4,4),eyeM);
+      e.position.set(sx*H*0.08,H*0.75,H*0.3);g.add(e);
+      const brow=new THREE.Mesh(new THREE.BoxGeometry(H*0.06,H*0.02,H*0.04),browM);
+      brow.position.set(sx*H*0.08,H*0.79,H*0.32);brow.rotation.z=sx*-0.3;g.add(brow);
+    }
     const wingM=new THREE.MeshStandardMaterial({color:0x5a4a32,flatShading:true,side:THREE.DoubleSide});
-    const wingG=new THREE.PlaneGeometry(H*0.9,H*0.35);
-    const wL=new THREE.Mesh(wingG,wingM);wL.position.set(-H*0.5,H*0.55,0);wL.rotation.z=0.2;wL.rotation.y=0.1;g.add(wL);
-    const wR=new THREE.Mesh(wingG,wingM);wR.position.set(H*0.5,H*0.55,0);wR.rotation.z=-0.2;wR.rotation.y=-0.1;g.add(wR);
-    const tail=new THREE.Mesh(new THREE.ConeGeometry(H*0.12,H*0.3,4),mat);
-    tail.position.set(0,H*0.45,-H*0.35);tail.rotation.x=-1.2;g.add(tail);
+    const wingM2=new THREE.MeshStandardMaterial({color:0x3a2a1a,flatShading:true,side:THREE.DoubleSide});
+    for(const sx of [-1,1]){
+      const w1=new THREE.Mesh(new THREE.PlaneGeometry(H*0.55,H*0.35),wingM);
+      w1.position.set(sx*H*0.35,H*0.55,0);w1.rotation.z=sx*0.2;w1.rotation.y=sx*0.1;g.add(w1);
+      const w2=new THREE.Mesh(new THREE.PlaneGeometry(H*0.45,H*0.28),wingM2);
+      w2.position.set(sx*H*0.72,H*0.5,-H*0.05);w2.rotation.z=sx*0.35;w2.rotation.y=sx*0.15;g.add(w2);
+      const feathers=new THREE.Mesh(new THREE.PlaneGeometry(H*0.25,H*0.2),wingM);
+      feathers.position.set(sx*H*0.9,H*0.42,-H*0.08);feathers.rotation.z=sx*0.5;feathers.rotation.y=sx*0.2;g.add(feathers);
+    }
+    const tailM=new THREE.MeshStandardMaterial({color:0xf0ece0,flatShading:true});
+    for(let i=0;i<3;i++){const tf=new THREE.Mesh(new THREE.ConeGeometry(H*0.05,H*0.25,4),tailM);
+      tf.position.set((i-1)*H*0.06,H*0.45,-H*0.3-i*H*0.03);tf.rotation.x=-1.2;g.add(tf);}
     const legM=new THREE.MeshStandardMaterial({color:0xddaa22,flatShading:true});
+    const clawM=new THREE.MeshStandardMaterial({color:0x1a1a18,flatShading:true});
     for(const sx of [-1,1]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(H*0.02,H*0.025,H*0.25,4),legM);
-      leg.position.set(sx*H*0.08,H*0.2,0);g.add(leg);}
+      leg.position.set(sx*H*0.08,H*0.2,0);g.add(leg);
+      for(let c=0;c<3;c++){const cl=new THREE.Mesh(new THREE.ConeGeometry(H*0.015,H*0.08,3),clawM);
+        cl.position.set(sx*H*0.08+(c-1)*H*0.025,H*0.05,H*0.04);cl.rotation.x=0.8;g.add(cl);}}
   }else if(type.id==='firesnake'){
     const H=type.height;
     const snakeM=new THREE.MeshStandardMaterial({color:0xff6622,emissive:0xff3300,emissiveIntensity:0.3,flatShading:true});
-    for(let i=0;i<8;i++){const t=i/8;
-      const r=H*0.12*(1-t*0.4);
-      const seg=new THREE.Mesh(new THREE.SphereGeometry(r,5,4),snakeM);
-      const wave=Math.sin(i*0.8)*H*0.15;
-      seg.position.set(wave,H*0.15+t*H*0.1,-i*H*0.12);seg.scale.set(1,0.8,1.2);g.add(seg);
+    const scaleM=new THREE.MeshStandardMaterial({color:0xcc4400,emissive:0xff2200,emissiveIntensity:0.2,flatShading:true});
+    for(let i=0;i<12;i++){const t=i/12;
+      const r=H*0.12*(1-t*0.5);
+      const seg=new THREE.Mesh(new THREE.SphereGeometry(r,5,4),i%2===0?snakeM:scaleM);
+      const wave=Math.sin(i*0.7)*H*0.18;
+      seg.position.set(wave,H*0.15+t*H*0.05,-i*H*0.1);seg.scale.set(1,0.8,1.2);g.add(seg);
     }
-    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.15,5,4),
-      new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.4,flatShading:true}));
-    head.position.set(0,H*0.35,H*0.1);head.scale.set(0.9,0.8,1.2);g.add(head);
+    const bellyM=new THREE.MeshStandardMaterial({color:0xffaa44,emissive:0xff6600,emissiveIntensity:0.4,flatShading:true});
+    for(let i=0;i<6;i++){const t=i/6;
+      const seg=new THREE.Mesh(new THREE.SphereGeometry(H*0.08*(1-t*0.4),4,3),bellyM);
+      const wave=Math.sin(i*0.7)*H*0.18;
+      seg.position.set(wave,H*0.08,-i*H*0.18);g.add(seg);}
+    const headM=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.4,flatShading:true});
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.16,6,5),headM);
+    head.position.set(0,H*0.35,H*0.12);head.scale.set(0.9,0.75,1.3);g.add(head);
+    const hood1=new THREE.Mesh(new THREE.BoxGeometry(H*0.35,H*0.02,H*0.2),headM);
+    hood1.position.set(0,H*0.38,H*0.05);g.add(hood1);
     const eyeM=new THREE.MeshBasicMaterial({color:0xffee00});
-    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,4,4),eyeM);
-      e.position.set(sx*H*0.08,H*0.4,H*0.2);g.add(e);}
-    const tongue=new THREE.Mesh(new THREE.BoxGeometry(H*0.01,H*0.01,H*0.1),
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.035,4,4),eyeM);
+      e.position.set(sx*H*0.08,H*0.4,H*0.22);g.add(e);}
+    const tongue=new THREE.Mesh(new THREE.BoxGeometry(H*0.01,H*0.01,H*0.12),
       new THREE.MeshStandardMaterial({color:0xff0000}));
-    tongue.position.set(0,H*0.3,H*0.25);g.add(tongue);
-    g.add(new THREE.PointLight(0xff4400,1.0,5));
+    tongue.position.set(0,H*0.3,H*0.3);g.add(tongue);
+    const tailTip=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.15,4),snakeM);
+    tailTip.position.set(Math.sin(12*0.7)*H*0.18,H*0.12,-12*H*0.1);tailTip.rotation.x=1.2;g.add(tailTip);
+    g.add(new THREE.PointLight(0xff4400,1.2,6));
   }else if(QUADRUPEDS.has(type.id)){
     // ── PRAWDZIWY CZWORONOG (zwierze: cialo poziome, 4 nogi, glowa z przodu, ogon) ──
     const H=type.height;
@@ -4761,6 +4892,10 @@ function buildMobMesh(type){
     // pysk
     const snout=new THREE.Mesh(new THREE.BoxGeometry(headS*0.55,headS*0.5,headS*0.6),mat);
     snout.position.set(0,headUp-headS*0.18,headFwd+headS*0.8);g.add(snout);
+    // nozdrza
+    const nostM=new THREE.MeshBasicMaterial({color:0x0a0a0a});
+    for(const sx of [-1,1]){const n=new THREE.Mesh(new THREE.SphereGeometry(headS*0.06,4,3),nostM);
+      n.position.set(sx*headS*0.14,headUp-headS*0.12,headFwd+headS*1.1);g.add(n);}
     // oczy
     const eyeCol=type.id==='wolf'||type.id==='arcticwolf'||type.id==='saber_tiger'?0xffcc22:0x110a06;
     const eyeM=new THREE.MeshBasicMaterial({color:eyeCol});
@@ -4787,8 +4922,15 @@ function buildMobMesh(type){
     // 4 nogi w rogach
     const legGeo=new THREE.CylinderGeometry(bodyW*0.16,bodyW*0.12,legH,5);
     const lx=bodyW*0.32, lzF=bodyLen*0.32, lzB=-bodyLen*0.32;
+    const isPredator=type.id==='wolf'||type.id==='arcticwolf'||type.id==='lion'||type.id==='saber_tiger'||type.id==='bear';
+    const clawM=isPredator?new THREE.MeshStandardMaterial({color:0x1a1a18,flatShading:true}):null;
+    const hoofM=(!isPredator)?new THREE.MeshStandardMaterial({color:0x2a2018,flatShading:true}):null;
     [[-lx,lzF],[lx,lzF],[-lx,lzB],[lx,lzB]].forEach(([px,pz])=>{
       const leg=new THREE.Mesh(legGeo,mat);leg.position.set(px,legH*0.5,pz);leg.castShadow=true;g.add(leg);
+      if(clawM){for(let c=0;c<3;c++){const cl=new THREE.Mesh(new THREE.ConeGeometry(bodyW*0.04,bodyW*0.15,3),clawM);
+        cl.position.set(px+(c-1)*bodyW*0.08,0.02,pz+bodyW*0.08);cl.rotation.x=Math.PI;g.add(cl);}}
+      if(hoofM){const hoof=new THREE.Mesh(new THREE.CylinderGeometry(bodyW*0.14,bodyW*0.16,legH*0.12,5),hoofM);
+        hoof.position.set(px,legH*0.06,pz);g.add(hoof);}
     });
     // ogon
     if(type.id==='horse'||type.id==='lion'){
@@ -4883,18 +5025,34 @@ function buildMobMesh(type){
     if(type.id==='golem'){body.scale.set(1.5,1.4,1.4);head.scale.set(0.75,0.75,0.75);aL.scale.set(1.8,1.1,1.8);aR.scale.set(1.8,1.1,1.8);
       lL.scale.set(1.4,0.9,1.4);lR.scale.set(1.4,0.9,1.4);
       const boulderM2=new THREE.MeshStandardMaterial({color:0x5a5a52,roughness:0.95,flatShading:true});
-      for(let i=0;i<3;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(bodyW*0.25,0),boulderM2);
-        r.position.set((i-1)*bodyW*0.4,type.height*0.6+i*0.05,(i%2-0.5)*bodyW*0.3);g.add(r);}
+      for(let i=0;i<5;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(bodyW*(0.2+Math.random()*0.15),0),boulderM2);
+        r.position.set((Math.random()-0.5)*bodyW*0.8,type.height*0.5+Math.random()*bodyH*0.5,(Math.random()-0.5)*bodyW*0.6);g.add(r);}
+      const mossM=new THREE.MeshStandardMaterial({color:0x3a5a2a,roughness:0.95,flatShading:true});
+      for(let i=0;i<3;i++){const ms=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.15,4,3),mossM);
+        ms.position.set((Math.random()-0.5)*bodyW,type.height*0.55+Math.random()*0.2,(Math.random()-0.5)*bodyW*0.4);g.add(ms);}
       const eyeM2=new THREE.MeshBasicMaterial({color:0xff8800});
-      eL.material=eyeM2;eR.material=eyeM2;}
+      eL.material=eyeM2;eR.material=eyeM2;
+      const fistL=new THREE.Mesh(new THREE.DodecahedronGeometry(bodyW*0.35,0),boulderM2);
+      fistL.position.set(-bodyW*0.7,type.height*0.35,0);g.add(fistL);
+      const fistR=fistL.clone();fistR.position.set(bodyW*0.7,type.height*0.35,0);g.add(fistR);}
     if(type.id==='skeleton'){
-      const sword=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.6,0.02),
-        new THREE.MeshStandardMaterial({color:0x888899,metalness:0.8,roughness:0.3}));
+      const swordM=new THREE.MeshStandardMaterial({color:0x888899,metalness:0.8,roughness:0.3});
+      const sword=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.6,0.02),swordM);
       sword.position.set(bodyW*0.8,type.height*0.5,0.15);sword.rotation.z=-0.5;g.add(sword);
-      // zebra
+      const guard=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.03,0.04),swordM);
+      guard.position.set(bodyW*0.65,type.height*0.3,0.15);guard.rotation.z=-0.5;g.add(guard);
       const ribM=new THREE.MeshStandardMaterial({color:0xe8e0c8,flatShading:true});
-      for(let r=0;r<3;r++){const rib=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.05,bodyH*0.1,bodyW*0.72),ribM);
-        rib.position.set(0,type.height*0.5+r*bodyH*0.22,0);g.add(rib);}
+      for(let r=0;r<4;r++){const rib=new THREE.Mesh(new THREE.TorusGeometry(bodyW*0.45,bodyH*0.04,4,8,Math.PI),ribM);
+        rib.position.set(0,type.height*0.45+r*bodyH*0.18,0);rib.rotation.x=Math.PI/2;g.add(rib);}
+      const spine=new THREE.Mesh(new THREE.CylinderGeometry(bodyW*0.06,bodyW*0.07,bodyH*0.8,5),ribM);
+      spine.position.set(0,type.height*0.55,-bodyW*0.15);g.add(spine);
+      const jaw=new THREE.Mesh(new THREE.BoxGeometry(headS*1.1,headS*0.3,headS*0.8),mat);
+      jaw.position.set(0,type.height*0.8,headS*0.2);g.add(jaw);
+      const shieldM=new THREE.MeshStandardMaterial({color:0x4a3a2a,roughness:0.8,flatShading:true});
+      const shield=new THREE.Mesh(new THREE.BoxGeometry(0.04,bodyH*0.7,bodyW*0.8),shieldM);
+      shield.position.set(-bodyW*0.75,type.height*0.5,0.08);shield.rotation.y=0.2;g.add(shield);
+      const shieldBoss=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.12,5,4),swordM);
+      shieldBoss.position.set(-bodyW*0.78,type.height*0.55,0.1);g.add(shieldBoss);
     }
     if(type.id==='yeti'){
       body.scale.set(1.4,1.3,1.3);aL.scale.set(1.4,1.1,1.4);aR.scale.set(1.4,1.1,1.4);
@@ -4919,8 +5077,18 @@ function buildMobMesh(type){
       body.material=zombM;head.material=zombM;aL.material=zombM;aR.material=zombM;
       aL.rotation.x=-1.3;aR.rotation.x=-1.3;
       const woundM=new THREE.MeshStandardMaterial({color:0x443322,flatShading:true});
-      for(let w=0;w<2;w++){const wound=new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.3,bodyH*0.15,bodyW*0.72),woundM);
-        wound.position.set((w-0.5)*bodyW*0.4,type.height*0.5+w*bodyH*0.2,0.01);g.add(wound);}
+      const boneM=new THREE.MeshStandardMaterial({color:0xd8d0c0,flatShading:true});
+      for(let w=0;w<3;w++){const wound=new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.25,bodyH*0.12,bodyW*0.5),woundM);
+        wound.position.set((Math.random()-0.5)*bodyW*0.6,type.height*0.45+w*bodyH*0.18,bodyW*0.3);g.add(wound);}
+      const rib=new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.6,bodyH*0.06,bodyW*0.04),boneM);
+      rib.position.set(0,type.height*0.6,bodyW*0.35);g.add(rib);
+      const ragM=new THREE.MeshStandardMaterial({color:0x3a3a28,flatShading:true});
+      const rag=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.3,bodyH*0.3,bodyW*0.75),ragM);
+      rag.position.set(0,type.height*0.4,0);g.add(rag);
+      eL.material=new THREE.MeshBasicMaterial({color:0x88aa44});
+      eR.material=eL.material;
+      const jaw=new THREE.Mesh(new THREE.BoxGeometry(headS*0.8,headS*0.3,headS*0.5),zombM);
+      jaw.position.set(0,type.height*0.8,headS*0.5);jaw.rotation.x=-0.15;g.add(jaw);
     }
     if(type.id==='mummy'){
       const wrapM=new THREE.MeshStandardMaterial({color:0xb8a888,flatShading:true});
@@ -5938,17 +6106,16 @@ let _handSwing=0;
 function createHands(scene){
   _handGroup=new THREE.Group();
   const skin=new THREE.MeshStandardMaterial({color:0xe0b090,roughness:0.7,flatShading:true});
-  const rHand=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.28,0.12),skin);
-  rHand.position.set(0.28,-0.3,0.05);
+  const rHand=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.32,0.14),skin);
+  rHand.position.set(0.32,-0.28,-0.45);rHand.userData._baseY=-0.28;
   _handGroup.add(rHand);
-  const lHand=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.28,0.12),skin);
-  lHand.position.set(-0.28,-0.3,0.05);
+  const lHand=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.32,0.14),skin);
+  lHand.position.set(-0.25,-0.32,-0.45);lHand.userData._baseY=-0.32;
   _handGroup.add(lHand);
-  const rFinger1=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.1,0.04),skin);
-  rFinger1.position.set(0.28,-0.48,0.05);_handGroup.add(rFinger1);
-  const rFinger2=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.1,0.04),skin);
-  rFinger2.position.set(0.32,-0.46,0.05);_handGroup.add(rFinger2);
-  _handGroup.userData.rHand=rHand;
+  const rF1=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.12,0.05),skin);
+  rF1.position.set(0.30,-0.48,-0.45);rF1.userData._baseY=-0.48;_handGroup.add(rF1);
+  const rF2=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.12,0.05),skin);
+  rF2.position.set(0.35,-0.46,-0.45);rF2.userData._baseY=-0.46;_handGroup.add(rF2);
   scene.add(_handGroup);
   updateHandItem();
 }
@@ -5958,37 +6125,38 @@ function updateHandItem(){
   const it=ITEMS[player.heldItem];if(!it)return;
   let itemMesh;
   if(it.type==='wand'||it.type==='trident'){
-    const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.03,0.7,6),
+    const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.035,0.8,6),
       new THREE.MeshStandardMaterial({color:it.type==='trident'?0x4488aa:0x8b6b3a,roughness:0.7,flatShading:true}));
     if(it.type==='trident'){
-      const prong=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.15,4),
+      const pr=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.18,4),
         new THREE.MeshStandardMaterial({color:0x6699cc,roughness:0.5,flatShading:true}));
-      prong.position.y=0.4;stick.add(prong);
-      const p2=prong.clone();p2.position.set(0.06,0.36,0);stick.add(p2);
-      const p3=prong.clone();p3.position.set(-0.06,0.36,0);stick.add(p3);
+      pr.position.y=0.45;stick.add(pr);
+      const p2=pr.clone();p2.position.set(0.07,0.40,0);stick.add(p2);
+      const p3=pr.clone();p3.position.set(-0.07,0.40,0);stick.add(p3);
     }else{
-      const orb=new THREE.Mesh(new THREE.SphereGeometry(0.06,6,6),
+      const orb=new THREE.Mesh(new THREE.SphereGeometry(0.07,6,6),
         new THREE.MeshStandardMaterial({color:0x66aaff,emissive:0x2244aa,emissiveIntensity:0.5}));
-      orb.position.y=0.38;stick.add(orb);
+      orb.position.y=0.42;stick.add(orb);
     }
     itemMesh=stick;
   }else if(it.type==='melee'){
-    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.55,0.03),
-      new THREE.MeshStandardMaterial({color:0xaaaaaa,roughness:0.3,flatShading:true,metalness:0.6}));
-    const hilt=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.04),
+    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.6,0.035),
+      new THREE.MeshStandardMaterial({color:0xbbbbbb,roughness:0.3,flatShading:true,metalness:0.6}));
+    const hilt=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.08,0.05),
       new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:0.8,flatShading:true}));
-    hilt.position.y=-0.3;blade.add(hilt);
-    const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.15,6),
+    hilt.position.y=-0.32;blade.add(hilt);
+    const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.18,6),
       new THREE.MeshStandardMaterial({color:0x4a2a0a,roughness:0.9}));
-    grip.position.y=-0.38;blade.add(grip);
+    grip.position.y=-0.40;blade.add(grip);
     itemMesh=blade;
   }else{
-    const box=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.15,0.15),
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.18,0.18),
       new THREE.MeshStandardMaterial({color:0x88aa44,roughness:0.7,flatShading:true}));
     itemMesh=box;
   }
-  itemMesh.position.set(0.28,-0.22,-0.35);
+  itemMesh.position.set(0.32,-0.18,-0.52);
   itemMesh.rotation.set(-0.3,0,0.2);
+  itemMesh.userData._baseY=-0.18;
   _handItem=itemMesh;
   _handGroup.add(_handItem);
 }
@@ -5996,9 +6164,9 @@ function updateHands(camera,now){
   if(!_handGroup){createHands(_scene);return;}
   _handGroup.position.copy(camera.position);
   _handGroup.quaternion.copy(camera.quaternion);
-  const bob=Math.sin(now*0.004)*0.01;
+  const bob=Math.sin(now*0.004)*0.008;
   _handGroup.children.forEach(c=>{
-    if(c.userData!==undefined)c.position.y+=bob;
+    if(c.userData&&c.userData._baseY!==undefined)c.position.y=c.userData._baseY+bob;
   });
   if(_handSwing>0){
     _handSwing=Math.max(0,_handSwing-0.05);
@@ -6118,6 +6286,12 @@ function initWorld(){
     }else if(nearChest&&!dialogOpen){
       document.getElementById('interact-name').textContent='Otworz Skrzynie';
       ipEl.classList.add('show');
+    }else if(_coffinPos&&playerClass==='wampir'&&!dialogOpen){
+      const cdx=camera.position.x-_coffinPos.x,cdz=camera.position.z-_coffinPos.z;
+      if(cdx*cdx+cdz*cdz<3.5*3.5){
+        document.getElementById('interact-name').textContent='Spij w Trumnie';
+        ipEl.classList.add('show');
+      }else{ipEl.classList.remove('show');}
     }else{ipEl.classList.remove('show');}
     // boss spawn proximity check
     for(const bt of BOSS_TYPES){
