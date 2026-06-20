@@ -98,6 +98,21 @@
     background:rgba(20,26,42,.95);border:1px solid rgba(232,200,106,.4);
     border-radius:8px;color:#e8c86a;padding:10px 22px;font-size:14px;
     z-index:200;opacity:0;transition:.3s;pointer-events:none}
+
+  /* ── LOADING SCREEN ──────────────────────────────── */
+  #loading-screen{position:fixed;inset:0;z-index:300;
+    background:radial-gradient(ellipse at 50% 40%,#1a2238,#0a0d14);
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+    color:#e8c86a;font-family:'Segoe UI',system-ui,sans-serif}
+  #loading-screen.active{display:flex}
+  .load-title{font-size:clamp(28px,7vw,48px);font-weight:800;letter-spacing:3px;
+    text-shadow:0 0 30px rgba(232,200,106,.4);margin-bottom:20px}
+  .load-sub{font-size:14px;color:#7a89a8;margin-bottom:30px;letter-spacing:2px}
+  .load-bar-wrap{width:min(280px,70vw);height:12px;background:rgba(0,0,0,.5);
+    border:1px solid rgba(232,200,106,.3);border-radius:8px;overflow:hidden}
+  .load-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#3a6b2a,#e8c86a);
+    border-radius:8px;transition:width .2s}
+  .load-status{font-size:12px;color:#7a89a8;margin-top:12px}
   #toast.show{opacity:1}
 
   /* ── GAME UI ───────────────────────────────────────── */
@@ -242,14 +257,12 @@
   /* gold + kryształy — czyste plakietki w rogu (lewy gorny, pod paskiem zaklec) */
   #corner-stats{position:absolute;top:56px;left:10px;display:flex;flex-direction:column;
     gap:5px;z-index:3}
-  #gold,#score{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:800;
+  #gold{display:flex;align-items:center;gap:5px;font-size:15px;font-weight:800;
     padding:5px 12px;border-radius:20px;text-shadow:0 1px 3px #000;
-    backdrop-filter:blur(3px);box-shadow:0 2px 8px rgba(0,0,0,.4)}
-  #gold{color:#ffe27a;background:linear-gradient(180deg,rgba(90,68,20,.9),rgba(50,38,10,.92));
+    backdrop-filter:blur(3px);box-shadow:0 2px 8px rgba(0,0,0,.4);
+    color:#ffe27a;background:linear-gradient(180deg,rgba(90,68,20,.9),rgba(50,38,10,.92));
     border:1.5px solid rgba(240,200,90,.6)}
-  #score{color:#d8a8ff;background:linear-gradient(180deg,rgba(58,38,80,.9),rgba(32,20,48,.92));
-    border:1.5px solid rgba(180,120,255,.5)}
-  #gold b,#score b{font-size:16px}
+  #gold b{font-size:16px}
 
   /* item count badge */
   .slot-count{position:absolute;bottom:1px;right:3px;font-size:11px;
@@ -394,6 +407,7 @@
     display:flex;align-items:center;justify-content:center;font-size:24px;
     cursor:pointer;position:relative;transition:transform .1s}
   .inv-slot.hotbar-slot{border-color:rgba(232,200,106,.3)}
+  .inv-slot.inv-dragging{border-color:#ff6633;box-shadow:0 0 12px rgba(255,100,50,.6);transform:scale(.9)}
   .inv-slot:active{transform:scale(.95)}
   .inv-ic{line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
   .inv-count{position:absolute;bottom:1px;right:3px;font-size:11px;
@@ -643,6 +657,12 @@
 <div id="toast"></div>
 
 <!-- ═══════════════ GAME ═══════════════ -->
+<div id="loading-screen">
+  <div class="load-title">Kroniki Żywiołów</div>
+  <div class="load-sub">LADOWANIE SWIATA</div>
+  <div class="load-bar-wrap"><div class="load-bar-fill" id="load-fill"></div></div>
+  <div class="load-status" id="load-status">Przygotowywanie...</div>
+</div>
 <div id="game-ui">
   <button id="fs-game" title="Pelny ekran">⛶</button>
   <div id="hud">
@@ -655,7 +675,6 @@
     </div>
     <div id="corner-stats">
       <div id="gold">🪙 <b>0</b></div>
-      <div id="score">💠 <b>0</b></div>
     </div>
     <div id="landmark">📍 <span id="lm-name">Wioska</span> <span id="lm-dist">0m</span> <span id="lm-arrow">↑</span></div>
     <div id="bars">
@@ -1523,12 +1542,13 @@ function buildItembar(){
     hb.appendChild(slot);
   }
 }
+let _invDragFrom=-1;
 function buildInvGrid(){
   const g=document.getElementById('inv-grid');if(!g)return;g.innerHTML='';
   for(let i=0;i<INV_SIZE;i++){
     const it=ITEMS[i];
     const slot=document.createElement('div');
-    slot.className='inv-slot'+(i<7?' hotbar-slot':'');
+    slot.className='inv-slot'+(i<7?' hotbar-slot':'')+(i===_invDragFrom?' inv-dragging':'');
     slot.dataset.idx=i;
     let inner=it?`<span class="inv-ic">${it.icon}</span>`:'';
     if(it&&(it.type==='consumable'||it.type==='food'||it.type==='resource')&&it.count>1)inner+=`<span class="inv-count">${it.count}</span>`;
@@ -1539,10 +1559,22 @@ function buildInvGrid(){
     }
     slot.title=it?(it.name+(it.bonus?' — '+bonusText(it.bonus):'')):'Pusty slot';
     slot.addEventListener('click',()=>{
+      if(_invDragFrom>=0){
+        const from=_invDragFrom;_invDragFrom=-1;
+        if(from!==i){const tmp=ITEMS[from];ITEMS[from]=ITEMS[i];ITEMS[i]=tmp;}
+        buildInvGrid();buildItembar();updateHandItem();return;
+      }
       if(!it)return;
       if(it.type==='consumable'||it.type==='food'){useConsumable(i);buildInvGrid();buildItembar();}
       else if(it.equip){equipItem(i);}
+      else{_invDragFrom=i;buildInvGrid();}
     });
+    let longTimer=null;
+    slot.addEventListener('touchstart',e=>{
+      longTimer=setTimeout(()=>{if(it){_invDragFrom=i;buildInvGrid();}},400);
+    },{passive:true});
+    slot.addEventListener('touchend',()=>{clearTimeout(longTimer);},{passive:true});
+    slot.addEventListener('touchmove',()=>{clearTimeout(longTimer);},{passive:true});
     g.appendChild(slot);
   }
 }
@@ -1558,21 +1590,28 @@ window.addEventListener('unhandledrejection',e=>showError('PROMISE: '+e.reason))
 
 const CLASS_CONFIG={
   mag:{name:'Mag',hp:100,mana:1000,manaRegen:5,resource:'mana',startWeapon:{id:'wand',name:'Rozdzka',icon:'🪄',type:'wand',wandTier:0},figure:'🧙'},
-  wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'blood_staff',name:'Berlo Krwi',icon:'🪄',type:'wand',wandTier:0},figure:'🧛'},
+  wampir:{name:'Wampir',hp:150,mana:0,manaRegen:0,resource:'blood',startWeapon:{id:'blood_blade',name:'Ostrze Krwi',icon:'🗡️',type:'melee',equip:'weapon',bonus:{dmg:10},rarity:'common'},figure:'🧛'},
   nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
-  czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'battle_staff',name:'Bojowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'⚔️'},
+  czlowiek:{name:'Czlowiek',hp:200,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'iron_sword',name:'Zelazny Miecz',icon:'⚔️',type:'melee',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'⚔️'},
   atlantyda:{name:'Atlantyda',hp:120,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
-  nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'decay_staff',name:'Berlo Rozkladu',icon:'🪄',type:'wand',wandTier:0},figure:'🧟'},
+  nieumarly:{name:'Nieumarly',hp:180,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'bone_axe',name:'Kosciany Topor',icon:'🪓',type:'melee',equip:'weapon',bonus:{dmg:8},rarity:'common'},figure:'🧟'},
 };
 let playerClass='mag';
 let blood=1000,maxBlood=1000;
 let strength=0,maxStrength=100;
 let decay=0,maxDecay=100;
 
+function classSpawn(){
+  if(playerClass==='wampir'){return{x:50,z:1850};}
+  if(playerClass==='nekromanta'){return{x:DEAD_WORLD.x,z:DEAD_WORLD.z,realm:'dead'};}
+  if(playerClass==='atlantyda'){return{x:-100,z:-50};}
+  return{x:0,z:0};
+}
 function startGame(){
   try{
   document.getElementById('menu').style.display='none';
-  document.getElementById('game-ui').classList.add('active');
+  const ls=document.getElementById('loading-screen');
+  ls.classList.add('active');
   playerClass=session.class||'mag';
   const cfg=CLASS_CONFIG[playerClass];
   document.getElementById('classname').textContent=cfg.name;
@@ -1589,7 +1628,17 @@ function startGame(){
     necroPet=null;necroPetMesh=null;
     ITEMS[1]={id:'ksiega_cieni',name:'Ksiega Cieni',icon:'📖',type:'tool',desc:'Pozwala przywolywac cienie'};
   }
-  SPELLS=playerClass==='nekromanta'?buildNecroSpells():playerClass==='wampir'?buildWampirSpells():playerClass==='atlantyda'?buildAtlantydaSpells():playerClass==='czlowiek'?buildCzlowiekSpells():playerClass==='nieumarly'?buildNieumarlySpells():buildSpells();
+  if(playerClass==='mag'||playerClass==='nekromanta'||playerClass==='atlantyda'){
+    SPELLS=playerClass==='nekromanta'?buildNecroSpells():playerClass==='atlantyda'?buildAtlantydaSpells():buildSpells();
+  }else if(playerClass==='wampir'){
+    SPELLS=buildWampirSpells();
+  }else if(playerClass==='czlowiek'){
+    SPELLS=buildCzlowiekSpells();
+  }else if(playerClass==='nieumarly'){
+    SPELLS=buildNieumarlySpells();
+  }else{
+    SPELLS=buildSpells();
+  }
   ownedSpells.clear();ownedSpells.add(0);
   player.selSpell=0;
   skillPoints=5;
@@ -1598,9 +1647,13 @@ function startGame(){
   buildSpellbar();
   buildItembar();
   updateCharBtn();
-  initWorld();
+  const sp=classSpawn();
+  if(sp.realm==='dead'){worldRealm='dead';}
+  _classSpawn=sp;
+  requestAnimationFrame(()=>initWorld());
   }catch(e){showError('startGame: '+e.message+'\n'+e.stack);}
 }
+let _classSpawn=null;
 
 // ═══ COMPANION (Taming) ════════════════════════════════
 let companion=null;
@@ -3320,6 +3373,30 @@ function buildSacredGrove(scene,cx,cz){
   const gl=new THREE.PointLight(0x44ff66,2,30);gl.position.set(0,4,0);grp.add(gl);
   buildBeacon(scene,cx,cz,0x44ff66);
 }
+let _wampirCave=null;
+function buildWampirCave(scene,cx,cz){
+  const grp=new THREE.Group();scene.add(grp);
+  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const rock=new THREE.MeshStandardMaterial({color:0x4a4a4a,roughness:0.95,flatShading:true});
+  const darkRock=new THREE.MeshStandardMaterial({color:0x2a2a2a,roughness:0.95,flatShading:true});
+  const arch=new THREE.Mesh(new THREE.TorusGeometry(4,1.2,6,8,Math.PI),rock);
+  arch.position.set(0,0,0);arch.rotation.x=Math.PI/2;scene.add(arch);arch.position.set(cx,baseH,cz);
+  for(let i=0;i<6;i++){
+    const a=Math.random()*Math.PI*2,r=6+Math.random()*5;
+    const s=1+Math.random()*1.5;
+    const m=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),i%2===0?rock:darkRock);
+    m.position.set(cx+Math.cos(a)*r,baseH+s*0.5,cz+Math.sin(a)*r);
+    m.rotation.set(Math.random(),Math.random(),Math.random());
+    scene.add(m);
+  }
+  const ceil=new THREE.Mesh(new THREE.SphereGeometry(8,8,6,0,Math.PI*2,0,Math.PI/2),darkRock);
+  ceil.position.set(cx,baseH,cz);ceil.scale.y=0.5;scene.add(ceil);
+  const redLight=new THREE.PointLight(0xff2222,1.5,15);
+  redLight.position.set(cx,baseH+2,cz);scene.add(redLight);
+  _wampirCave=new THREE.Vector3(cx,baseH+EYE_H,cz);
+  LANDMARKS.wampir_cave={x:cx,z:cz,name:'Jaskinia Wampira'};
+  STRUCT_CLEARINGS.push({x:cx,z:cz,r:15});
+}
 function buildStructures(scene){
   _wallBoxes.length=0;_portals.length=0;_portal=null;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
@@ -3336,6 +3413,7 @@ function buildStructures(scene){
   buildSpiderNest(scene,LANDMARKS.spider_nest.x,LANDMARKS.spider_nest.z);
   buildLavaForge(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z);
   buildSacredGrove(scene,LANDMARKS.sacred_grove.x,LANDMARKS.sacred_grove.z);
+  buildWampirCave(scene,50,1850);
   const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
   for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
     spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
@@ -3620,6 +3698,7 @@ function selectItem(idx){
   player.heldItem=idx;
   document.querySelectorAll('#hotbar .slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
   updateAttackIcon();
+  updateHandItem();
 }
 function useConsumable(idx){
   const it=ITEMS[idx];if(!it||playerDead)return;
@@ -3830,7 +3909,7 @@ function renderCraftPanel(){
 }
 
 // ═══ SPELL & COMBAT ═════════════════════════════════
-function heldIsWand(){return !!(ITEMS[player.heldItem]&&ITEMS[player.heldItem].type==='wand');}
+function heldIsWand(){const it=ITEMS[player.heldItem];return !!(it&&(it.type==='wand'||it.type==='trident'));}
 function updateAttackIcon(){
   const btn=document.getElementById('cast-btn');
   const wand=heldIsWand();
@@ -3851,7 +3930,7 @@ function getMeleeDmg(){
 function meleeSwing(){
   if(playerDead)return;
   const now=performance.now();if(now-player.lastMelee<600)return;
-  player.lastMelee=now;
+  player.lastMelee=now;_handSwing=1;
   const c=document.getElementById('crosshair');
   c.style.transform='translate(-50%,-50%) scale(1.5)';
   setTimeout(()=>{c.style.transform='translate(-50%,-50%)';},90);
@@ -4388,7 +4467,6 @@ function damageTarget(tg,dmg){
 }
 function shatterTarget(tg){
   tg.alive=false;tg.core.visible=false;destroyed++;
-  document.querySelector('#score b').textContent=destroyed;
   for(let i=0;i<10;i++){
     const g=new THREE.OctahedronGeometry(0.16,0);
     const m=new THREE.MeshBasicMaterial({color:0xbb66ff,transparent:true,opacity:1});
@@ -4946,8 +5024,6 @@ function damageMob(idx,dmg){
 function killMob(idx){
   const m=mobs[idx];
   xpState.kills++;destroyed++;
-  document.querySelector('#score b').textContent=destroyed;
-  giveXP(m.type.xp);
   player.gold+=m.type.gold;
   if(quest.active&&!quest.done&&m.type.id===quest.target){
     quest.have++;
@@ -4971,7 +5047,6 @@ function killMob(idx){
       }
     }
   }
-  if(Math.random()<0.05){const c=RESOURCES.find(r=>r.id==='crystal');if(c)addToInventory({...c});}
   if(playerClass==='wampir'&&!m.type.passive){blood=Math.min(maxBlood,blood+50);toast('+50 Krew');}
   if(playerClass==='nekromanta'&&necroPet)addPetXP(m.type.xp||10);
   if(playerClass==='czlowiek'){strength=Math.min(maxStrength,strength+10);}
@@ -4986,9 +5061,7 @@ function killMob(idx){
     const v=new THREE.Vector3((Math.random()-0.5)*5,Math.random()*4+2,(Math.random()-0.5)*5);
     _scene.add(sh);shards.push({mesh:sh,mat:mt,vel:v,life:1.0});
   }
-  const fp=pos.clone();fp.y+=m.type.height+0.5;
-  floatNumber(fp,'+'+m.type.xp+' XP','#66ff66');
-  const gp=pos.clone();gp.y+=m.type.height+0.9;
+  const gp=pos.clone();gp.y+=m.type.height+0.5;
   floatNumber(gp,'+'+m.type.gold+'🪙','#f0d070');
   _scene.remove(m.mesh);disposeMob(m);mobs.splice(idx,1);
 }
@@ -5446,7 +5519,7 @@ function playerDeath(){
 }
 function respawnPlayer(){
   playerDead=false;player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;
-  const sp=buildSpawnPoint||{x:0,z:0};
+  const sp=buildSpawnPoint||_classSpawn||{x:0,z:0};
   _camera.position.set(sp.x,terrainHeight(sp.x,sp.z)+EYE_H,sp.z);yaw=0;pitch=0;
   for(let i=mobs.length-1;i>=0;i--){_scene.remove(mobs[i].mesh);disposeMob(mobs[i]);}
   mobs.length=0;mobSpawnTimer=5;
@@ -5587,11 +5660,11 @@ function setupMobileInput(){
     joyKnob.style.left=(cx-26)+'px';joyKnob.style.top=(cy-26)+'px';}}};
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
-  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#map-btn');
+  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#map-btn,#abil-btn,#interact-prompt,#boss-bar,#companion-hud,#bars,#corner-stats,#fullmap,.cp-close,.cp-arrow');
   document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
-      if(t.clientX>window.innerWidth*0.46&&!lookState.active){
-        if(isUITouch(t.target))continue;
+      if(isUITouch(t.target))continue;
+      if(t.clientX>window.innerWidth*0.35&&!lookState.active){
         lookState.active=true;lookState.id=t.identifier;lookState.lastX=t.clientX;lookState.lastY=t.clientY;
       }
     }
@@ -5641,7 +5714,8 @@ function updatePlayer(dt,camera){
   const speedBuff=performance.now()<buffSpeedUntil?1.3:1;
   const hungerPenalty=hunger<20?0.7:1;
   const gearSpeed=1+gearBonus().speed/100;
-  const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*speedMul()*speedBuff*hungerPenalty*gearSpeed*dt;
+  const swimBonus=_swimming?(playerClass==='atlantyda'?1.4:0.6):1;
+  const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*speedMul()*speedBuff*hungerPenalty*gearSpeed*swimBonus*dt;
   const sinY=Math.sin(yaw),cosY=Math.cos(yaw);
   let px=camera.position.x+(mx*cosY+mz*sinY)*spd;
   let pz=camera.position.z+(-mx*sinY+mz*cosY)*spd;
@@ -5669,11 +5743,21 @@ function updatePlayer(dt,camera){
   else{velY-=GRAVITY*dt;}
   let py=camera.position.y+velY*dt;
   const groundH=terrainHeight(px,pz)+EYE_H;
-  if(py<=groundH){py=groundH;velY=0;onGround=true;}else{onGround=false;}
+  const waterH=SEA_LEVEL+EYE_H-0.3;
+  const inWater=groundH<waterH;
+  if(inWater){
+    _swimming=true;
+    if(py<waterH){py=waterH;velY=Math.max(velY,-1);onGround=true;}
+    if(velY<0)velY*=0.85;
+  }else{
+    _swimming=false;
+    if(py<=groundH){py=groundH;velY=0;onGround=true;}else{onGround=false;}
+  }
   camera.position.set(px,py,pz);
   const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
   camera.quaternion.copy(quat);
 }
+let _swimming=false;
 
 // ═══ HUNGER ═════════════════════════════════════════
 let _hungerWarnTimer=0;
@@ -5690,14 +5774,15 @@ function updateClassPassives(dt){
   if(playerClass==='wampir'){
     const t=worldTime/CYCLE_LEN;
     const isDay=t<0.5||t>0.9;
-    if(isDay){
+    const inCave=_camera&&_wampirCave&&_camera.position.distanceTo(_wampirCave)<12;
+    if(isDay&&!inCave){
       const hasCape=!!equipSets[activeSet].cape;
       const dmgRate=hasCape?1:5;
       _sunDmgTimer+=dt;
       if(_sunDmgTimer>=1){_sunDmgTimer=0;
         player.hp-=dmgRate;
         if(player.hp<=0){player.hp=0;playerDeath();}
-        if(!hasCape&&Math.random()<0.1)toast('Slonce parzy! Zdobadz peleryne!');
+        if(!hasCape&&Math.random()<0.1)toast('Slonce parzy! Zdobadz peleryne lub wejdz do jaskini!');
       }
     }
     blood=Math.min(maxBlood,blood+0.5*dt);
@@ -5710,6 +5795,10 @@ function updateClassPassives(dt){
     if(Math.random()<0.001*dt&&player.hp<player.maxHp*0.5){
       player.hp=Math.min(player.maxHp,player.hp+1);
     }
+  }
+  if(playerClass==='atlantyda'&&_swimming){
+    player.hp=Math.min(player.maxHp,player.hp+3*dt);
+    player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*2*dt);
   }
 }
 
@@ -5842,9 +5931,91 @@ function updateHUD(camera){
 }
 
 // ═══ GAME LOOP ══════════════════════════════════════
+// ═══ FIRST-PERSON HANDS ═════════════════════════════
+let _handGroup=null;
+let _handItem=null;
+let _handSwing=0;
+function createHands(scene){
+  _handGroup=new THREE.Group();
+  const skin=new THREE.MeshStandardMaterial({color:0xe0b090,roughness:0.7,flatShading:true});
+  const rHand=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.28,0.12),skin);
+  rHand.position.set(0.28,-0.3,0.05);
+  _handGroup.add(rHand);
+  const lHand=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.28,0.12),skin);
+  lHand.position.set(-0.28,-0.3,0.05);
+  _handGroup.add(lHand);
+  const rFinger1=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.1,0.04),skin);
+  rFinger1.position.set(0.28,-0.48,0.05);_handGroup.add(rFinger1);
+  const rFinger2=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.1,0.04),skin);
+  rFinger2.position.set(0.32,-0.46,0.05);_handGroup.add(rFinger2);
+  _handGroup.userData.rHand=rHand;
+  scene.add(_handGroup);
+  updateHandItem();
+}
+function updateHandItem(){
+  if(!_handGroup)return;
+  if(_handItem){_handGroup.remove(_handItem);_handItem=null;}
+  const it=ITEMS[player.heldItem];if(!it)return;
+  let itemMesh;
+  if(it.type==='wand'||it.type==='trident'){
+    const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.03,0.7,6),
+      new THREE.MeshStandardMaterial({color:it.type==='trident'?0x4488aa:0x8b6b3a,roughness:0.7,flatShading:true}));
+    if(it.type==='trident'){
+      const prong=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.15,4),
+        new THREE.MeshStandardMaterial({color:0x6699cc,roughness:0.5,flatShading:true}));
+      prong.position.y=0.4;stick.add(prong);
+      const p2=prong.clone();p2.position.set(0.06,0.36,0);stick.add(p2);
+      const p3=prong.clone();p3.position.set(-0.06,0.36,0);stick.add(p3);
+    }else{
+      const orb=new THREE.Mesh(new THREE.SphereGeometry(0.06,6,6),
+        new THREE.MeshStandardMaterial({color:0x66aaff,emissive:0x2244aa,emissiveIntensity:0.5}));
+      orb.position.y=0.38;stick.add(orb);
+    }
+    itemMesh=stick;
+  }else if(it.type==='melee'){
+    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.55,0.03),
+      new THREE.MeshStandardMaterial({color:0xaaaaaa,roughness:0.3,flatShading:true,metalness:0.6}));
+    const hilt=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.08,0.04),
+      new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:0.8,flatShading:true}));
+    hilt.position.y=-0.3;blade.add(hilt);
+    const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.15,6),
+      new THREE.MeshStandardMaterial({color:0x4a2a0a,roughness:0.9}));
+    grip.position.y=-0.38;blade.add(grip);
+    itemMesh=blade;
+  }else{
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.15,0.15),
+      new THREE.MeshStandardMaterial({color:0x88aa44,roughness:0.7,flatShading:true}));
+    itemMesh=box;
+  }
+  itemMesh.position.set(0.28,-0.22,-0.35);
+  itemMesh.rotation.set(-0.3,0,0.2);
+  _handItem=itemMesh;
+  _handGroup.add(_handItem);
+}
+function updateHands(camera,now){
+  if(!_handGroup){createHands(_scene);return;}
+  _handGroup.position.copy(camera.position);
+  _handGroup.quaternion.copy(camera.quaternion);
+  const bob=Math.sin(now*0.004)*0.01;
+  _handGroup.children.forEach(c=>{
+    if(c.userData!==undefined)c.position.y+=bob;
+  });
+  if(_handSwing>0){
+    _handSwing=Math.max(0,_handSwing-0.05);
+    if(_handItem)_handItem.rotation.x=-0.3-_handSwing*1.2;
+  }
+}
+
+function setLoadProgress(pct,msg){
+  const f=document.getElementById('load-fill');
+  const s=document.getElementById('load-status');
+  if(f)f.style.width=pct+'%';
+  if(s)s.textContent=msg;
+}
 function initWorld(){
   try{
   if(worldStarted)return;worldStarted=true;
+  setLoadProgress(5,'Tworzenie renderera...');
   const renderer=new THREE.WebGLRenderer({antialias:!isMobile});
   renderer.setSize(window.innerWidth,window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?2:3));
@@ -5852,24 +6023,39 @@ function initWorld(){
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   document.body.prepend(renderer.domElement);
+  setLoadProgress(10,'Tworzenie sceny...');
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(isMobile?65:70,window.innerWidth/window.innerHeight,0.1,1200);
-  camera.position.set(0,terrainHeight(0,0)+EYE_H,0);
+  const sp=_classSpawn||{x:0,z:0};
+  camera.position.set(sp.x,terrainHeight(sp.x,sp.z)+EYE_H,sp.z);
   _scene=scene;_camera=camera;
+  setLoadProgress(20,'Budowanie atmosfery...');
   setupAtmosphere(scene);setupLighting(scene);
+  setLoadProgress(30,'Budowanie wody...');
   buildWater(scene);
+  setLoadProgress(40,'Budowanie roslinnosci...');
   initSceneryPools();
+  setLoadProgress(50,'Generowanie terenu...');
   updateChunks(scene,camera);
+  setLoadProgress(65,'Budowanie drzew i trawy...');
   rebuildScenery(scene,camera.position.x,camera.position.z);
+  setLoadProgress(75,'Budowanie struktur...');
   buildStructures(scene);
+  setLoadProgress(85,'Tworzenie NPC...');
   buildNPCs(scene,LANDMARKS.village.x,LANDMARKS.village.z);
   buildTargets(scene);
+  setLoadProgress(95,'Inicjalizacja sterowania...');
   selectSpell(0);selectItem(0);
   if(isMobile)setupMobileInput();else setupDesktopInput();
   window.addEventListener('resize',()=>{
     camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth,window.innerHeight);
   });
+  setLoadProgress(100,'Gotowe!');
+  setTimeout(()=>{
+    document.getElementById('loading-screen').classList.remove('active');
+    document.getElementById('game-ui').classList.add('active');
+  },300);
   let last=performance.now();
   function loop(now){
     requestAnimationFrame(loop);
@@ -5951,6 +6137,7 @@ function initWorld(){
       _dustParticles.material.color.setHex(isNight?0x88ccff:0xffeedd);
       _dustParticles.material.opacity=isNight?0.6:0.3;
     }
+    updateHands(camera,now);
     updateHUD(camera);
     renderer.render(scene,camera);
   }
