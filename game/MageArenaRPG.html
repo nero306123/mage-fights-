@@ -3241,6 +3241,39 @@ function buildCastle(scene,cx,cz){
     const pl=new THREE.PointLight(0xff5511,1.4,12);pl.position.set(sx,5.5,15.5);grp.add(pl);
   }
   buildBeacon(scene,cx,cz,0xff3322);
+  // blanki (merlony) na murach
+  const merlonM=matStone(0x3a2a2a,0.95);
+  for(let i=0;i<20;i++){
+    const t=i/20;
+    // mur polnocny
+    addBox(grp,1.2,1.5,0.6,-14+t*28,8.5,-14,merlonM);
+    // mur poludniowy (z przerwa na brame)
+    if(Math.abs(-14+t*28)>4) addBox(grp,1.2,1.5,0.6,-14+t*28,8.5,14,merlonM);
+  }
+  for(let i=0;i<20;i++){
+    const t=i/20;
+    addBox(grp,0.6,1.5,1.2,-14,8.5,-14+t*28,merlonM);
+    addBox(grp,0.6,1.5,1.2,14,8.5,-14+t*28,merlonM);
+  }
+  // chodnik na murach (patrol)
+  addBox(grp,2.0,0.2,28,14,7.9,0,darker);
+  addBox(grp,2.0,0.2,28,-14,7.9,0,darker);
+  addBox(grp,28,0.2,2.0,0,7.9,-14,darker);
+  // sztandar na wiezy
+  const bannerM=new THREE.MeshStandardMaterial({color:0xcc2222,flatShading:true,side:THREE.DoubleSide});
+  const banner=new THREE.Mesh(new THREE.PlaneGeometry(1.5,3.0),bannerM);
+  banner.position.set(14,12,14);grp.add(banner);
+  const pole=addBox(grp,0.1,4.0,0.1,14,13.5,14,matStone(0x4a3a2a,0.9));
+  // wnetrze: tron
+  const throneMat=matStone(0x8a2222,0.8);
+  addBox(grp,2.0,2.5,1.0,0,3.25,-5,throneMat);
+  addBox(grp,2.5,4.0,0.3,0,4.0,-5.5,throneMat);
+  // pochodnie wnetrze
+  for(const sx of [-4,4]){
+    const fl=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,6),new THREE.MeshBasicMaterial({color:0xff6622}));
+    fl.position.set(sx,4.0,-4);grp.add(fl);
+    const il=new THREE.PointLight(0xff5511,0.8,10);il.position.set(sx,4.5,-4);grp.add(il);
+  }
 }
 const _portals=[];
 function buildPortal(scene,cx,cz,col,destX,destZ,label){
@@ -4370,7 +4403,13 @@ function renderCraftPanel(){
 }
 
 // ═══ SPELL & COMBAT ═════════════════════════════════
-function heldIsWand(){const it=ITEMS[player.heldItem];return !!(it&&(it.type==='wand'||it.type==='trident'));}
+function heldIsWand(){
+  const it=ITEMS[player.heldItem];
+  if(it&&(it.type==='wand'||it.type==='trident'))return true;
+  // Wampir/Czlowiek/Nieumarły moga rzucac zaklecia bronia startowa
+  if(playerClass==='wampir'||playerClass==='czlowiek'||playerClass==='nieumarly')return true;
+  return false;
+}
 // Zwraca indeks moba na ktorego celujesz, jesli da sie go oswoic (masz item + brak towarzysza)
 function getTameTarget(){
   if(companion||!_camera)return -1;
