@@ -6187,41 +6187,230 @@ function buildMobMesh(type){
       jaw.position.set(0,type.height*0.8,headS*0.5);jaw.rotation.x=-0.15;g.add(jaw);
     }
     if(type.id==='mummy'){
-      const wrapM=new THREE.MeshStandardMaterial({color:0xb8a888,flatShading:true});
-      for(let w=0;w<3;w++){const wr=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.06,bodyH*0.12,bodyW*0.74),wrapM);
-        wr.position.set(0,type.height*0.45+w*bodyH*0.25,0);wr.rotation.z=(w-1)*0.06;g.add(wr);}
+      const wrapM=new THREE.MeshStandardMaterial({color:0xb8a888,roughness:0.95,flatShading:true});
+      const wrapDarkM=new THREE.MeshStandardMaterial({color:0x8a7a5a,roughness:0.95,flatShading:true});
+      body.material=wrapM;head.material=wrapM;aL.material=wrapM;aR.material=wrapM;lL.material=wrapM;lR.material=wrapM;
+      // bandaze owijajace cialo pod katem (krzyzujace sie)
+      for(let w=0;w<6;w++){
+        const wr=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.12,bodyH*0.1,bodyW*0.78),w%2?wrapDarkM:wrapM);
+        wr.position.set(0,type.height*0.4+w*bodyH*0.14,0);wr.rotation.z=(w%2?1:-1)*0.12;g.add(wr);
+      }
+      // bandaze na glowie
+      for(let w=0;w<3;w++){
+        const hw=new THREE.Mesh(new THREE.BoxGeometry(headS*2.05,headS*0.4,headS*1.7),w%2?wrapDarkM:wrapM);
+        hw.position.set(0,type.height*0.82+w*headS*0.35,0);hw.rotation.z=(w%2?1:-1)*0.1;g.add(hw);
+      }
+      // zapadniete swiecace oczy
+      const meyeM=new THREE.MeshBasicMaterial({color:0xffcc44});
+      eL.material=meyeM;eR.material=meyeM;eL.scale.setScalar(0.7);eR.scale.setScalar(0.7);
+      g.add(new THREE.PointLight(0xffaa33,0.5,4));
+      // bandaze na ramionach (owiniete)
+      for(const arm of [aL,aR]){arm.rotation.x=-0.7;}
+      for(let w=0;w<3;w++){
+        for(const sx of [-1,1]){
+          const aw=new THREE.Mesh(new THREE.TorusGeometry(bodyW*0.16,bodyW*0.04,4,8),wrapDarkM);
+          aw.position.set(sx*bodyW*0.62,type.height*0.5+w*bodyH*0.2,bodyH*0.2);
+          aw.rotation.x=Math.PI/2-0.7;g.add(aw);
+        }
+      }
+      // luzne zwisajace bandaze
+      const looseM=new THREE.MeshStandardMaterial({color:0xa89878,roughness:1,side:THREE.DoubleSide,flatShading:true});
+      for(let i=0;i<4;i++){
+        const a=i/4*Math.PI*2;
+        const strip=new THREE.Mesh(new THREE.PlaneGeometry(bodyW*0.18,bodyH*0.5),looseM);
+        strip.position.set(Math.cos(a)*bodyW*0.5,type.height*0.35,Math.sin(a)*bodyW*0.4);
+        strip.rotation.y=a;strip.rotation.x=0.2;g.add(strip);
+      }
     }
     if(type.id==='wieszcz'){
-      g.add(new THREE.PointLight(0x8844aa,0.6,4));
-      head.material=new THREE.MeshStandardMaterial({color:0x443355,emissive:0x331144,emissiveIntensity:0.3,flatShading:true});
-      const cloak=new THREE.Mesh(new THREE.ConeGeometry(bodyW*0.9,type.height*0.7,6),
-        new THREE.MeshStandardMaterial({color:0x2a2030,flatShading:true}));
-      cloak.position.y=type.height*0.4;g.add(cloak);
+      g.add(new THREE.PointLight(0x8844aa,1.0,7));
+      const skinM=new THREE.MeshStandardMaterial({color:0x4a3a55,emissive:0x331144,emissiveIntensity:0.25,flatShading:true});
+      head.material=skinM;
+      lL.visible=false;lR.visible=false; // szata zaslania nogi
+      // dluga szata-stozek
+      const robeM=new THREE.MeshStandardMaterial({color:0x2a2038,roughness:0.85,flatShading:true});
+      const robe2M=new THREE.MeshStandardMaterial({color:0x3a2a48,roughness:0.85,flatShading:true});
+      const cloak=new THREE.Mesh(new THREE.ConeGeometry(bodyW*1.0,type.height*0.78,8),robeM);
+      cloak.position.y=type.height*0.39;g.add(cloak);
+      body.material=robe2M;
+      // kaptur
+      const hood=new THREE.Mesh(new THREE.ConeGeometry(headS*1.5,headS*1.8,6),robeM);
+      hood.position.set(0,type.height*0.9,-headS*0.15);g.add(hood);
+      // cien w kapturze (ciemna twarz)
+      const shadowM=new THREE.MeshBasicMaterial({color:0x0a0612});
+      const faceShadow=new THREE.Mesh(new THREE.SphereGeometry(headS*0.85,6,5),shadowM);
+      faceShadow.position.set(0,type.height*0.86,headS*0.25);g.add(faceShadow);
+      // swiecace oczy w cieniu
+      const weyeM=new THREE.MeshBasicMaterial({color:0xcc66ff});
+      for(const sx of [-1,1]){
+        const e=new THREE.Mesh(new THREE.SphereGeometry(headS*0.16,5,4),weyeM);
+        e.position.set(sx*headS*0.35,type.height*0.87,headS*0.55);g.add(e);
+      }
+      // dlugie reki-szpony wystajace z rekawow
+      for(const sx of [-1,1]){
+        const sleeve=new THREE.Mesh(new THREE.ConeGeometry(bodyW*0.22,bodyH*0.8,6),robeM);
+        sleeve.position.set(sx*bodyW*0.65,type.height*0.5,bodyW*0.15);
+        sleeve.rotation.x=0.4;sleeve.rotation.z=sx*0.2;g.add(sleeve);
+        // kosciste palce
+        const handM=new THREE.MeshStandardMaterial({color:0x6a5a75,flatShading:true});
+        for(let f=0;f<3;f++){
+          const finger=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.006,bodyH*0.22,4),handM);
+          finger.position.set(sx*bodyW*0.65+(f-1)*0.04,type.height*0.32,bodyW*0.4);
+          finger.rotation.x=1.2;g.add(finger);
+        }
+      }
+      // unoszace sie magiczne kule wokol
+      const orbM=new THREE.MeshBasicMaterial({color:0xaa55ff});
+      for(let i=0;i<3;i++){
+        const a=i/3*Math.PI*2;
+        const orb=new THREE.Mesh(new THREE.SphereGeometry(headS*0.18,6,5),orbM);
+        orb.position.set(Math.cos(a)*bodyW*0.9,type.height*0.7+Math.sin(i*2)*0.1,Math.sin(a)*bodyW*0.9);g.add(orb);
+      }
     }
     if(type.id==='raptor'||type.id==='small_dino'){
       // dinozaur dwunozny: pochylone cialo, dlugi ogon, glowa do przodu
-      body.rotation.x=0.5;body.scale.set(1,1,1.5);
-      head.position.set(0,type.height*0.78,headS*1.6);
-      eL.position.set(-headS*0.4,type.height*0.82,headS*2.2);
-      eR.position.set(headS*0.4,type.height*0.82,headS*2.2);
-      const snout=new THREE.Mesh(new THREE.BoxGeometry(headS*0.7,headS*0.6,headS*0.9),mat);
-      snout.position.set(0,type.height*0.74,headS*2.4);g.add(snout);
-      const tail=new THREE.Mesh(new THREE.ConeGeometry(headS*0.7,type.height*0.9,5),mat);
-      tail.position.set(0,type.height*0.5,-headS*2.2);tail.rotation.x=-1.4;g.add(tail);
-      aL.scale.set(0.5,0.5,0.5);aR.scale.set(0.5,0.5,0.5);
+      body.rotation.x=0.5;body.scale.set(1.1,1.1,1.6);
+      head.visible=false;
+      const H=type.height;
+      // wlasciwa glowa (wydluzona czaszka)
+      const dhead=new THREE.Mesh(new THREE.BoxGeometry(headS*1.0,headS*1.0,headS*1.5),mat);
+      dhead.position.set(0,H*0.78,headS*1.7);g.add(dhead);
+      // szczeki
+      const snout=new THREE.Mesh(new THREE.BoxGeometry(headS*0.75,headS*0.55,headS*1.0),mat);
+      snout.position.set(0,H*0.73,headS*2.5);g.add(snout);
+      // zeby
+      const teethM=new THREE.MeshBasicMaterial({color:0xf4f4ee});
+      for(let t=0;t<4;t++){
+        const tooth=new THREE.Mesh(new THREE.ConeGeometry(headS*0.06,headS*0.2,3),teethM);
+        tooth.position.set((t<2?-1:1)*headS*0.2,H*0.66,headS*(2.2+ (t%2)*0.4));tooth.rotation.x=Math.PI;g.add(tooth);
+      }
+      // oczy drapieznika
+      eL.material=new THREE.MeshBasicMaterial({color:0xffcc00});eR.material=eL.material;
+      eL.position.set(-headS*0.45,H*0.84,headS*1.9);
+      eR.position.set(headS*0.45,H*0.84,headS*1.9);
+      // grzbietowe kolce/piora
+      const featherM=new THREE.MeshStandardMaterial({color:type.id==='raptor'?0x3a5028:0x4a6a30,flatShading:true});
+      for(let s=0;s<5;s++){
+        const sp=new THREE.Mesh(new THREE.ConeGeometry(headS*0.15,headS*0.4,4),featherM);
+        sp.position.set(0,H*0.7-s*0.02,headS*0.5-s*headS*0.5);sp.rotation.x=-0.3;g.add(sp);
+      }
+      // dlugi ogon (segmentowy zwezajacy sie)
+      for(let i=0;i<5;i++){
+        const t=i/5;
+        const tseg=new THREE.Mesh(new THREE.BoxGeometry(headS*0.5*(1-t*0.7),headS*0.5*(1-t*0.6),headS*0.6),mat);
+        tseg.position.set(0,H*0.5-i*headS*0.15,-headS*1.0-i*headS*0.6);g.add(tseg);
+      }
+      // male ramiona ze szponami
+      aL.scale.set(0.4,0.5,0.4);aR.scale.set(0.4,0.5,0.4);
+      aL.position.set(-bodyW*0.5,H*0.55,bodyW*0.3);aR.position.set(bodyW*0.5,H*0.55,bodyW*0.3);
+      aL.rotation.x=-0.8;aR.rotation.x=-0.8;
+      // potezne nogi z pazurami
+      const clawM=new THREE.MeshStandardMaterial({color:0x1a1a14,flatShading:true});
+      for(const sx of [-1,1]){
+        const thigh=new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.4,legH*0.7,bodyW*0.5),mat);
+        thigh.position.set(sx*bodyW*0.35,legH*0.6,0);g.add(thigh);
+        // szpon-sierp raptora
+        const claw=new THREE.Mesh(new THREE.ConeGeometry(bodyW*0.08,bodyW*0.3,4),clawM);
+        claw.position.set(sx*bodyW*0.3,legH*0.1,bodyW*0.25);claw.rotation.x=1.8;g.add(claw);
+      }
     }
     if(type.id==='monkey'){
-      const tail=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.02,type.height*0.6,4),mat);
-      tail.position.set(0,type.height*0.45,-bodyW*0.6);tail.rotation.x=0.8;g.add(tail);
+      body.scale.set(0.85,0.85,0.85);
+      // zakrzywiony ogon (segmentowy)
+      const tailM=new THREE.MeshStandardMaterial({color:0x6a4424,flatShading:true});
+      for(let i=0;i<6;i++){
+        const t=i/6;
+        const seg=new THREE.Mesh(new THREE.SphereGeometry(0.035*(1-t*0.3),5,4),tailM);
+        const ang=t*2.5;
+        seg.position.set(Math.sin(ang)*bodyW*0.4,type.height*0.45-Math.sin(t*Math.PI)*bodyH*0.3,-bodyW*0.5-Math.cos(ang)*bodyW*0.3);
+        g.add(seg);
+      }
+      // jasniejsza twarz
       const faceM=new THREE.MeshStandardMaterial({color:0xd8b088,flatShading:true});
-      const face=new THREE.Mesh(new THREE.SphereGeometry(headS*0.6,5,4),faceM);
-      face.position.set(0,type.height*0.85,headS*0.6);g.add(face);
+      const face=new THREE.Mesh(new THREE.SphereGeometry(headS*0.65,6,5),faceM);
+      face.position.set(0,type.height*0.83,headS*0.55);face.scale.set(1,0.9,0.7);g.add(face);
+      // pysk
+      const muzzle=new THREE.Mesh(new THREE.SphereGeometry(headS*0.4,5,4),faceM);
+      muzzle.position.set(0,type.height*0.79,headS*0.85);muzzle.scale.set(1,0.7,0.8);g.add(muzzle);
+      // uszy okragle po bokach
+      const earM=new THREE.MeshStandardMaterial({color:0x5a3a1e,flatShading:true});
+      for(const sx of [-1,1]){
+        const ear=new THREE.Mesh(new THREE.SphereGeometry(headS*0.4,5,4),earM);
+        ear.position.set(sx*headS*0.95,type.height*0.85,0);ear.scale.set(0.5,1,1);g.add(ear);
+        const earIn=new THREE.Mesh(new THREE.SphereGeometry(headS*0.22,4,4),faceM);
+        earIn.position.set(sx*headS*1.0,type.height*0.85,headS*0.1);earIn.scale.set(0.4,0.9,0.9);g.add(earIn);
+      }
+      // oczy
+      const meyeM=new THREE.MeshBasicMaterial({color:0x1a0a04});
+      for(const sx of [-1,1]){
+        const e=new THREE.Mesh(new THREE.SphereGeometry(headS*0.13,5,4),meyeM);
+        e.position.set(sx*headS*0.3,type.height*0.86,headS*0.95);g.add(e);
+      }
+      // dlugie ramiona zwisajace
+      aL.scale.set(1,1.3,1);aR.scale.set(1,1.3,1);
+      aL.rotation.z=0.4;aR.rotation.z=-0.4;
+      // dlonie
+      const handM=new THREE.MeshStandardMaterial({color:0x4a3018,flatShading:true});
+      for(const sx of [-1,1]){
+        const hand=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.18,5,4),handM);
+        hand.position.set(sx*bodyW*0.85,type.height*0.32,0);g.add(hand);
+      }
     }
     if(type.id==='rock_lizard'){
-      body.rotation.x=0.3;
-      const spikeM=new THREE.MeshStandardMaterial({color:0x5a5a4a,flatShading:true});
-      for(let s=0;s<3;s++){const sp=new THREE.Mesh(new THREE.ConeGeometry(headS*0.3,headS*0.6,4),spikeM);
-        sp.position.set(0,type.height*0.7+s*0.04,(s-1)*bodyW*0.4);g.add(sp);}
+      // jaszczurka czworonozna - pozioma postawa
+      body.visible=false;head.visible=false;aL.visible=false;aR.visible=false;lL.visible=false;lR.visible=false;
+      eL.visible=false;eR.visible=false;
+      const H=type.height;
+      const rockM=new THREE.MeshStandardMaterial({color:0x6a6a5a,roughness:0.95,flatShading:true});
+      const rockDarkM=new THREE.MeshStandardMaterial({color:0x4a4a3e,roughness:0.95,flatShading:true});
+      // cialo poziome
+      const lbody=new THREE.Mesh(new THREE.BoxGeometry(H*0.3,H*0.22,H*0.6),rockM);
+      lbody.position.set(0,H*0.28,0);lbody.castShadow=true;g.add(lbody);
+      // glowa z przodu
+      const lhead=new THREE.Mesh(new THREE.BoxGeometry(H*0.24,H*0.18,H*0.26),rockM);
+      lhead.position.set(0,H*0.3,H*0.4);g.add(lhead);
+      // pysk
+      const ljaw=new THREE.Mesh(new THREE.BoxGeometry(H*0.2,H*0.08,H*0.16),rockDarkM);
+      ljaw.position.set(0,H*0.24,H*0.5);g.add(ljaw);
+      // swiecace oczy
+      const leyeM=new THREE.MeshBasicMaterial({color:0xffaa00});
+      for(const sx of [-1,1]){
+        const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,5,4),leyeM);
+        e.position.set(sx*H*0.1,H*0.36,H*0.46);g.add(e);
+      }
+      // grzbietowe kolce kamienne (rzad)
+      for(let s=0;s<6;s++){
+        const sp=new THREE.Mesh(new THREE.ConeGeometry(H*0.06,H*0.18-s*0.008,4),rockDarkM);
+        sp.position.set(0,H*0.42,H*0.25-s*H*0.1);g.add(sp);
+      }
+      // boczne kamienne plyty (pancerz)
+      for(const sx of [-1,1]){
+        for(let p=0;p<3;p++){
+          const plate=new THREE.Mesh(new THREE.DodecahedronGeometry(H*0.07,0),rockM);
+          plate.position.set(sx*H*0.16,H*0.28,H*0.18-p*H*0.18);g.add(plate);
+        }
+      }
+      // 4 nogi rozstawione
+      const llegGeo=new THREE.CylinderGeometry(H*0.04,H*0.05,H*0.18,5);
+      [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([sx,sz])=>{
+        const leg=new THREE.Mesh(llegGeo,rockDarkM);
+        leg.position.set(sx*H*0.18,H*0.1,sz*H*0.2);leg.rotation.z=sx*0.5;g.add(leg);
+        const foot=new THREE.Mesh(new THREE.BoxGeometry(H*0.1,H*0.04,H*0.1),rockDarkM);
+        foot.position.set(sx*H*0.22,H*0.02,sz*H*0.2);g.add(foot);
+      });
+      // ogon stozkowy
+      for(let i=0;i<4;i++){
+        const t=i/4;
+        const tseg=new THREE.Mesh(new THREE.BoxGeometry(H*0.16*(1-t*0.6),H*0.13*(1-t*0.5),H*0.16),rockM);
+        tseg.position.set(0,H*0.26,-H*0.32-i*H*0.13);g.add(tseg);
+      }
+      // mech na kamiennym ciele
+      const mossM=new THREE.MeshStandardMaterial({color:0x3a5a2a,roughness:1,flatShading:true});
+      for(let i=0;i<4;i++){
+        const a=i/4*Math.PI*2;
+        const moss=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,4,3),mossM);
+        moss.position.set(Math.cos(a)*H*0.12,H*0.38,Math.sin(a)*H*0.2);g.add(moss);
+      }
     }
   }
   return g;
