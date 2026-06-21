@@ -3099,9 +3099,35 @@ function buildHouse(scene,hx,hz,rng,withChest,doorDir){
   const roofCol=[0x8a3a28,0x7a3020,0x6a4030][(rng()*3)|0];
   const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.78,2.0,4),matStone(roofCol,0.8));
   roof.position.y=wallH+1.0;roof.rotation.y=Math.PI/4;roof.castShadow=!isMobile;g.add(roof);
-  // okno
-  addBox(g,0.8,0.8,0.1,doorDir==='n'?hw*0.5:0,wallH*0.55,doorDir==='s'?hd-0.05:-hd+0.05,
-    new THREE.MeshStandardMaterial({color:0x88bbdd,roughness:0.2,metalness:0.3,emissive:0x223344,emissiveIntensity:0.3}));
+  // komin z zarzacym sie szczytem
+  const chimX=hw*0.5,chimZ=-hd*0.4;
+  addBox(g,0.5,wallH+1.4,0.5,chimX,(wallH+1.4)/2,chimZ,matStone(0x6a5a4a,0.9));
+  addBox(g,0.6,0.25,0.6,chimX,wallH+1.4,chimZ,matStone(0x4a3a2a,0.9));
+  const ember=new THREE.Mesh(new THREE.SphereGeometry(0.12,5,4),new THREE.MeshBasicMaterial({color:0xff7733}));
+  ember.position.set(chimX,wallH+1.5,chimZ);g.add(ember);
+  // drzwi drewniane w otworze
+  const doorMat=matStone(0x4a3018,0.85);
+  const doorOff=0.04;
+  let ddx=0,ddz=0,drot=0;
+  if(doorDir==='n'){ddz=hd-doorOff;}else if(doorDir==='s'){ddz=-hd+doorOff;}
+  else if(doorDir==='e'){ddx=hw-doorOff;drot=Math.PI/2;}else if(doorDir==='w'){ddx=-hw+doorOff;drot=Math.PI/2;}
+  if(doorDir){
+    const door=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.2,0.12),doorMat);
+    door.position.set(ddx,1.1,ddz);door.rotation.y=drot;g.add(door);
+    // klamka
+    const knob=new THREE.Mesh(new THREE.SphereGeometry(0.08,5,4),new THREE.MeshStandardMaterial({color:0x886622,metalness:0.6,roughness:0.3}));
+    knob.position.set(ddx+(drot?0:0.45),1.1,ddz+(drot?0.45:0));g.add(knob);
+    // belki na drzwiach
+    for(let b=0;b<2;b++){const plank=new THREE.Mesh(new THREE.BoxGeometry(1.42,0.12,0.14),matStone(0x3a2410,0.9));
+      plank.position.set(ddx,0.6+b*1.0,ddz);plank.rotation.y=drot;g.add(plank);}
+  }
+  // okno z rama i krzyzakiem
+  const winX=doorDir==='n'?hw*0.5:0, winZ=doorDir==='s'?hd-0.05:-hd+0.05;
+  addBox(g,0.9,0.9,0.12,winX,wallH*0.55,winZ,matStone(0x4a3018,0.85)); // rama
+  addBox(g,0.7,0.7,0.1,winX,wallH*0.55,winZ+0.02,
+    new THREE.MeshStandardMaterial({color:0x88bbdd,roughness:0.2,metalness:0.3,emissive:0x334455,emissiveIntensity:0.4}));
+  addBox(g,0.74,0.08,0.14,winX,wallH*0.55,winZ,matStone(0x4a3018,0.85)); // poziomy krzyzak
+  addBox(g,0.08,0.74,0.14,winX,wallH*0.55,winZ,matStone(0x4a3018,0.85)); // pionowy krzyzak
   // skrzynia w srodku (przy tylnej scianie)
   if(withChest){
     let chx=hx,chz=hz;
