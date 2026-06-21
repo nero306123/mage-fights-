@@ -3408,7 +3408,7 @@ function buildHouse(scene,hx,hz,rng,withChest,doorDir){
 function buildVillage(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0xABCDEF);
-  const baseH=terrainHeight(cx,cz);
+  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   // ── solidny plot dookola wioski z brama od poludnia ──
   const fenceR=46;
   const fenceMat=matStone(0x7a5a30,0.9);
@@ -3448,7 +3448,7 @@ function buildVillage(scene,cx,cz){
     buildHouse(scene,hx,hz,rng,true,doorDir);
   }
   // studnia
-  const well=new THREE.Group();well.position.set(cx,baseH,cz);grp.add(well);
+  const well=new THREE.Group();well.position.set(0,0,0);grp.add(well);
   const stone=matStone(0x8a8a8a,0.95);
   const ring=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.2,1.0,10),stone);
   ring.position.y=0.5;ring.castShadow=!isMobile;well.add(ring);
@@ -3461,8 +3461,8 @@ function buildVillage(scene,cx,cz){
   wroof.position.y=2.9;wroof.rotation.y=Math.PI/4;well.add(wroof);
   // ognisko centralne (rynek)
   const fire=new THREE.Mesh(new THREE.ConeGeometry(0.5,0.9,6),new THREE.MeshBasicMaterial({color:0xff8822}));
-  fire.position.set(cx+5,baseH+0.5,cz+5);grp.add(fire);
-  const fl=new THREE.PointLight(0xff7722,1.8,16);fl.position.set(cx+5,baseH+1.2,cz+5);grp.add(fl);
+  fire.position.set(5,0.5,5);grp.add(fire);
+  const fl=new THREE.PointLight(0xff7722,1.8,16);fl.position.set(5,1.2,5);grp.add(fl);
   // kram targowy
   for(let i=0;i<3;i++){
     const sx=cx-6+i*3,sz=cz+8;
