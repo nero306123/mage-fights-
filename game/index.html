@@ -1227,7 +1227,7 @@ const MOB_TYPES = [
   {id:'saber_tiger',name:'Tygrys Szablozebny',hp:500,dmg:35,speed:7,atkRange:2.5,aggroRange:30,xp:120,gold:30,atkCd:1.0,height:1.6,biomes:['jungle'],drops:['leather','bone']},
   {id:'raptor',name:'Warano-Raptor',hp:400,dmg:30,speed:7,atkRange:2.5,aggroRange:25,xp:90,gold:25,atkCd:1.0,height:1.6,biomes:['jungle'],tame:'dino_egg',drops:['dino_egg','leather']},
   {id:'small_dino',name:'Maly Dinozaur',hp:250,dmg:18,speed:6,atkRange:2.0,aggroRange:22,xp:50,gold:15,atkCd:1.2,height:1.3,biomes:['jungle'],tame:'dino_egg',drops:['dino_egg','raw_meat']},
-  {id:'spider',name:'Pajak',hp:70,dmg:12,speed:4.0,atkRange:2.0,aggroRange:18,xp:20,gold:8,atkCd:1.2,height:0.9,biomes:['jungle','forest'],drops:['bone']},
+  {id:'spider',name:'Pajak',hp:120,dmg:15,speed:4.0,atkRange:2.0,aggroRange:18,xp:25,gold:10,atkCd:1.2,height:0.9,biomes:['jungle','forest'],drops:['bone']},
   {id:'eagle',name:'Orzel',hp:300,dmg:20,speed:8,atkRange:3.0,aggroRange:30,xp:50,gold:15,atkCd:1.5,height:1.2,biomes:['mountains','savanna'],drops:['raw_meat']},
   {id:'lion',name:'Lew',hp:400,dmg:25,speed:6,atkRange:2.5,aggroRange:22,xp:80,gold:20,atkCd:1.2,height:1.5,biomes:['savanna'],tame:'golden_collar',drops:['leather','raw_meat']},
   {id:'zombie',name:'Zombie',hp:300,dmg:15,speed:2.2,atkRange:2.0,aggroRange:18,xp:30,gold:5,atkCd:1.8,height:1.7,biomes:['forest'],night:true,drops:['bone','raw_meat']},
@@ -1241,10 +1241,10 @@ const MOB_TYPES = [
 
 // ═══ BOSS TYPES ══════════════════════════════════════════
 const BOSS_TYPES = [
-  {id:'skeleton_king',name:'Krol Szkieletow',hp:10000,dmg:45,speed:3.5,atkRange:4,aggroRange:35,xp:500,gold:200,atkCd:1.5,height:3.5,struct:'cemetery'},
+  {id:'skeleton_king',name:'Krol Szkieletow',hp:10000,dmg:45,speed:3.5,atkRange:4,aggroRange:35,xp:550,gold:350,atkCd:1.5,height:3.5,struct:'cemetery'},
   {id:'dragon',name:'Smok Zeldras',hp:8000,dmg:60,speed:4.0,atkRange:6,aggroRange:40,xp:800,gold:350,atkCd:2.0,height:4.5,struct:'lair'},
   {id:'dark_lord',name:'Wladca Mroku',hp:15000,dmg:80,speed:3.0,atkRange:5,aggroRange:35,xp:1200,gold:500,atkCd:1.8,height:4.5,struct:'castle'},
-  {id:'pharaoh',name:'Faraon',hp:5000,dmg:35,speed:3.5,atkRange:4,aggroRange:30,xp:400,gold:300,atkCd:1.6,height:3.0,struct:'pyramid'},
+  {id:'pharaoh',name:'Faraon',hp:8500,dmg:42,speed:3.5,atkRange:4,aggroRange:30,xp:600,gold:350,atkCd:1.5,height:3.0,struct:'pyramid'},
   {id:'ice_titan',name:'Lodowy Tytan',hp:12000,dmg:55,speed:2.8,atkRange:5,aggroRange:35,xp:900,gold:400,atkCd:1.7,height:4.2,struct:'ice_tower'},
   {id:'spider_queen',name:'Krolowa Pajakow',hp:9000,dmg:48,speed:5.0,atkRange:4,aggroRange:38,xp:850,gold:380,atkCd:1.2,height:3.2,struct:'spider_nest'},
   {id:'lava_golem',name:'Golem Lawy',hp:14000,dmg:70,speed:2.4,atkRange:5,aggroRange:32,xp:1100,gold:450,atkCd:2.0,height:4.0,struct:'lava_forge'},
@@ -3340,29 +3340,102 @@ function buildCemetery(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   const stone=matStone(0x5a5a5a,0.95);
-  // zelazne ogrodzenie
-  for(let i=0;i<20;i++){
-    const a=(i/20)*Math.PI*2;
-    const fx=Math.cos(a)*28,fz=Math.sin(a)*28;
-    addBox(grp,0.1,2.5,0.1,fx,1.25,fz,matStone(0x333333,0.8));
-  }
-  // nagrobki
+  const iron=matStone(0x222222,0.6);
   const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x666);
-  for(let i=0;i<18;i++){
-    const gx=-16+rng()*32,gz=-16+rng()*32;
-    addBox(grp,0.5,1.0,0.2,gx,0.5,gz,stone);
-    addBox(grp,0.12,0.5,0.12,gx,1.2,gz,stone);
+  // zelazne ogrodzenie z lancuchami
+  for(let i=0;i<28;i++){
+    const a=(i/28)*Math.PI*2;
+    const fx=Math.cos(a)*28,fz=Math.sin(a)*28;
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,3,6),iron);
+    post.position.set(fx,1.5,fz);grp.add(post);
+    const spike=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,4),iron);
+    spike.position.set(fx,3.1,fz);grp.add(spike);
+    if(i%2===0){
+      const crossbar=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.04,3.2),iron);
+      const nextA=((i+1)/28)*Math.PI*2;
+      crossbar.position.set((fx+Math.cos(nextA)*28)/2,2.2,(fz+Math.sin(nextA)*28)/2);
+      crossbar.lookAt(new THREE.Vector3(Math.cos(nextA)*28,2.2,Math.sin(nextA)*28));
+      grp.add(crossbar);
+    }
   }
-  // mauzoleum centralne
-  addBox(grp,5,4,5,0,2,0,matStone(0x4a4a4a,0.95));
-  const mRoof=new THREE.Mesh(new THREE.ConeGeometry(4.5,2.5,4),matStone(0x3a3a3a,0.9));
-  mRoof.position.y=5.25;mRoof.rotation.y=Math.PI/4;grp.add(mRoof);
-  // zielone swiatlo
-  const gl=new THREE.PointLight(0x33ff55,1.5,18);gl.position.set(0,3,0);grp.add(gl);
-  // martwe drzewa
-  for(let i=0;i<5;i++){
-    const dx=-20+rng()*40,dz=-20+rng()*40;
-    addBox(grp,0.2,3,0.2,dx,1.5,dz,matStone(0x3a2a1a,0.9));
+  // brama wejsciowa
+  addBox(grp,0.3,4,0.3,3,2,28,iron);addBox(grp,0.3,4,0.3,-3,2,28,iron);
+  addBox(grp,6.3,0.5,0.3,0,4.25,28,iron);
+  const archGeo=new THREE.TorusGeometry(3,0.15,6,12,Math.PI);
+  const arch=new THREE.Mesh(archGeo,iron);arch.position.set(0,4.5,28);grp.add(arch);
+  // nagrobki roznorodne
+  for(let i=0;i<22;i++){
+    const gx=-18+rng()*36,gz=-18+rng()*36;
+    if(Math.abs(gx)<3&&Math.abs(gz)<3)continue;
+    const style=Math.floor(rng()*4);
+    if(style===0){
+      addBox(grp,0.6,1.2,0.2,gx,0.6,gz,stone);
+      const cross=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.08,0.08),stone);
+      cross.position.set(gx,1.4,gz);grp.add(cross);
+      addBox(grp,0.08,0.4,0.08,gx,1.5,gz,stone);
+    }else if(style===1){
+      const slab=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,1.0,8),stone);
+      slab.position.set(gx,0.5,gz);grp.add(slab);
+      const top=new THREE.Mesh(new THREE.SphereGeometry(0.3,6,6),stone);
+      top.position.set(gx,1.15,gz);grp.add(top);
+    }else if(style===2){
+      addBox(grp,0.8,0.3,0.4,gx,0.15,gz,matStone(0x4a4a4a,0.9));
+      addBox(grp,0.7,1.4,0.15,gx,0.85,gz,stone);
+    }else{
+      addBox(grp,0.5,0.8,0.2,gx,0.4,gz,stone);
+    }
+    if(rng()<0.3){
+      const skull=new THREE.Mesh(new THREE.SphereGeometry(0.12,5,5),matStone(0xd4c9a8,0.7));
+      skull.position.set(gx+0.3,0.12,gz+0.2);grp.add(skull);
+    }
+  }
+  // mauzoleum centralne z kolumnami
+  addBox(grp,6,5,6,0,2.5,0,matStone(0x4a4a4a,0.95));
+  for(let c=0;c<4;c++){
+    const ca=c*Math.PI/2+Math.PI/4,cr=3.8;
+    const col=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,5,8),matStone(0x555555,0.9));
+    col.position.set(Math.cos(ca)*cr,2.5,Math.sin(ca)*cr);grp.add(col);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(1,0.3,1),matStone(0x555555,0.9));
+    cap.position.set(Math.cos(ca)*cr,5.15,Math.sin(ca)*cr);grp.add(cap);
+  }
+  const mRoof=new THREE.Mesh(new THREE.ConeGeometry(5,3,4),matStone(0x3a3a3a,0.9));
+  mRoof.position.y=6.5;mRoof.rotation.y=Math.PI/4;grp.add(mRoof);
+  // drzwi mauzoleum
+  addBox(grp,1.2,2.5,0.1,0,1.25,3.05,matStone(0x1a1a1a,0.95));
+  // czaszki dekoracyjne na mauzoleum
+  for(let i=0;i<4;i++){
+    const sa=i*Math.PI/2,sr=3.2;
+    const sk=new THREE.Mesh(new THREE.SphereGeometry(0.25,6,6),matStone(0xd4c9a8,0.8));
+    sk.position.set(Math.cos(sa)*sr,5.3,Math.sin(sa)*sr);grp.add(sk);
+  }
+  // zielone swiecace mgielki
+  for(let i=0;i<4;i++){
+    const gl=new THREE.PointLight(0x33ff55,0.8,12);
+    gl.position.set(-12+rng()*24,1.5,-12+rng()*24);grp.add(gl);
+  }
+  const mainLight=new THREE.PointLight(0x33ff55,2,20);mainLight.position.set(0,4,0);grp.add(mainLight);
+  // martwe drzewa z galęziami
+  for(let i=0;i<6;i++){
+    const dx=-22+rng()*44,dz=-22+rng()*44;
+    if(Math.abs(dx)<4&&Math.abs(dz)<4)continue;
+    const trunk=matStone(0x2a1a10,0.9);
+    const th=3+rng()*3;
+    addBox(grp,0.25,th,0.25,dx,th/2,dz,trunk);
+    for(let b=0;b<3;b++){
+      const bLen=1+rng()*1.5;
+      const bAngle=rng()*Math.PI*2;
+      const bH=th*0.4+rng()*th*0.5;
+      const branch=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.08,bLen,4),trunk);
+      branch.position.set(dx+Math.cos(bAngle)*bLen*0.4,bH,dz+Math.sin(bAngle)*bLen*0.4);
+      branch.rotation.z=Math.cos(bAngle)*0.6;branch.rotation.x=Math.sin(bAngle)*0.6;
+      grp.add(branch);
+    }
+  }
+  // opadajace liscie / cząsteczki mgly
+  for(let i=0;i<8;i++){
+    const fog=new THREE.Mesh(new THREE.SphereGeometry(1.5+rng(),8,6),
+      new THREE.MeshStandardMaterial({color:0x225533,transparent:true,opacity:0.15}));
+    fog.position.set(-15+rng()*30,0.8,-15+rng()*30);grp.add(fog);
   }
   buildBeacon(scene,cx,cz,0x33ff55);
 }
@@ -3370,24 +3443,80 @@ function buildDragonLair(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   const rock=matStone(0x3a3030,0.95);
-  // luk jaskini
-  addBox(grp,2,6,3,-4,3,0,rock);
-  addBox(grp,2,6,3,4,3,0,rock);
-  addBox(grp,10,2,3,0,7,0,rock);
-  addBox(grp,8,1,4,0,0.5,-3,matStone(0x1a1010,0.95));
-  // poswiatla
-  const gl=new THREE.PointLight(0xff4422,2.5,25);gl.position.set(0,3,-3);grp.add(gl);
-  // skarb
-  for(let i=0;i<12;i++){
-    const s=new THREE.Mesh(new THREE.SphereGeometry(0.15+Math.random()*0.1,4,4),
-      new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.8,roughness:0.2}));
-    s.position.set(-2+Math.random()*4,0.2,-4+Math.random()*2);grp.add(s);
+  const darkRock=matStone(0x1a1010,0.95);
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0xD4A);
+  // jaskinia - sciany boczne z nierownosciami
+  for(let i=0;i<6;i++){
+    const yOff=i*1.5;
+    const w=2+rng()*0.5;
+    addBox(grp,w,1.8,3+rng(),-5-rng()*0.5,3+yOff,rng()-0.5,rock);
+    addBox(grp,w,1.8,3+rng(),5+rng()*0.5,3+yOff,rng()-0.5,rock);
   }
-  // kosci
-  for(let i=0;i<8;i++){
-    const b=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.5,4),matStone(0xd4c9a8,0.7));
-    b.position.set(-3+Math.random()*6,0.1,2+Math.random()*5);
-    b.rotation.set(Math.random()*3,0,Math.random()*3);grp.add(b);
+  // sklepienie jaskini
+  for(let i=0;i<4;i++){
+    addBox(grp,11+i*0.5,1.5,3+i*0.8,0,8+i*1.2,-i*1.5,rock);
+  }
+  // stalaktyty
+  for(let i=0;i<12;i++){
+    const sx=-4+rng()*8,sz=-4+rng()*5;
+    const sh=1+rng()*2;
+    const stal=new THREE.Mesh(new THREE.ConeGeometry(0.15+rng()*0.2,sh,5),rock);
+    stal.position.set(sx,9-rng()*2,sz);stal.rotation.x=Math.PI;grp.add(stal);
+  }
+  // podloga jaskini
+  addBox(grp,12,1,10,0,0.5,-3,darkRock);
+  // leże smoka - podwyzszone
+  addBox(grp,6,0.6,5,0,1.3,-5,matStone(0x2a2020,0.9));
+  // poswiatla ognia
+  const gl=new THREE.PointLight(0xff4422,3,30);gl.position.set(0,4,-3);grp.add(gl);
+  const gl2=new THREE.PointLight(0xff6600,1.5,15);gl2.position.set(-3,2,-4);grp.add(gl2);
+  const gl3=new THREE.PointLight(0xff2200,1.5,15);gl3.position.set(3,2,-4);grp.add(gl3);
+  // stos skarbow
+  const goldMat=new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.85,roughness:0.15});
+  const silverMat=new THREE.MeshStandardMaterial({color:0xc0c0c0,metalness:0.8,roughness:0.2});
+  for(let i=0;i<25;i++){
+    const coin=new THREE.Mesh(new THREE.CylinderGeometry(0.1+rng()*0.08,0.1+rng()*0.08,0.04,6),
+      rng()>0.3?goldMat:silverMat);
+    coin.position.set(-2.5+rng()*5,1.5+rng()*0.5,-5+rng()*3);
+    coin.rotation.set(rng()*3,0,rng()*3);grp.add(coin);
+  }
+  // kielichy i szkatulki
+  for(let i=0;i<5;i++){
+    const chalice=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.08,0.3,6),goldMat);
+    chalice.position.set(-1.5+rng()*3,1.7,-5.5+rng()*2);grp.add(chalice);
+  }
+  // duze klejnoty
+  for(let i=0;i<6;i++){
+    const gemColors=[0xff2244,0x2244ff,0x22ff44,0xff44ff,0x44ffff,0xffaa00];
+    const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.15+rng()*0.1),
+      new THREE.MeshStandardMaterial({color:gemColors[i],metalness:0.6,roughness:0.1,emissive:gemColors[i],emissiveIntensity:0.3}));
+    gem.position.set(-2+rng()*4,1.7+rng()*0.3,-4.5+rng()*2);grp.add(gem);
+  }
+  // jaja smoka
+  for(let i=0;i<3;i++){
+    const eggMat=new THREE.MeshStandardMaterial({color:[0x882222,0x228822,0x222288][i],metalness:0.4,roughness:0.5});
+    const egg=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),eggMat);
+    egg.scale.y=1.3;
+    egg.position.set(-1+i*1,1.8,-6);grp.add(egg);
+    const eggGlow=new THREE.PointLight([0xff4444,0x44ff44,0x4444ff][i],0.4,3);
+    eggGlow.position.set(-1+i*1,2,-6);grp.add(eggGlow);
+  }
+  // kosci ofiar
+  for(let i=0;i<10;i++){
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.5+rng()*0.4,4),matStone(0xd4c9a8,0.7));
+    b.position.set(-4+rng()*8,0.1+rng()*0.2,2+rng()*6);
+    b.rotation.set(rng()*3,0,rng()*3);grp.add(b);
+  }
+  // czaszki
+  for(let i=0;i<4;i++){
+    const skull=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,6),matStone(0xd4c9a8,0.7));
+    skull.position.set(-3+rng()*6,0.2,3+rng()*4);skull.scale.y=0.85;grp.add(skull);
+  }
+  // slady ognia na scianie
+  for(let i=0;i<3;i++){
+    const scorch=new THREE.Mesh(new THREE.PlaneGeometry(1.5+rng(),1+rng()),
+      new THREE.MeshStandardMaterial({color:0x111111,transparent:true,opacity:0.6,side:THREE.DoubleSide}));
+    scorch.position.set(-4+i*4,3+rng()*2,-0.5);grp.add(scorch);
   }
   buildBeacon(scene,cx,cz,0xff4422);
 }
@@ -3604,24 +3733,91 @@ function buildIceTower(scene,cx,cz){
   const ice=new THREE.MeshStandardMaterial({color:0xaae0f5,roughness:0.1,metalness:0.3,
     transparent:true,opacity:0.85,flatShading:true});
   const iceDark=matStone(0x6a9ab5,0.3);
-  // wieza
-  for(let lvl=0;lvl<5;lvl++){
-    const r=6-lvl*0.9;
-    const seg=new THREE.Mesh(new THREE.CylinderGeometry(r,r+0.6,4,8),lvl%2?ice:iceDark);
-    seg.position.y=2+lvl*4;grp.add(seg);
-  }
-  // lodowy szpic
-  const spire=new THREE.Mesh(new THREE.ConeGeometry(2,8,8),ice);spire.position.y=24;grp.add(spire);
-  // krysztaly lodu wokol
+  const iceGlow=new THREE.MeshStandardMaterial({color:0xccf0ff,roughness:0.05,metalness:0.5,
+    transparent:true,opacity:0.7,emissive:0x88ccff,emissiveIntensity:0.15});
   const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x1CE);
-  for(let i=0;i<14;i++){
-    const a=rng()*Math.PI*2,r=10+rng()*22;
-    const ch=2+rng()*4;
-    const cryst=new THREE.Mesh(new THREE.ConeGeometry(0.6,ch,5),ice);
+  // podstawa - lodowy fundament
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(8,9,2,10),iceDark);
+  base.position.y=1;grp.add(base);
+  // wieza z detalami
+  for(let lvl=0;lvl<6;lvl++){
+    const r=5.5-lvl*0.75;
+    const seg=new THREE.Mesh(new THREE.CylinderGeometry(r,r+0.5,3.5,8),lvl%2?ice:iceDark);
+    seg.position.y=3.75+lvl*3.5;grp.add(seg);
+    // balkony/wystepy na kazdym pietrze
+    if(lvl>0&&lvl<5){
+      for(let b=0;b<4;b++){
+        const ba=(b/4)*Math.PI*2+lvl*0.3;
+        const balcony=new THREE.Mesh(new THREE.BoxGeometry(2,0.3,1.5),ice);
+        balcony.position.set(Math.cos(ba)*(r+0.8),2+lvl*3.5,Math.sin(ba)*(r+0.8));
+        balcony.rotation.y=-ba;grp.add(balcony);
+        const rail=new THREE.Mesh(new THREE.BoxGeometry(2,0.6,0.1),iceGlow);
+        rail.position.set(Math.cos(ba)*(r+1.5),2.4+lvl*3.5,Math.sin(ba)*(r+1.5));
+        rail.rotation.y=-ba;grp.add(rail);
+      }
+    }
+    // okna
+    if(lvl>=1){
+      for(let w=0;w<3;w++){
+        const wa=(w/3)*Math.PI*2+lvl*0.5;
+        const win=new THREE.Mesh(new THREE.PlaneGeometry(0.6,1.2),
+          new THREE.MeshStandardMaterial({color:0xaaddff,emissive:0x88ccff,emissiveIntensity:0.5,
+            transparent:true,opacity:0.8,side:THREE.DoubleSide}));
+        win.position.set(Math.cos(wa)*(r+0.3),3.75+lvl*3.5,Math.sin(wa)*(r+0.3));
+        win.rotation.y=-wa;grp.add(win);
+      }
+    }
+  }
+  // lodowy szpic z wieloma sekcjami
+  const spire=new THREE.Mesh(new THREE.ConeGeometry(2.5,6,8),ice);spire.position.y=26;grp.add(spire);
+  const spireTop=new THREE.Mesh(new THREE.ConeGeometry(0.8,4,6),iceGlow);spireTop.position.y=31;grp.add(spireTop);
+  // kula na szczycie
+  const orb=new THREE.Mesh(new THREE.SphereGeometry(0.5,8,8),iceGlow);orb.position.y=33.5;grp.add(orb);
+  const orbLight=new THREE.PointLight(0xaaddff,2,20);orbLight.position.set(0,33.5,0);grp.add(orbLight);
+  // mosty lodowe
+  for(let i=0;i<3;i++){
+    const ba=(i/3)*Math.PI*2;
+    const bridgeLen=10+rng()*5;
+    const bridge=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.3,bridgeLen),ice);
+    bridge.position.set(Math.cos(ba)*bridgeLen/2,2,Math.sin(ba)*bridgeLen/2);
+    bridge.rotation.y=-ba;grp.add(bridge);
+    // mini wieze na koncach mostow
+    const miniR=1.5;
+    const mini=new THREE.Mesh(new THREE.CylinderGeometry(miniR,miniR+0.3,5,6),iceDark);
+    mini.position.set(Math.cos(ba)*bridgeLen,2.5,Math.sin(ba)*bridgeLen);grp.add(mini);
+    const miniSpire=new THREE.Mesh(new THREE.ConeGeometry(miniR+0.3,3,6),ice);
+    miniSpire.position.set(Math.cos(ba)*bridgeLen,5.5,Math.sin(ba)*bridgeLen);grp.add(miniSpire);
+  }
+  // duze krysztaly lodu wokol
+  for(let i=0;i<18;i++){
+    const a=rng()*Math.PI*2,r=12+rng()*20;
+    const ch=2+rng()*5;
+    const cryst=new THREE.Mesh(new THREE.ConeGeometry(0.5+rng()*0.5,ch,5),rng()>0.5?ice:iceGlow);
     cryst.position.set(Math.cos(a)*r,ch/2,Math.sin(a)*r);
     cryst.rotation.z=(rng()-0.5)*0.4;grp.add(cryst);
   }
-  {const tl=new THREE.PointLight(0x88ccff,2,40);tl.position.set(0,16,0);grp.add(tl);}
+  // grupy krysztalow
+  for(let g2=0;g2<5;g2++){
+    const ga=rng()*Math.PI*2,gr=8+rng()*15;
+    const gx=Math.cos(ga)*gr,gz=Math.sin(ga)*gr;
+    for(let c=0;c<3;c++){
+      const ch=1+rng()*3;
+      const cryst=new THREE.Mesh(new THREE.ConeGeometry(0.3+rng()*0.3,ch,5),iceGlow);
+      cryst.position.set(gx+rng()*2-1,ch/2,gz+rng()*2-1);
+      cryst.rotation.z=(rng()-0.5)*0.5;grp.add(cryst);
+    }
+  }
+  // swiatla otoczenia
+  {const tl=new THREE.PointLight(0x88ccff,2.5,45);tl.position.set(0,16,0);grp.add(tl);}
+  for(let i=0;i<3;i++){
+    const la=(i/3)*Math.PI*2;
+    const ll=new THREE.PointLight(0xaaddff,1,15);
+    ll.position.set(Math.cos(la)*12,3,Math.sin(la)*12);grp.add(ll);
+  }
+  // lod na ziemi
+  const iceFloor=new THREE.Mesh(new THREE.CylinderGeometry(25,25,0.15,16),
+    new THREE.MeshStandardMaterial({color:0xcceeFF,roughness:0.05,metalness:0.4,transparent:true,opacity:0.4}));
+  iceFloor.position.y=0.1;grp.add(iceFloor);
   buildBeacon(scene,cx,cz,0x88ccff);
 }
 function buildSpiderNest(scene,cx,cz){
@@ -5432,35 +5628,141 @@ function buildMobMesh(type){
     g.add(new THREE.PointLight(0xff4400,0.8,6));
     g.add(new THREE.PointLight(0xff4400,1.0,6));
   }else if(type.id==='moltres'){
-    const body=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,5),
-      new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.4,flatShading:true}));
-    body.position.y=1.0;g.add(body);
-    const wingM=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400,emissiveIntensity:0.3,flatShading:true,side:THREE.DoubleSide});
-    const wingG=new THREE.PlaneGeometry(1.5,0.8);
-    const wL=new THREE.Mesh(wingG,wingM);wL.position.set(-0.9,1.2,0);wL.rotation.y=0.3;g.add(wL);
-    const wR=new THREE.Mesh(wingG,wingM);wR.position.set(0.9,1.2,0);wR.rotation.y=-0.3;g.add(wR);
-    const tail=new THREE.Mesh(new THREE.ConeGeometry(0.15,1.0,5),
-      new THREE.MeshStandardMaterial({color:0xffaa00,emissive:0xff4400,emissiveIntensity:0.5,flatShading:true}));
-    tail.position.set(0,0.8,-0.6);tail.rotation.x=0.8;g.add(tail);
-    g.add(new THREE.PointLight(0xff4400,1.2,8));
+    const H=type.height;
+    const fireM=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.5,flatShading:true});
+    const flameM=new THREE.MeshStandardMaterial({color:0xffaa00,emissive:0xff6600,emissiveIntensity:0.6,flatShading:true});
+    const hotM=new THREE.MeshStandardMaterial({color:0xffcc22,emissive:0xff8800,emissiveIntensity:0.8,flatShading:true});
+    // cialo
+    const body=new THREE.Mesh(new THREE.SphereGeometry(H*0.28,7,6),fireM);
+    body.position.set(0,H*0.55,0);body.scale.set(0.85,1,1.2);body.castShadow=true;g.add(body);
+    const chest=new THREE.Mesh(new THREE.SphereGeometry(H*0.22,6,5),flameM);
+    chest.position.set(0,H*0.5,H*0.1);chest.scale.set(0.75,0.9,0.8);g.add(chest);
+    // szyja
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(H*0.06,H*0.1,H*0.2,6),fireM);
+    neck.position.set(0,H*0.72,H*0.12);neck.rotation.x=-0.4;g.add(neck);
+    // glowa
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.12,6,5),fireM);
+    head.position.set(0,H*0.82,H*0.18);g.add(head);
+    // grzebien plomienny
+    for(let i=0;i<4;i++){
+      const crest=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.12+i*H*0.02,4),hotM);
+      crest.position.set(0,H*0.92+i*H*0.02,H*0.15-i*H*0.03);g.add(crest);
+    }
+    // dziob
+    const beakM=new THREE.MeshStandardMaterial({color:0x884400,flatShading:true});
+    const beakTop=new THREE.Mesh(new THREE.ConeGeometry(H*0.035,H*0.12,4),beakM);
+    beakTop.position.set(0,H*0.81,H*0.32);beakTop.rotation.x=Math.PI*0.55;g.add(beakTop);
+    // oczy
+    const eyeM=new THREE.MeshBasicMaterial({color:0xffff00});
+    for(const sx of [-1,1]){
+      const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,4,4),eyeM);
+      e.position.set(sx*H*0.07,H*0.85,H*0.27);g.add(e);
+    }
+    // skrzydla wielowarstwowe
+    const wingM=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400,emissiveIntensity:0.4,flatShading:true,side:THREE.DoubleSide});
+    for(const sx of [-1,1]){
+      // ramie
+      const upper=new THREE.Mesh(new THREE.BoxGeometry(H*0.4,H*0.04,H*0.2),wingM);
+      upper.position.set(sx*H*0.35,H*0.6,0);upper.rotation.z=sx*-0.3;g.add(upper);
+      // lotka glowna
+      const mid=new THREE.Mesh(new THREE.BoxGeometry(H*0.35,H*0.03,H*0.35),flameM);
+      mid.position.set(sx*H*0.65,H*0.55,0);mid.rotation.z=sx*-0.2;g.add(mid);
+      // lotki koncowe
+      const tip=new THREE.Mesh(new THREE.BoxGeometry(H*0.2,H*0.02,H*0.25),hotM);
+      tip.position.set(sx*H*0.88,H*0.48,0);tip.rotation.z=sx*-0.15;g.add(tip);
+      // pióra plomienne na koncach
+      for(let f=0;f<3;f++){
+        const feather=new THREE.Mesh(new THREE.ConeGeometry(H*0.025,H*0.2,4),hotM);
+        feather.position.set(sx*H*(0.85+f*0.06),H*0.42,H*(-0.1+f*0.1));
+        feather.rotation.z=sx*-0.5;g.add(feather);
+      }
+    }
+    // ogon plomienny wieloczlonowy
+    for(let i=0;i<5;i++){
+      const t=i/5;
+      const tailF=new THREE.Mesh(new THREE.ConeGeometry(H*0.06*(1-t*0.5),H*0.25+t*H*0.15,5),
+        i<2?fireM:i<4?flameM:hotM);
+      tailF.position.set(0,H*0.45-i*H*0.05,-H*0.2-i*H*0.15);
+      tailF.rotation.x=0.6+i*0.15;g.add(tailF);
+    }
+    // nogi szponiaste
+    const legM=new THREE.MeshStandardMaterial({color:0x884422,flatShading:true});
+    for(const sx of [-1,1]){
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(H*0.03,H*0.025,H*0.25,4),legM);
+      leg.position.set(sx*H*0.12,H*0.2,0);g.add(leg);
+      for(let c=0;c<3;c++){
+        const claw=new THREE.Mesh(new THREE.ConeGeometry(H*0.015,H*0.08,3),legM);
+        claw.position.set(sx*H*0.12+(c-1)*H*0.03,H*0.05,H*0.04);
+        claw.rotation.x=Math.PI*0.6;g.add(claw);
+      }
+    }
+    g.add(new THREE.PointLight(0xff4400,1.8,10));
   }else if(type.id==='magma_turtle'){
     const H=type.height;
-    const shell=new THREE.Mesh(new THREE.SphereGeometry(H*0.35,7,5),mat);
-    shell.position.set(0,H*0.4,0);shell.scale.set(1.4,0.7,1.4);shell.castShadow=true;g.add(shell);
-    const glowM=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.4,transparent:true,opacity:0.5});
-    for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
-      const crack=new THREE.Mesh(new THREE.BoxGeometry(H*0.03,H*0.02,H*0.18),glowM);
-      crack.position.set(Math.cos(a)*H*0.25,H*0.45,Math.sin(a)*H*0.25);crack.rotation.y=a;g.add(crack);}
-    const belly=new THREE.Mesh(new THREE.BoxGeometry(H*0.5,H*0.15,H*0.6),mat);
+    const shellM=new THREE.MeshStandardMaterial({color:0x5a2a0a,roughness:0.7,flatShading:true,metalness:0.2});
+    const magmaM=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff2200,emissiveIntensity:0.6,transparent:true,opacity:0.7,flatShading:true});
+    const hotM=new THREE.MeshStandardMaterial({color:0xffaa00,emissive:0xff6600,emissiveIntensity:0.5,flatShading:true});
+    // skorupa - wielopoziomowa
+    const shell=new THREE.Mesh(new THREE.SphereGeometry(H*0.38,8,6),shellM);
+    shell.position.set(0,H*0.42,0);shell.scale.set(1.3,0.65,1.3);shell.castShadow=true;g.add(shell);
+    // hexagonalne plytki na skorupie
+    for(let i=0;i<7;i++){
+      const a=i/7*Math.PI*2;
+      const plate=new THREE.Mesh(new THREE.CylinderGeometry(H*0.1,H*0.11,H*0.04,6),
+        new THREE.MeshStandardMaterial({color:0x6a3a1a,roughness:0.6,flatShading:true}));
+      plate.position.set(Math.cos(a)*H*0.22,H*0.52,Math.sin(a)*H*0.22);g.add(plate);
+    }
+    const topPlate=new THREE.Mesh(new THREE.CylinderGeometry(H*0.12,H*0.13,H*0.04,6),shellM);
+    topPlate.position.set(0,H*0.56,0);g.add(topPlate);
+    // magma w szczelinach
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2+0.3;
+      const crack=new THREE.Mesh(new THREE.BoxGeometry(H*0.025,H*0.03,H*0.2),magmaM);
+      crack.position.set(Math.cos(a)*H*0.28,H*0.48,Math.sin(a)*H*0.28);crack.rotation.y=a;g.add(crack);
+    }
+    // magma wyciekajaca spod skorupy
+    for(let i=0;i<5;i++){
+      const a=(i/5)*Math.PI*2;
+      const drip=new THREE.Mesh(new THREE.CylinderGeometry(H*0.02,H*0.04,H*0.12,4),magmaM);
+      drip.position.set(Math.cos(a)*H*0.35,H*0.28,Math.sin(a)*H*0.35);g.add(drip);
+    }
+    // brzuch
+    const belly=new THREE.Mesh(new THREE.BoxGeometry(H*0.55,H*0.18,H*0.65),
+      new THREE.MeshStandardMaterial({color:0x4a2a0a,roughness:0.75,flatShading:true}));
     belly.position.set(0,H*0.2,0);g.add(belly);
-    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.1,5,4),mat);
-    head.position.set(0,H*0.35,H*0.4);g.add(head);
-    const legGeo=new THREE.CylinderGeometry(H*0.05,H*0.06,H*0.2,5);
+    // glowa z detalami
+    const head=new THREE.Mesh(new THREE.SphereGeometry(H*0.12,6,5),shellM);
+    head.position.set(0,H*0.35,H*0.42);g.add(head);
+    const snout=new THREE.Mesh(new THREE.BoxGeometry(H*0.1,H*0.06,H*0.1),shellM);
+    snout.position.set(0,H*0.32,H*0.52);g.add(snout);
+    // oczy plonace
+    const eyeM=new THREE.MeshBasicMaterial({color:0xff6600});
+    for(const sx of [-1,1]){
+      const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,4,4),eyeM);
+      e.position.set(sx*H*0.06,H*0.38,H*0.5);g.add(e);
+    }
+    // nogi grube z pazurami
+    const legM=new THREE.MeshStandardMaterial({color:0x5a2a0a,roughness:0.75,flatShading:true});
     for(const sx of [-1,1])for(const sz of [-1,1]){
-      const leg=new THREE.Mesh(legGeo,mat);leg.position.set(sx*H*0.2,H*0.1,sz*H*0.2);g.add(leg);}
-    const tail=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.2,4),mat);
-    tail.position.set(0,H*0.25,-H*0.4);tail.rotation.x=1.2;g.add(tail);
-    g.add(new THREE.PointLight(0xff4400,0.8,5));
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(H*0.06,H*0.07,H*0.2,5),legM);
+      leg.position.set(sx*H*0.22,H*0.1,sz*H*0.22);g.add(leg);
+      for(let c=0;c<3;c++){
+        const claw=new THREE.Mesh(new THREE.ConeGeometry(H*0.015,H*0.06,3),shellM);
+        claw.position.set(sx*H*0.22+(c-1)*H*0.025,H*0.02,sz*H*0.22+H*0.04*Math.sign(sz));
+        claw.rotation.x=sz>0?Math.PI*0.6:-Math.PI*0.6;g.add(claw);
+      }
+    }
+    // ogon z kolcami
+    for(let i=0;i<4;i++){
+      const t=i/4;
+      const tailSeg=new THREE.Mesh(new THREE.SphereGeometry(H*0.04*(1-t*0.4),5,4),shellM);
+      tailSeg.position.set(0,H*0.25-t*H*0.05,-H*0.35-i*H*0.1);g.add(tailSeg);
+      if(i>0){
+        const spike=new THREE.Mesh(new THREE.ConeGeometry(H*0.015,H*0.06,3),hotM);
+        spike.position.set(0,H*0.3-t*H*0.05,-H*0.35-i*H*0.1);g.add(spike);
+      }
+    }
+    g.add(new THREE.PointLight(0xff4400,1.2,7));
   }else if(type.id==='sphinx'){
     const H=type.height;
     const body=new THREE.Mesh(new THREE.BoxGeometry(H*0.3,H*0.22,H*0.5),mat);
@@ -5914,7 +6216,7 @@ function disposeMob(mob){
   });
 }
 function damageMob(idx,dmg){
-  const m=mobs[idx];m.hp-=dmg;
+  const m=mobs[idx];if(!m)return;m.hp-=dmg;
   m.hpBar.group.visible=true;
   const ratio=Math.max(0,m.hp/m.maxHp);
   m.hpBar.fill.scale.x=ratio;m.hpBar.fill.position.x=-(1-ratio)*0.42;
@@ -6456,7 +6758,7 @@ function spawnBoss(scene,type,x,z){
   document.getElementById('boss-name').textContent=type.name+' ('+type.hp+' HP)';
 }
 function damageBoss(idx,dmg){
-  const b=bosses[idx];b.hp-=dmg;
+  const b=bosses[idx];if(!b)return;b.hp-=dmg;
   if(b.hp<b.maxHp*0.5&&!b.phase2){b.phase2=true;toast(b.type.name+': Faza 2!');}
   const ratio=Math.max(0,b.hp/b.maxHp);
   b.hpBar.fill.scale.x=ratio;b.hpBar.fill.position.x=-(1-ratio)*0.42;
