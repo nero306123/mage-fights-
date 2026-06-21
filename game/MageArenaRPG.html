@@ -7106,12 +7106,41 @@ function buildBossMesh(type){
     g.traverse(o=>{if(o.isMesh&&o.material&&o.material.isMeshStandardMaterial)o.material=_bMat(0x4a2a6a);});
     // korona
     const goldM=_bMat(0xcc66ff,{metalness:0.6,roughness:0.3,emissive:0x6622aa,emissiveIntensity:0.4});
+    const chitM=_bMat(0x2a1640,{roughness:0.6,metalness:0.2});
     const band=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.2,0.1,8),goldM);
     band.position.set(0,H*0.55,H*0.35);g.add(band);
     for(let i=0;i<5;i++){const a=(i/4-0.5)*1.6;
       const spike=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.22,4),goldM);
       spike.position.set(Math.sin(a)*0.18,H*0.62,H*0.35+Math.cos(a)*0.05);g.add(spike);}
-    g.add(new THREE.PointLight(0xaa55ff,1.6,12));
+    // wzor klepsydry na odwloku (czerwona wdowa)
+    const markM=_bMat(0xcc1133,{emissive:0x880022,emissiveIntensity:0.4});
+    const mark1=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.2,3),markM);
+    mark1.position.set(0,H*0.5,-H*0.4);mark1.rotation.x=-0.3;g.add(mark1);
+    const mark2=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.2,3),markM);
+    mark2.position.set(0,H*0.35,-H*0.4);mark2.rotation.x=Math.PI+0.3;g.add(mark2);
+    // wieksze blyszczace oczy (8 oczu krolowej)
+    const qeyeM=new THREE.MeshBasicMaterial({color:0xff3355});
+    for(let i=0;i<8;i++){
+      const ex=(i%4-1.5)*0.1, ey=H*0.6+(i<4?0.06:-0.02);
+      const e=new THREE.Mesh(new THREE.SphereGeometry(0.04+(i<2?0.02:0),5,4),qeyeM);
+      e.position.set(ex,ey,H*0.42);g.add(e);
+    }
+    // jadowe kly
+    const fangM=_bMat(0xe8e0d0);
+    for(const sx of [-1,1]){
+      const fang=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.3,5),fangM);
+      fang.position.set(sx*0.1,H*0.42,H*0.5);fang.rotation.x=Math.PI*0.9;g.add(fang);
+      const venom=new THREE.Mesh(new THREE.SphereGeometry(0.04,5,4),_bMat(0x66ff44,{emissive:0x44cc22,emissiveIntensity:0.6}));
+      venom.position.set(sx*0.1,H*0.32,H*0.55);g.add(venom);
+    }
+    // jaja przyczepione do odwloka
+    const eggM=_bMat(0xddccaa,{emissive:0x665533,emissiveIntensity:0.2});
+    for(let i=0;i<5;i++){
+      const a=i/5*Math.PI*2;
+      const egg=new THREE.Mesh(new THREE.SphereGeometry(0.08,5,4),eggM);
+      egg.position.set(Math.cos(a)*0.25,H*0.45+Math.sin(a)*0.1,-H*0.5);g.add(egg);
+    }
+    g.add(new THREE.PointLight(0xaa55ff,1.8,14));
   }else if(type.id==='ice_titan'){
     const g2=new THREE.Group();g=g2;
     const iceM=_bMat(0xaaddf5,{transparent:true,opacity:0.85,metalness:0.3,roughness:0.15,
@@ -7209,7 +7238,42 @@ function buildBossMesh(type){
       e.position.set(sx*H*0.07,H*1.24,H*0.13);g.add(e);}
     const mouth=new THREE.Mesh(new THREE.BoxGeometry(H*0.14,H*0.04,H*0.04),lavaM);
     mouth.position.set(0,H*1.15,H*0.13);g.add(mouth);
-    g.add(new THREE.PointLight(0xff5500,2.5,16));
+    // swiecace jadro w klatce piersiowej
+    const core=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.13,0),
+      _bMat(0xffcc00,{emissive:0xff8800,emissiveIntensity:1.2}));
+    core.position.set(0,H*0.88,H*0.16);g.add(core);
+    g.add(new THREE.PointLight(0xff8800,1.5,8));
+    // wulkaniczne kolce na barkach
+    for(const side of [-1,1]){
+      for(let s=0;s<3;s++){
+        const spike=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.2,5),rockM);
+        spike.position.set(side*(H*0.32+s*H*0.04),H*1.05+s*H*0.03,0);spike.rotation.z=side*-0.7;g.add(spike);
+        const tip=new THREE.Mesh(new THREE.ConeGeometry(H*0.02,H*0.08,4),lavaM);
+        tip.position.set(side*(H*0.32+s*H*0.04)+side*H*0.1,H*1.1+s*H*0.03,0);tip.rotation.z=side*-0.7;g.add(tip);
+      }
+    }
+    // kapiaca lawa z piesci
+    for(const side of [-1,1]){
+      const drip=new THREE.Mesh(new THREE.CylinderGeometry(H*0.02,H*0.04,H*0.18,5),lavaM);
+      drip.position.set(side*H*0.4,H*0.42,0);g.add(drip);
+      const drop=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,5,4),lavaM);
+      drop.position.set(side*H*0.4,H*0.3,0);g.add(drop);
+    }
+    // unoszace sie zarzace iskry
+    const emberM=new THREE.MeshBasicMaterial({color:0xffaa00});
+    for(let i=0;i<6;i++){
+      const a=i/6*Math.PI*2;
+      const ember=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,4,4),emberM);
+      ember.position.set(Math.cos(a)*H*0.5,H*0.9+Math.sin(i*2)*H*0.4,Math.sin(a)*H*0.5);g.add(ember);
+    }
+    // dym/skala na plecach
+    for(let i=0;i<4;i++){
+      const vent=new THREE.Mesh(new THREE.CylinderGeometry(H*0.05,H*0.07,H*0.12,6),rockM);
+      vent.position.set((i-1.5)*H*0.12,H*1.05,-H*0.16);g.add(vent);
+      const glow=new THREE.Mesh(new THREE.SphereGeometry(H*0.03,5,4),lavaM);
+      glow.position.set((i-1.5)*H*0.12,H*1.12,-H*0.16);g.add(glow);
+    }
+    g.add(new THREE.PointLight(0xff5500,2.8,18));
   }else if(type.id==='dragon'){
     g=new THREE.Group();
     const drM=_bMat(0x6a1111,{roughness:0.7,metalness:0.2});
