@@ -1292,7 +1292,8 @@ const BOSS_DROPS = [
   {id:'crown_nature',name:'Korona Natury',icon:'👑',equip:'hood',bonus:{hp:60,mana:50,dmg:12},rarity:'legend',boss:'forest_queen'},
   {id:'forest_cape',name:'Peleryna Lasu',icon:'🧣',equip:'cape',bonus:{hp:40,speed:15,dmgRed:10},rarity:'legend',boss:'forest_queen'},
   {id:'nature_staff',name:'Berlo Natury',icon:'🪄',equip:'weapon',bonus:{dmg:26,mana:60},rarity:'legend',type:'wand',wandTier:3,boss:'forest_queen'},
-  // ── Leviatan: luski (do trojzeba) + ultimatywny krysztal przemiany ──
+  // ── Leviatan: luski (do trojzeba) + zbroja + ultimatywny krysztal przemiany ──
+  {id:'leviathan_chest',name:'Zbroja Lewiatana',icon:'🦺',equip:'chest',bonus:{hp:120,dmgRed:25,dmg:15,speed:8},rarity:'legend',boss:'leviathan'},
   {id:'luska_leviatana',name:'Luska Leviatana',icon:'🟦',type:'resource',boss:'leviathan',count:5},
   {id:'krysztal_przemiany',name:'Krysztal Przemiany',icon:'🔮',type:'class_change',rarity:'secret',boss:'leviathan',desc:'ULTIMATE: Zmienia klase postaci (1 na swiat)'},
 ];
@@ -3299,11 +3300,15 @@ function buildCastle(scene,cx,cz){
 const _portals=[];
 function buildPortal(scene,cx,cz,col,destX,destZ,label){
   const grp=new THREE.Group();scene.add(grp);
-  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const baseH=Math.max(terrainHeight(cx,cz),SEA_LEVEL+0.5);grp.position.set(cx,baseH,cz);
   const stone=matStone(0x4a4458,0.9);
   addBox(grp,1.2,6,1.2,-2.6,3,0,stone);
   addBox(grp,1.2,6,1.2,2.6,3,0,stone);
   addBox(grp,6.4,1.2,1.2,0,6.4,0,stone);
+  // platforma pod portalem jesli jest nad woda
+  if(terrainHeight(cx,cz)<SEA_LEVEL){
+    addBox(grp,8,0.5,6,0,-0.25,0,stone);
+  }
   const portalCol=col||0x66ff99;
   const pmat=new THREE.MeshBasicMaterial({color:portalCol,transparent:true,opacity:0.55,side:THREE.DoubleSide});
   const plane=new THREE.Mesh(new THREE.PlaneGeometry(4.2,5.4),pmat);
@@ -3662,7 +3667,7 @@ function buildBeacon(scene,cx,cz,color){
 // Swiat Umarlych - mroczna kraina wokol portalu powrotnego
 function buildDeadWorld(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
-  const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
+  const baseH=Math.max(terrainHeight(cx,cz),SEA_LEVEL+0.5);grp.position.set(cx,baseH,cz);
   const boneMat=matStone(0xd8d0c0,0.85);
   const darkStone=matStone(0x2a2438,0.9);
   // martwe drzewa
