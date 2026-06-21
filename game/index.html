@@ -6934,22 +6934,74 @@ function buildBossMesh(type){
     const hoodBack=new THREE.Mesh(new THREE.ConeGeometry(H*0.16,H*0.4,7,1,true),
       _bMat(0x140a22,{side:THREE.DoubleSide}));
     hoodBack.position.set(0,b.headY-H*0.05,-H*0.05);g.add(hoodBack);
-    // rogi
+    // ── mroczne skrzydla cieni (po bokach) ──
+    const wingM=_bMat(0x0e0818,{side:THREE.DoubleSide,emissive:0x220044,emissiveIntensity:0.2});
+    for(const side of [-1,1]){
+      // glowna kosc skrzydla
+      const wingBone=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.04,H*0.9,5),_bMat(0x1a0e2a));
+      wingBone.position.set(side*H*0.3,H*1.0,-H*0.15);wingBone.rotation.z=side*0.6;wingBone.rotation.y=side*0.4;g.add(wingBone);
+      // blony skrzydel (3 segmenty)
+      for(let f=0;f<3;f++){
+        const membrane=new THREE.Mesh(new THREE.ConeGeometry(H*0.18,H*0.55-f*H*0.08,3),wingM);
+        membrane.position.set(side*(H*0.45+f*H*0.12),H*1.15-f*H*0.18,-H*0.2);
+        membrane.rotation.z=side*(1.2+f*0.15);membrane.rotation.y=side*0.5;g.add(membrane);
+      }
+      // szpony na skrzydlach
+      const wclaw=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.15,4),_bMat(0x0a0510));
+      wclaw.position.set(side*H*0.62,H*1.3,-H*0.2);wclaw.rotation.z=side*1.5;g.add(wclaw);
+    }
+    // korona cierniowa nad kapturem (unoszaca sie)
+    const crownM=_bMat(0x2a1a3a,{emissive:0x4400aa,emissiveIntensity:0.3,metalness:0.4});
+    for(let i=0;i<6;i++){
+      const a=i/6*Math.PI*2;
+      const spike=new THREE.Mesh(new THREE.ConeGeometry(H*0.025,H*0.18,4),crownM);
+      spike.position.set(Math.cos(a)*H*0.13,b.headY+H*0.32,Math.sin(a)*H*0.13);g.add(spike);
+    }
+    // rogi (wieksze, zakrzywione)
     const hornM=_bMat(0x0a0510);
     for(const side of [-1,1]){
-      const horn=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.4,5),hornM);
-      horn.position.set(side*H*0.13,b.headY+H*0.2,0);horn.rotation.z=side*-0.5;horn.rotation.x=-0.2;g.add(horn);}
-    // czerwone swiecace oczy
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(H*0.045,H*0.45,5),hornM);
+      horn.position.set(side*H*0.13,b.headY+H*0.22,0);horn.rotation.z=side*-0.5;horn.rotation.x=-0.2;g.add(horn);
+      // druga para mniejszych rogow
+      const horn2=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.25,5),hornM);
+      horn2.position.set(side*H*0.18,b.headY+H*0.05,H*0.02);horn2.rotation.z=side*-0.9;g.add(horn2);
+    }
+    // czerwone swiecace oczy (wieksze, zlowieszcze)
     const eyeM=new THREE.MeshBasicMaterial({color:0xff2200});
-    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,5,4),eyeM);
+    for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.032,6,5),eyeM);
       e.position.set(sx*H*0.05,b.headY,b.headS*0.8);g.add(e);}
-    // mroczne berlo
-    const staff=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.03,H*1.15,6),_bMat(0x2a1a30));
-    staff.position.set(H*0.38,H*0.72,0.1);g.add(staff);
-    const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.11,0),
-      _bMat(0x8800ff,{emissive:0x6600cc,emissiveIntensity:0.9}));
-    orb.position.set(H*0.38,H*1.32,0.1);g.add(orb);
-    g.add(new THREE.PointLight(0x8800ff,1.8,12));
+    g.add(new THREE.PointLight(0xff2200,0.8,6));
+    // kolce na barkach (pancerz)
+    const pauldronM=_bMat(0x1a1226,{metalness:0.3});
+    for(const side of [-1,1]){
+      const pauldron=new THREE.Mesh(new THREE.SphereGeometry(H*0.12,6,5),pauldronM);
+      pauldron.position.set(side*H*0.26,H*1.02,0);pauldron.scale.set(1,0.7,1);g.add(pauldron);
+      for(let s=0;s<3;s++){
+        const spike=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.16,4),hornM);
+        spike.position.set(side*(H*0.24+s*H*0.05),H*1.08+s*H*0.02,0);spike.rotation.z=side*-0.8;g.add(spike);
+      }
+    }
+    // mroczne berlo (bardziej ozdobne)
+    const staff=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.03,H*1.25,6),_bMat(0x2a1a30,{metalness:0.3}));
+    staff.position.set(H*0.4,H*0.72,0.1);g.add(staff);
+    // zakrzywione szpony trzymajace orb
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2;
+      const claw=new THREE.Mesh(new THREE.ConeGeometry(H*0.02,H*0.18,4),_bMat(0x1a0e2a));
+      claw.position.set(H*0.4+Math.cos(a)*H*0.08,H*1.28,0.1+Math.sin(a)*H*0.08);
+      claw.rotation.x=Math.cos(a)*0.6;claw.rotation.z=Math.sin(a)*0.6;g.add(claw);
+    }
+    const orb=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.12,0),
+      _bMat(0x8800ff,{emissive:0x6600cc,emissiveIntensity:1.0}));
+    orb.position.set(H*0.4,H*1.38,0.1);g.add(orb);
+    g.add(new THREE.PointLight(0x8800ff,2.2,15));
+    // unoszace sie mroczne kule wokol
+    const darkOrbM=new THREE.MeshBasicMaterial({color:0x6600cc});
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2;
+      const dorb=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,5,4),darkOrbM);
+      dorb.position.set(Math.cos(a)*H*0.5,H*0.9+Math.sin(i*2)*H*0.1,Math.sin(a)*H*0.5);g.add(dorb);
+    }
   }else if(type.id==='pharaoh'){
     const b=buildHumanoidBoss(H,{robe:0xd4af37,robe2:0xb8941f,skin:0xd9b886,slender:false});
     g=b.g;
@@ -7017,13 +7069,37 @@ function buildBossMesh(type){
     for(let i=0;i<6;i++){const a=i/6*Math.PI*2;
       const spike=new THREE.Mesh(new THREE.ConeGeometry(H*0.035,H*0.16,4),goldM);
       spike.position.set(Math.cos(a)*H*0.14,H*1.6,Math.sin(a)*H*0.14);g.add(spike);}
-    // miecz
-    const sword=new THREE.Mesh(new THREE.BoxGeometry(H*0.04,H*0.7,H*0.02),
+    // krolewska peleryna
+    const capeM=_bMat(0x6a1530,{side:THREE.DoubleSide});
+    const cape=new THREE.Mesh(new THREE.ConeGeometry(H*0.38,H*0.9,8,1,true),capeM);
+    cape.position.set(0,H*0.55,-H*0.12);g.add(cape);
+    // zlote obramowanie peleryny
+    const capeTrim=new THREE.Mesh(new THREE.TorusGeometry(H*0.36,H*0.02,4,12,Math.PI),goldM);
+    capeTrim.position.set(0,H*0.12,-H*0.12);capeTrim.rotation.x=Math.PI/2;g.add(capeTrim);
+    // naramienniki zlote z kolcami
+    for(const side of [-1,1]){
+      const pauldron=new THREE.Mesh(new THREE.SphereGeometry(H*0.1,6,5),goldM);
+      pauldron.position.set(side*H*0.2,H*1.22,0);pauldron.scale.set(1,0.6,1);g.add(pauldron);
+      const ps=new THREE.Mesh(new THREE.ConeGeometry(H*0.03,H*0.12,4),goldM);
+      ps.position.set(side*H*0.22,H*1.28,0);ps.rotation.z=side*-0.6;g.add(ps);
+    }
+    // ozdobny miecz
+    const sword=new THREE.Mesh(new THREE.BoxGeometry(H*0.05,H*0.75,H*0.02),
       _bMat(0x99aabb,{metalness:0.8,roughness:0.3}));
-    sword.position.set(H*0.34,H*0.85,0.1);g.add(sword);
-    const hilt=new THREE.Mesh(new THREE.BoxGeometry(H*0.16,H*0.04,H*0.04),goldM);
-    hilt.position.set(H*0.34,H*0.52,0.1);g.add(hilt);
-    g.add(new THREE.PointLight(0x33ff66,1.5,10));
+    sword.position.set(H*0.36,H*0.88,0.1);g.add(sword);
+    const swordTip=new THREE.Mesh(new THREE.ConeGeometry(H*0.025,H*0.1,4),_bMat(0x99aabb,{metalness:0.8,roughness:0.3}));
+    swordTip.position.set(H*0.36,H*1.3,0.1);g.add(swordTip);
+    const hilt=new THREE.Mesh(new THREE.BoxGeometry(H*0.18,H*0.04,H*0.04),goldM);
+    hilt.position.set(H*0.36,H*0.52,0.1);g.add(hilt);
+    const pommel=new THREE.Mesh(new THREE.SphereGeometry(H*0.04,6,5),goldM);
+    pommel.position.set(H*0.36,H*0.46,0.1);g.add(pommel);
+    // tarcza z herbem
+    const shieldM=_bMat(0x3a3a4a,{metalness:0.4});
+    const shield=new THREE.Mesh(new THREE.CylinderGeometry(H*0.18,H*0.15,H*0.04,6),shieldM);
+    shield.position.set(-H*0.32,H*0.85,0.05);shield.rotation.x=Math.PI/2;shield.rotation.z=0.1;g.add(shield);
+    const emblem=new THREE.Mesh(new THREE.SphereGeometry(H*0.06,6,5),goldM);
+    emblem.position.set(-H*0.32,H*0.85,0.12);emblem.scale.set(1,1,0.5);g.add(emblem);
+    g.add(new THREE.PointLight(0x33ff66,1.8,12));
   }else if(type.id==='spider_queen'){
     const proxyType={...type,id:'spider'};
     g=buildMobMesh(proxyType);g.scale.setScalar(2.2);
@@ -7069,7 +7145,28 @@ function buildBossMesh(type){
     for(let i=0;i<5;i++){const a=(i/4-0.5)*1.8;
       const cr=new THREE.Mesh(new THREE.ConeGeometry(H*0.04,H*0.2,4),iceM2);
       cr.position.set(Math.sin(a)*H*0.15,H*1.45,Math.cos(a)*H*0.05);g.add(cr);}
-    g.add(new THREE.PointLight(0x88ccff,2.0,14));
+    // lodowa broda/sople pod glowa
+    for(let i=0;i<4;i++){
+      const icicle=new THREE.Mesh(new THREE.ConeGeometry(H*0.025,H*0.18,4),iceM2);
+      icicle.position.set((i-1.5)*H*0.05,H*1.12,H*0.14);icicle.rotation.x=Math.PI;g.add(icicle);
+    }
+    // pancerz barkowy (lodowe plyty)
+    for(const side of [-1,1]){
+      const pauldron=new THREE.Mesh(new THREE.IcosahedronGeometry(H*0.16,0),iceM);
+      pauldron.position.set(side*H*0.4,H*1.0,0);pauldron.scale.set(1,0.6,1);g.add(pauldron);
+    }
+    // unoszace sie krysztaly lodu wokol (mrozna aura)
+    for(let i=0;i<6;i++){
+      const a=i/6*Math.PI*2;
+      const floatShard=new THREE.Mesh(new THREE.OctahedronGeometry(H*0.05,0),iceM2);
+      floatShard.position.set(Math.cos(a)*H*0.55,H*0.6+Math.sin(i*1.5)*H*0.3,Math.sin(a)*H*0.55);g.add(floatShard);
+    }
+    // mrozne stopy/podstawa z lodu
+    for(const sx of [-1,1]){
+      const foot=new THREE.Mesh(new THREE.BoxGeometry(H*0.22,H*0.1,H*0.28),iceM);
+      foot.position.set(sx*H*0.16,H*0.05,H*0.04);g.add(foot);
+    }
+    g.add(new THREE.PointLight(0x88ccff,2.2,16));
   }else if(type.id==='lava_golem'){
     const g2=new THREE.Group();g=g2;
     const lavaBody=_bMat(0xff4400,{emissive:0xff2200,emissiveIntensity:0.7});
