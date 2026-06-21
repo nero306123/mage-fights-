@@ -1307,7 +1307,7 @@ const BOSS_TYPES = [
   {id:'dark_lord',name:'Wladca Mroku',hp:15000,dmg:80,speed:3.0,atkRange:5,aggroRange:35,xp:1200,gold:500,atkCd:1.8,height:4.5,struct:'castle'},
   {id:'pharaoh',name:'Faraon',hp:8500,dmg:42,speed:3.5,atkRange:4,aggroRange:30,xp:600,gold:350,atkCd:1.5,height:3.0,struct:'pyramid'},
   {id:'ice_titan',name:'Lodowy Tytan',hp:12000,dmg:55,speed:2.8,atkRange:5,aggroRange:35,xp:900,gold:400,atkCd:1.7,height:4.2,struct:'ice_tower'},
-  {id:'spider_queen',name:'Krolowa Pajakow',hp:9000,dmg:48,speed:5.0,atkRange:4,aggroRange:38,xp:850,gold:380,atkCd:1.2,height:3.2,struct:'spider_nest'},
+  {id:'spider_queen',name:'Krolowa Pajakow',hp:9000,dmg:48,speed:5.0,atkRange:4,aggroRange:38,xp:850,gold:380,atkCd:1.2,height:3.2,struct:'mine'},
   {id:'lava_golem',name:'Golem Lawy',hp:14000,dmg:70,speed:2.4,atkRange:5,aggroRange:32,xp:1100,gold:450,atkCd:2.0,height:4.0,struct:'lava_forge'},
   {id:'forest_queen',name:'Krolowa Lasu',hp:11000,dmg:52,speed:3.8,atkRange:4.5,aggroRange:36,xp:950,gold:420,atkCd:1.4,height:3.8,struct:'sacred_grove'},
   {id:'leviathan',name:'Leviatan',hp:25000,dmg:90,speed:4.5,atkRange:6,aggroRange:45,xp:2000,gold:800,atkCd:1.6,height:5.0,struct:'leviathan_lair',water:true},
@@ -1544,7 +1544,7 @@ const LANDMARKS={
   cemetery:{x:-400,z:-400,name:'Cmentarz'},
   lair:{x:800,z:1200,name:'Smocza Jama'},
   pyramid:{x:1600,z:-800,name:'Piramida'},
-  mine:{x:-200,z:1400,name:'Kopalnia'},
+  mine:{x:-200,z:1400,name:'Kopalnia (Gniazdo Pajakow)'},
   ice_tower:{x:-1500,z:-1200,name:'Lodowa Wieza'},
   spider_nest:{x:1200,z:-1600,name:'Gniazdo Pajakow'},
   lava_forge:{x:-1400,z:1500,name:'Kuznia Lawy'},
@@ -3429,72 +3429,125 @@ function buildHouse(scene,hx,hz,rng,withChest,doorDir){
   const wallCol=[0xc8b088,0xd8c098,0xb8a078,0xc0a880][(rng()*4)|0];
   const wallMat=matStone(wallCol,0.85);
   const beamMat=matStone(0x5a4030,0.9);
+  const trimMat=matStone(0x4a3520,0.88);
+  // fundamenty z kamienia
+  const foundM=matStone(0x6a6a68,0.95);
+  addBox(g,w+0.4,0.5,d+0.4,0,0.25,0,foundM);
   // podloga
   const floor=new THREE.Mesh(new THREE.BoxGeometry(w,0.2,d),matStone(0x6a4a30,0.9));
-  floor.position.y=0.1;floor.receiveShadow=true;g.add(floor);
+  floor.position.y=0.5;floor.receiveShadow=true;g.add(floor);
   const doorGap=1.6;
+  const wallBase=0.5;
   // sciany - door gap zostawiamy na wybranej scianie
-  // tyl (-z)
   if(doorDir!=='s')addWall(g,hx,hz,0,-hd,w,wallH,th,wallMat);
   else{addWall(g,hx,hz,-(hw+doorGap/2)/2-0.4,-hd,hw-doorGap/2,wallH,th,wallMat);
        addWall(g,hx,hz,(hw+doorGap/2)/2+0.4,-hd,hw-doorGap/2,wallH,th,wallMat);}
-  // przod (+z)
   if(doorDir!=='n')addWall(g,hx,hz,0,hd,w,wallH,th,wallMat);
   else{addWall(g,hx,hz,-(hw+doorGap/2)/2-0.4,hd,hw-doorGap/2,wallH,th,wallMat);
        addWall(g,hx,hz,(hw+doorGap/2)/2+0.4,hd,hw-doorGap/2,wallH,th,wallMat);}
-  // lewa (-x)
   if(doorDir!=='w')addWall(g,hx,hz,-hw,0,th,wallH,d,wallMat);
   else{addWall(g,hx,hz,-hw,-(hd+doorGap/2)/2-0.4,th,wallH,hd-doorGap/2,wallMat);
        addWall(g,hx,hz,-hw,(hd+doorGap/2)/2+0.4,th,wallH,hd-doorGap/2,wallMat);}
-  // prawa (+x)
   if(doorDir!=='e')addWall(g,hx,hz,hw,0,th,wallH,d,wallMat);
   else{addWall(g,hx,hz,hw,-(hd+doorGap/2)/2-0.4,th,wallH,hd-doorGap/2,wallMat);
        addWall(g,hx,hz,hw,(hd+doorGap/2)/2+0.4,th,wallH,hd-doorGap/2,wallMat);}
-  // belki narozne
-  for(const[bx,bz]of[[-hw,-hd],[hw,-hd],[-hw,hd],[hw,hd]])
-    addBox(g,0.3,wallH,0.3,bx,wallH/2,bz,beamMat);
-  // dach piramidowy
+  // belki narozne (grubsze, z detalami)
+  for(const[bx,bz]of[[-hw,-hd],[hw,-hd],[-hw,hd],[hw,hd]]){
+    addBox(g,0.35,wallH+0.3,0.35,bx,wallH/2,bz,beamMat);
+    addBox(g,0.42,0.15,0.42,bx,wallH+0.1,bz,beamMat);
+  }
+  // belki poziome (srodek sciany - fachwerk)
+  addBox(g,w-0.3,0.12,0.35,0,wallH*0.5,hd,beamMat);
+  addBox(g,w-0.3,0.12,0.35,0,wallH*0.5,-hd,beamMat);
+  addBox(g,0.35,0.12,d-0.3,-hw,wallH*0.5,0,beamMat);
+  addBox(g,0.35,0.12,d-0.3,hw,wallH*0.5,0,beamMat);
+  // listwa pod dachem
+  addBox(g,w+0.5,0.15,0.08,0,wallH+0.05,hd+0.15,trimMat);
+  addBox(g,w+0.5,0.15,0.08,0,wallH+0.05,-hd-0.15,trimMat);
+  addBox(g,0.08,0.15,d+0.5,-hw-0.15,wallH+0.05,0,trimMat);
+  addBox(g,0.08,0.15,d+0.5,hw+0.15,wallH+0.05,0,trimMat);
+  // dach dwuspadowy zamiast piramidowego
   const roofCol=[0x8a3a28,0x7a3020,0x6a4030][(rng()*3)|0];
-  const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.78,2.0,4),matStone(roofCol,0.8));
-  roof.position.y=wallH+1.0;roof.rotation.y=Math.PI/4;roof.castShadow=!isMobile;g.add(roof);
-  // komin z zarzacym sie szczytem
-  const chimX=hw*0.5,chimZ=-hd*0.4;
-  addBox(g,0.5,wallH+1.4,0.5,chimX,(wallH+1.4)/2,chimZ,matStone(0x6a5a4a,0.9));
-  addBox(g,0.6,0.25,0.6,chimX,wallH+1.4,chimZ,matStone(0x4a3a2a,0.9));
+  const roofMat=matStone(roofCol,0.8);
+  const roofW=w*0.58,roofH=2.2,roofD=d*0.56;
+  for(const sx of [-1,1]){
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(roofW,0.15,roofD),roofMat);
+    panel.position.set(sx*w*0.22,wallH+roofH*0.52,0);
+    panel.rotation.z=sx*0.55;panel.castShadow=!isMobile;g.add(panel);
+  }
+  // kalenica (szczyt dachu)
+  addBox(g,0.18,0.18,d*0.52,0,wallH+roofH*0.75,0,trimMat);
+  // szczyty trojkatne (deski na bocznych scianach pod dachem)
+  for(const sz of [-1,1]){
+    const gableM=matStone(wallCol,0.82);
+    const gable=new THREE.Mesh(new THREE.ConeGeometry(w*0.42,roofH*0.7,3),gableM);
+    gable.position.set(0,wallH+roofH*0.35,sz*hd);gable.rotation.y=Math.PI/6;
+    gable.scale.set(1,1,0.08);g.add(gable);
+  }
+  // komin z cegiel
+  const chimX=hw*0.4,chimZ=-hd*0.3;
+  const chimM=matStone(0x8a5a4a,0.85);
+  addBox(g,0.55,wallH+2.0,0.55,chimX,(wallH+2.0)/2,chimZ,chimM);
+  addBox(g,0.65,0.2,0.65,chimX,wallH+2.0,chimZ,matStone(0x6a4a3a,0.9));
+  // cegielki na kominie
+  for(let r=0;r<3;r++)for(const sx of [-1,1])
+    addBox(g,0.08,0.15,0.57,chimX+sx*0.28,wallH+1.2+r*0.5,chimZ,matStone(0x7a4a3a,0.88));
   const ember=new THREE.Mesh(new THREE.SphereGeometry(0.12,5,4),new THREE.MeshBasicMaterial({color:0xff7733}));
-  ember.position.set(chimX,wallH+1.5,chimZ);g.add(ember);
-  // drzwi drewniane w otworze
+  ember.position.set(chimX,wallH+2.1,chimZ);g.add(ember);
+  // drzwi drewniane z detalami
   const doorMat=matStone(0x4a3018,0.85);
   const doorOff=0.04;
   let ddx=0,ddz=0,drot=0;
   if(doorDir==='n'){ddz=hd-doorOff;}else if(doorDir==='s'){ddz=-hd+doorOff;}
   else if(doorDir==='e'){ddx=hw-doorOff;drot=Math.PI/2;}else if(doorDir==='w'){ddx=-hw+doorOff;drot=Math.PI/2;}
   if(doorDir){
-    const door=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.2,0.12),doorMat);
-    door.position.set(ddx,1.1,ddz);door.rotation.y=drot;g.add(door);
-    // klamka
+    const door=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.4,0.12),doorMat);
+    door.position.set(ddx,1.7,ddz);door.rotation.y=drot;g.add(door);
     const knob=new THREE.Mesh(new THREE.SphereGeometry(0.08,5,4),new THREE.MeshStandardMaterial({color:0x886622,metalness:0.6,roughness:0.3}));
-    knob.position.set(ddx+(drot?0:0.45),1.1,ddz+(drot?0.45:0));g.add(knob);
-    // belki na drzwiach
-    for(let b=0;b<2;b++){const plank=new THREE.Mesh(new THREE.BoxGeometry(1.42,0.12,0.14),matStone(0x3a2410,0.9));
-      plank.position.set(ddx,0.6+b*1.0,ddz);plank.rotation.y=drot;g.add(plank);}
+    knob.position.set(ddx+(drot?0:0.45),1.6,ddz+(drot?0.45:0));g.add(knob);
+    // deski na drzwiach
+    for(let b=0;b<3;b++){const plank=new THREE.Mesh(new THREE.BoxGeometry(1.42,0.1,0.14),matStone(0x3a2410,0.9));
+      plank.position.set(ddx,0.9+b*0.7,ddz);plank.rotation.y=drot;g.add(plank);}
+    // nadprože nad drzwiami
+    addBox(g,1.8,0.2,0.18,ddx,2.95,ddz,beamMat);
+    // prog
+    addBox(g,1.6,0.12,0.2,ddx,0.56,ddz+(drot?0:0.1),foundM);
   }
-  // okno z rama i krzyzakiem
-  const winX=doorDir==='n'?hw*0.5:0, winZ=doorDir==='s'?hd-0.05:-hd+0.05;
-  addBox(g,0.9,0.9,0.12,winX,wallH*0.55,winZ,matStone(0x4a3018,0.85)); // rama
-  addBox(g,0.7,0.7,0.1,winX,wallH*0.55,winZ+0.02,
-    new THREE.MeshStandardMaterial({color:0x88bbdd,roughness:0.2,metalness:0.3,emissive:0x334455,emissiveIntensity:0.4}));
-  addBox(g,0.74,0.08,0.14,winX,wallH*0.55,winZ,matStone(0x4a3018,0.85)); // poziomy krzyzak
-  addBox(g,0.08,0.74,0.14,winX,wallH*0.55,winZ,matStone(0x4a3018,0.85)); // pionowy krzyzak
-  // skrzynia w srodku (przy tylnej scianie)
+  // okna z detailami (2 okna po bokach)
+  const winMat=new THREE.MeshStandardMaterial({color:0x88bbdd,roughness:0.2,metalness:0.3,emissive:0x445566,emissiveIntensity:0.5});
+  const frameMat=matStone(0x4a3018,0.85);
+  const winPositions=[];
+  if(doorDir!=='n'&&doorDir!=='s'){winPositions.push({x:hw*0.45,z:hd-0.05},{x:-hw*0.45,z:-hd+0.05});}
+  else if(doorDir==='n'){winPositions.push({x:0,z:-hd+0.05},{x:hw-0.05,z:0,rot:Math.PI/2});}
+  else{winPositions.push({x:0,z:hd-0.05},{x:-hw+0.05,z:0,rot:Math.PI/2});}
+  for(const wp of winPositions){
+    const wr=wp.rot||0;
+    addBox(g,1.1,1.1,0.15,wp.x,wallH*0.55,wp.z,frameMat);
+    addBox(g,0.85,0.85,0.1,wp.x,wallH*0.55,wp.z+(wr?0:0.02),winMat);
+    addBox(g,0.9,0.08,0.16,wp.x,wallH*0.55,wp.z,frameMat);
+    addBox(g,0.08,0.9,0.16,wp.x,wallH*0.55,wp.z,frameMat);
+    // parapet pod oknem
+    addBox(g,1.2,0.1,0.25,wp.x,wallH*0.55-0.5,wp.z+(wr?0:0.1),frameMat);
+  }
+  // doniczki z kwiatami pod oknami
+  if(rng()>0.4){const potM=matStone(0x8a4a2a,0.8);
+    const flowerCol=[0xff6688,0xffaa33,0xff4466,0xaadd55][(rng()*4)|0];
+    const wp0=winPositions[0];if(wp0){
+      addBox(g,0.4,0.3,0.3,wp0.x,wallH*0.55-0.65,wp0.z+0.15,potM);
+      const fl=new THREE.Mesh(new THREE.SphereGeometry(0.2,5,4),new THREE.MeshStandardMaterial({color:flowerCol,flatShading:true}));
+      fl.position.set(wp0.x,wallH*0.55-0.35,wp0.z+0.15);g.add(fl);}}
   if(withChest){
     let chx=hx,chz=hz;
     if(doorDir==='n')chz=hz-hd+0.8; else if(doorDir==='s')chz=hz+hd-0.8;
     else if(doorDir==='w')chx=hx+hw-0.8; else chx=hx-hw+0.8;
     spawnChest(scene,chx,chz,rng()<0.4?1:0);
   }
-  // lampka w srodku
-  const lamp=new THREE.PointLight(0xffcc77,0.8,8);lamp.position.set(hx,baseH+2.2,hz);scene.add(lamp);
+  const lamp=new THREE.PointLight(0xffcc77,1.0,10);lamp.position.set(hx,baseH+2.5,hz);scene.add(lamp);
+  // lampion przy drzwiach
+  if(doorDir){const dl=new THREE.PointLight(0xffaa55,0.5,5);
+    dl.position.set(hx+ddx*0.8,baseH+2.8,hz+ddz*0.8);scene.add(dl);
+    const lantern=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.25,0.15),new THREE.MeshBasicMaterial({color:0xffaa55}));
+    lantern.position.set(ddx*0.7,3.0,ddz*0.7);g.add(lantern);}
   return g;
 }
 function buildVillage(scene,cx,cz){
@@ -4014,6 +4067,17 @@ function buildMine(scene,cx,cz){
       new THREE.MeshBasicMaterial({color:0xffaa44}));
     lantern.position.set(2,2.4,3+i*3);grp.add(lantern);
   }
+  // pajeczyny i jaja pajakow w kopalni (legowisko Krolowej Pajakow)
+  const web=new THREE.MeshStandardMaterial({color:0xe8e8f0,roughness:0.8,transparent:true,opacity:0.45,side:THREE.DoubleSide,flatShading:true});
+  for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=2+Math.random()*8;
+    const wm=new THREE.Mesh(new THREE.CircleGeometry(1.5+Math.random()*2,6),web);
+    wm.position.set(Math.cos(a)*r,1+Math.random()*2,Math.sin(a)*r+4);
+    wm.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,0);grp.add(wm);}
+  const eggM=new THREE.MeshStandardMaterial({color:0x9a8a6a,roughness:0.7,flatShading:true});
+  for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,r=1+Math.random()*6;
+    const egg=new THREE.Mesh(new THREE.SphereGeometry(0.25+Math.random()*0.2,5,5),eggM);
+    egg.position.set(Math.cos(a)*r,0.3,Math.sin(a)*r+5);egg.scale.y=1.3;grp.add(egg);}
+  const poisonLight=new THREE.PointLight(0x66ff44,1.2,18);poisonLight.position.set(0,2,8);grp.add(poisonLight);
   buildBeacon(scene,cx,cz,0xffaa44);
 }
 function buildBeacon(scene,cx,cz,color){
@@ -7405,6 +7469,7 @@ function updateMobs(dt,now,camera,scene){
       const ang=Math.atan2(dx,dz);m.mesh.rotation.y=ang;
       if(now-m.lastAtk>m.type.atkCd*1000){
         m.lastAtk=now;hurtPlayer(Math.round(m.type.dmg*(m.dmgMul||1)));
+        if(m.poison){statusEffects.push({type:'dmgBoost',until:now+4000,value:0.85});toast('Jadowity pajak! Trucizna!');}
       }
     }
     const gh=terrainHeight(m.mesh.position.x,m.mesh.position.z);
@@ -8056,22 +8121,61 @@ function buildBossMesh(type){
   aura.position.y=H*0.6;g.add(aura);
   return g;
 }
+const bossProjectiles=[];
+let playerStunUntil=0;
+function spawnBossProjectile(b,target,color,dmg,speed,spell){
+  const dir=new THREE.Vector3(target.x-b.mesh.position.x,0,target.z-b.mesh.position.z).normalize();
+  const mat=new THREE.MeshBasicMaterial({color});
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,5),mat);
+  mesh.position.copy(b.mesh.position);mesh.position.y+=b.type.height*0.7;
+  _scene.add(mesh);
+  bossProjectiles.push({mesh,mat,vel:dir.multiplyScalar(speed),dmg,life:3.0,spell:spell||''});
+}
+function updateBossProjectiles(dt,camera){
+  for(let i=bossProjectiles.length-1;i>=0;i--){
+    const p=bossProjectiles[i];
+    p.mesh.position.x+=p.vel.x*dt;p.mesh.position.z+=p.vel.z*dt;
+    p.life-=dt;
+    const dx=camera.position.x-p.mesh.position.x,dz=camera.position.z-p.mesh.position.z;
+    if(dx*dx+dz*dz<2.5*2.5){
+      hurtPlayer(p.dmg);
+      if(p.spell==='curse'){statusEffects.push({type:'dmgBoost',until:performance.now()+8000,value:0.6});toast('Klatwa Faraona! -40% dmg');}
+      if(p.spell==='stun'){playerStunUntil=performance.now()+2500;toast('Ogluszenie!');}
+      _scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();bossProjectiles.splice(i,1);continue;
+    }
+    if(p.life<=0){_scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();bossProjectiles.splice(i,1);}
+  }
+}
 function spawnBoss(scene,type,x,z){
   if(bossSpawned[type.id])return;
   const h=type.water?SEA_LEVEL-2.5:terrainHeight(x,z);
   const mesh=buildBossMesh(type);mesh.position.set(x,h,z);scene.add(mesh);
   const hpBar=createMobHPBar();hpBar.group.position.y=type.height+1;mesh.add(hpBar.group);
   hpBar.group.visible=true;
+  const ai={shieldUp:false,shieldTimer:0,fatigueTimer:0,spellTimer:0,
+    retreatTimer:0,submerged:false,submergeTimer:0,surfaceTimer:0,
+    breathTimer:0,breathing:false,breathDir:null,
+    summonTimer:0,wallY:0,wallPhase:0,minionTimer:0,
+    homeX:x,homeZ:z,skPhase1:true};
   bosses.push({type,mesh,hp:type.hp,maxHp:type.hp,hpBar,
-    state:'idle',lastAtk:0,phase2:false,aoeTimer:0});
+    state:'idle',lastAtk:0,phase2:false,aoeTimer:0,ai});
   bossSpawned[type.id]=true;
   document.getElementById('boss-bar').classList.add('show');
   document.getElementById('boss-name').textContent=type.name+' ('+type.hp+' HP)';
 }
 function damageBoss(idx,dmg){
-  const b=bosses[idx];if(!b)return;b.hp-=dmg;
+  const b=bosses[idx];if(!b)return;
+  if(b.ai&&b.ai.shieldUp){
+    const wp=b.mesh.position.clone();wp.y+=b.type.height+1;
+    floatNumber(wp,'TARCZA','#6688ff');return;
+  }
+  if(b.ai&&b.ai.submerged){
+    const wp=b.mesh.position.clone();wp.y+=b.type.height+1;
+    floatNumber(wp,'MISS','#999999');return;
+  }
+  b.hp-=dmg;
   if(b.hp<b.maxHp*0.5&&!b.phase2){b.phase2=true;toast(b.type.name+': Faza 2!');
-    if(b.type.id==='skeleton_king')spawnBossSkeletons(b);
+    if(b.type.id==='skeleton_king'){spawnBossSkeletons(b);b.ai.skPhase1=false;}
   }
   const ratio=Math.max(0,b.hp/b.maxHp);
   b.hpBar.fill.scale.x=ratio;b.hpBar.fill.position.x=-(1-ratio)*0.42;
@@ -8114,30 +8218,192 @@ function killBoss(idx){
   if(bosses.length===0)document.getElementById('boss-bar').classList.remove('show');
 }
 function updateBosses(dt,now,camera){
+  updateBossProjectiles(dt,camera);
   for(let i=bosses.length-1;i>=0;i--){
-    const b=bosses[i];
+    const b=bosses[i];const ai=b.ai;
     const dx=camera.position.x-b.mesh.position.x;
     const dz=camera.position.z-b.mesh.position.z;
     const dist=Math.sqrt(dx*dx+dz*dz);
-    if(dist<b.type.aggroRange&&!playerDead){
-      const ang=Math.atan2(dx,dz);b.mesh.rotation.y=ang;
-      if(dist>b.type.atkRange){
-        const spd=b.type.speed*(b.phase2?1.5:1);
-        b.mesh.position.x+=Math.sin(ang)*spd*dt;
-        b.mesh.position.z+=Math.cos(ang)*spd*dt;
-      }else if(now-b.lastAtk>b.type.atkCd*1000){
-        b.lastAtk=now;
-        const dmg=Math.round(b.type.dmg*(b.phase2?1.5:1));
-        hurtPlayer(dmg);
+    const ang=Math.atan2(dx,dz);
+    const inRange=dist<b.type.aggroRange&&!playerDead;
+    if(inRange)b.mesh.rotation.y=ang;
+    const bid=b.type.id;
+
+    if(bid==='dark_lord'&&inRange){
+      // Władca Mroku: shield + spells, fatigue windows
+      ai.shieldTimer-=dt;ai.fatigueTimer-=dt;ai.spellTimer-=dt;
+      if(ai.fatigueTimer>0){
+        // FATIGUE - shield down, boss stunned, player can hit
+        ai.shieldUp=false;
+        b.mesh.position.y=terrainHeight(b.mesh.position.x,b.mesh.position.z);
+      }else{
+        ai.shieldUp=true;
+        if(ai.shieldTimer<=0){ai.shieldTimer=12+Math.random()*5;ai.fatigueTimer=4;
+          toast('Tarcza Wladcy peka! ATAKUJ!');ai.shieldUp=false;}
+        if(dist>8){const spd=b.type.speed*0.5;
+          b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+        if(ai.spellTimer<=0){ai.spellTimer=1.5+(b.phase2?0:1);
+          spawnBossProjectile(b,camera.position,0x8800ff,Math.round(b.type.dmg*(b.phase2?0.8:0.5)),22,'');
+          if(b.phase2&&Math.random()<0.3)spawnBossProjectile(b,camera.position,0xff2200,Math.round(b.type.dmg*0.6),18,'');}
+      }
+    }else if(bid==='skeleton_king'&&inRange){
+      // Krol Szkieletow: phase1 tank+shield, phase2 retreat+summon
+      if(ai.skPhase1){
+        if(dist>b.type.atkRange){const spd=b.type.speed;
+          b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+        else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+          hurtPlayer(Math.round(b.type.dmg*1.2));toast('Krol Szkieletow uderza tarcza!');}
+      }else{
+        // phase2: retreat and summon skeletons
+        if(dist<12){b.mesh.position.x-=Math.sin(ang)*b.type.speed*0.8*dt;
+          b.mesh.position.z-=Math.cos(ang)*b.type.speed*0.8*dt;}
+        ai.summonTimer-=dt;
+        if(ai.summonTimer<=0){ai.summonTimer=8;
+          const sa=Math.random()*Math.PI*2;
+          spawnSkeletonMinion(b.mesh.position.x+Math.cos(sa)*5,b.mesh.position.z+Math.sin(sa)*5,false);
+          toast('Krol przywoluje szkielety!');}
+      }
+    }else if(bid==='dragon'&&inRange){
+      // Smok Zeldras: tank + fire breath retreat
+      ai.breathTimer-=dt;
+      if(ai.breathing){
+        ai.retreatTimer-=dt;
+        if(ai.retreatTimer>0){
+          // fly back and breathe fire
+          b.mesh.position.x-=Math.sin(ang)*6*dt;b.mesh.position.z-=Math.cos(ang)*6*dt;
+          b.mesh.position.y+=2*dt;
+          ai.spellTimer-=dt;
+          if(ai.spellTimer<=0){ai.spellTimer=0.3;
+            spawnBossProjectile(b,camera.position,0xff4400,Math.round(b.type.dmg*0.4),28,'');}
+        }else{ai.breathing=false;}
+      }else{
+        if(dist>b.type.atkRange){const spd=b.type.speed*(b.phase2?1.3:1);
+          b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+        else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+          hurtPlayer(Math.round(b.type.dmg*(b.phase2?1.5:1)));}
+        if(ai.breathTimer<=0){ai.breathTimer=10+(b.phase2?-3:0);
+          ai.breathing=true;ai.retreatTimer=2.5;ai.spellTimer=0;
+          toast('Smok Zeldras zieje ogniem!');}
+      }
+    }else if(bid==='pharaoh'&&inRange){
+      // Faraon: summon mummies, cast curses, no melee
+      ai.spellTimer-=dt;ai.summonTimer-=dt;
+      if(dist<15){b.mesh.position.x-=Math.sin(ang)*b.type.speed*0.3*dt;
+        b.mesh.position.z-=Math.cos(ang)*b.type.speed*0.3*dt;}
+      if(ai.spellTimer<=0){ai.spellTimer=3+(b.phase2?-1:0);
+        spawnBossProjectile(b,camera.position,0xffcc22,Math.round(b.type.dmg*0.5),16,'curse');
+        toast('Faraon rzuca klatwe!');}
+      if(ai.summonTimer<=0){ai.summonTimer=7+(b.phase2?-2:0);
+        const mType=MOB_TYPES.find(t=>t.id==='mummy');
+        if(mType){for(let m=0;m<(b.phase2?3:2);m++){
+          const ma=Math.random()*Math.PI*2;const mx=b.mesh.position.x+Math.cos(ma)*6,mz=b.mesh.position.z+Math.sin(ma)*6;
+          const mh=terrainHeight(mx,mz);const mm=buildMobMesh(mType);mm.position.set(mx,mh,mz);_scene.add(mm);
+          const hpB=createMobHPBar();hpB.group.position.y=mType.height+0.3;hpB.group.visible=true;mm.add(hpB.group);
+          mobs.push({type:mType,mesh:mm,hp:mType.hp,maxHp:mType.hp,hpBar:hpB,state:'chase',
+            wanderAngle:0,wanderTimer:0,lastAtk:0,phase:0,hitTimer:0,walkCycle:0,dmgMul:1.0});
+        }toast('Faraon przywoluje mumie!');}
+      }
+    }else if(bid==='leviathan'&&inRange){
+      // Leviatan: bite+stun, submerge/surface cycle
+      if(ai.submerged){
+        ai.submergeTimer-=dt;b.mesh.visible=false;
+        if(ai.submergeTimer<=0){ai.submerged=false;b.mesh.visible=true;
+          const sa=Math.random()*Math.PI*2,sr=8+Math.random()*6;
+          b.mesh.position.x=camera.position.x+Math.cos(sa)*sr;
+          b.mesh.position.z=camera.position.z+Math.sin(sa)*sr;
+          toast('Leviatan wynurza sie!');
+          hurtPlayer(Math.round(b.type.dmg*0.6));
+          playerStunUntil=now+2000;toast('Ogluszenie!');}
+      }else{
+        ai.surfaceTimer-=dt;
+        if(dist>b.type.atkRange){const spd=b.type.speed*(b.phase2?1.3:1);
+          b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+        else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+          const dmg=Math.round(b.type.dmg*(b.phase2?1.5:1));hurtPlayer(dmg);
+          if(Math.random()<0.25){playerStunUntil=now+1500;toast('Leviatan oglusza cie!');}}
+        if(ai.surfaceTimer<=0){ai.surfaceTimer=12+(b.phase2?-3:0);
+          ai.submerged=true;ai.submergeTimer=4+(b.phase2?-1:0);
+          toast('Leviatan znika w glębinach...');}
+      }
+    }else if(bid==='ice_titan'&&inRange){
+      // Lodowy Tytan: high HP tank, slow AOE frost
+      if(dist>b.type.atkRange){const spd=b.type.speed*(b.phase2?1.3:1);
+        b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+      else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+        hurtPlayer(Math.round(b.type.dmg*(b.phase2?1.5:1)));}
+      b.aoeTimer-=dt;
+      if(b.aoeTimer<=0&&dist<10){b.aoeTimer=4;
+        hurtPlayer(Math.round(b.type.dmg*0.35));
+        statusEffects.push({type:'dmgBoost',until:now+5000,value:0.7});
+        toast('Lodowy Tytan — mrozna fala! Spowolnienie!');}
+    }else if(bid==='lava_golem'&&inRange){
+      // Golem Lawy: high dmg tank, fire ground
+      if(dist>b.type.atkRange){const spd=b.type.speed*(b.phase2?1.3:1);
+        b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+      else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+        hurtPlayer(Math.round(b.type.dmg*(b.phase2?1.8:1.3)));}
+      b.aoeTimer-=dt;
+      if(b.aoeTimer<=0&&dist<8){b.aoeTimer=3;
+        hurtPlayer(Math.round(b.type.dmg*0.5));
+        toast('Golem Lawy — fala magmy!');}
+    }else if(bid==='forest_queen'&&inRange){
+      // Królowa Lasu: summon trees/vines that damage, ranged attack
+      ai.spellTimer-=dt;ai.summonTimer-=dt;
+      if(dist<10){b.mesh.position.x-=Math.sin(ang)*b.type.speed*0.4*dt;
+        b.mesh.position.z-=Math.cos(ang)*b.type.speed*0.4*dt;}
+      if(ai.spellTimer<=0){ai.spellTimer=2.5+(b.phase2?-0.8:0);
+        spawnBossProjectile(b,camera.position,0x66ff33,Math.round(b.type.dmg*0.4),20,'');}
+      if(ai.summonTimer<=0){ai.summonTimer=6+(b.phase2?-2:0);
+        for(let v=0;v<(b.phase2?4:2);v++){
+          const va=Math.random()*Math.PI*2,vr=3+Math.random()*8;
+          const vx=camera.position.x+Math.cos(va)*vr,vz=camera.position.z+Math.sin(va)*vr;
+          const vh=terrainHeight(vx,vz);
+          const vine=new THREE.Mesh(new THREE.ConeGeometry(0.5,3,5),
+            new THREE.MeshStandardMaterial({color:0x338833,emissive:0x115511,emissiveIntensity:0.5,flatShading:true}));
+          vine.position.set(vx,vh,vz);_scene.add(vine);
+          setTimeout(()=>{_scene.remove(vine);vine.geometry.dispose();vine.material.dispose();},4000);
+          const pdx=camera.position.x-vx,pdz=camera.position.z-vz;
+          if(pdx*pdx+pdz*pdz<4*4)hurtPlayer(Math.round(b.type.dmg*0.3));
+        }
+        toast('Krolowa Lasu kontroluje rosliny!');}
+    }else if(bid==='spider_queen'&&inRange){
+      // Królowa Pająków: aggressive, wall climbing, spawn small spiders with poison
+      ai.wallPhase+=dt*2;ai.summonTimer-=dt;
+      const wallOff=Math.sin(ai.wallPhase)*1.5;
+      b.mesh.position.y=terrainHeight(b.mesh.position.x,b.mesh.position.z)+Math.abs(wallOff);
+      if(dist>b.type.atkRange){const spd=b.type.speed*(b.phase2?1.5:1);
+        b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+      else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+        const dmg=Math.round(b.type.dmg*(b.phase2?1.5:1));hurtPlayer(dmg);}
+      if(ai.summonTimer<=0){ai.summonTimer=5+(b.phase2?-1.5:0);
+        const sType=MOB_TYPES.find(t=>t.id==='spider');
+        if(sType){for(let s=0;s<(b.phase2?3:2);s++){
+          const sa=Math.random()*Math.PI*2;const sx=b.mesh.position.x+Math.cos(sa)*6,sz=b.mesh.position.z+Math.sin(sa)*6;
+          const sh=terrainHeight(sx,sz);const sm=buildMobMesh(sType);sm.position.set(sx,sh,sz);_scene.add(sm);
+          const hpB=createMobHPBar();hpB.group.position.y=sType.height+0.3;hpB.group.visible=true;sm.add(hpB.group);
+          mobs.push({type:sType,mesh:sm,hp:sType.hp,maxHp:sType.hp,hpBar:hpB,state:'chase',
+            wanderAngle:0,wanderTimer:0,lastAtk:0,phase:0,hitTimer:0,walkCycle:0,dmgMul:1.0,poison:true});
+        }toast('Krolowa spawnuje pajaki!');}
       }
       b.aoeTimer-=dt;
-      if(b.aoeTimer<=0&&dist<8){
-        b.aoeTimer=5;hurtPlayer(Math.round(b.type.dmg*0.3));
-        toast(b.type.name+' — atak obszarowy!');
-      }
+      if(b.aoeTimer<=0&&dist<6){b.aoeTimer=4;
+        statusEffects.push({type:'dmgBoost',until:now+6000,value:0.8});
+        toast('Jadowity gaz! Oslabienie!');}
+    }else if(inRange){
+      // default boss AI (fallback)
+      if(dist>b.type.atkRange){const spd=b.type.speed*(b.phase2?1.5:1);
+        b.mesh.position.x+=Math.sin(ang)*spd*dt;b.mesh.position.z+=Math.cos(ang)*spd*dt;}
+      else if(now-b.lastAtk>b.type.atkCd*1000){b.lastAtk=now;
+        hurtPlayer(Math.round(b.type.dmg*(b.phase2?1.5:1)));}
+      b.aoeTimer-=dt;
+      if(b.aoeTimer<=0&&dist<8){b.aoeTimer=5;hurtPlayer(Math.round(b.type.dmg*0.3));
+        toast(b.type.name+' — atak obszarowy!');}
     }
-    const gh=terrainHeight(b.mesh.position.x,b.mesh.position.z);
-    b.mesh.position.y=gh;
+    if(bid!=='leviathan'||!ai.submerged){
+      const gh=b.type.water?SEA_LEVEL-2.5:terrainHeight(b.mesh.position.x,b.mesh.position.z);
+      if(bid!=='spider_queen'&&bid!=='dragon')b.mesh.position.y=gh;
+      else if(bid==='dragon'&&!ai.breathing)b.mesh.position.y=gh;
+    }
     b.hpBar.group.quaternion.copy(camera.quaternion);
   }
 }
@@ -8395,6 +8661,7 @@ function setupMobileInput(){
 // ═══ PLAYER MOVEMENT ════════════════════════════════
 function updatePlayer(dt,camera){
   if(playerDead||dialogOpen||charOpen||craftOpen||fullmapOpen||chestOpen)return;
+  if(playerStunUntil>performance.now()){return;}
   if(riding){updateRiding(dt,camera);return;}
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
