@@ -3418,6 +3418,40 @@ function buildPyramid(scene,cx,cz){
     f.position.set(sx,4,11);grp.add(f);
     const tl=new THREE.PointLight(0xff6611,1,8);tl.position.set(sx,4.2,11);grp.add(tl);
   }
+  // sfinksy straznicze przy wejsciu
+  const sphinxM=matStone(0xb89850,0.8);
+  for(const sx of[-5,5]){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.2,3),sphinxM);
+    body.position.set(sx,0.6,12);grp.add(body);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.9,1,0.8),sphinxM);
+    head.position.set(sx,1.6,13);grp.add(head);
+    const headdress=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.3,1),matStone(0x2244aa,0.8));
+    headdress.position.set(sx,2.1,12.8);grp.add(headdress);
+    const paw1=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,1.5),sphinxM);
+    paw1.position.set(sx-0.6,0.2,13.2);grp.add(paw1);
+    const paw2=paw1.clone();paw2.position.set(sx+0.6,0.2,13.2);grp.add(paw2);
+  }
+  // hieroglify na scianach (dekoracyjne panele)
+  const hieroM=matStone(0xa88840,0.7);
+  for(let i=0;i<4;i++){
+    const a=i/4*Math.PI*2;const r=10.5;
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(4,2.5,0.15),hieroM);
+    panel.position.set(Math.cos(a)*r,2,Math.sin(a)*r);panel.rotation.y=a;grp.add(panel);
+    for(let h=0;h<3;h++){const sym=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.08),
+      matStone(0x886830,0.6));
+      sym.position.set(Math.cos(a)*(r+0.1)+(h-1)*Math.sin(a)*0.8,1.5+h*0.7,
+        Math.sin(a)*(r+0.1)-(h-1)*Math.cos(a)*0.8);
+      sym.rotation.y=a;grp.add(sym);}
+  }
+  // obeliski w rogach
+  const obM=matStone(0xb89850,0.75);
+  for(const sx of[-1,1])for(const sz of[-1,1]){
+    const ob=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.4,6,4),obM);
+    ob.position.set(sx*12,3,sz*12);grp.add(ob);
+    const tip=new THREE.Mesh(new THREE.ConeGeometry(0.3,1,4),
+      new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.7,roughness:0.2}));
+    tip.position.set(sx*12,6.5,sz*12);grp.add(tip);
+  }
   buildBeacon(scene,cx,cz,0xffcc22);
 }
 function buildMine(scene,cx,cz){
@@ -6554,10 +6588,11 @@ function giveXP(amount){
   while(xpState.xp>=xpState.xpNext){
     xpState.xp-=xpState.xpNext;xpState.level++;
     xpState.xpNext=Math.floor(100*Math.pow(xpState.level,1.15));
+    skillPoints+=1;
     if(xpState.level%5===0&&xpState.level>lastPointLvl){
-      lastPointLvl=xpState.level;skillPoints+=5;
+      lastPointLvl=xpState.level;skillPoints+=4;
       toast('Poziom '+xpState.level+'! +5 punktow umiejetnosci');
-    }else{toast('Poziom '+xpState.level+'!');}
+    }else{toast('Poziom '+xpState.level+'! +1 punkt umiejetnosci');}
     applyStats();updateCharBtn();
   }
 }
