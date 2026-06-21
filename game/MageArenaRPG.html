@@ -3879,23 +3879,84 @@ function buildLavaForge(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   const obsidian=matStone(0x1a1418,0.4);
+  const darkRock=matStone(0x2a2025,0.6);
   const lavaMat=new THREE.MeshStandardMaterial({color:0xff4400,emissive:0xff3300,emissiveIntensity:0.8,roughness:0.6,flatShading:true});
-  // kuznia - obsydianowe filary
+  const emberMat=new THREE.MeshStandardMaterial({color:0xffaa00,emissive:0xff6600,emissiveIntensity:0.6,flatShading:true});
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x1A7A);
+  // platforma bazowa
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(16,18,1.5,10),darkRock);
+  base.position.y=0.75;grp.add(base);
+  // kuznia - obsydianowe filary z detalami
   for(let i=0;i<6;i++){
     const a=(i/6)*Math.PI*2,r=12;
-    addBox(grp,2,7,2,Math.cos(a)*r,3.5,Math.sin(a)*r,obsidian);
+    const px=Math.cos(a)*r,pz=Math.sin(a)*r;
+    addBox(grp,2,8,2,px,4,pz,obsidian);
+    const cap=new THREE.Mesh(new THREE.ConeGeometry(1.8,2,4),obsidian);
+    cap.position.set(px,9,pz);cap.rotation.y=a;grp.add(cap);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(1.2,0.15,6,8),lavaMat);
+    ring.position.set(px,5.5,pz);ring.rotation.x=Math.PI/2;grp.add(ring);
+    // laczniki miedzy filarami
+    if(i<5){
+      const na=((i+1)/6)*Math.PI*2;
+      const nx=Math.cos(na)*r,nz=Math.sin(na)*r;
+      const beam=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,
+        Math.sqrt((nx-px)**2+(nz-pz)**2)),obsidian);
+      beam.position.set((px+nx)/2,7.5,(pz+nz)/2);
+      beam.lookAt(new THREE.Vector3(nx,7.5,nz));grp.add(beam);
+    }
   }
-  // centralne palenisko z lawa
-  const forge=new THREE.Mesh(new THREE.CylinderGeometry(5,6,2,8),obsidian);forge.position.y=1;grp.add(forge);
-  const lava=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.5,0.4,8),lavaMat);lava.position.y=2.1;grp.add(lava);
-  // strumienie lawy
-  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x1A7A);
-  for(let i=0;i<10;i++){
-    const a=rng()*Math.PI*2,r=8+rng()*16;
-    const pool=new THREE.Mesh(new THREE.CircleGeometry(1+rng()*2,6),lavaMat);
-    pool.rotation.x=-Math.PI/2;pool.position.set(Math.cos(a)*r,0.1,Math.sin(a)*r);grp.add(pool);
+  // centralne palenisko wielopoziomowe
+  const forge1=new THREE.Mesh(new THREE.CylinderGeometry(6,7,1.5,10),obsidian);forge1.position.y=0.75;grp.add(forge1);
+  const forge2=new THREE.Mesh(new THREE.CylinderGeometry(5,6,1.5,10),obsidian);forge2.position.y=2.25;grp.add(forge2);
+  const lava=new THREE.Mesh(new THREE.CylinderGeometry(4.5,4.5,0.5,10),lavaMat);lava.position.y=3.1;grp.add(lava);
+  // kowadlo
+  const anvil=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.5,0.8),
+    new THREE.MeshStandardMaterial({color:0x333333,metalness:0.8,roughness:0.3,flatShading:true}));
+  anvil.position.set(5,1.8,0);grp.add(anvil);
+  const anvilBase=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.5,1.2,6),darkRock);
+  anvilBase.position.set(5,0.6,0);grp.add(anvilBase);
+  // mlot kowalski
+  const hammerH=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.2,4),
+    new THREE.MeshStandardMaterial({color:0x6a4a2a,flatShading:true}));
+  hammerH.position.set(5.5,2.4,0);hammerH.rotation.z=0.6;grp.add(hammerH);
+  const hammerHead=new THREE.Mesh(new THREE.BoxGeometry(0.35,0.25,0.2),
+    new THREE.MeshStandardMaterial({color:0x444444,metalness:0.7,roughness:0.4,flatShading:true}));
+  hammerHead.position.set(5.8,3,0);grp.add(hammerHead);
+  // kanaly lawy od centrum
+  for(let i=0;i<4;i++){
+    const a=(i/4)*Math.PI*2+Math.PI/4;
+    for(let s=0;s<4;s++){
+      const cr=6+s*3;
+      const ch=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.2,3),lavaMat);
+      ch.position.set(Math.cos(a)*cr,0.2,Math.sin(a)*cr);ch.rotation.y=-a;grp.add(ch);
+    }
   }
-  {const tl=new THREE.PointLight(0xff5500,3,40);tl.position.set(0,4,0);grp.add(tl);}
+  // jeziorka lawy
+  for(let i=0;i<8;i++){
+    const a=rng()*Math.PI*2,r=8+rng()*14;
+    const ps=1.2+rng()*2;
+    const pool=new THREE.Mesh(new THREE.CircleGeometry(ps,7),lavaMat);
+    pool.rotation.x=-Math.PI/2;pool.position.set(Math.cos(a)*r,0.15,Math.sin(a)*r);grp.add(pool);
+    if(rng()>0.5){
+      const bubbleMat=new THREE.MeshStandardMaterial({color:0xffcc00,emissive:0xff8800,emissiveIntensity:0.5,transparent:true,opacity:0.6});
+      const bubble=new THREE.Mesh(new THREE.SphereGeometry(0.15+rng()*0.1,5,4),bubbleMat);
+      bubble.position.set(Math.cos(a)*r,0.3,Math.sin(a)*r);grp.add(bubble);
+    }
+  }
+  // oblsydianowe glazy wokol
+  for(let i=0;i<6;i++){
+    const a=rng()*Math.PI*2,r=14+rng()*8;
+    const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1+rng(),0),darkRock);
+    rock.position.set(Math.cos(a)*r,0.5+rng()*0.5,Math.sin(a)*r);
+    rock.rotation.set(rng()*3,rng()*3,0);grp.add(rock);
+  }
+  // swiatla
+  {const tl=new THREE.PointLight(0xff5500,3.5,45);tl.position.set(0,5,0);grp.add(tl);}
+  for(let i=0;i<3;i++){
+    const la=(i/3)*Math.PI*2;
+    const ll=new THREE.PointLight(0xff3300,1,12);
+    ll.position.set(Math.cos(la)*10,2,Math.sin(la)*10);grp.add(ll);
+  }
   buildBeacon(scene,cx,cz,0xff5500);
 }
 function buildSacredGrove(scene,cx,cz){
@@ -7662,7 +7723,9 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get strength(){return strength;},set strength(v){strength=v;},
   get maxStrength(){return maxStrength;},
   get decay(){return decay;},set decay(v){decay=v;},
-  get maxDecay(){return maxDecay;}};
+  get maxDecay(){return maxDecay;},
+  get xpState(){return xpState;},giveXP,
+  get skillPoints(){return skillPoints;},set skillPoints(v){skillPoints=v;}};
 </script>
 </body>
 </html>
