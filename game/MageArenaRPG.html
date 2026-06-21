@@ -1282,7 +1282,7 @@ const MOB_TYPES = [
   {id:'crystal_golem',name:'Krysztalowy Golem',hp:1200,dmg:50,speed:2,atkRange:3.5,aggroRange:16,xp:200,gold:65,atkCd:2.8,height:3.0,biomes:['mountains'],drops:['crystal','diamond','mithril']},
   {id:'firesnake',name:'Ognisty Waz',hp:400,dmg:25,speed:5,atkRange:2.0,aggroRange:22,xp:70,gold:18,atkCd:1.4,height:1.0,biomes:['volcanic'],drops:['fire_dust']},
   {id:'magma_turtle',name:'Magmowy Zolw',hp:500,dmg:30,speed:2,atkRange:2.5,aggroRange:20,xp:80,gold:20,atkCd:2.5,height:1.5,biomes:['volcanic'],drops:['fire_dust','magma_heart']},
-  {id:'dragon_common',name:'Smok Zwykly',hp:2000,dmg:65,speed:5,atkRange:4.0,aggroRange:40,xp:300,gold:100,atkCd:2.0,height:3.5,biomes:['volcanic'],drops:['dragon_gem','fire_dust']},
+  {id:'dragon_common',name:'Smok Zwykly',hp:2000,dmg:65,speed:5,atkRange:4.0,aggroRange:40,xp:300,gold:100,atkCd:2.0,height:3.5,biomes:['volcanic'],tame:'dragon_gem',drops:['dragon_gem','fire_dust']},
   {id:'moltres',name:'Moltres',hp:1400,dmg:45,speed:6,atkRange:3.0,aggroRange:30,xp:200,gold:60,atkCd:1.8,height:2.0,biomes:['volcanic'],tame:'fire_feather',drops:['fire_feather','fire_dust']},
   {id:'monkey',name:'Malpa',hp:150,dmg:10,speed:5,atkRange:2.0,aggroRange:10,xp:30,gold:8,atkCd:1.5,height:1.2,biomes:['jungle'],tame:'banana',drops:['banana']},
   {id:'saber_tiger',name:'Tygrys Szablozebny',hp:500,dmg:35,speed:7,atkRange:2.5,aggroRange:30,xp:120,gold:30,atkCd:1.0,height:1.6,biomes:['jungle'],drops:['leather','bone']},
@@ -1340,7 +1340,9 @@ const BOSS_DROPS = [
   {id:'crown_bones',name:'Korona Kosci',icon:'👑',equip:'hood',bonus:{hp:50,dmg:10,mana:40},rarity:'legend',boss:'skeleton_king'},
   {id:'dragon_chest',name:'Smocza Zbroja',icon:'🦺',equip:'chest',bonus:{hp:80,dmgRed:15,dmg:8},rarity:'legend',boss:'dragon'},
   {id:'dark_cape',name:'Peleryna Mroku',icon:'🧣',equip:'cape',bonus:{dmg:15,speed:12,dmgRed:8},rarity:'legend',boss:'dark_lord'},
-  {id:'dragon_wand',name:'Smocza Rozdzka',icon:'🪄',equip:'weapon',bonus:{dmg:20,mana:50},rarity:'legend',type:'wand',wandTier:3,boss:'dragon'},
+  {id:'dragon_boots',name:'Smocze Buty',icon:'🥾',equip:'boots',bonus:{hp:40,speed:15,dmgRed:10},rarity:'legend',boss:'dragon'},
+  {id:'dragon_gloves',name:'Smocze Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:25,hp:40},rarity:'legend',boss:'dragon'},
+  {id:'skeleton_scepter',name:'Berlo Krola Szkieletow',icon:'🏆',equip:'weapon',bonus:{dmg:22,hp:30,mana:40},rarity:'legend',boss:'skeleton_king',scepter:true},
   {id:'dark_staff',name:'Kostur Mroku',icon:'🪄',equip:'weapon',bonus:{dmg:25,mana:80},rarity:'legend',type:'wand',wandTier:3,boss:'dark_lord'},
   {id:'pharaoh_mask',name:'Maska Faraona',icon:'🎭',equip:'hood',bonus:{hp:40,dmg:8,mana:60},rarity:'legend',boss:'pharaoh'},
   {id:'pharaoh_staff',name:'Berlo Faraona',icon:'🪄',equip:'weapon',bonus:{dmg:18,mana:40},rarity:'legend',type:'wand',wandTier:2,boss:'pharaoh'},
@@ -1397,7 +1399,7 @@ const quest = {active:false,done:false,target:'skeleton',targetName:'Szkielet',n
 
 // ═══ CRAFTING ════════════════════════════════════════════
 const RECIPES = [
-  {id:'workbench',name:'Stol Rzemiosla',icon:'🪵',need:[{id:'wood',count:4}],desc:'Pozwala tworzyc przedmioty'},
+  {id:'workbench',name:'Stol Rzemiosla',icon:'🪵',type:'block',blockType:'table',need:[{id:'wood',count:4}],desc:'Postaw aby tworzyc przedmioty'},
   {id:'furnace',name:'Piec',icon:'🧱',need:[{id:'stone',count:8}],desc:'Pozwala wytapiac i gotowac'},
   {id:'magic_table',name:'Stol Magiczny',icon:'🔮',need:[{id:'wood',count:4},{id:'crystal',count:2}],desc:'Pozwala tworzyc magiczne przedmioty'},
   {id:'cooked_meat',name:'Pieczone Mieso',icon:'🍖',type:'food',need:[{id:'raw_meat',count:1}],desc:'Przywraca 25 glodu + 5 HP',effect:{hunger:25,hp:5}},
@@ -1752,6 +1754,7 @@ function buildItembar(){
     slot.addEventListener('click',()=>selectItem(i));
     hb.appendChild(slot);
   }
+  if(typeof updateScepterBtn==='function')updateScepterBtn();
 }
 let _invDragFrom=-1;
 function buildInvGrid(){
@@ -2827,6 +2830,57 @@ function useClassAbility(abilityId){
       toast('Chwyt Smierci!');classAbilityCd=now+8000;
     }
   }
+}
+
+// ═══ SKELETON SUMMONING (Skeleton King phase2 + Nekromanta scepter) ═══
+let summonedSkeletons=[];
+function spawnSkeletonMinion(x,z,friendly){
+  const skType=MOB_TYPES.find(t=>t.id==='skeleton');if(!skType)return;
+  const h=terrainHeight(x,z);
+  const mesh=buildMobMesh(skType);mesh.position.set(x,h,z);_scene.add(mesh);
+  const hpBar=createMobHPBar();hpBar.group.position.y=skType.height+0.3;hpBar.group.visible=true;
+  mesh.add(hpBar.group);
+  const mob={type:skType,mesh,hp:skType.hp,maxHp:skType.hp,hpBar,
+    state:'chase',wanderAngle:Math.random()*Math.PI*2,wanderTimer:0,lastAtk:0,
+    phase:Math.random()*6.28,hitTimer:0,walkCycle:Math.random()*6.28,dmgMul:1.0,
+    friendly:!!friendly,summoned:true};
+  if(friendly){
+    summonedSkeletons.push(mob);
+    mob.state='follow';
+  }else{
+    mobs.push(mob);
+  }
+  return mob;
+}
+function spawnBossSkeletons(boss){
+  const bx=boss.mesh.position.x,bz=boss.mesh.position.z;
+  for(let i=0;i<4;i++){
+    const ang=Math.PI*2*i/4;
+    spawnSkeletonMinion(bx+Math.cos(ang)*5,bz+Math.sin(ang)*5,false);
+  }
+  toast('Krol Szkieletow przywoluje armie!');
+}
+function updateScepterBtn(){
+  let btn=document.getElementById('scepter-btn');
+  const hasScepter=playerClass==='nekromanta'&&ITEMS.some(it=>it&&it.scepter);
+  if(hasScepter&&!btn){
+    btn=document.createElement('button');btn.id='scepter-btn';btn.textContent='💀';
+    btn.title='Przywolaj szkielety (max 5)';
+    btn.style.cssText='position:fixed;bottom:160px;right:90px;width:48px;height:48px;border-radius:50%;background:rgba(60,60,60,.8);border:2px solid rgba(200,200,200,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    document.getElementById('game-ui').appendChild(btn);
+    const trig=e=>{e.stopPropagation();summonScepterSkeletons();};
+    btn.addEventListener('touchstart',trig,{passive:false});btn.addEventListener('click',trig);
+  }else if(!hasScepter&&btn){btn.remove();}
+}
+function summonScepterSkeletons(){
+  summonedSkeletons=summonedSkeletons.filter(s=>s.hp>0&&s.mesh.parent);
+  if(summonedSkeletons.length>=5){toast('Masz juz 5 szkieletow!');return;}
+  if(player.mana<60){toast('Za malo many (60)');return;}
+  player.mana-=60;
+  const ang=Math.random()*Math.PI*2;
+  const sx=_camera.position.x+Math.cos(ang)*4,sz=_camera.position.z+Math.sin(ang)*4;
+  spawnSkeletonMinion(sx,sz,true);
+  toast('Przywolano szkielet! ('+summonedSkeletons.length+'/5)');
 }
 
 // ═══ WORLD ════════════════════════════════════════════
@@ -5073,6 +5127,24 @@ function changeClass(newClass){
   statusEffects.length=0;shieldHP=0;player.lastCast=0;
   applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
   buildSpellbar();buildItembar();updateCharBtn();
+  const oldAbil=document.getElementById('abil-btn');if(oldAbil)oldAbil.remove();
+  const oldRecall=document.getElementById('recall-btn');if(oldRecall)oldRecall.remove();
+  const oldSkel=document.getElementById('scepter-btn');if(oldSkel)oldSkel.remove();
+  if(newClass==='wampir'||newClass==='czlowiek'||newClass==='nieumarly'){
+    const ab=document.createElement('button');ab.id='abil-btn';ab.textContent='⚡';
+    ab.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    document.getElementById('game-ui').appendChild(ab);
+    const trig=e=>{e.stopPropagation();useClassAbility(newClass==='wampir'?'blood_fury':newClass==='czlowiek'?'strong_hit':'plague');};
+    ab.addEventListener('touchstart',trig,{passive:false});ab.addEventListener('click',trig);
+  }
+  if(newClass==='nekromanta'){
+    const rb=document.createElement('button');rb.id='recall-btn';rb.textContent='🌀';
+    rb.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;border-radius:50%;background:rgba(90,30,140,.8);border:2px solid rgba(200,120,255,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    document.getElementById('game-ui').appendChild(rb);
+    const trig=e=>{e.stopPropagation();recallShadowArmy();};
+    rb.addEventListener('touchstart',trig,{passive:false});rb.addEventListener('click',trig);
+  }
+  updateScepterBtn();
   toast('Przemiana w: '+cfg.name+'!');
 }
 
@@ -5298,7 +5370,6 @@ function renderCraftPanel(){
 function heldIsWand(){
   const it=ITEMS[player.heldItem];
   if(it&&(it.type==='wand'||it.type==='trident'||it.canCast))return true;
-  if((playerClass==='wampir'||playerClass==='czlowiek'||playerClass==='nieumarly')&&it&&it.type==='melee'&&it.equip==='weapon')return true;
   return false;
 }
 function heldIsBlock(){
@@ -7361,6 +7432,50 @@ function updateMobs(dt,now,camera,scene){
   }
 }
 
+function updateSummonedSkeletons(dt,now,camera){
+  for(let i=summonedSkeletons.length-1;i>=0;i--){
+    const s=summonedSkeletons[i];
+    if(s.hp<=0||!s.mesh.parent){summonedSkeletons.splice(i,1);continue;}
+    const dx=camera.position.x-s.mesh.position.x;
+    const dz=camera.position.z-s.mesh.position.z;
+    const distP=Math.sqrt(dx*dx+dz*dz);
+    if(distP>100){_scene.remove(s.mesh);summonedSkeletons.splice(i,1);continue;}
+    let target=null,tDist=20;
+    for(const m of mobs){
+      if(m.friendly)continue;
+      const md=s.mesh.position.distanceTo(m.mesh.position);
+      if(md<tDist){tDist=md;target=m;}
+    }
+    for(const b of bosses){
+      const bd=s.mesh.position.distanceTo(b.mesh.position);
+      if(bd<tDist){tDist=bd;target=b;}
+    }
+    if(target){
+      const tx=target.mesh.position.x-s.mesh.position.x;
+      const tz=target.mesh.position.z-s.mesh.position.z;
+      const ang=Math.atan2(tx,tz);s.mesh.rotation.y=ang;
+      if(tDist>2){
+        s.mesh.position.x+=Math.sin(ang)*4*dt;
+        s.mesh.position.z+=Math.cos(ang)*4*dt;
+      }else if(now-s.lastAtk>1500){
+        s.lastAtk=now;
+        if(target.type&&bosses.includes(target)){
+          damageBoss(bosses.indexOf(target),25);
+        }else{
+          const mi=mobs.indexOf(target);if(mi>=0)damageMob(mi,20);
+        }
+      }
+    }else if(distP>5){
+      const ang=Math.atan2(dx,dz);s.mesh.rotation.y=ang;
+      s.mesh.position.x+=Math.sin(ang)*3*dt;
+      s.mesh.position.z+=Math.cos(ang)*3*dt;
+    }
+    const gh=terrainHeight(s.mesh.position.x,s.mesh.position.z);
+    s.mesh.position.y=gh;
+    s.hpBar.group.quaternion.copy(camera.quaternion);
+  }
+}
+
 // ═══ BOSS SYSTEM ════════════════════════════════════
 const bosses=[];
 let bossSpawned={};
@@ -7955,7 +8070,9 @@ function spawnBoss(scene,type,x,z){
 }
 function damageBoss(idx,dmg){
   const b=bosses[idx];if(!b)return;b.hp-=dmg;
-  if(b.hp<b.maxHp*0.5&&!b.phase2){b.phase2=true;toast(b.type.name+': Faza 2!');}
+  if(b.hp<b.maxHp*0.5&&!b.phase2){b.phase2=true;toast(b.type.name+': Faza 2!');
+    if(b.type.id==='skeleton_king')spawnBossSkeletons(b);
+  }
   const ratio=Math.max(0,b.hp/b.maxHp);
   b.hpBar.fill.scale.x=ratio;b.hpBar.fill.position.x=-(1-ratio)*0.42;
   document.getElementById('boss-bar').querySelector('.bar-fill').style.width=(ratio*100)+'%';
@@ -8794,6 +8911,7 @@ function initWorld(){
     updateProjectiles(dt);updateImpacts(dt);updateTargets(dt,now);
     updateMobs(dt,now,camera,scene);
     updateBosses(dt,now,camera);
+    updateSummonedSkeletons(dt,now,camera);
     updateNPCs(dt,now,camera);
     updateStatusEffects(dt);
     updateCompanion(dt,camera,scene);
