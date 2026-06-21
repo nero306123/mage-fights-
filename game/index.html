@@ -4115,26 +4115,107 @@ function buildWampirCave(scene,cx,cz){
   STRUCT_CLEARINGS.push({x:cx,z:cz,r:22});
 }
 function buildLeviathanLair(scene,cx,cz){
-  // pierscien skalnych ostanccow na powierzchni morza (oznacza otchlanc)
+  const grp=new THREE.Group();scene.add(grp);
+  const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x1EF1A);
   const rockM=new THREE.MeshStandardMaterial({color:0x3a4a52,roughness:0.95,flatShading:true});
+  const darkRockM=new THREE.MeshStandardMaterial({color:0x28343c,roughness:0.95,flatShading:true});
   const coralM=new THREE.MeshStandardMaterial({color:0x2a7a8a,roughness:0.8,flatShading:true,emissive:0x114a5a,emissiveIntensity:0.2});
-  for(let i=0;i<10;i++){
-    const a=i/10*Math.PI*2,r=40+Math.random()*12;
+  const coralPinkM=new THREE.MeshStandardMaterial({color:0xaa4477,roughness:0.8,flatShading:true,emissive:0x661133,emissiveIntensity:0.25});
+  const boneM=new THREE.MeshStandardMaterial({color:0xc8c8b8,roughness:0.85,flatShading:true});
+  const glowM=new THREE.MeshStandardMaterial({color:0x44ffdd,emissive:0x22ccaa,emissiveIntensity:0.7,flatShading:true});
+  const floorH=terrainHeight(cx,cz);
+  // pierscien skalnych ostanccow na powierzchni morza (wyzsze, dramatyczne)
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2,r=42+rng()*12;
     const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
-    const h=2+Math.random()*8;
-    const spire=new THREE.Mesh(new THREE.ConeGeometry(2+Math.random()*2,h,5),rockM);
-    spire.position.set(x,SEA_LEVEL+h*0.3,z);spire.rotation.y=Math.random();spire.castShadow=true;scene.add(spire);
+    const h=4+rng()*10;
+    const spire=new THREE.Mesh(new THREE.ConeGeometry(2.5+rng()*2.5,h,6),rockM);
+    spire.position.set(x,SEA_LEVEL+h*0.3,z);spire.rotation.y=rng();spire.castShadow=true;grp.add(spire);
+    // mniejsze przy podstawie
+    const sub=new THREE.Mesh(new THREE.ConeGeometry(1.5,h*0.5,5),darkRockM);
+    sub.position.set(x+Math.cos(a+1)*4,SEA_LEVEL+h*0.15,z+Math.sin(a+1)*4);grp.add(sub);
   }
-  // korale i swiecace krysztaly na dnie
+  // ── GIGANTYCZNY SZKIELET LEVIATANA na dnie (zebra wokol areny) ──
+  // czaszka
+  const skull=new THREE.Mesh(new THREE.SphereGeometry(6,8,6),boneM);
+  skull.position.set(cx-25,floorH+4,cz);skull.scale.set(1,0.8,1.4);grp.add(skull);
+  const jaw=new THREE.Mesh(new THREE.BoxGeometry(7,2,9),boneM);
+  jaw.position.set(cx-25,floorH+1.5,cz+2);grp.add(jaw);
+  // zeby czaszki
+  for(let i=0;i<8;i++){
+    const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.4,2.5,4),boneM);
+    tooth.position.set(cx-28+i*0.9,floorH+3,cz+6);tooth.rotation.x=Math.PI;grp.add(tooth);
+  }
+  // oczodoly swiecace
+  for(const sx of [-1,1]){
+    const socket=new THREE.PointLight(0x44ffcc,1.5,12);
+    socket.position.set(cx-25+sx*2.5,floorH+5,cz+4);grp.add(socket);
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(0.8,6,5),glowM);
+    eye.position.set(cx-25+sx*2.5,floorH+5,cz+4);grp.add(eye);
+  }
+  // kregoslup (luk zeber od czaszki przez arene)
   for(let i=0;i<14;i++){
-    const a=Math.random()*Math.PI*2,r=Math.random()*30;
-    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
-    const c=new THREE.Mesh(new THREE.ConeGeometry(0.6+Math.random()*0.8,2+Math.random()*2,5),coralM);
-    c.position.set(x,terrainHeight(x,z)+1,z);scene.add(c);
+    const t=i/14;
+    const vx=cx-22+t*44;
+    const vy=floorH+2+Math.sin(t*Math.PI)*1.5;
+    const vert=new THREE.Mesh(new THREE.SphereGeometry(1.2-t*0.3,6,5),boneM);
+    vert.position.set(vx,vy,cz);grp.add(vert);
+    // zebra wystajace po bokach
+    if(i>1&&i<12&&i%1===0){
+      for(const sx of [-1,1]){
+        const ribLen=8-Math.abs(i-7)*0.8;
+        const rib=new THREE.Mesh(new THREE.TorusGeometry(ribLen,0.4,4,8,Math.PI*0.7),boneM);
+        rib.position.set(vx,vy,cz);rib.rotation.y=Math.PI/2;rib.rotation.z=sx>0?0.3:Math.PI-0.3;grp.add(rib);
+      }
+    }
   }
-  // swiatlo otchlanic
-  const light=new THREE.PointLight(0x22aacc,2.0,60);
-  light.position.set(cx,SEA_LEVEL-3,cz);scene.add(light);
+  // ── starozytne zatopione ruiny (kolumny) ──
+  for(let i=0;i<6;i++){
+    const a=rng()*Math.PI*2,r=18+rng()*15;
+    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+    const ch=3+rng()*4;
+    const col=new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.0,ch,8),rockM);
+    col.position.set(x,floorH+ch*0.5,z);col.rotation.z=(rng()-0.5)*0.4;grp.add(col);
+    // glowica kolumny
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(2,0.5,2),darkRockM);
+    cap.position.set(x,floorH+ch,z);grp.add(cap);
+    // korale rosnace na kolumnie
+    const cor=new THREE.Mesh(new THREE.ConeGeometry(0.5,1.5,5),rng()>0.5?coralM:coralPinkM);
+    cor.position.set(x+0.8,floorH+ch*0.6,z);cor.rotation.z=0.8;grp.add(cor);
+  }
+  // korale i swiecace krysztaly na dnie (gestsze, kolorowe)
+  for(let i=0;i<24;i++){
+    const a=rng()*Math.PI*2,r=rng()*32;
+    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+    const c=new THREE.Mesh(new THREE.ConeGeometry(0.6+rng()*0.9,2+rng()*2.5,5),rng()>0.5?coralM:coralPinkM);
+    c.position.set(x,floorH+1,z);grp.add(c);
+  }
+  // swiecace bioluminescencyjne kule (glebinowe)
+  for(let i=0;i<16;i++){
+    const a=rng()*Math.PI*2,r=8+rng()*28;
+    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+    const orb=new THREE.Mesh(new THREE.SphereGeometry(0.3+rng()*0.3,6,5),glowM);
+    orb.position.set(x,floorH+1+rng()*8,z);grp.add(orb);
+  }
+  // wodorosty
+  const kelpM=new THREE.MeshStandardMaterial({color:0x1a5a3a,roughness:0.9,flatShading:true,side:THREE.DoubleSide});
+  for(let i=0;i<18;i++){
+    const a=rng()*Math.PI*2,r=10+rng()*28;
+    const x=cx+Math.cos(a)*r,z=cz+Math.sin(a)*r;
+    const kh=3+rng()*5;
+    const kelp=new THREE.Mesh(new THREE.PlaneGeometry(0.6,kh),kelpM);
+    kelp.position.set(x,floorH+kh*0.5,z);kelp.rotation.y=rng()*Math.PI;grp.add(kelp);
+  }
+  // swiatlo otchlanic (glowne + akcenty)
+  const light=new THREE.PointLight(0x22aacc,2.5,70);
+  light.position.set(cx,SEA_LEVEL-3,cz);grp.add(light);
+  const deepLight=new THREE.PointLight(0x1166aa,2,50);
+  deepLight.position.set(cx,floorH+5,cz);grp.add(deepLight);
+  for(let i=0;i<3;i++){
+    const a=i/3*Math.PI*2;
+    const gl=new THREE.PointLight(0x44ffcc,1,20);
+    gl.position.set(cx+Math.cos(a)*15,floorH+4,cz+Math.sin(a)*15);grp.add(gl);
+  }
   STRUCT_CLEARINGS.push({x:cx,z:cz,r:80,ocean:true});
 }
 function buildStructures(scene){
