@@ -7599,6 +7599,9 @@ function initWorld(){
   setTimeout(()=>{
     document.getElementById('loading-screen').classList.remove('active');
     document.getElementById('game-ui').classList.add('active');
+    setTimeout(()=>toast('Lewy joystick: ruch | Prawy obszar: rozgladanie'),1500);
+    setTimeout(()=>toast('🗡️ = atak/zaklecie | ⬆ = skok'),4000);
+    setTimeout(()=>toast('Zbieraj surowce, craftuj, walcz z bossami!'),7000);
   },300);
   let last=performance.now();
   function loop(now){
