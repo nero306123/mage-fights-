@@ -6439,10 +6439,29 @@ function buildMobMesh(type){
       const ragM=new THREE.MeshStandardMaterial({color:0x3a3a28,flatShading:true});
       const rag=new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.3,bodyH*0.3,bodyW*0.75),ragM);
       rag.position.set(0,type.height*0.4,0);g.add(rag);
-      eL.material=new THREE.MeshBasicMaterial({color:0x88aa44});
+      eL.material=new THREE.MeshBasicMaterial({color:0x88ff44});
       eR.material=eL.material;
+      g.add(new THREE.PointLight(0x55aa22,0.4,4));
       const jaw=new THREE.Mesh(new THREE.BoxGeometry(headS*0.8,headS*0.3,headS*0.5),zombM);
-      jaw.position.set(0,type.height*0.8,headS*0.5);jaw.rotation.x=-0.15;g.add(jaw);
+      jaw.position.set(0,type.height*0.78,headS*0.55);jaw.rotation.x=-0.4;g.add(jaw); // opadla szczeka
+      // odsloniete kosci ramienia (jedno ramie to goła kosc)
+      aR.material=boneM;aR.scale.set(0.6,1,0.6);
+      const handBone=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.1,5,4),boneM);
+      handBone.position.copy(aR.position);handBone.position.y=type.height*0.32;handBone.position.z=bodyH*0.3;g.add(handBone);
+      // zwisajace wnetrznosci
+      const gutM=new THREE.MeshStandardMaterial({color:0x6a2a2a,roughness:0.6,flatShading:true});
+      for(let i=0;i<3;i++){
+        const gut=new THREE.Mesh(new THREE.SphereGeometry(bodyW*0.08,5,4),gutM);
+        gut.position.set((i-1)*bodyW*0.15,type.height*0.4-i*bodyH*0.08,bodyW*0.38);g.add(gut);
+      }
+      // lysa czaszka z resztkami wlosow
+      const hairM=new THREE.MeshStandardMaterial({color:0x2a2a1a,flatShading:true});
+      for(let i=0;i<3;i++){
+        const hair=new THREE.Mesh(new THREE.ConeGeometry(headS*0.08,headS*0.3,3),hairM);
+        hair.position.set((i-1)*headS*0.3,type.height*0.95,-headS*0.2);hair.rotation.x=-0.4;g.add(hair);
+      }
+      // przekrzywiona glowa (zombie przechyl)
+      head.rotation.z=0.2;
     }
     if(type.id==='mummy'){
       const wrapM=new THREE.MeshStandardMaterial({color:0xb8a888,roughness:0.95,flatShading:true});
