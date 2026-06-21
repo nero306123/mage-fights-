@@ -198,7 +198,7 @@
   .slot-key{position:absolute;top:2px;left:4px;font-size:9px;color:#777}
   .slot-glow{position:absolute;inset:0;border-radius:4px;opacity:.18}
 
-  #joystick-zone{position:absolute;left:0;bottom:0;width:40%;height:50%;
+  #joystick-zone{position:absolute;left:0;bottom:60px;width:36%;height:40%;
     pointer-events:auto;z-index:4}
   #joystick-base{position:absolute;left:20px;bottom:22px;width:100px;height:100px;
     border-radius:50%;background:rgba(255,255,255,.08);
@@ -470,9 +470,11 @@
   #recipe-info .ri-how{font-size:10.5px;color:#9aa;margin-top:1px}
   #recipe-info .ri-close{margin-top:12px;width:100%;padding:9px;border-radius:8px;border:none;
     background:linear-gradient(180deg,#e8c86a,#b8983a);color:#1a1207;font-weight:800;cursor:pointer}
-  #inv-trash{margin-top:8px;padding:8px;text-align:center;font-size:11px;color:#caa;
-    border:1px dashed #a55;border-radius:8px;background:rgba(120,40,40,.18);cursor:pointer}
-  #inv-trash.armed{border-color:#ff6a6a;color:#ffd0d0;background:rgba(180,50,50,.32);border-style:solid}
+  #inv-trash{margin-top:8px;padding:10px;text-align:center;font-size:13px;color:#caa;
+    border:2px dashed #a55;border-radius:10px;background:rgba(120,40,40,.18);cursor:pointer;
+    transition:all .2s}
+  #inv-trash.armed{border-color:#ff6a6a;color:#ffd0d0;background:rgba(200,50,50,.4);border-style:solid;
+    box-shadow:0 0 12px rgba(255,80,80,.3);font-size:14px}
   .inv-slot{width:100%;aspect-ratio:1;
     background:radial-gradient(circle at 50% 35%,rgba(60,70,98,.5),rgba(10,14,24,.6));
     border:2px solid rgba(255,255,255,.12);border-radius:9px;
@@ -1444,6 +1446,11 @@ const RECIPES = [
   {id:'wool_hood',name:'Welniany Kaptur',icon:'🎩',equip:'hood',bonus:{mana:50},rarity:'common',need:[{id:'wool',count:5}],desc:'+50 many'},
   {id:'gold_ring',name:'Zloty Pierscien',icon:'💍',equip:'ring',bonus:{hp:10,mana:20},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+10 HP +20 many'},
   {id:'gold_amulet',name:'Zloty Naszyjnik',icon:'📿',equip:'amulet',bonus:{mana:40,dmg:3},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+40 many +3% dmg'},
+  {id:'campfire_block',name:'Ognisko',icon:'🔥',type:'block',blockType:'campfire',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Postaw - gotuj jedzenie w poblizu'},
+  {id:'fishing_rod',name:'Wedka',icon:'🎣',type:'tool',need:[{id:'wood',count:3},{id:'wool',count:1}],desc:'Lowienie ryb w wodzie'},
+  {id:'shield_wood',name:'Drewniana Tarcza',icon:'🛡️',type:'shield',equip:'orb',bonus:{dmgRed:15,hp:30},rarity:'common',need:[{id:'wood',count:5},{id:'iron_ore',count:2}],desc:'+15% redukcji +30 HP'},
+  {id:'shield_iron',name:'Zelazna Tarcza',icon:'🛡️',type:'shield',equip:'orb',bonus:{dmgRed:25,hp:50},rarity:'rare',need:[{id:'iron_ore',count:8},{id:'leather',count:2}],desc:'+25% redukcji +50 HP'},
+  {id:'grilled_fish',name:'Grillowana Ryba',icon:'🐟',type:'food',need:[{id:'raw_fish',count:1}],desc:'+30 glodu +8 HP',effect:{hunger:30,hp:8}},
 ];
 const RESOURCES = [
   {id:'wood',name:'Drewno',icon:'🪵',type:'resource'},
@@ -1477,6 +1484,7 @@ const RESOURCES = [
   {id:'saddle',name:'Siodlo',icon:'🪑',type:'resource'},
   {id:'boss_heart',name:'Serce Bossa',icon:'💜',type:'resource'},
   {id:'herb',name:'Ziolo',icon:'🌿',type:'resource'},
+  {id:'raw_fish',name:'Surowa Ryba',icon:'🐟',type:'resource'},
   {id:'rybia_luska',name:'Rybia Luska',icon:'🐟',type:'resource'},
   {id:'atlantyda_perla',name:'Perla Atlantydy',icon:'🫧',type:'resource'},
   {id:'luska_leviatana',name:'Luska Leviatana',icon:'🟦',type:'resource'},
@@ -1534,17 +1542,17 @@ const LANDMARKS={
 
 // ═══ CLEARINGS (rozszerzone) ═════════════════════════════
 const STRUCT_CLEARINGS=[
-  {x:150,z:110,r:52},       // wioska
-  {x:1500,z:1500,r:70},     // zamek
+  {x:150,z:110,r:58},       // wioska
+  {x:1500,z:1500,r:90},     // zamek (powiększony)
   {x:-680,z:640,r:26},      // portal
-  {x:-400,z:-400,r:35},     // cmentarz
-  {x:800,z:1200,r:45},      // smocza jama
-  {x:1600,z:-800,r:50},     // piramida
+  {x:-400,z:-400,r:45},     // cmentarz (powiększony)
+  {x:800,z:1200,r:55},      // smocza jama (powiększona)
+  {x:1600,z:-800,r:60},     // piramida (powiększona)
   {x:-200,z:1400,r:30},     // kopalnia
-  {x:-1500,z:-1200,r:40},   // lodowa wieza
-  {x:1200,z:-1600,r:38},    // gniazdo pajakow
-  {x:-1400,z:1500,r:42},    // kuznia lawy
-  {x:600,z:-500,r:40},      // swiety gaj
+  {x:-1500,z:-1200,r:45},   // lodowa wieza
+  {x:1200,z:-1600,r:42},    // gniazdo pajakow
+  {x:-1400,z:1500,r:48},    // kuznia lawy
+  {x:600,z:-500,r:45},      // swiety gaj
 ];
 function inClearing(x,z){
   for(const c of STRUCT_CLEARINGS){const dx=x-c.x,dz=z-c.z;if(dx*dx+dz*dz<c.r*c.r)return true;}
@@ -2494,6 +2502,7 @@ const BLOCK_DEFS={
   table:{w:1.4,h:1.0,d:1.4,color:0x9a6f3a,solid:true,name:'Stol'},
   bed:{w:1.6,h:0.6,d:2.4,color:0xcc4444,solid:false,bed:true,name:'Lozko'},
   chest:{w:1.0,h:0.8,d:0.8,color:0xb89a5a,solid:false,chestBlock:true,name:'Skrzynia'},
+  campfire:{w:1.2,h:0.5,d:1.2,color:0x6a4a2a,solid:false,campfire:true,name:'Ognisko'},
 };
 function makeBlockMesh(blockType,ghost){
   const def=BLOCK_DEFS[blockType];if(!def)return null;
@@ -2527,6 +2536,24 @@ function makeBlockMesh(blockType,ghost){
     const knob=new THREE.Mesh(new THREE.SphereGeometry(0.08,6,6),
       new THREE.MeshStandardMaterial({color:0xffcc44,metalness:0.6,roughness:0.3,transparent:ghost,opacity}));
     knob.position.set(def.w*0.3,def.h*0.5,def.d);g.add(knob);
+  }else if(def.campfire){
+    const logs=new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:0.9,flatShading:true,transparent:ghost,opacity});
+    for(let i=0;i<4;i++){
+      const log=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,0.8,5),logs);
+      log.position.set(0,0.08,0);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/4;g.add(log);
+    }
+    const stones=new THREE.MeshStandardMaterial({color:0x666666,roughness:0.9,flatShading:true,transparent:ghost,opacity});
+    for(let i=0;i<8;i++){
+      const a=i/8*Math.PI*2;
+      const st=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.15,0.18),stones);
+      st.position.set(Math.cos(a)*0.45,0.075,Math.sin(a)*0.45);st.rotation.y=a;g.add(st);
+    }
+    if(!ghost){
+      const flame=new THREE.Mesh(new THREE.ConeGeometry(0.2,0.5,5),
+        new THREE.MeshBasicMaterial({color:0xff6622,transparent:true,opacity:0.9}));
+      flame.position.y=0.35;g.add(flame);
+      const tl=new THREE.PointLight(0xff8833,2,14);tl.position.set(0,0.6,0);g.add(tl);
+    }
   }else if(def.chestBlock){
     const body=new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h*0.7,def.d),mat);
     body.position.y=def.h*0.35;g.add(body);
@@ -2560,18 +2587,19 @@ function getBuildTarget(camera){
   return {x:snapToGrid(tx),z:snapToGrid(tz)};
 }
 function updateBuildGhost(camera){
-  if(!buildMode||!buildBlockType){if(_ghostMesh){_ghostMesh.visible=false;}return;}
-  if(!_ghostMesh||_ghostMesh.userData.bt!==buildBlockType){
+  const heldBlock=heldIsBlock();
+  const effectiveBt=buildMode?buildBlockType:(heldBlock?ITEMS[player.heldItem].blockType:null);
+  if(!effectiveBt){if(_ghostMesh){_ghostMesh.visible=false;}return;}
+  if(!_ghostMesh||_ghostMesh.userData.bt!==effectiveBt){
     if(_ghostMesh){_scene.remove(_ghostMesh);}
-    _ghostMesh=makeBlockMesh(buildBlockType,true);
-    if(_ghostMesh){_ghostMesh.userData.bt=buildBlockType;_scene.add(_ghostMesh);}
+    _ghostMesh=makeBlockMesh(effectiveBt,true);
+    if(_ghostMesh){_ghostMesh.userData.bt=effectiveBt;_scene.add(_ghostMesh);}
   }
   if(!_ghostMesh)return;
   _ghostMesh.visible=true;
   const t=getBuildTarget(camera);
-  // policz wysokosc - na ziemi lub na innym bloku
   let by=terrainHeight(t.x,t.z);
-  const def=BLOCK_DEFS[buildBlockType];
+  const def=BLOCK_DEFS[effectiveBt];
   // jesli stawiamy na istniejacym bloku w tej kolumnie, ustaw wyzej
   for(const pb of placedBlocks){
     if(pb.bx===t.x&&pb.bz===t.z){
@@ -3332,7 +3360,7 @@ function addWall(g,hx,hz,lx,lz,w,h,d,mat){
 function buildHouse(scene,hx,hz,rng,withChest,doorDir){
   const baseH=terrainHeight(hx,hz);
   const g=new THREE.Group();g.position.set(hx,baseH,hz);scene.add(g);
-  const w=5.5+rng()*1.5,d=5.0+rng()*1.5,wallH=3.0,th=0.25;
+  const w=8+rng()*2,d=7+rng()*2,wallH=4.0,th=0.3;
   const hw=w/2,hd=d/2;
   const wallCol=[0xc8b088,0xd8c098,0xb8a078,0xc0a880][(rng()*4)|0];
   const wallMat=matStone(wallCol,0.85);
@@ -3532,61 +3560,55 @@ function buildCastle(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   const dark=matStone(0x3a2a2a,0.95),darker=matStone(0x2a1e1e,0.95);
-  addBox(grp,30,2,30,0,1,0,darker);
-  addBox(grp,30,6,1.5,0,5,-14,dark);
-  addBox(grp,1.5,6,30,-14,5,0,dark);
-  addBox(grp,1.5,6,30,14,5,0,dark);
-  addBox(grp,9,6,1.5,-10.5,5,14,dark);
-  addBox(grp,9,6,1.5,10.5,5,14,dark);
-  addBox(grp,6,4.5,1.0,0,4.25,14,matStone(0x1a1212,0.9));
-  const tw=[[-14,-14],[14,-14],[-14,14],[14,14]];
+  addBox(grp,46,2.5,46,0,1.25,0,darker);
+  addBox(grp,46,9,2,0,6.5,-22,dark);
+  addBox(grp,2,9,46,-22,6.5,0,dark);
+  addBox(grp,2,9,46,22,6.5,0,dark);
+  addBox(grp,12,9,2,-16,6.5,22,dark);
+  addBox(grp,12,9,2,16,6.5,22,dark);
+  addBox(grp,8,6.5,1.2,0,5.25,22,matStone(0x1a1212,0.9));
+  const tw=[[-22,-22],[22,-22],[-22,22],[22,22]];
   for(const[tx,tz]of tw){
-    const t=new THREE.Mesh(new THREE.CylinderGeometry(2.4,2.8,11,8),dark);
-    t.position.set(tx,5.5,tz);t.castShadow=!isMobile;grp.add(t);
-    const r=new THREE.Mesh(new THREE.ConeGeometry(3.0,3.0,8),matStone(0x6a1818,0.85));
-    r.position.set(tx,12.5,tz);r.castShadow=!isMobile;grp.add(r);
+    const t=new THREE.Mesh(new THREE.CylinderGeometry(3.5,4,16,8),dark);
+    t.position.set(tx,8,tz);t.castShadow=!isMobile;grp.add(t);
+    const r=new THREE.Mesh(new THREE.ConeGeometry(4.5,4.5,8),matStone(0x6a1818,0.85));
+    r.position.set(tx,18,tz);r.castShadow=!isMobile;grp.add(r);
   }
-  addBox(grp,12,14,12,0,9,-2,dark);
-  const keepRoof=new THREE.Mesh(new THREE.ConeGeometry(9,5,4),matStone(0x6a1818,0.8));
-  keepRoof.position.set(0,18.5,-2);keepRoof.rotation.y=Math.PI/4;keepRoof.castShadow=!isMobile;grp.add(keepRoof);
-  for(const sx of[-3.5,3.5]){
-    const f=new THREE.Mesh(new THREE.SphereGeometry(0.3,6,6),new THREE.MeshBasicMaterial({color:0xff6622}));
-    f.position.set(sx,5.5,14.6);grp.add(f);
-    const pl=new THREE.PointLight(0xff5511,1.4,12);pl.position.set(sx,5.5,15.5);grp.add(pl);
+  addBox(grp,18,20,18,0,12,-3,dark);
+  const keepRoof=new THREE.Mesh(new THREE.ConeGeometry(14,7,4),matStone(0x6a1818,0.8));
+  keepRoof.position.set(0,25,-3);keepRoof.rotation.y=Math.PI/4;keepRoof.castShadow=!isMobile;grp.add(keepRoof);
+  for(const sx of[-5,5]){
+    const f=new THREE.Mesh(new THREE.SphereGeometry(0.4,6,6),new THREE.MeshBasicMaterial({color:0xff6622}));
+    f.position.set(sx,8,22.8);grp.add(f);
+    const pl=new THREE.PointLight(0xff5511,1.8,16);pl.position.set(sx,8,23.5);grp.add(pl);
   }
   buildBeacon(scene,cx,cz,0xff3322);
-  // blanki (merlony) na murach
   const merlonM=matStone(0x3a2a2a,0.95);
-  for(let i=0;i<20;i++){
-    const t=i/20;
-    // mur polnocny
-    addBox(grp,1.2,1.5,0.6,-14+t*28,8.5,-14,merlonM);
-    // mur poludniowy (z przerwa na brame)
-    if(Math.abs(-14+t*28)>4) addBox(grp,1.2,1.5,0.6,-14+t*28,8.5,14,merlonM);
+  for(let i=0;i<28;i++){
+    const t=i/28;
+    addBox(grp,1.4,2,0.8,-22+t*44,12.5,-22,merlonM);
+    if(Math.abs(-22+t*44)>6) addBox(grp,1.4,2,0.8,-22+t*44,12.5,22,merlonM);
   }
-  for(let i=0;i<20;i++){
-    const t=i/20;
-    addBox(grp,0.6,1.5,1.2,-14,8.5,-14+t*28,merlonM);
-    addBox(grp,0.6,1.5,1.2,14,8.5,-14+t*28,merlonM);
+  for(let i=0;i<28;i++){
+    const t=i/28;
+    addBox(grp,0.8,2,1.4,-22,12.5,-22+t*44,merlonM);
+    addBox(grp,0.8,2,1.4,22,12.5,-22+t*44,merlonM);
   }
-  // chodnik na murach (patrol)
-  addBox(grp,2.0,0.2,28,14,7.9,0,darker);
-  addBox(grp,2.0,0.2,28,-14,7.9,0,darker);
-  addBox(grp,28,0.2,2.0,0,7.9,-14,darker);
+  addBox(grp,3,0.25,44,22,11.5,0,darker);
+  addBox(grp,3,0.25,44,-22,11.5,0,darker);
+  addBox(grp,44,0.25,3,0,11.5,-22,darker);
   // sztandar na wiezy
   const bannerM=new THREE.MeshStandardMaterial({color:0xcc2222,flatShading:true,side:THREE.DoubleSide});
-  const banner=new THREE.Mesh(new THREE.PlaneGeometry(1.5,3.0),bannerM);
-  banner.position.set(14,12,14);grp.add(banner);
-  const pole=addBox(grp,0.1,4.0,0.1,14,13.5,14,matStone(0x4a3a2a,0.9));
-  // wnetrze: tron
+  const banner=new THREE.Mesh(new THREE.PlaneGeometry(2,4.5),bannerM);
+  banner.position.set(22,17,22);grp.add(banner);
+  addBox(grp,0.12,5.5,0.12,22,19,22,matStone(0x4a3a2a,0.9));
   const throneMat=matStone(0x8a2222,0.8);
-  addBox(grp,2.0,2.5,1.0,0,3.25,-5,throneMat);
-  addBox(grp,2.5,4.0,0.3,0,4.0,-5.5,throneMat);
-  // pochodnie wnetrze
-  for(const sx of [-4,4]){
-    const fl=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,6),new THREE.MeshBasicMaterial({color:0xff6622}));
-    fl.position.set(sx,4.0,-4);grp.add(fl);
-    const il=new THREE.PointLight(0xff5511,0.8,10);il.position.set(sx,4.5,-4);grp.add(il);
+  addBox(grp,3,3.5,1.5,0,4,-7,throneMat);
+  addBox(grp,3.5,5.5,0.4,0,5.5,-8,throneMat);
+  for(const sx of [-6,6]){
+    const fl=new THREE.Mesh(new THREE.SphereGeometry(0.25,6,6),new THREE.MeshBasicMaterial({color:0xff6622}));
+    fl.position.set(sx,5,-6);grp.add(fl);
+    const il=new THREE.PointLight(0xff5511,1,14);il.position.set(sx,5.5,-6);grp.add(il);
   }
 }
 const _portals=[];
@@ -3639,30 +3661,27 @@ function buildCemetery(scene,cx,cz){
   const stone=matStone(0x5a5a5a,0.95);
   const iron=matStone(0x222222,0.6);
   const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0x666);
-  // zelazne ogrodzenie z lancuchami
-  for(let i=0;i<28;i++){
-    const a=(i/28)*Math.PI*2;
-    const fx=Math.cos(a)*28,fz=Math.sin(a)*28;
-    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,3,6),iron);
-    post.position.set(fx,1.5,fz);grp.add(post);
-    const spike=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.35,4),iron);
-    spike.position.set(fx,3.1,fz);grp.add(spike);
+  for(let i=0;i<36;i++){
+    const a=(i/36)*Math.PI*2;
+    const fx=Math.cos(a)*36,fz=Math.sin(a)*36;
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,4,6),iron);
+    post.position.set(fx,2,fz);grp.add(post);
+    const spike=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.45,4),iron);
+    spike.position.set(fx,4.2,fz);grp.add(spike);
     if(i%2===0){
-      const crossbar=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.04,3.2),iron);
-      const nextA=((i+1)/28)*Math.PI*2;
-      crossbar.position.set((fx+Math.cos(nextA)*28)/2,2.2,(fz+Math.sin(nextA)*28)/2);
-      crossbar.lookAt(new THREE.Vector3(Math.cos(nextA)*28,2.2,Math.sin(nextA)*28));
+      const crossbar=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,4),iron);
+      const nextA=((i+1)/36)*Math.PI*2;
+      crossbar.position.set((fx+Math.cos(nextA)*36)/2,3,(fz+Math.sin(nextA)*36)/2);
+      crossbar.lookAt(new THREE.Vector3(Math.cos(nextA)*36,3,Math.sin(nextA)*36));
       grp.add(crossbar);
     }
   }
-  // brama wejsciowa
-  addBox(grp,0.3,4,0.3,3,2,28,iron);addBox(grp,0.3,4,0.3,-3,2,28,iron);
-  addBox(grp,6.3,0.5,0.3,0,4.25,28,iron);
-  const archGeo=new THREE.TorusGeometry(3,0.15,6,12,Math.PI);
-  const arch=new THREE.Mesh(archGeo,iron);arch.position.set(0,4.5,28);grp.add(arch);
-  // nagrobki roznorodne
-  for(let i=0;i<22;i++){
-    const gx=-18+rng()*36,gz=-18+rng()*36;
+  addBox(grp,0.4,5.5,0.4,4,2.75,36,iron);addBox(grp,0.4,5.5,0.4,-4,2.75,36,iron);
+  addBox(grp,8.5,0.6,0.4,0,5.8,36,iron);
+  const archGeo=new THREE.TorusGeometry(4,0.2,6,12,Math.PI);
+  const arch=new THREE.Mesh(archGeo,iron);arch.position.set(0,6,36);grp.add(arch);
+  for(let i=0;i<28;i++){
+    const gx=-24+rng()*48,gz=-24+rng()*48;
     if(Math.abs(gx)<3&&Math.abs(gz)<3)continue;
     const style=Math.floor(rng()*4);
     if(style===0){
@@ -3686,19 +3705,17 @@ function buildCemetery(scene,cx,cz){
       skull.position.set(gx+0.3,0.12,gz+0.2);grp.add(skull);
     }
   }
-  // mauzoleum centralne z kolumnami
-  addBox(grp,6,5,6,0,2.5,0,matStone(0x4a4a4a,0.95));
+  addBox(grp,9,7,9,0,3.5,0,matStone(0x4a4a4a,0.95));
   for(let c=0;c<4;c++){
-    const ca=c*Math.PI/2+Math.PI/4,cr=3.8;
-    const col=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.4,5,8),matStone(0x555555,0.9));
-    col.position.set(Math.cos(ca)*cr,2.5,Math.sin(ca)*cr);grp.add(col);
-    const cap=new THREE.Mesh(new THREE.BoxGeometry(1,0.3,1),matStone(0x555555,0.9));
-    cap.position.set(Math.cos(ca)*cr,5.15,Math.sin(ca)*cr);grp.add(cap);
+    const ca=c*Math.PI/2+Math.PI/4,cr=5.5;
+    const col=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.55,7,8),matStone(0x555555,0.9));
+    col.position.set(Math.cos(ca)*cr,3.5,Math.sin(ca)*cr);grp.add(col);
+    const cap=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.4,1.4),matStone(0x555555,0.9));
+    cap.position.set(Math.cos(ca)*cr,7.2,Math.sin(ca)*cr);grp.add(cap);
   }
-  const mRoof=new THREE.Mesh(new THREE.ConeGeometry(5,3,4),matStone(0x3a3a3a,0.9));
-  mRoof.position.y=6.5;mRoof.rotation.y=Math.PI/4;grp.add(mRoof);
-  // drzwi mauzoleum
-  addBox(grp,1.2,2.5,0.1,0,1.25,3.05,matStone(0x1a1a1a,0.95));
+  const mRoof=new THREE.Mesh(new THREE.ConeGeometry(7.5,4,4),matStone(0x3a3a3a,0.9));
+  mRoof.position.y=9;mRoof.rotation.y=Math.PI/4;grp.add(mRoof);
+  addBox(grp,1.6,3.5,0.12,0,1.75,4.55,matStone(0x1a1a1a,0.95));
   // czaszki dekoracyjne na mauzoleum
   for(let i=0;i<4;i++){
     const sa=i*Math.PI/2,sr=3.2;
@@ -3742,59 +3759,50 @@ function buildDragonLair(scene,cx,cz){
   const rock=matStone(0x3a3030,0.95);
   const darkRock=matStone(0x1a1010,0.95);
   const rng=makeRNG(hashXZ(Math.round(cx),Math.round(cz))^0xD4A);
-  // jaskinia - sciany boczne z nierownosciami
-  for(let i=0;i<6;i++){
-    const yOff=i*1.5;
-    const w=2+rng()*0.5;
-    addBox(grp,w,1.8,3+rng(),-5-rng()*0.5,3+yOff,rng()-0.5,rock);
-    addBox(grp,w,1.8,3+rng(),5+rng()*0.5,3+yOff,rng()-0.5,rock);
+  for(let i=0;i<8;i++){
+    const yOff=i*2;
+    const w=3+rng()*0.8;
+    addBox(grp,w,2.5,4+rng()*1.5,-8-rng()*0.5,4+yOff,rng()-0.5,rock);
+    addBox(grp,w,2.5,4+rng()*1.5,8+rng()*0.5,4+yOff,rng()-0.5,rock);
   }
-  // sklepienie jaskini
-  for(let i=0;i<4;i++){
-    addBox(grp,11+i*0.5,1.5,3+i*0.8,0,8+i*1.2,-i*1.5,rock);
+  for(let i=0;i<5;i++){
+    addBox(grp,17+i*0.6,2,4+i*1,0,14+i*1.5,-i*2,rock);
   }
-  // stalaktyty
-  for(let i=0;i<12;i++){
-    const sx=-4+rng()*8,sz=-4+rng()*5;
-    const sh=1+rng()*2;
-    const stal=new THREE.Mesh(new THREE.ConeGeometry(0.15+rng()*0.2,sh,5),rock);
-    stal.position.set(sx,9-rng()*2,sz);stal.rotation.x=Math.PI;grp.add(stal);
+  for(let i=0;i<16;i++){
+    const sx=-6+rng()*12,sz=-6+rng()*8;
+    const sh=1.5+rng()*3;
+    const stal=new THREE.Mesh(new THREE.ConeGeometry(0.2+rng()*0.3,sh,5),rock);
+    stal.position.set(sx,14-rng()*3,sz);stal.rotation.x=Math.PI;grp.add(stal);
   }
-  // podloga jaskini
-  addBox(grp,12,1,10,0,0.5,-3,darkRock);
-  // leże smoka - podwyzszone
-  addBox(grp,6,0.6,5,0,1.3,-5,matStone(0x2a2020,0.9));
-  // poswiatla ognia
-  const gl=new THREE.PointLight(0xff4422,3,30);gl.position.set(0,4,-3);grp.add(gl);
-  const gl2=new THREE.PointLight(0xff6600,1.5,15);gl2.position.set(-3,2,-4);grp.add(gl2);
-  const gl3=new THREE.PointLight(0xff2200,1.5,15);gl3.position.set(3,2,-4);grp.add(gl3);
+  addBox(grp,18,1.5,16,0,0.75,-4,darkRock);
+  addBox(grp,10,1,8,0,2,-7,matStone(0x2a2020,0.9));
+  const gl=new THREE.PointLight(0xff4422,4,45);gl.position.set(0,6,-4);grp.add(gl);
+  const gl2=new THREE.PointLight(0xff6600,2,20);gl2.position.set(-5,3,-6);grp.add(gl2);
+  const gl3=new THREE.PointLight(0xff2200,2,20);gl3.position.set(5,3,-6);grp.add(gl3);
   // stos skarbow
   const goldMat=new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.85,roughness:0.15});
   const silverMat=new THREE.MeshStandardMaterial({color:0xc0c0c0,metalness:0.8,roughness:0.2});
-  for(let i=0;i<25;i++){
-    const coin=new THREE.Mesh(new THREE.CylinderGeometry(0.1+rng()*0.08,0.1+rng()*0.08,0.04,6),
+  for(let i=0;i<35;i++){
+    const coin=new THREE.Mesh(new THREE.CylinderGeometry(0.12+rng()*0.1,0.12+rng()*0.1,0.04,6),
       rng()>0.3?goldMat:silverMat);
-    coin.position.set(-2.5+rng()*5,1.5+rng()*0.5,-5+rng()*3);
+    coin.position.set(-4+rng()*8,2.5+rng()*0.6,-8+rng()*5);
     coin.rotation.set(rng()*3,0,rng()*3);grp.add(coin);
   }
-  // kielichy i szkatulki
-  for(let i=0;i<5;i++){
-    const chalice=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.08,0.3,6),goldMat);
-    chalice.position.set(-1.5+rng()*3,1.7,-5.5+rng()*2);grp.add(chalice);
+  for(let i=0;i<7;i++){
+    const chalice=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.1,0.4,6),goldMat);
+    chalice.position.set(-2.5+rng()*5,2.7,-8+rng()*3);grp.add(chalice);
   }
-  // duze klejnoty
-  for(let i=0;i<6;i++){
-    const gemColors=[0xff2244,0x2244ff,0x22ff44,0xff44ff,0x44ffff,0xffaa00];
-    const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.15+rng()*0.1),
-      new THREE.MeshStandardMaterial({color:gemColors[i],metalness:0.6,roughness:0.1,emissive:gemColors[i],emissiveIntensity:0.3}));
-    gem.position.set(-2+rng()*4,1.7+rng()*0.3,-4.5+rng()*2);grp.add(gem);
+  for(let i=0;i<8;i++){
+    const gemColors=[0xff2244,0x2244ff,0x22ff44,0xff44ff,0x44ffff,0xffaa00,0xff8800,0xaa22ff];
+    const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.18+rng()*0.12),
+      new THREE.MeshStandardMaterial({color:gemColors[i%8],metalness:0.6,roughness:0.1,emissive:gemColors[i%8],emissiveIntensity:0.3}));
+    gem.position.set(-3+rng()*6,2.7+rng()*0.4,-7+rng()*3);grp.add(gem);
   }
-  // jaja smoka
   for(let i=0;i<3;i++){
     const eggMat=new THREE.MeshStandardMaterial({color:[0x882222,0x228822,0x222288][i],metalness:0.4,roughness:0.5});
-    const egg=new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),eggMat);
+    const egg=new THREE.Mesh(new THREE.SphereGeometry(0.5,8,8),eggMat);
     egg.scale.y=1.3;
-    egg.position.set(-1+i*1,1.8,-6);grp.add(egg);
+    egg.position.set(-1.5+i*1.5,2.8,-9);grp.add(egg);
     const eggGlow=new THREE.PointLight([0xff4444,0x44ff44,0x4444ff][i],0.4,3);
     eggGlow.position.set(-1+i*1,2,-6);grp.add(eggGlow);
   }
@@ -3821,23 +3829,19 @@ function buildPyramid(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
   const baseH=terrainHeight(cx,cz);grp.position.set(cx,baseH,cz);
   const sand=matStone(0xc8a860,0.85);
-  // piramida schodkowa
-  for(let i=0;i<5;i++){
-    const s=20-i*3.5,h=3;
+  for(let i=0;i<7;i++){
+    const s=30-i*3.8,h=3.5;
     addBox(grp,s,h,s,0,i*h+h/2,0,sand);
   }
-  // wejscie
-  addBox(grp,3,3.5,2,0,1.75,10.5,matStone(0x1a1408,0.95));
-  // filary przy wejsciu
-  for(const sx of[-2.5,2.5]){
-    const p=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.5,5,6),matStone(0xb89850,0.85));
-    p.position.set(sx,2.5,11.5);p.castShadow=!isMobile;grp.add(p);
+  addBox(grp,4.5,5,3,0,2.5,16,matStone(0x1a1408,0.95));
+  for(const sx of[-3.5,3.5]){
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.65,7,6),matStone(0xb89850,0.85));
+    p.position.set(sx,3.5,17);p.castShadow=!isMobile;grp.add(p);
   }
-  // oko na szczycie
-  const eye=new THREE.Mesh(new THREE.SphereGeometry(0.6,8,8),
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,8),
     new THREE.MeshBasicMaterial({color:0xffdd33}));
-  eye.position.set(0,16.5,0);grp.add(eye);
-  const el=new THREE.PointLight(0xffcc22,2,15);el.position.set(0,17,0);grp.add(el);
+  eye.position.set(0,26,0);grp.add(eye);
+  const el=new THREE.PointLight(0xffcc22,3,20);el.position.set(0,27,0);grp.add(el);
   // pochodnie
   for(const sx of[-2,2]){
     const f=new THREE.Mesh(new THREE.SphereGeometry(0.2,5,5),new THREE.MeshBasicMaterial({color:0xff8822}));
@@ -3846,37 +3850,36 @@ function buildPyramid(scene,cx,cz){
   }
   // sfinksy straznicze przy wejsciu
   const sphinxM=matStone(0xb89850,0.8);
-  for(const sx of[-5,5]){
-    const body=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.2,3),sphinxM);
-    body.position.set(sx,0.6,12);grp.add(body);
-    const head=new THREE.Mesh(new THREE.BoxGeometry(0.9,1,0.8),sphinxM);
-    head.position.set(sx,1.6,13);grp.add(head);
-    const headdress=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.3,1),matStone(0x2244aa,0.8));
-    headdress.position.set(sx,2.1,12.8);grp.add(headdress);
-    const paw1=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,1.5),sphinxM);
-    paw1.position.set(sx-0.6,0.2,13.2);grp.add(paw1);
-    const paw2=paw1.clone();paw2.position.set(sx+0.6,0.2,13.2);grp.add(paw2);
+  for(const sx of[-7,7]){
+    const body=new THREE.Mesh(new THREE.BoxGeometry(3,2,5),sphinxM);
+    body.position.set(sx,1,18);grp.add(body);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.6,1.3),sphinxM);
+    head.position.set(sx,2.8,19.5);grp.add(head);
+    const headdress=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.5,1.6),matStone(0x2244aa,0.8));
+    headdress.position.set(sx,3.6,19.2);grp.add(headdress);
+    const paw1=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.6,2.5),sphinxM);
+    paw1.position.set(sx-1,0.3,19.8);grp.add(paw1);
+    const paw2=paw1.clone();paw2.position.set(sx+1,0.3,19.8);grp.add(paw2);
   }
   // hieroglify na scianach (dekoracyjne panele)
   const hieroM=matStone(0xa88840,0.7);
   for(let i=0;i<4;i++){
-    const a=i/4*Math.PI*2;const r=10.5;
-    const panel=new THREE.Mesh(new THREE.BoxGeometry(4,2.5,0.15),hieroM);
-    panel.position.set(Math.cos(a)*r,2,Math.sin(a)*r);panel.rotation.y=a;grp.add(panel);
-    for(let h=0;h<3;h++){const sym=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.08),
+    const a=i/4*Math.PI*2;const r=16;
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(6,3.5,0.2),hieroM);
+    panel.position.set(Math.cos(a)*r,3,Math.sin(a)*r);panel.rotation.y=a;grp.add(panel);
+    for(let h=0;h<3;h++){const sym=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.7,0.1),
       matStone(0x886830,0.6));
-      sym.position.set(Math.cos(a)*(r+0.1)+(h-1)*Math.sin(a)*0.8,1.5+h*0.7,
-        Math.sin(a)*(r+0.1)-(h-1)*Math.cos(a)*0.8);
+      sym.position.set(Math.cos(a)*(r+0.12)+(h-1)*Math.sin(a)*1.2,2.2+h*0.9,
+        Math.sin(a)*(r+0.12)-(h-1)*Math.cos(a)*1.2);
       sym.rotation.y=a;grp.add(sym);}
   }
-  // obeliski w rogach
   const obM=matStone(0xb89850,0.75);
   for(const sx of[-1,1])for(const sz of[-1,1]){
-    const ob=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.4,6,4),obM);
-    ob.position.set(sx*12,3,sz*12);grp.add(ob);
-    const tip=new THREE.Mesh(new THREE.ConeGeometry(0.3,1,4),
+    const ob=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.55,9,4),obM);
+    ob.position.set(sx*18,4.5,sz*18);grp.add(ob);
+    const tip=new THREE.Mesh(new THREE.ConeGeometry(0.45,1.5,4),
       new THREE.MeshStandardMaterial({color:0xffd700,metalness:0.7,roughness:0.2}));
-    tip.position.set(sx*12,6.5,sz*12);grp.add(tip);
+    tip.position.set(sx*18,10,sz*18);grp.add(tip);
   }
   buildBeacon(scene,cx,cz,0xffcc22);
 }
@@ -4783,11 +4786,42 @@ function renderVillager(body){
 }
 document.getElementById('dlg-x').addEventListener('click',closeDialog);
 document.getElementById('chest-close').addEventListener('click',closeChestUI);
+function getNearDoor(camera){
+  if(!camera)return null;
+  const held=ITEMS[player.heldItem];
+  if(held)return null;
+  for(const pb of placedBlocks){
+    if(pb.blockType!=='door')continue;
+    const dx=camera.position.x-pb.mesh.position.x,dz=camera.position.z-pb.mesh.position.z;
+    if(dx*dx+dz*dz<3.5*3.5)return pb;
+  }
+  return null;
+}
+function toggleDoor(pb){
+  if(!pb||pb.blockType!=='door')return;
+  pb.doorOpen=!pb.doorOpen;
+  const doorMesh=pb.mesh.children[0];
+  if(!doorMesh)return;
+  const def=BLOCK_DEFS.door;
+  if(pb.doorOpen){
+    doorMesh.rotation.y=Math.PI/2;
+    doorMesh.position.x=def.w*0.42;
+    doorMesh.position.z=def.w*0.42;
+    toast('Drzwi otwarte');
+  }else{
+    doorMesh.rotation.y=0;
+    doorMesh.position.x=0;
+    doorMesh.position.z=0;
+    toast('Drzwi zamkniete');
+  }
+}
 document.getElementById('interact-prompt').addEventListener('click',()=>{
   if(_coffinPos&&playerClass==='wampir'&&_camera){
     const cdx=_camera.position.x-_coffinPos.x,cdz=_camera.position.z-_coffinPos.z;
     if(cdx*cdx+cdz*cdz<3.5*3.5){worldTime=CYCLE_LEN*0.6;player.hp=Math.min(player.maxHp,player.hp+50);toast('Drzemka w trumnie... nastala noc. +50 HP');return;}
   }
+  const door=getNearDoor(_camera);
+  if(door){toggleDoor(door);return;}
   if(_activeNPC)openDialog(_activeNPC);
   else if(_camera)openNearbyChest(_camera);
 });
@@ -4824,10 +4858,11 @@ function useConsumable(idx){
   const fx=it.effect||{};
   let used=false;
   if(it.type==='food'){
-    if(fx.hunger){hunger=Math.min(100,hunger+fx.hunger);used=true;}
-    if(fx.hp){player.hp=Math.min(player.maxHp,player.hp+fx.hp);used=true;}
-    if(!fx.hunger&&!fx.hp){hunger=Math.min(100,hunger+10);used=true;}  // domyslnie najedzenie
-    if(used)toast('Zjedzono: '+it.name);
+    const campBonus=nearCampfire()?1.5:1;
+    if(fx.hunger){hunger=Math.min(100,hunger+fx.hunger*campBonus);used=true;}
+    if(fx.hp){player.hp=Math.min(player.maxHp,player.hp+fx.hp*campBonus);used=true;}
+    if(!fx.hunger&&!fx.hp){hunger=Math.min(100,hunger+10*campBonus);used=true;}
+    if(used)toast('Zjedzono: '+it.name+(campBonus>1?' (bonus ogniska!)':''));
   }else{
     if(fx.hp){
       if(player.hp<player.maxHp){player.hp=Math.min(player.maxHp,player.hp+fx.hp);used=true;}
@@ -5253,9 +5288,22 @@ function renderCraftPanel(){
 function heldIsWand(){
   const it=ITEMS[player.heldItem];
   if(it&&(it.type==='wand'||it.type==='trident'||it.canCast))return true;
-  // Wampir/Czlowiek/Nieumarły moga rzucac zaklecia bronia klasowa
   if((playerClass==='wampir'||playerClass==='czlowiek'||playerClass==='nieumarly')&&it&&it.type==='melee'&&it.equip==='weapon')return true;
   return false;
+}
+function heldIsBlock(){
+  const it=ITEMS[player.heldItem];
+  return it&&it.type==='block'&&it.count>0;
+}
+function placeHeldBlock(){
+  if(!_camera||!heldIsBlock())return false;
+  const it=ITEMS[player.heldItem];
+  const oldBt=buildBlockType;buildBlockType=it.blockType;
+  const oldMode=buildMode;buildMode=true;
+  const ok=placeBlock(_camera);
+  buildMode=oldMode;buildBlockType=oldBt;
+  updateHandItem();
+  return ok;
 }
 // Zwraca indeks moba na ktorego celujesz, jesli da sie go oswoic (masz item + brak towarzysza)
 function getTameTarget(){
@@ -5284,6 +5332,19 @@ function updateAttackIcon(){
     return;
   }
   btn.dataset.tame='';
+  if(heldIsBlock()){
+    btn.textContent='🧱';btn.classList.add('melee');
+    document.getElementById('spellbar').style.display='none';
+    document.getElementById('spellname').style.display='none';
+    return;
+  }
+  const heldIt=ITEMS[player.heldItem];
+  if(heldIt&&heldIt.id==='fishing_rod'){
+    btn.textContent='🎣';btn.classList.add('melee');
+    document.getElementById('spellbar').style.display='none';
+    document.getElementById('spellname').style.display='none';
+    return;
+  }
   const wand=heldIsWand();
   if(wand){btn.textContent='✦';btn.classList.remove('melee');}
   else{btn.textContent='👊';btn.classList.add('melee');}
@@ -5297,6 +5358,43 @@ function tryTameAimed(){
   // usun oswojonego moba ze swiata (staje sie towarzyszem)
   if(companion){const m=mobs[idx];if(m){_scene.remove(m.mesh);disposeMob(m);mobs.splice(idx,1);}}
   return true;
+}
+let _fishCooldown=0;
+function tryFish(){
+  if(!_camera||_fishCooldown>0)return;
+  const held=ITEMS[player.heldItem];
+  if(!held||held.id!=='fishing_rod')return;
+  const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+  const tx=_camera.position.x+dir.x*4,tz=_camera.position.z+dir.z*4;
+  const th=terrainHeight(tx,tz);
+  if(th>=SEA_LEVEL){toast('Musisz celowac w wode!');return;}
+  _fishCooldown=3;
+  toast('Lowisz...');
+  setTimeout(()=>{
+    const r=Math.random();
+    if(r<0.55){
+      addToInventory({id:'raw_fish',name:'Surowa Ryba',icon:'🐟',type:'resource',count:1});
+      toast('Zlowiles rybe!');
+    }else if(r<0.8){
+      addToInventory({id:'raw_fish',name:'Surowa Ryba',icon:'🐟',type:'resource',count:2});
+      toast('Swietny polów! 2 ryby!');
+    }else if(r<0.92){
+      addToInventory({id:'atlantyda_perla',name:'Perla Atlantydy',icon:'🫧',type:'resource',count:1});
+      toast('Zlowiles perle!');
+    }else{
+      toast('Ryba uciekla...');
+    }
+    buildItembar();
+  },2000);
+}
+function nearCampfire(){
+  if(!_camera)return false;
+  for(const pb of placedBlocks){
+    if(pb.blockType!=='campfire')continue;
+    const dx=_camera.position.x-pb.mesh.position.x,dz=_camera.position.z-pb.mesh.position.z;
+    if(dx*dx+dz*dz<5*5)return true;
+  }
+  return false;
 }
 let buffSpeedUntil=0,hasRevive=false,shieldHP=0;
 function getMeleeDmg(){
@@ -8070,6 +8168,9 @@ function setupDesktopInput(){
     }
     if(e.button!==0)return;
     if(getTameTarget()>=0){tryTameAimed();return;}
+    if(heldIsBlock()){placeHeldBlock();return;}
+    const hIt2=ITEMS[player.heldItem];
+    if(hIt2&&hIt2.id==='fishing_rod'){tryFish();return;}
     if(heldIsWand())casting=true;else meleeSwing();
   });
   document.addEventListener('contextmenu',e=>{if(buildMode)e.preventDefault();});
@@ -8133,6 +8234,9 @@ function setupMobileInput(){
   jumpBtn.addEventListener('touchcancel',e=>{_flyUp=false;},{passive:false});
   castBtn.addEventListener('touchstart',e=>{e.stopPropagation();
     if(getTameTarget()>=0){tryTameAimed();return;}
+    if(heldIsBlock()){placeHeldBlock();return;}
+    const hIt=ITEMS[player.heldItem];
+    if(hIt&&hIt.id==='fishing_rod'){tryFish();return;}
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
@@ -8550,9 +8654,41 @@ function updateHandItem(){
       new THREE.MeshStandardMaterial({color:0x44ff88,emissive:0x22aa44,emissiveIntensity:0.6}));
     gem.position.set(0,0.02,0.035);cover.add(gem);
     itemMesh=cover;
+  }else if(it.type==='block'){
+    const bDef=BLOCK_DEFS[it.blockType];
+    const bCol=bDef?bDef.color:0x8a8a92;
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.18,0.18),
+      new THREE.MeshStandardMaterial({color:bCol,roughness:0.7,flatShading:true}));
+    itemMesh=box;
+  }else if(it.type==='consumable'||it.type==='food'){
+    const bottle=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.06,0.16,6),
+      new THREE.MeshStandardMaterial({color:it.type==='food'?0xcc8844:0x4488cc,roughness:0.3,metalness:0.2,flatShading:true}));
+    bottle.add(body);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.04,0.04,5),
+      new THREE.MeshStandardMaterial({color:0x886622,roughness:0.6,flatShading:true}));
+    cap.position.y=0.1;bottle.add(cap);
+    itemMesh=bottle;
+  }else if(it.type==='resource'){
+    const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.09,0),
+      new THREE.MeshStandardMaterial({color:0x44aacc,roughness:0.3,metalness:0.4,flatShading:true}));
+    itemMesh=gem;
+  }else if(it.equip){
+    const eqMat=new THREE.MeshStandardMaterial({color:0xbbbbcc,roughness:0.4,metalness:0.5,flatShading:true});
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.06,0.02,6,8),eqMat);
+    const plate=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.18,0.04),eqMat);
+    plate.add(ring);ring.position.y=0.06;
+    itemMesh=plate;
+  }else if(it.type==='tool'){
+    const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.025,0.4,5),
+      new THREE.MeshStandardMaterial({color:0x6a4a2a,roughness:0.8,flatShading:true}));
+    const head=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.08,0.04),
+      new THREE.MeshStandardMaterial({color:0x888888,roughness:0.4,metalness:0.5,flatShading:true}));
+    head.position.y=0.2;handle.add(head);
+    itemMesh=handle;
   }else{
-    const box=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.16),
-      new THREE.MeshStandardMaterial({color:0x88aa44,roughness:0.7,flatShading:true}));
+    const box=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,0.12),
+      new THREE.MeshStandardMaterial({color:0xaa8855,roughness:0.7,flatShading:true}));
     itemMesh=box;
   }
   itemMesh.position.set(0.32,-0.18,-0.52);
@@ -8637,6 +8773,7 @@ function initWorld(){
       player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
       updateHunger(dt);
       updateClassPassives(dt);
+      if(_fishCooldown>0)_fishCooldown-=dt;
     }
     updatePlayer(dt,camera);
     updateDayNight(dt);
@@ -8693,8 +8830,12 @@ function initWorld(){
         if(dx*dx+dz*dz<4*4){nearChest=true;break;}
       }
     }
+    const nearDoor=getNearDoor(camera);
     if(_activeNPC&&!dialogOpen){
       document.getElementById('interact-name').textContent=_activeNPC.name;
+      ipEl.classList.add('show');
+    }else if(nearDoor&&!dialogOpen){
+      document.getElementById('interact-name').textContent=nearDoor.doorOpen?'Zamknij Drzwi':'Otworz Drzwi';
       ipEl.classList.add('show');
     }else if(nearChest&&!dialogOpen){
       document.getElementById('interact-name').textContent='Otworz Skrzynie';
@@ -8764,7 +8905,9 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get decay(){return decay;},set decay(v){decay=v;},
   get maxDecay(){return maxDecay;},
   get xpState(){return xpState;},giveXP,
-  get skillPoints(){return skillPoints;},set skillPoints(v){skillPoints=v;}};
+  get skillPoints(){return skillPoints;},set skillPoints(v){skillPoints=v;},
+  heldIsBlock,placeHeldBlock,getNearDoor,toggleDoor,tryFish,nearCampfire,
+  setTime:(t)=>{worldTime=t*CYCLE_LEN;},setYawPitch:(y,p)=>{yaw=y;pitch=p;}};
 </script>
 </body>
 </html>
