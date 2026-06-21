@@ -7314,7 +7314,18 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get swimming(){return _swimming;},get underwater(){return _underwater;},
   spawnMob:()=>spawnMob(_scene,_camera),get MAX_MOBS(){return MAX_MOBS;},get isMobile(){return isMobile;},
   useConsumable,recallShadowArmy,getTameTarget,tryTameAimed,
-  get companion(){return companion;}};
+  get companion(){return companion;},
+  get quest(){return quest;},generateQuest,
+  get playerDead(){return playerDead;},respawnPlayer,
+  equipItem,gearBonus,addToInventory,
+  get equipSets(){return equipSets;},get activeSet(){return activeSet;},
+  get SHOP_ITEMS(){return SHOP_ITEMS;},get EQUIP_DROPS(){return EQUIP_DROPS;},
+  get BOSS_DROPS(){return BOSS_DROPS;},
+  get maxBlood(){return maxBlood;},
+  get strength(){return strength;},set strength(v){strength=v;},
+  get maxStrength(){return maxStrength;},
+  get decay(){return decay;},set decay(v){decay=v;},
+  get maxDecay(){return maxDecay;}};
 </script>
 </body>
 </html>
