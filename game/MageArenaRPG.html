@@ -65,7 +65,10 @@
     background:linear-gradient(180deg,rgba(60,52,30,.9),rgba(30,26,16,.9));
     box-shadow:0 0 24px rgba(232,200,106,.3)}
   .class-card.locked{opacity:.55;cursor:not-allowed}
-  .class-icon{font-size:34px;margin-bottom:8px;line-height:1}
+  .class-icon{font-size:34px;margin-bottom:8px;line-height:1;height:56px;display:flex;align-items:center;justify-content:center}
+  .class-icon img,.diff-icon img{image-rendering:pixelated;width:52px;height:52px;
+    filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+  .diff-icon img{width:42px;height:42px}
   .class-name{font-size:16px;font-weight:700;color:#e8e0c8;margin-bottom:5px}
   .class-tag{font-size:10.5px;color:#8a98b4;line-height:1.35}
   .class-lock{position:absolute;top:6px;right:8px;font-size:9px;
@@ -1615,6 +1618,64 @@ function toggleFullscreen(){
     (document.exitFullscreen||document.webkitExitFullscreen||(()=>{})).call(document);
   }
 }
+// ── PIXEL-ART ikon menu (2D, generowane na canvas) ──
+function pxIcon(rows,pal,scale){
+  scale=scale||7;const h=rows.length,w=rows[0].length;
+  const cv=document.createElement('canvas');cv.width=w*scale;cv.height=h*scale;
+  const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+  for(let y=0;y<h;y++){const row=rows[y];
+    for(let x=0;x<w;x++){const ch=row[x];if(ch===' ')continue;
+      cx.fillStyle=pal[ch]||'#000';cx.fillRect(x*scale,y*scale,scale,scale);}}
+  return cv.toDataURL();
+}
+const CLASS_PX={
+  mag:{pal:{H:'#7a4fd0',B:'#3a2070',S:'#ffe24a',F:'#e8b890',E:'#2a1a40'},rows:[
+    '     SS     ','    HHHH    ','   HHHHHH   ','   HHSSHH   ','  HHHHHHHH  ',
+    '  HHHHHHHH  ',' BBBBBBBBBB ','   FFFFFF   ','   FEFFEF   ','   FFFFFF   ',
+    '    FFFF    ','     FF     ']},
+  wampir:{pal:{W:'#2a2233',E:'#ff3a3a',G:'#5a3a6a'},rows:[
+    'W          W','WW        WW','WWW  GG  WWW','WWWWWWWWWWWW','WWWWWWWWWWWW',
+    ' WWWGWWGWWW ','   WWWWWW   ','   WEWWEW   ','   WWWWWW   ','    W  W    ',
+    '            ','            ']},
+  nekromanta:{pal:{S:'#e8e8e0',E:'#1a1a22'},rows:[
+    '   SSSSSS   ','  SSSSSSSS  ',' SSSSSSSSSS ',' SSSSSSSSSS ',' SEESSSEES  ',
+    ' SEESSSEES  ',' SSSSSSSSSS ','  SSSEESSS  ','  SSSSSSSS  ','   SSSSSS   ',
+    '   S S S    ','            ']},
+  czlowiek:{pal:{B:'#cfd4e0',G:'#ffd24a',H:'#8a5a2a',D:'#5a7ad0'},rows:[
+    'DD   BB     ','DDD  BB     ','DDDD BB     ','DDDD BB   DD','DDDD BB  DDD',
+    'DDD GGGG DDD','DDD  HH  DDD','DD   HH   DD',' D  GGGG  D ','    HHHH    ',
+    '     HH     ','            ']},
+  atlantyda:{pal:{T:'#3ad0e0',P:'#2a90a0'},rows:[
+    ' T   T   T  ',' T   T   T  ',' T   T   T  ',' TTTTTTTTT  ','     T      ',
+    '     T      ','     T      ','     T      ','     T      ','     T      ',
+    '    TPT     ','            ']},
+  nieumarly:{pal:{Z:'#6a9a4a',D:'#3a5a2a',E:'#10200a'},rows:[
+    '   ZZZZZZ   ','  ZZZZZZZZ  ',' ZZDZZZZDZZ ',' ZZEEZZEEZZ ',' ZZZZZZZZZZ ',
+    ' ZZZZZZZZZZ ',' ZZDDDDDDZZ ',' ZDZDZDZDZZ ',' ZZZZZZZZZZ ','  ZZZZZZZZ  ',
+    '   ZZZZZZ   ','            ']},
+};
+const DIFF_PX={
+  hardcore:{pal:{S:'#e85a5a',E:'#3a0a0a'},rows:[
+    '   SSSSSS   ','  SSSSSSSS  ',' SSSSSSSSSS ',' SEESSSEES  ',' SEESSSEES  ',
+    ' SSSSSSSSSS ','  SSSEESSS  ','  SSSSSSSS  ','   SSSSSS   ','   S S S    ']},
+  normal:{pal:{G:'#ffd24a',P:'#8a6a2a'},rows:[
+    '     G      ','     G      ','  GGGGGGG   ','  G  G  G   ',' GGG G GGG  ',
+    ' GGG G GGG  ','     G      ','    GGG     ','   GGGGG    ','  PPPPPPP   ']},
+  easy:{pal:{D:'#4ac04a',L:'#bfffb0',B:'#2a7a2a'},rows:[
+    '  DDDDDDDD  ',' DDDDDDDDDD ',' DDDDDDDLDD ',' DDDDDDLDDD ',' DLDDDLDDDD ',
+    ' DDLDLDDDDD ',' DDDLDDDDDD ','  DDDDDDDD  ','   DDDDDD   ','    DDDD    ']},
+};
+function applyMenuPixelArt(){
+  document.querySelectorAll('.class-card').forEach(card=>{
+    const def=CLASS_PX[card.dataset.class];const ic=card.querySelector('.class-icon');
+    if(def&&ic)ic.innerHTML='<img alt="" src="'+pxIcon(def.rows,def.pal,8)+'">';
+  });
+  document.querySelectorAll('.diff-card').forEach(card=>{
+    const def=DIFF_PX[card.dataset.diff];const ic=card.querySelector('.diff-icon');
+    if(def&&ic)ic.innerHTML='<img alt="" src="'+pxIcon(def.rows,def.pal,8)+'">';
+  });
+}
+applyMenuPixelArt();
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.go)));
 document.getElementById('fs-menu').addEventListener('click',toggleFullscreen);
 document.getElementById('fs-game').addEventListener('click',toggleFullscreen);
