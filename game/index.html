@@ -442,6 +442,34 @@
   .cp-spell-req{position:absolute;top:3px;right:4px;font-size:8px;color:#ffd24a;font-weight:700}
 
   #inv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  #chest-panel{position:absolute;inset:0;z-index:23;background:rgba(6,9,16,.85);
+    display:none;align-items:center;justify-content:center;pointer-events:auto;padding:12px}
+  #chest-panel.open{display:flex}
+  .chest-wrap{width:100%;max-width:460px;max-height:88vh;overflow-y:auto;
+    background:linear-gradient(180deg,rgba(40,30,18,.98),rgba(20,15,10,.98));
+    border:2px solid rgba(210,160,80,.55);border-radius:16px;padding:16px;
+    box-shadow:0 12px 50px rgba(0,0,0,.6);animation:fade .25s ease}
+  #chest-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:6px}
+  #chest-inv{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+  .craft-status{font-size:11px;line-height:1.4;padding:7px 9px;margin-bottom:8px;
+    background:rgba(0,0,0,.3);border:1px solid rgba(232,200,106,.25);border-radius:8px;color:#cdd}
+  #recipe-info{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.7);
+    display:none;align-items:center;justify-content:center;padding:16px}
+  #recipe-info .ri-box{width:100%;max-width:380px;background:linear-gradient(180deg,#1c2438,#0e1220);
+    border:2px solid rgba(232,200,106,.5);border-radius:14px;padding:16px;color:#dde}
+  #recipe-info .ri-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  #recipe-info .ri-ic{font-size:30px}
+  #recipe-info .ri-nm{font-size:17px;font-weight:800;color:#ffe08a}
+  #recipe-info .ri-desc{font-size:12px;color:#bcd;margin-bottom:10px}
+  #recipe-info .ri-sub{font-size:12px;font-weight:700;color:#9ab;margin:6px 0 4px}
+  #recipe-info .ri-mat{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid rgba(255,255,255,.08)}
+  #recipe-info .ri-mic{font-size:20px}
+  #recipe-info .ri-how{font-size:10.5px;color:#9aa;margin-top:1px}
+  #recipe-info .ri-close{margin-top:12px;width:100%;padding:9px;border-radius:8px;border:none;
+    background:linear-gradient(180deg,#e8c86a,#b8983a);color:#1a1207;font-weight:800;cursor:pointer}
+  #inv-trash{margin-top:8px;padding:8px;text-align:center;font-size:11px;color:#caa;
+    border:1px dashed #a55;border-radius:8px;background:rgba(120,40,40,.18);cursor:pointer}
+  #inv-trash.armed{border-color:#ff6a6a;color:#ffd0d0;background:rgba(180,50,50,.32);border-style:solid}
   .inv-slot{width:100%;aspect-ratio:1;
     background:radial-gradient(circle at 50% 35%,rgba(60,70,98,.5),rgba(10,14,24,.6));
     border:2px solid rgba(255,255,255,.12);border-radius:9px;
@@ -490,6 +518,11 @@
   #companion-hud .comp-hp-bar{width:90px;height:6px;background:#333;border-radius:3px;overflow:hidden}
   #companion-hud .comp-hp-fill{height:100%;background:#44cc55;transition:width .15s}
   #companion-hud .comp-mode{margin-top:4px;font-size:10px;cursor:pointer;text-decoration:underline}
+  #companion-hud .comp-ride{margin-top:5px;font-size:11px;font-weight:700;cursor:pointer;
+    background:linear-gradient(180deg,#3a6a3a,#2a4a2a);border:1px solid #6acf6a;border-radius:6px;
+    padding:3px 8px;text-align:center;color:#cfffcf;display:none}
+  #companion-hud .comp-ride.show{display:block}
+  #companion-hud .comp-ride.riding{background:linear-gradient(180deg,#8a4a3a,#5a2a2a);border-color:#cf8a6a;color:#ffd8c8}
 
   /* ── CLIMB BAR ─────────────────────────────────────── */
   #climb-bar{position:absolute;left:50%;bottom:180px;transform:translateX(-50%);
@@ -794,6 +827,7 @@
         </div>
         <div class="cp-label">Plecak (20 slotow)</div>
         <div id="inv-grid"></div>
+        <div id="inv-trash">🗑️ Przeciagnij tu przedmiot aby wyrzucic</div>
       </div>
       <!-- STRONA 2: PUNKTY I ZAKLECIA -->
       <div class="cp-page" id="cp-page-points" style="display:none">
@@ -815,8 +849,20 @@
       <div class="craft-list" id="craft-list"></div>
     </div>
   </div>
+  <div id="chest-panel">
+    <div class="chest-wrap">
+      <div class="craft-head">
+        <span class="craft-title" id="chest-title">📦 Skrzynia</span>
+        <button class="craft-close" id="chest-close">✕</button>
+      </div>
+      <div class="cp-label">Zawartosc skrzyni (kliknij aby wziac)</div>
+      <div id="chest-grid"></div>
+      <div class="cp-label">Twoj plecak (kliknij aby wlozyc)</div>
+      <div id="chest-inv"></div>
+    </div>
+  </div>
   <div id="boss-bar"><div class="bar-fill"></div><div class="bar-label" id="boss-name">Boss</div></div>
-  <div id="companion-hud"><div class="comp-name"></div><div class="comp-hp-bar"><div class="comp-hp-fill"></div></div><div class="comp-mode" id="comp-mode-btn">Tryb: Atakuj</div></div>
+  <div id="companion-hud"><div class="comp-name"></div><div class="comp-hp-bar"><div class="comp-hp-fill"></div></div><div class="comp-mode" id="comp-mode-btn">Tryb: Atakuj</div><div class="comp-ride" id="comp-ride-btn">Dosiadz</div></div>
   <div id="climb-bar"><div class="climb-fill"></div></div>
   <div id="fullmap" class="hidden">
     <div class="fm-head">🗺️ Mapa Świata <button id="fm-close">✕</button></div>
@@ -1664,6 +1710,18 @@ function buildInvGrid(){
     slot.addEventListener('touchmove',()=>{clearTimeout(longTimer);},{passive:true});
     g.appendChild(slot);
   }
+  const trash=document.getElementById('inv-trash');
+  if(trash){
+    if(_invDragFrom>=0&&ITEMS[_invDragFrom]){trash.classList.add('armed');}
+    else{trash.classList.remove('armed');}
+    trash.onclick=()=>{
+      if(_invDragFrom<0||!ITEMS[_invDragFrom]){toast('Najpierw dotknij przedmiot, potem kosz');return;}
+      const nm=ITEMS[_invDragFrom].name;
+      ITEMS[_invDragFrom]=null;_invDragFrom=-1;
+      toast('Wyrzucono: '+nm);
+      buildInvGrid();buildItembar();updateHandItem();
+    };
+  }
 }
 function showError(msg){
   let d=document.getElementById('error-display');
@@ -1770,6 +1828,12 @@ function updateCompanionHUD(){
   const hud=document.getElementById('companion-hud');
   hud.querySelector('.comp-name').textContent=companion.name+' Poz.'+companion.level;
   hud.querySelector('.comp-hp-fill').style.width=(companion.hp/companion.maxHp*100)+'%';
+  const rb=hud.querySelector('.comp-ride');
+  if(rb){
+    if(canRideComp(companion)){rb.classList.add('show');}else{rb.classList.remove('show');}
+    if(riding){rb.classList.add('riding');rb.textContent='Zsiadz';}
+    else{rb.classList.remove('riding');rb.textContent=isFlyMount(companion)?'Lec':'Dosiadz';}
+  }
 }
 function updateCompanion(dt,camera,scene){
   if(!companion||!_scene)return;
@@ -1779,6 +1843,7 @@ function updateCompanion(dt,camera,scene){
     companionMesh=buildMobMesh(mt);
     _scene.add(companionMesh);
   }
+  if(riding){updateCompanionHUD();return;}  // jazda obsluguje pozycje wierzchowca
   const target=camera.position.clone();
   target.x-=Math.sin(yaw)*3;target.z-=Math.cos(yaw)*3;
   target.y=terrainHeight(target.x,target.z);
@@ -1817,6 +1882,77 @@ document.getElementById('comp-mode-btn').addEventListener('click',()=>{
   companionMode=companionMode==='attack'?'stay':'attack';
   document.getElementById('comp-mode-btn').textContent='Tryb: '+(companionMode==='attack'?'Atakuj':'Stoj');
 });
+
+// ═══ JAZDA / LATANIE NA WIERZCHOWCU ════════════════════
+let riding=null, _flyUp=false;
+const FLY_MOUNTS=['moltres','eagle','dragon'];
+const RIDEABLE=['moltres','eagle','horse','lion','arcticwolf','wolf','bear','raptor','small_dino','tiger'];
+function canRideComp(c){return c&&(RIDEABLE.includes(c.type.id)||FLY_MOUNTS.includes(c.type.id));}
+function isFlyMount(c){return c&&FLY_MOUNTS.includes(c.type.id);}
+function toggleRide(){
+  if(!companion)return;
+  if(riding){dismount();return;}
+  if(!canRideComp(companion)){toast(companion.name+' nie nadaje sie do jazdy');return;}
+  // teleportuj wierzchowca pod gracza
+  riding=companion;
+  if(companionMesh){
+    companionMesh.position.set(_camera.position.x,terrainHeight(_camera.position.x,_camera.position.z),_camera.position.z);
+  }
+  toast('Dosiadasz: '+companion.name+(isFlyMount(companion)?' - SKOK aby wzlecic!':'!'));
+  updateCompanionHUD();
+}
+function dismount(){
+  if(!riding)return;
+  const nm=riding.name;riding=null;_flyUp=false;
+  // postaw gracza na ziemi
+  if(_camera){
+    const gy=terrainHeight(_camera.position.x,_camera.position.z)+EYE_H;
+    _camera.position.y=Math.max(_camera.position.y,gy);velY=0;
+  }
+  toast('Zsiadasz z: '+nm);
+  updateCompanionHUD();
+}
+function updateRiding(dt,camera){
+  if(!riding)return;
+  let mx=0,mz=0;
+  if(isMobile){mx=joyState.dx;mz=joyState.dy;}
+  else{
+    if(keys['KeyW']||keys['ArrowUp'])mz-=1;
+    if(keys['KeyS']||keys['ArrowDown'])mz+=1;
+    if(keys['KeyA']||keys['ArrowLeft'])mx-=1;
+    if(keys['KeyD']||keys['ArrowRight'])mx+=1;
+  }
+  const len=Math.sqrt(mx*mx+mz*mz);if(len>0.01){mx/=len;mz/=len;}
+  const fly=isFlyMount(riding);
+  const baseSpd=(riding.type.speed||6)*(fly?2.4:1.9);
+  const sinY=Math.sin(yaw),cosY=Math.cos(yaw);
+  let px=camera.position.x+(mx*cosY+mz*sinY)*baseSpd*dt;
+  let pz=camera.position.z+(-mx*sinY+mz*cosY)*baseSpd*dt;
+  px=THREE.MathUtils.clamp(px,-WORLD_HALF,WORLD_HALF);pz=THREE.MathUtils.clamp(pz,-WORLD_HALF,WORLD_HALF);
+  let py=camera.position.y;
+  const ground=terrainHeight(px,pz);
+  if(fly){
+    // wznoszenie wg kierunku patrzenia (jak nurkowanie) + przycisk SKOK
+    py+=-Math.sin(pitch)*len*baseSpd*dt;
+    if(_flyUp||keys['Space'])py+=baseSpd*0.7*dt;
+    const minY=ground+3.0, maxY=ground+170;
+    if(py<minY)py=minY;
+    if(py>maxY)py=maxY;
+  }else{
+    py=ground+EYE_H+(riding.type.height||1.4)*0.45;
+  }
+  camera.position.set(px,py,pz);
+  const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
+  camera.quaternion.copy(quat);
+  // ustaw wierzchowca pod graczem
+  if(companionMesh){
+    const dropY=fly?2.1:(EYE_H+(riding.type.height||1.4)*0.45);
+    companionMesh.position.set(px-Math.sin(yaw)*0.1,py-dropY,pz-Math.cos(yaw)*0.1);
+    companionMesh.rotation.set(0,yaw+Math.PI,0);
+  }
+  updateCompanionHUD();
+}
+document.getElementById('comp-ride-btn').addEventListener('click',toggleRide);
 
 // ═══ CIENIE NEKROMANTY (Shadow Minions) ════════════════
 const shadowMinions=[];
@@ -2187,28 +2323,94 @@ function spawnChest(scene,x,z,tier){
   chests.push({mesh:g,x,z,tier,opened:false});
 }
 function openNearbyChest(camera){
+  // 1) postawione skrzynie (blok) - trwala zawartosc
+  for(const pb of placedBlocks){
+    if(pb.blockType!=='chest'||!pb.storage)continue;
+    const dx=camera.position.x-pb.mesh.position.x,dz=camera.position.z-pb.mesh.position.z;
+    if(dx*dx+dz*dz<4*4){
+      if(pb.mesh.children[2]){pb.mesh.children[2].rotation.x=-0.9;}
+      openChestUI(pb.storage,'Skrzynia');
+      return true;
+    }
+  }
+  // 2) skrzynie ze swiata - losuj loot raz, potem otworz UI
   for(const c of chests){
-    if(c.opened)continue;
     const dx=camera.position.x-c.x,dz=camera.position.z-c.z;
     if(dx*dx+dz*dz<4*4){
-      c.opened=true;
-      c.mesh.children[1].position.y=1.0;
-      c.mesh.children[1].rotation.x=-0.8;
-      const loot=CHEST_LOOT[Math.min(c.tier,CHEST_LOOT.length-1)];
-      let count=0;
-      for(const item of loot){
-        if(Math.random()<0.6){
-          addToInventory({...item,count:1});
-          toast('+1 '+item.name);count++;
+      if(!c.opened){
+        c.opened=true;
+        c.mesh.children[1].position.y=1.0;
+        c.mesh.children[1].rotation.x=-0.8;
+        c.storage=new Array(10).fill(null);
+        const loot=CHEST_LOOT[Math.min(c.tier,CHEST_LOOT.length-1)];
+        for(const item of loot){
+          if(Math.random()<0.75)chestAddItem(c.storage,{...item,count:1+((Math.random()*3)|0)});
         }
+        // gwarantowany przedmiot + zloto jako fizyczny "loot"
+        if(c.storage.every(s=>!s))chestAddItem(c.storage,{...loot[0],count:1});
+        player.gold+=10*(c.tier+1);
+        toast('+'+(10*(c.tier+1))+' zlota');
       }
-      if(count===0){addToInventory({...loot[0],count:1});toast('+1 '+loot[0].name);}
-      player.gold+=10*(c.tier+1);
-      toast('+'+(10*(c.tier+1))+' zlota');
+      openChestUI(c.storage,'Skrzynia');
       return true;
     }
   }
   return false;
+}
+// ── Wspolny interfejs skrzyni (jak w MC) ──────────────
+let chestOpen=false,_openChestStorage=null;
+function chestAddItem(storage,item){
+  const stackable=item.type==='consumable'||item.type==='food'||item.type==='resource'||item.type==='block';
+  if(stackable){
+    for(let i=0;i<storage.length;i++){const s=storage[i];
+      if(s&&s.id===item.id){s.count=(s.count||1)+(item.count||1);return true;}}
+  }
+  for(let i=0;i<storage.length;i++){if(!storage[i]){storage[i]={...item,count:item.count||1};return true;}}
+  return false;
+}
+function makeItemSlot(it){
+  const slot=document.createElement('div');slot.className='inv-slot';
+  let inner=it?`<span class="inv-ic">${it.icon}</span>`:'';
+  if(it&&it.count>1)inner+=`<span class="inv-count">${it.count}</span>`;
+  slot.innerHTML=inner;
+  if(it&&it.rarity&&RARITY[it.rarity]){
+    slot.style.borderColor=RARITY[it.rarity].col;
+    slot.style.boxShadow='inset 0 0 12px '+RARITY[it.rarity].col+'55';
+  }
+  slot.title=it?it.name:'Pusty';
+  return slot;
+}
+function openChestUI(storage,title){
+  _openChestStorage=storage;chestOpen=true;
+  document.getElementById('chest-title').textContent='📦 '+(title||'Skrzynia');
+  document.getElementById('chest-panel').classList.add('open');
+  renderChestUI();
+}
+function closeChestUI(){chestOpen=false;_openChestStorage=null;
+  document.getElementById('chest-panel').classList.remove('open');}
+function renderChestUI(){
+  if(!_openChestStorage)return;
+  const cg=document.getElementById('chest-grid');cg.innerHTML='';
+  _openChestStorage.forEach((it,i)=>{
+    const slot=makeItemSlot(it);
+    slot.onclick=()=>{
+      if(!_openChestStorage[i])return;
+      const moved={..._openChestStorage[i]};
+      if(addToInventory(moved)){_openChestStorage[i]=null;renderChestUI();}
+      else toast('Plecak pelny!');
+    };
+    cg.appendChild(slot);
+  });
+  const ig=document.getElementById('chest-inv');ig.innerHTML='';
+  for(let i=0;i<INV_SIZE;i++){
+    const it=ITEMS[i];const slot=makeItemSlot(it);
+    slot.onclick=()=>{
+      if(!ITEMS[i])return;
+      if(chestAddItem(_openChestStorage,{...ITEMS[i]})){ITEMS[i]=null;renderChestUI();buildItembar();}
+      else toast('Skrzynia pelna!');
+    };
+    ig.appendChild(slot);
+  }
 }
 
 // ═══ BUDOWANIE (Building System) ══════════════════════
@@ -2435,6 +2637,7 @@ function isNearWall(camera){
 // skok: blisko sciany + szybkie klikanie = wspinaczka w gore
 function doJump(camera){
   if(playerDead)return;
+  if(riding){if(isFlyMount(riding))_flyUp=true;return;}  // lot w gore
   if(_swimming){
     // plywanie: skok = ruch w gore (wynurzanie). Atlanta plywa mocniej.
     velY=playerClass==='atlantyda'?6:4.5;onGround=false;return;
@@ -2597,6 +2800,8 @@ function terrainHeight(x,z){
       // struktury ladowe zawsze nad woda (oprocz oznaczonych jako ocean)
       if(!c.ocean&&flatH<SEA_LEVEL+1.5)flatH=SEA_LEVEL+1.5;
       h=flatH+(h-flatH)*Math.pow(t,2);
+      // struktury nigdy nie pod woda - caly teren polany nad poziomem morza
+      if(!c.ocean&&h<SEA_LEVEL+0.6)h=SEA_LEVEL+0.6;
     }
   }
   // glebokie baseny oceaniczne (woda + Leviatan)
@@ -4516,6 +4721,7 @@ function renderVillager(body){
   b.textContent='Zegnaj';b.addEventListener('click',closeDialog);body.appendChild(b);
 }
 document.getElementById('dlg-x').addEventListener('click',closeDialog);
+document.getElementById('chest-close').addEventListener('click',closeChestUI);
 document.getElementById('interact-prompt').addEventListener('click',()=>{
   if(_coffinPos&&playerClass==='wampir'&&_camera){
     const cdx=_camera.position.x-_coffinPos.x,cdz=_camera.position.z-_coffinPos.z;
@@ -4899,21 +5105,75 @@ document.getElementById('admin-btn').addEventListener('click',()=>{
 document.getElementById('admin-close').addEventListener('click',()=>{
   adminOpen=false;document.getElementById('admin-panel').classList.remove('show');
 });
+function nearCraftTable(){
+  if(!_camera)return false;
+  for(const pb of placedBlocks){
+    if(pb.blockType==='table'){
+      const dx=pb.mesh.position.x-_camera.position.x,dz=pb.mesh.position.z-_camera.position.z;
+      if(dx*dx+dz*dz<7*7)return true;
+    }
+  }
+  return false;
+}
+const RES_SOURCE={
+  wood:'Scinaj drzewa siekiera (najpierw zdobadz kamien)',
+  stone:'Rozbijaj kamienie i glazy na ziemi',
+  iron_ore:'Kopalnia, gory, lub z kamiennych golemow',
+  copper:'Kopanie w gorach',silver:'Kopanie w gorach',
+  gold_ore:'Kopalnia i gory',mithril:'Glebokie zyly w gorach / golemy',
+  diamond:'Rzadkie zyly w gorach i jaskiniach',ruby:'Rzadkie zyly w gorach',
+  crystal:'Krysztalowe golemy i gory',coal:'Kopanie w gorach',
+  dark_ore:'Swiat Umarlych / mroczne strefy',sand:'Pustynia',glass:'Wytapiane z piasku',
+  leather:'Z upolowanych zwierzat (wilk, niedzwiedz)',wool:'Z owiec',
+  bone:'Ze szkieletow i zombie',raw_meat:'Z upolowanych zwierzat',
+  fire_dust:'Z Moltresa i potworow wulkanicznych',fire_feather:'Z Moltresa',
+  yeti_tear:'Z Yeti (arktyka)',shadow_gem:'Z cieni i mrocznych potworow',
+  magma_heart:'Z golemow lawy / kuznia',dragon_gem:'Ze smoka',dino_egg:'Z raptorow i dinozaurow',
+  luska_leviatana:'Z Leviatana (otchlan oceanu)',atlantyda_perla:'Skrzynie Atlantydy / glebia',
+};
+function lookupMat(id){return RESOURCES.find(x=>x.id===id)||RECIPES.find(x=>x.id===id)||{name:id,icon:'❓'};}
+function countHave(id){let n=0;for(let i=0;i<INV_SIZE;i++){const it=ITEMS[i];if(it&&it.id===id)n+=(it.count||1);}return n;}
+function showRecipeInfo(r){
+  let d=document.getElementById('recipe-info');
+  if(!d){d=document.createElement('div');d.id='recipe-info';document.body.appendChild(d);
+    d.addEventListener('click',e=>{if(e.target===d)d.style.display='none';});}
+  const matRows=r.need.map(n=>{
+    const m=lookupMat(n.id),have=countHave(n.id),ok=have>=n.count;
+    return `<div class="ri-mat"><span class="ri-mic">${m.icon}</span>
+      <div><b style="color:${ok?'#8aff8a':'#ff9a9a'}">${m.name} ${have}/${n.count}</b>
+      <div class="ri-how">Skad: ${RES_SOURCE[n.id]||'Z potworow lub w swiecie'}</div></div></div>`;
+  }).join('');
+  d.innerHTML=`<div class="ri-box">
+    <div class="ri-head"><span class="ri-ic">${r.icon}</span><span class="ri-nm">${r.name}</span></div>
+    <div class="ri-desc">${r.desc||''}</div>
+    <div class="ri-sub">Potrzebne materialy:</div>${matRows}
+    <button class="ri-close">Zamknij</button></div>`;
+  d.querySelector('.ri-close').onclick=()=>d.style.display='none';
+  d.style.display='flex';
+}
 function renderCraftPanel(){
   const list=document.getElementById('craft-list');if(!list)return;list.innerHTML='';
+  const atTable=nearCraftTable();
+  const hdr=document.createElement('div');hdr.className='craft-status';
+  hdr.innerHTML=atTable
+    ?'🪑 <b style="color:#8aff8a">Stol rzemieslniczy w poblizu</b> — mozesz tworzyc wszystko.'
+    :'⚠️ <b style="color:#ffcf6a">Brak stolu rzemieslniczego.</b> Postaw <b>Stol</b> aby tworzyc reszte. (Kliknij przepis po szczegoly)';
+  list.appendChild(hdr);
   RECIPES.forEach(r=>{
-    const hasAll=r.need.every(n=>{
-      for(let i=0;i<INV_SIZE;i++){const it=ITEMS[i];if(it&&it.id===n.id&&it.count>=n.count)return true;}
-      return false;
-    });
+    const isTable=r.blockType==='table';
+    const allowed=atTable||isTable;
+    const hasAll=r.need.every(n=>countHave(n.id)>=n.count);
     const row=document.createElement('div');row.className='shop-row';
-    const mats=r.need.map(n=>`${n.count}x ${(RESOURCES.find(rs=>rs.id===n.id)||{icon:'?'}).icon}`).join(' ');
+    if(!allowed)row.style.opacity='0.55';
+    const mats=r.need.map(n=>`${n.count}x ${lookupMat(n.id).icon}`).join(' ');
     row.innerHTML=`<div class="shop-ic">${r.icon}</div>
       <div class="shop-info"><div class="shop-nm">${r.name}</div>
-      <div class="shop-ds">${r.desc} (${mats})</div></div>`;
+      <div class="shop-ds">${r.desc} (${mats}) ℹ️</div></div>`;
+    row.querySelector('.shop-info').addEventListener('click',()=>showRecipeInfo(r));
     const btn=document.createElement('button');btn.className='shop-buy';
-    btn.textContent='Stworz';btn.disabled=!hasAll;
+    btn.textContent=allowed?'Stworz':'🔒 Stol';btn.disabled=!hasAll||!allowed;
     btn.addEventListener('click',()=>{
+      if(!allowed){toast('Najpierw postaw Stol rzemieslniczy!');return;}
       const result={...r,count:1};
       if(!addToInventory(result)){toast('Plecak pelny!');return;}
       r.need.forEach(n=>{
@@ -6727,6 +6987,20 @@ function createMobHPBar(){
   group.add(fill);group.renderOrder=999;
   return{group,fill};
 }
+function mobSpawnWeight(t){
+  if(t.passive)return 3.2;            // dobre/spokojne zwierzeta - czesto
+  if(t.tame&&!t.boss)var tameBonus=1.4; else tameBonus=1; // oswajalne nieco czesciej
+  const power=(t.hp||100)+(t.dmg||10)*8;  // im silniejszy tym rzadziej
+  return Math.max(0.12,260/power)*tameBonus;
+}
+function weightedMobPick(list){
+  let total=0;const w=new Array(list.length);
+  for(let i=0;i<list.length;i++){w[i]=mobSpawnWeight(list[i]);total+=w[i];}
+  if(total<=0)return list[(Math.random()*list.length)|0];
+  let r=Math.random()*total;
+  for(let i=0;i<list.length;i++){r-=w[i];if(r<=0)return list[i];}
+  return list[list.length-1];
+}
 function spawnMob(scene,camera){
   if(mobs.length>=MAX_MOBS)return;
   const angle=Math.random()*Math.PI*2;
@@ -6755,7 +7029,14 @@ function spawnMob(scene,camera){
     valid=MOB_TYPES.filter(t=>!t.water&&t.biomes.includes(biome)&&(!t.night||nightNow));
   }
   if(valid.length===0)return;
-  const type=valid[(Math.random()*valid.length)|0];
+  // Wazenie spawnu: dobre (pasywne) moby czesto, zle rzadko, im silniejszy tym rzadziej
+  const type=weightedMobPick(valid);
+  if(!type)return;
+  // Wrogie moby nie spawnuja sie zbyt blisko gracza (mniej "od razu walka")
+  if(!type.passive){
+    const pdx=x-camera.position.x,pdz=z-camera.position.z;
+    if(pdx*pdx+pdz*pdz<38*38)return;
+  }
   const mesh=buildMobMesh(type);
   mesh.position.set(x,spawnY,z);scene.add(mesh);
   const hpBar=createMobHPBar();
@@ -7618,7 +7899,7 @@ function respawnPlayer(){
   playerDead=false;player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;
   blood=maxBlood;strength=maxStrength;decay=maxDecay;
   _breath=100;player.lastCast=0;statusEffects.length=0;shieldHP=0;
-  if(companion&&companionMesh){_scene.remove(companionMesh);companionMesh=null;companion=null;}
+  if(companion&&companionMesh){_scene.remove(companionMesh);companionMesh=null;companion=null;riding=null;_flyUp=false;}
   if(necroPet&&necroPetMesh){_scene.remove(necroPetMesh);necroPetMesh=null;necroPet=null;}
   for(let i=shadowMinions.length-1;i>=0;i--){_scene.remove(shadowMinions[i].mesh);}shadowMinions.length=0;
   const sp=buildSpawnPoint||_classSpawn||{x:0,z:0};
@@ -7787,6 +8068,8 @@ function setupMobileInput(){
   document.addEventListener('touchend',endLook,{passive:true});
   document.addEventListener('touchcancel',endLook,{passive:true});
   jumpBtn.addEventListener('touchstart',e=>{e.stopPropagation();if(_camera)doJump(_camera);},{passive:false});
+  jumpBtn.addEventListener('touchend',e=>{e.stopPropagation();_flyUp=false;},{passive:false});
+  jumpBtn.addEventListener('touchcancel',e=>{_flyUp=false;},{passive:false});
   castBtn.addEventListener('touchstart',e=>{e.stopPropagation();
     if(getTameTarget()>=0){tryTameAimed();return;}
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
@@ -7819,7 +8102,8 @@ function setupMobileInput(){
 
 // ═══ PLAYER MOVEMENT ════════════════════════════════
 function updatePlayer(dt,camera){
-  if(playerDead||dialogOpen||charOpen||craftOpen||fullmapOpen)return;
+  if(playerDead||dialogOpen||charOpen||craftOpen||fullmapOpen||chestOpen)return;
+  if(riding){updateRiding(dt,camera);return;}
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
   else{
@@ -8287,7 +8571,7 @@ function initWorld(){
   function loop(now){
     requestAnimationFrame(loop);
     let dt=(now-last)/1000;last=now;if(dt>0.05)dt=0.05;
-    if(casting&&!playerDead&&!dialogOpen&&!charOpen&&!craftOpen&&!fullmapOpen)attemptCast(now);
+    if(casting&&!playerDead&&!dialogOpen&&!charOpen&&!craftOpen&&!fullmapOpen&&!chestOpen)attemptCast(now);
     if(!playerDead){
       player.mana=Math.min(player.maxMana,player.mana+player.manaRegen*dt);
       updateHunger(dt);
@@ -8338,8 +8622,13 @@ function initWorld(){
     const ipEl=document.getElementById('interact-prompt');
     let nearChest=false;
     for(const c of chests){
-      if(!c.opened){
-        const dx=camera.position.x-c.x,dz=camera.position.z-c.z;
+      const dx=camera.position.x-c.x,dz=camera.position.z-c.z;
+      if(dx*dx+dz*dz<4*4){nearChest=true;break;}
+    }
+    if(!nearChest){
+      for(const pb of placedBlocks){
+        if(pb.blockType!=='chest'||!pb.storage)continue;
+        const dx=camera.position.x-pb.mesh.position.x,dz=camera.position.z-pb.mesh.position.z;
         if(dx*dx+dz*dz<4*4){nearChest=true;break;}
       }
     }
@@ -8400,7 +8689,8 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get swimming(){return _swimming;},get underwater(){return _underwater;},
   spawnMob:()=>spawnMob(_scene,_camera),get MAX_MOBS(){return MAX_MOBS;},get isMobile(){return isMobile;},
   useConsumable,recallShadowArmy,getTameTarget,tryTameAimed,
-  get companion(){return companion;},
+  get companion(){return companion;},tryTame,toggleRide,get riding(){return riding;},
+  openChestUI,closeChestUI,nearCraftTable,
   get quest(){return quest;},generateQuest,
   get playerDead(){return playerDead;},respawnPlayer,
   equipItem,gearBonus,addToInventory,
