@@ -7226,15 +7226,15 @@ function updateClassPassives(dt){
         if(!hasCape&&Math.random()<0.1)toast('Slonce parzy! Zdobadz peleryne lub wejdz do jaskini!');
       }
     }
-    blood=Math.min(maxBlood,blood+0.5*dt);
+    blood=Math.min(maxBlood,blood+2.5*dt);
   }
   if(playerClass==='czlowiek'){
     strength=Math.min(maxStrength,strength+2*dt);
   }
   if(playerClass==='nieumarly'){
-    decay=Math.min(maxDecay,decay+1.5*dt);
-    if(Math.random()<0.001*dt&&player.hp<player.maxHp*0.5){
-      player.hp=Math.min(player.maxHp,player.hp+1);
+    decay=Math.min(maxDecay,decay+3*dt);
+    if(Math.random()<0.004*dt&&player.hp<player.maxHp*0.7){
+      player.hp=Math.min(player.maxHp,player.hp+3);
     }
   }
   if(playerClass==='atlantyda'){
