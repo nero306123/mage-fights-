@@ -7072,12 +7072,41 @@ function buildBossMesh(type){
     const eyeM=new THREE.MeshBasicMaterial({color:0x22ccff});
     for(const sx of [-1,1]){const e=new THREE.Mesh(new THREE.SphereGeometry(H*0.022,5,4),eyeM);
       e.position.set(sx*H*0.05,b.headY,b.headS*0.85);g.add(e);}
-    // berlo wladzy (was/heka)
+    // ceremonialna broda faraona
+    const beardM=_bMat(0x2a2a2a);
+    const beard=new THREE.Mesh(new THREE.CylinderGeometry(H*0.03,H*0.04,H*0.16,5),beardM);
+    beard.position.set(0,b.headY-H*0.14,b.headS*0.7);g.add(beard);
+    const beardTip=new THREE.Mesh(new THREE.BoxGeometry(H*0.05,H*0.04,H*0.05),goldM);
+    beardTip.position.set(0,b.headY-H*0.22,b.headS*0.7);g.add(beardTip);
+    // berlo wladzy (was/heka - kij pasterski)
     const crook=new THREE.Mesh(new THREE.CylinderGeometry(H*0.025,H*0.025,H*1.0,6),goldM);
     crook.position.set(H*0.36,H*0.65,0.1);g.add(crook);
     const crookTop=new THREE.Mesh(new THREE.TorusGeometry(H*0.06,H*0.025,4,8,Math.PI),goldM);
     crookTop.position.set(H*0.36,H*1.15,0.1);g.add(crookTop);
-    g.add(new THREE.PointLight(0xffcc22,1.5,10));
+    // cep (flail - drugi symbol wladzy)
+    const flailH=new THREE.Mesh(new THREE.CylinderGeometry(H*0.022,H*0.022,H*0.5,6),goldM);
+    flailH.position.set(-H*0.36,H*0.95,0.1);flailH.rotation.z=0.2;g.add(flailH);
+    for(let i=0;i<3;i++){
+      const strand=new THREE.Mesh(new THREE.CylinderGeometry(H*0.012,H*0.012,H*0.2,4),_bMat(0x2a2a3a));
+      strand.position.set(-H*0.34+(i-1)*H*0.04,H*1.18,0.1);g.add(strand);
+      const bead=new THREE.Mesh(new THREE.SphereGeometry(H*0.025,5,4),goldM);
+      bead.position.set(-H*0.34+(i-1)*H*0.04,H*1.28,0.1);g.add(bead);
+    }
+    // zloty szeroki kolnierz (usekh) - drugi rzad
+    for(let i=0;i<9;i++){const a=(i/8-0.5)*2.6;
+      const bead=new THREE.Mesh(new THREE.BoxGeometry(H*0.04,H*0.05,H*0.03),i%2?nemesM:goldM);
+      bead.position.set(Math.sin(a)*H*0.21,H*1.18,Math.cos(a)*H*0.05+H*0.14);g.add(bead);}
+    // zlote naramienniki
+    for(const sx of [-1,1]){
+      const armband=new THREE.Mesh(new THREE.CylinderGeometry(H*0.09,H*0.09,H*0.06,8),goldM);
+      armband.position.set(sx*H*0.22,H*1.0,0);armband.rotation.z=Math.PI/2;g.add(armband);
+    }
+    // ankh w dloni
+    const ankhV=new THREE.Mesh(new THREE.BoxGeometry(H*0.02,H*0.14,H*0.02),goldM);
+    ankhV.position.set(-H*0.2,H*0.6,H*0.12);g.add(ankhV);
+    const ankhLoop=new THREE.Mesh(new THREE.TorusGeometry(H*0.04,H*0.015,4,8),goldM);
+    ankhLoop.position.set(-H*0.2,H*0.7,H*0.12);g.add(ankhLoop);
+    g.add(new THREE.PointLight(0xffcc22,1.8,12));
   }else if(type.id==='skeleton_king'){
     const g2=new THREE.Group();g=g2;
     const boneM=_bMat(0xe8e0d0,{roughness:0.7});
