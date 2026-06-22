@@ -1217,42 +1217,22 @@ function buildCzlowiekSpells(){
       cost:r.pts, lvl:r.lvl, wandReq:0, needScroll:r.scroll };
   });
 }
-// ── TECHNIKI NIEUMARŁEGO (mroczne klatwy i trucizny) ──
-const NIEUMARLY_SPELL_DATA = [
-  // ── ATAKI (7) ──
-  ['trupia_kula','Trupia Kula','shadow','common',10,2,20,''],
-  ['jadowity_plwociek','Jadowity Plwociek','earth','common',12,2.2,28,''],
-  ['klatwa_gnicia','Klatwa Gnicia','shadow','rare',20,2.5,50,'DOT 5s'],
-  ['trucizna_smierci','Trucizna Smierci','shadow','rare',25,3,65,'Slow + DOT'],
-  ['fala_zgnilizny','Fala Zgnilizny','shadow','epic',35,3.5,100,'AOE 6m'],
-  ['plaga','Plaga','shadow','epic',45,4,140,'AOE 8m + slow wszystkich'],
-  ['dotyk_smierci','Dotyk Smierci','shadow','mythic',60,5,250,'AOE 10m + lifesteal 30%'],
-  // ── BUFFY (6) ──
-  ['trupi_heal','Trupi Heal','buff','common',8,1,0,'Leczy 25 HP'],
-  ['kostna_zbroja_s','Kostna Zbroja','buff','common',12,1.5,0,'Oslona 80 HP'],
-  ['aura_strachu','Aura Strachu','buff','rare',20,2,0,'-40% dmg wrogow w 10m'],
-  ['trupia_regeneracja','Trupia Regeneracja','buff','rare',25,2.5,0,'+12 HP/s przez 10s'],
-  ['niesmiertelna_skorupa','Niesmiertelna Skorupa','buff','epic',40,3,0,'Oslona 300 HP'],
-  ['gniew_nieumarłych','Gniew Nieumarłych','buff','mythic',60,4,0,'+50% dmg + 50% speed na 10s'],
-  // ── NARZEDZIA (4) ──
-  ['trupi_skok','Trupi Skok','other','common',10,1,0,'Teleport 12m do przodu'],
-  ['mroczne_oko','Mroczne Oko','other','rare',15,2,0,'Swiatlo na 30s'],
-  ['portal_umarłych','Portal Umarlych','other','epic',40,4,0,'Teleport do wioski'],
-  ['pakt_smierci','Pakt Smierci','other','legend',80,5,0,'Chroni przed smiercia'],
-  // ── SECRET ──
-  ['apokalipsa','Apokalipsa','shadow','secret',100,10,1800,'AOE 15m + lifesteal + oslona 500','💀'],
+// ── 5 STALYCH UMIEJETNOSCI NIEUMARŁEGO (bez ksiegi) ──
+const NIEUMARLY_ABILITIES = [
+  {id:'drain_heal',name:'Drenaż Rozkladu',icon:'🩸',desc:'20% rozkladu → leczenie 3x',cd:6000},
+  {id:'bone_armor',name:'Kostna Zbroja',icon:'🦴',desc:'30% rozkladu → oslona 4x',cd:12000},
+  {id:'trupi_skok',name:'Trupi Skok',icon:'💨',desc:'Teleport 12m do przodu (15 rozkladu)',cd:4000},
+  {id:'aura_strachu',name:'Aura Strachu',icon:'👻',desc:'-40% dmg wrogow w 10m na 8s (20 rozkladu)',cd:15000},
+  {id:'plague_wave',name:'Fala Zarazy',icon:'☠️',desc:'Zuzywa CALY rozklad → potezny AOE',cd:15000},
 ];
 function buildNieumarlySpells(){
-  return NIEUMARLY_SPELL_DATA.map(d=>{
-    const [id,name,el,rar,decCost,cast,dmg,fx,icOv]=d;
-    const e=ELEM[el], r=RARITY[rar];
-    return { id,name,elem:el,rarity:rar, icon:icOv||e.ic,
-      color:e.col, light:e.light, kind:e.kind,
-      mana:decCost, decayCost:true, castTime:cast, dmg, fx:fx||'',
-      speed:e.speed?e.speed:0, size:e.size+(RARITY_ORDER.indexOf(rar))*0.03,
-      life:e.life, gravity:e.grav, cd:RARITY_CD[rar],
-      cost:r.pts, lvl:r.lvl, wandReq:0, needScroll:r.scroll };
-  });
+  return NIEUMARLY_ABILITIES.map(a=>({
+    id:a.id, name:a.name, icon:a.icon, elem:'shadow', rarity:'common',
+    color:0x5a8a3a, light:0x5a8a3a, kind:'abil',
+    mana:0, decayCost:true, castTime:0, dmg:0, fx:a.desc,
+    speed:0, size:0.1, life:0, gravity:0, cd:a.cd/1000,
+    cost:0, lvl:1, wandReq:0, needScroll:false, abilId:a.id
+  }));
 }
 let SPELLS = buildSpells();
 // Pierwsze zaklecie gracz ma od startu
@@ -1873,7 +1853,7 @@ const CLASS_CONFIG={
   nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
   czlowiek:{name:'Czlowiek',hp:450,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'iron_sword',name:'Zelazny Miecz',icon:'⚔️',type:'melee',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'⚔️'},
   atlantyda:{name:'Atlantyda',hp:300,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
-  nieumarly:{name:'Nieumarly',hp:120,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'bone_axe',name:'Kosciany Topor',icon:'🪓',type:'melee',equip:'weapon',bonus:{dmg:4},rarity:'common'},figure:'🧟'},
+  nieumarly:{name:'Nieumarly',hp:120,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'fists',name:'Piesci',icon:'👊',type:'fists'},figure:'🧟'},
 };
 let playerClass='mag';
 let blood=1000,maxBlood=1000;
@@ -1920,7 +1900,9 @@ function startGame(){
   }else{
     SPELLS=buildSpells();
   }
-  ownedSpells.clear();ownedSpells.add(0);
+  ownedSpells.clear();
+  if(playerClass==='nieumarly'){for(let i=0;i<SPELLS.length;i++)ownedSpells.add(i);}
+  else{ownedSpells.add(0);}
   player.selSpell=0;
   skillPoints=5;
   applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
@@ -2756,6 +2738,42 @@ function makeBlockMesh(blockType,ghost){
 function snapToGrid(v){return Math.round(v/GRID)*GRID;}
 function getBuildTarget(camera){
   const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const origin=camera.position.clone();
+  const ray=new THREE.Raycaster(origin,dir,0.5,8);
+  const meshes=placedBlocks.map(b=>b.mesh).filter(Boolean);
+  if(meshes.length>0){
+    const hits=ray.intersectObjects(meshes,true);
+    if(hits.length>0){
+      let hitObj=hits[0].object;
+      while(hitObj.parent&&!placedBlocks.find(b=>b.mesh===hitObj))hitObj=hitObj.parent;
+      const pb=placedBlocks.find(b=>b.mesh===hitObj);
+      if(pb){
+        const face=hits[0].face;
+        if(face){
+          const normal=face.normal.clone();
+          normal.transformDirection(hits[0].object.matrixWorld);
+          const def=BLOCK_DEFS[pb.blockType];
+          const rotated=pb.rot%2===1;
+          const bw=rotated?def.d:def.w;
+          const bd=rotated?def.w:def.d;
+          const curDef=BLOCK_DEFS[buildBlockType||'wood_plank'];
+          const curRot=buildRotation%2===1;
+          const cw=curDef?(curRot?curDef.d:curDef.w):GRID;
+          const cd=curDef?(curRot?curDef.w:curDef.d):GRID;
+          const ax=Math.abs(normal.x),ay=Math.abs(normal.y),az=Math.abs(normal.z);
+          if(ay>ax&&ay>az){
+            return {x:pb.bx,z:pb.bz,snapped:true};
+          }else if(ax>az){
+            const sx=normal.x>0?1:-1;
+            return {x:pb.bx+sx*(bw/2+cw/2),z:pb.bz,snapped:true};
+          }else{
+            const sz=normal.z>0?1:-1;
+            return {x:pb.bx,z:pb.bz+sz*(bd/2+cd/2),snapped:true};
+          }
+        }
+      }
+    }
+  }
   const dist=6;
   const tx=camera.position.x+dir.x*dist;
   const tz=camera.position.z+dir.z*dist;
@@ -2983,12 +3001,26 @@ function useClassAbility(abilityId){
       decay-=cost;
       const shield=Math.round(cost*4);
       shieldHP+=shield;toast('Kostna Zbroja! +'+shield+' oslony');classAbilityCd=now+12000;
+    }else if(abilityId==='trupi_skok'){
+      if(decay<15){toast('Za malo rozkladu (15)');return;}
+      decay-=15;
+      const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+      const nx=_camera.position.x+dir.x*12;
+      const nz=_camera.position.z+dir.z*12;
+      const ny=terrainHeight(nx,nz)+1.7;
+      _camera.position.set(nx,ny,nz);
+      toast('Trupi Skok!');classAbilityCd=now+4000;
+    }else if(abilityId==='aura_strachu'){
+      if(decay<20){toast('Za malo rozkladu (20)');return;}
+      decay-=20;
+      let hit=0;
+      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){m.dmgMul*=0.6;hit++;}});
+      toast('Aura Strachu! -40% dmg wrogow ('+hit+' celow)');classAbilityCd=now+15000;
     }else if(abilityId==='plague_wave'){
-      // Fala Zarazy: zuzywa CALY rozklad, im wiecej tym mocniejsze
       if(decay<10){toast('Za malo rozkladu');return;}
       const power=decay;
       decay=0;
-      const dmg=Math.round(power*4);
+      const dmg=Math.round(power*3);
       const range=8+Math.min(power/50,12);
       let hits=0;
       for(let i=mobs.length-1;i>=0;i--){
@@ -6489,6 +6521,17 @@ function renderPointsPage(){
     row.appendChild(btn);at.appendChild(row);
   }
   const sp=document.getElementById('cp-spells');sp.innerHTML='';
+  if(playerClass==='nieumarly'){
+    const hdr=document.createElement('div');hdr.style.cssText='color:#5a8a3a;font-weight:bold;margin:8px 0 4px';
+    hdr.textContent='Umiejętności Nieumarłego (stałe)';sp.appendChild(hdr);
+    NIEUMARLY_ABILITIES.forEach(a=>{
+      const el=document.createElement('div');el.className='cp-spell owned';
+      el.style.borderColor='#5a8a3a';
+      el.innerHTML=`<span class="cp-spell-ic">${a.icon}</span><span class="cp-spell-nm">${a.name}</span><span class="cp-spell-rar" style="color:#5a8a3a">${a.desc}</span>`;
+      sp.appendChild(el);
+    });
+    return;
+  }
   SPELLS.forEach((s,i)=>{
     const owned=ownedSpells.has(i);
     const r=RARITY[s.rarity];
@@ -6516,6 +6559,7 @@ function renderPointsPage(){
 }
 function equipItem(invIdx){
   const it=ITEMS[invIdx];if(!it||!it.equip)return;
+  if(playerClass==='nieumarly'){toast('Nieumarly nie moze nosic ekwipunku');return;}
   const slot=it.equip;
   const prev=equipSets[activeSet][slot];
   equipSets[activeSet][slot]=it;ITEMS[invIdx]=prev||null;
@@ -6579,7 +6623,10 @@ function changeClass(newClass){
   else if(newClass==='czlowiek')SPELLS=buildCzlowiekSpells();
   else if(newClass==='nieumarly')SPELLS=buildNieumarlySpells();
   else SPELLS=buildSpells();
-  ownedSpells.clear();ownedSpells.add(0);player.selSpell=0;
+  ownedSpells.clear();
+  if(newClass==='nieumarly'){for(let i=0;i<SPELLS.length;i++)ownedSpells.add(i);}
+  else{ownedSpells.add(0);}
+  player.selSpell=0;
   statusEffects.length=0;shieldHP=0;player.lastCast=0;
   applyStats();player.hp=player.maxHp;player.mana=player.maxMana;
   buildSpellbar();buildItembar();updateCharBtn();
@@ -6895,10 +6942,11 @@ function updateAttackIcon(){
     return;
   }
   const wand=heldIsWand();
+  const showSpells=wand||playerClass==='nieumarly';
   if(wand){btn.textContent='✦';btn.classList.remove('melee');}
   else{btn.textContent='👊';btn.classList.add('melee');}
-  document.getElementById('spellbar').style.display=wand?'flex':'none';
-  document.getElementById('spellname').style.display=wand?'block':'none';
+  document.getElementById('spellbar').style.display=showSpells?'flex':'none';
+  document.getElementById('spellname').style.display=showSpells?'block':'none';
 }
 function tryTameAimed(){
   const idx=getTameTarget();
@@ -7151,6 +7199,8 @@ function attemptCast(now){
   }else if(playerClass==='czlowiek'&&sp.strengthCost){
     if(strength<sp.mana){toast('Za malo sily');player.lastCast=now+200;return;}
     strength-=sp.mana;player.lastCast=now;
+  }else if(playerClass==='nieumarly'&&sp.abilId){
+    player.lastCast=now;useClassAbility(sp.abilId);return;
   }else if(playerClass==='nieumarly'&&sp.decayCost){
     if(decay<sp.mana){toast('Za malo rozkladu');player.lastCast=now+200;return;}
     decay-=sp.mana;player.lastCast=now;
@@ -10017,6 +10067,7 @@ function setupDesktopInput(){
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt2=ITEMS[player.heldItem];
     if(hIt2&&hIt2.id==='fishing_rod'){tryFish();return;}
+    if(playerClass==='nieumarly'){meleeSwing();attemptCast(performance.now());return;}
     if(heldIsWand())casting=true;else meleeSwing();
   });
   document.addEventListener('contextmenu',e=>{if(buildMode)e.preventDefault();});
@@ -10083,10 +10134,11 @@ function setupMobileInput(){
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt=ITEMS[player.heldItem];
     if(hIt&&hIt.id==='fishing_rod'){tryFish();return;}
+    if(playerClass==='nieumarly'){meleeSwing();attemptCast(performance.now());return;}
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
-  if(playerClass!=='mag'&&playerClass!=='nekromanta'&&playerClass!=='atlantyda'){
+  if(playerClass==='wampir'||playerClass==='czlowiek'){
     const abilBtn=document.createElement('button');
     abilBtn.id='abil-btn';abilBtn.textContent='⚡';
     abilBtn.style.cssText='position:fixed;bottom:160px;right:96px;width:48px;height:48px;'+
@@ -10094,7 +10146,7 @@ function setupMobileInput(){
       'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(abilBtn);
     const trig=e=>{e.stopPropagation();
-      useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':'plague_wave');};
+      useClassAbility(playerClass==='wampir'?'blood_fury':'strong_hit');};
     abilBtn.addEventListener('touchstart',trig,{passive:false});
     abilBtn.addEventListener('click',trig);
   }
@@ -10507,33 +10559,33 @@ function _buildHand(side,skin,darkSkin,sleeve,glovesItem,isBone){
       p3.position.set(fx,-0.275,0.01);p3.rotation.x=0.6;g.add(p3);
     }
   }else{
-    const palm=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.13,0.075),handMat);
+    const palm=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.09),handMat);
     palm.position.set(0,-0.10,-0.02);g.add(palm);
-    const knuckles=new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.13,8),handMat);
-    knuckles.rotation.z=Math.PI/2;knuckles.position.set(0,-0.16,-0.02);g.add(knuckles);
+    const knuckles=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.16,8),handMat);
+    knuckles.rotation.z=Math.PI/2;knuckles.position.set(0,-0.18,-0.02);g.add(knuckles);
     // kciuk (3 segmenty)
-    const thumb1=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.03,0.06,6),handMat);
-    thumb1.position.set(side*-0.07,-0.11,0.01);thumb1.rotation.z=side*0.7;g.add(thumb1);
-    const thumbJ=new THREE.Mesh(new THREE.SphereGeometry(0.022,5,4),handMat);
-    thumbJ.position.set(side*-0.09,-0.14,0.015);g.add(thumbJ);
-    const thumb2=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.026,0.05,6),handMat);
-    thumb2.position.set(side*-0.10,-0.17,0.02);thumb2.rotation.z=side*0.45;g.add(thumb2);
-    const thumb3=new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.020,0.035,5),handMat);
-    thumb3.position.set(side*-0.11,-0.20,0.025);thumb3.rotation.z=side*0.3;g.add(thumb3);
+    const thumb1=new THREE.Mesh(new THREE.CylinderGeometry(0.032,0.035,0.07,6),handMat);
+    thumb1.position.set(side*-0.09,-0.12,0.01);thumb1.rotation.z=side*0.7;g.add(thumb1);
+    const thumbJ=new THREE.Mesh(new THREE.SphereGeometry(0.026,5,4),handMat);
+    thumbJ.position.set(side*-0.11,-0.16,0.015);g.add(thumbJ);
+    const thumb2=new THREE.Mesh(new THREE.CylinderGeometry(0.026,0.030,0.06,6),handMat);
+    thumb2.position.set(side*-0.12,-0.20,0.02);thumb2.rotation.z=side*0.45;g.add(thumb2);
+    const thumb3=new THREE.Mesh(new THREE.CylinderGeometry(0.020,0.024,0.04,5),handMat);
+    thumb3.position.set(side*-0.13,-0.24,0.025);thumb3.rotation.z=side*0.3;g.add(thumb3);
     // 4 palce po 3 segmenty (falanga + srodkowa + opuszek)
     for(let f=0;f<4;f++){
-      const fx=-0.048+f*0.032;
-      const seg1=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.024,0.06,6),handMat);
-      seg1.position.set(fx,-0.195,-0.02);g.add(seg1);
-      const joint=new THREE.Mesh(new THREE.SphereGeometry(0.017,5,4),handMat);
-      joint.position.set(fx,-0.225,-0.015);g.add(joint);
-      const seg2=new THREE.Mesh(new THREE.CylinderGeometry(0.019,0.022,0.05,6),handMat);
-      seg2.position.set(fx,-0.255,-0.005);seg2.rotation.x=0.4;g.add(seg2);
-      const seg3=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.018,0.03,5),handMat);
-      seg3.position.set(fx,-0.28,0.01);seg3.rotation.x=0.6;g.add(seg3);
-      if(useGlove){const stud=new THREE.Mesh(new THREE.SphereGeometry(0.012,5,4),
+      const fx=-0.058+f*0.038;
+      const seg1=new THREE.Mesh(new THREE.CylinderGeometry(0.026,0.028,0.07,6),handMat);
+      seg1.position.set(fx,-0.22,-0.02);g.add(seg1);
+      const joint=new THREE.Mesh(new THREE.SphereGeometry(0.020,5,4),handMat);
+      joint.position.set(fx,-0.255,-0.015);g.add(joint);
+      const seg2=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.026,0.06,6),handMat);
+      seg2.position.set(fx,-0.29,-0.005);seg2.rotation.x=0.4;g.add(seg2);
+      const seg3=new THREE.Mesh(new THREE.CylinderGeometry(0.017,0.021,0.04,5),handMat);
+      seg3.position.set(fx,-0.32,0.01);seg3.rotation.x=0.6;g.add(seg3);
+      if(useGlove){const stud=new THREE.Mesh(new THREE.SphereGeometry(0.014,5,4),
         new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.6,roughness:0.3}));
-        stud.position.set(fx,-0.20,-0.06);g.add(stud);}
+        stud.position.set(fx,-0.23,-0.06);g.add(stud);}
     }
   }
   return g;
@@ -10549,9 +10601,9 @@ function createHands(scene){
   const sleeve=new THREE.MeshStandardMaterial({color:sleeveCol,roughness:0.8,flatShading:true});
   const glovesItem=equipSets&&equipSets[activeSet]?equipSets[activeSet].gloves:null;
   const rHand=_buildHand(1,skin,darkSkin,sleeve,glovesItem,isBone);
-  rHand.position.set(0.34,-0.40,-0.62);rHand.scale.setScalar(0.78);rHand.userData._baseY=-0.40;_handGroup.add(rHand);
+  rHand.position.set(0.38,-0.30,-0.50);rHand.scale.setScalar(1.25);rHand.userData._baseY=-0.30;_handGroup.add(rHand);
   const lHand=_buildHand(-1,skin,darkSkin,sleeve,glovesItem,isBone);
-  lHand.position.set(-0.34,-0.44,-0.60);lHand.scale.set(-0.78,0.78,0.78);lHand.userData._baseY=-0.44;_handGroup.add(lHand);
+  lHand.position.set(-0.38,-0.34,-0.48);lHand.scale.set(-1.25,1.25,1.25);lHand.userData._baseY=-0.34;_handGroup.add(lHand);
   scene.add(_handGroup);
   updateHandItem();
 }
@@ -10736,9 +10788,9 @@ function updateHandItem(){
       new THREE.MeshStandardMaterial({color:0xaa8855,roughness:0.7,flatShading:true}));
     itemMesh=box;
   }
-  itemMesh.position.set(0.34,-0.34,-0.66);
+  itemMesh.position.set(0.36,-0.22,-0.52);
   itemMesh.rotation.set(-0.3,0,0.2);
-  itemMesh.userData._baseY=-0.34;
+  itemMesh.userData._baseY=-0.22;
   _handItem=itemMesh;
   _handGroup.add(_handItem);
 }
