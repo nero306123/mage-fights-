@@ -1425,6 +1425,9 @@ const RECIPES = [
   {id:'table_block',name:'Stol',icon:'🪑',type:'block',blockType:'table',need:[{id:'wood',count:4}],desc:'Drewniany stol'},
   {id:'chest_block',name:'Skrzynia',icon:'📦',type:'block',blockType:'chest',need:[{id:'wood',count:6}],desc:'Skrzynia do przechowywania'},
   {id:'crystal_wall',name:'Sciana Krysztalowa',icon:'🟦',type:'block',blockType:'crystal_wall',need:[{id:'crystal',count:2},{id:'stone',count:2}],desc:'Swiecaca sciana krysztalowa'},
+  {id:'brick_wall_block',name:'Sciana z Cegiel',icon:'🧱',type:'block',blockType:'brick_wall',need:[{id:'stone',count:2},{id:'coal',count:1}],desc:'Czerwona sciana z cegiel'},
+  {id:'hedge_block',name:'Zywoplot',icon:'🌳',type:'block',blockType:'hedge',need:[{id:'wood',count:1},{id:'herb',count:2}],desc:'Ozdobny zielony zywoplot'},
+  {id:'lamp_post_block',name:'Latarnia',icon:'🏮',type:'block',blockType:'lamp_post',need:[{id:'iron',count:2},{id:'glass',count:1}],desc:'Uliczna latarnia ze swiatlem'},
   {id:'golden_collar',name:'Zlota Obroza',icon:'⭕',type:'resource',need:[{id:'gold_ore',count:3},{id:'leather',count:1}],desc:'Do oswojenia lwa'},
   {id:'saddle',name:'Siodlo',icon:'🪑',type:'resource',need:[{id:'leather',count:4},{id:'iron_ore',count:2}],desc:'Do oswojenia konia'},
   // Rozdzki
@@ -2561,7 +2564,17 @@ const BLOCK_DEFS={
   bed:{w:1.6,h:0.6,d:2.4,color:0xcc4444,solid:false,bed:true,name:'Lozko'},
   chest:{w:1.0,h:0.8,d:0.8,color:0xb89a5a,solid:false,chestBlock:true,name:'Skrzynia'},
   campfire:{w:1.2,h:0.5,d:1.2,color:0x6a4a2a,solid:false,campfire:true,name:'Ognisko'},
+  brick_wall:{w:GRID,h:3,d:0.3,color:0xa8503a,solid:true,name:'Sciana z Cegiel'},
+  hedge:{w:GRID,h:1.6,d:GRID*0.6,color:0x3a6a28,solid:true,hedge:true,name:'Zywoplot'},
+  lamp_post:{w:0.3,h:3.2,d:0.3,color:0x2a2a2e,solid:false,lamp:true,light:0xffcc66,name:'Latarnia'},
 };
+function shadeColor(hex,f){
+  let r=(hex>>16)&255,g=(hex>>8)&255,b=hex&255;
+  r=Math.max(0,Math.min(255,Math.round(r*f)));
+  g=Math.max(0,Math.min(255,Math.round(g*f)));
+  b=Math.max(0,Math.min(255,Math.round(b*f)));
+  return (r<<16)|(g<<8)|b;
+}
 function makeBlockMesh(blockType,ghost){
   const def=BLOCK_DEFS[blockType];if(!def)return null;
   const g=new THREE.Group();
@@ -2569,6 +2582,10 @@ function makeBlockMesh(blockType,ghost){
   const mat=new THREE.MeshStandardMaterial({color:def.color,roughness:0.8,flatShading:true,
     transparent:ghost||def.opacity!=null,opacity,
     emissive:ghost?0x44ff88:(def.glow||0x000000),emissiveIntensity:ghost?0.5:(def.glow?0.5:0)});
+  // material pomocniczy: ciemniejsze spoiny/ramy (np. zaprawa, szczeliny desek)
+  const seamMat=new THREE.MeshStandardMaterial({color:shadeColor(def.color,0.62),roughness:0.95,flatShading:true,transparent:ghost,opacity});
+  const trimM=new THREE.MeshStandardMaterial({color:shadeColor(def.color,0.78),roughness:0.85,flatShading:true,transparent:ghost,opacity});
+  const _seam=(w,h,d,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),seamMat);m.position.set(x,y,z);g.add(m);return m;};
   if(def.roof){
     const roof=new THREE.Mesh(new THREE.BoxGeometry(def.w*1.05,def.h,def.d*1.05),mat);
     roof.rotation.x=0.15;roof.position.y=def.h/2;g.add(roof);
@@ -2625,12 +2642,107 @@ function makeBlockMesh(blockType,ghost){
     const top=new THREE.Mesh(new THREE.BoxGeometry(def.w,0.6,def.d),frameMat);top.position.y=def.h-0.3;g.add(top);
     const bot=new THREE.Mesh(new THREE.BoxGeometry(def.w,0.6,def.d),frameMat);bot.position.y=0.3;g.add(bot);
     const glass=new THREE.Mesh(new THREE.BoxGeometry(def.w*0.85,def.h-1.2,def.d*0.6),fmat);glass.position.y=def.h/2;g.add(glass);
+  }else if(def.hedge){
+    // krzaczasty zywoplot z kilku kul
+    const leafMat=new THREE.MeshStandardMaterial({color:def.color,roughness:0.95,flatShading:true,transparent:ghost,opacity});
+    const base=new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h*0.7,def.d),leafMat);
+    base.position.y=def.h*0.4;g.add(base);
+    const darkLeaf=new THREE.MeshStandardMaterial({color:shadeColor(def.color,0.7),roughness:0.95,flatShading:true,transparent:ghost,opacity});
+    for(let i=0;i<5;i++){
+      const bx=-def.w/2+0.3+i*((def.w-0.6)/4);
+      const blob=new THREE.Mesh(new THREE.SphereGeometry(0.42+(i%2)*0.1,5,4),i%2?leafMat:darkLeaf);
+      blob.position.set(bx,def.h*0.72+(i%2)*0.12,(i%2?0.08:-0.08));g.add(blob);
+    }
+  }else if(def.lamp){
+    // latarnia uliczna ze swiatlem
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.14,def.h,7),mat);
+    post.position.y=def.h/2;g.add(post);
+    const baseR=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,0.3,7),mat);
+    baseR.position.y=0.15;g.add(baseR);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.1,0.1),mat);
+    arm.position.set(0.2,def.h-0.1,0);g.add(arm);
+    const glassMat=new THREE.MeshStandardMaterial({color:0xffddaa,emissive:0xffaa44,emissiveIntensity:ghost?0.3:0.9,roughness:0.3,transparent:true,opacity:ghost?0.4:0.85});
+    const lantern=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.4,0.28),glassMat);
+    lantern.position.set(0.4,def.h-0.25,0);g.add(lantern);
+    const top=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.2,4),mat);
+    top.position.set(0.4,def.h+0.02,0);g.add(top);
+    if(!ghost){const ll=new THREE.PointLight(def.light,1.2,14);ll.position.set(0.4,def.h-0.25,0);g.add(ll);}
+  }else if(blockType==='fence'){
+    // ladny plot ze sztachet zamiast plaskiej deski
+    const railH=def.h;
+    // dwa slupki
+    for(const sx of [-1,1]){
+      const post=new THREE.Mesh(new THREE.BoxGeometry(0.22,railH+0.25,0.22),mat);
+      post.position.set(sx*(def.w/2-0.12),(railH+0.25)/2,0);g.add(post);
+      const cap=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.14,0.3),trimM);
+      cap.position.set(sx*(def.w/2-0.12),railH+0.32,0);g.add(cap);
+    }
+    // dwie poprzeczki
+    for(const ry of [railH*0.32,railH*0.78]){
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(def.w-0.1,0.16,0.12),mat);
+      rail.position.set(0,ry,0);g.add(rail);
+    }
+    // sztachety pionowe
+    const pickets=5;
+    for(let i=0;i<pickets;i++){
+      const px=-def.w/2+0.35+i*((def.w-0.7)/(pickets-1));
+      const pk=new THREE.Mesh(new THREE.BoxGeometry(0.13,railH*0.92,0.08),trimM);
+      pk.position.set(px,railH*0.46,0);g.add(pk);
+    }
   }else{
     const box=new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d),mat);
     box.position.y=def.h/2;g.add(box);
+    const isWall=def.solid&&def.h>=2.5&&def.d<=0.4;
+    const isFloor=blockType==='stone_floor'||blockType==='wood_floor';
+    if(isWall&&!ghost){
+      const fz=def.d/2+0.015;
+      if(blockType==='wood_wall'){
+        // deski pionowe: szczeliny co kawalek + listwy na gorze/dole
+        for(let i=1;i<4;i++){const sx=-def.w/2+i*(def.w/4);
+          _seam(0.05,def.h*0.92,0.02,sx,def.h/2,fz);_seam(0.05,def.h*0.92,0.02,sx,def.h/2,-fz);}
+        _seam(def.w,0.16,0.06,0,def.h-0.12,fz);_seam(def.w,0.16,0.06,0,def.h-0.12,-fz);
+        _seam(def.w,0.16,0.06,0,0.12,fz);_seam(def.w,0.16,0.06,0,0.12,-fz);
+      }else if(blockType==='crystal_wall'||blockType==='window'){
+        // krysztalowe fasety - skosne listewki
+        for(let i=0;i<3;i++){const fy=0.5+i*0.9;
+          const f=_seam(def.w*0.9,0.05,0.02,0,fy,fz);f.material=trimM;f.rotation.z=(i%2?0.25:-0.25);}
+      }else{
+        // kamien: cegly w warstwach z przesunieciem
+        const courses=4;
+        for(let c=0;c<courses;c++){const cy=(c+0.5)*(def.h/courses);
+          _seam(def.w,0.06,0.02,0,cy-def.h/(courses*2),fz);
+          _seam(def.w,0.06,0.02,0,cy-def.h/(courses*2),-fz);
+          // pionowe spoiny przesuniete co warstwe
+          const off=(c%2)?0:def.w/4;
+          for(const vx of [-def.w/4+off,def.w/4+off-def.w/2,off]){
+            if(Math.abs(vx)<def.w/2-0.05){_seam(0.05,def.h/courses-0.06,0.02,vx,cy,fz);_seam(0.05,def.h/courses-0.06,0.02,vx,cy,-fz);}
+          }
+        }
+        // rama kamienna po bokach
+        for(const sx of [-1,1])_seam(0.1,def.h,def.d*1.02,sx*(def.w/2-0.05),def.h/2,0).material=trimM;
+      }
+    }
+    if(isFloor&&!ghost){
+      // plyty/deski z bruzdami na gorze
+      const ty=def.h+0.012;
+      if(blockType==='wood_floor'){
+        for(let i=1;i<4;i++){const sx=-def.w/2+i*(def.w/4);_seam(0.05,0.02,def.d*0.96,sx,ty,0);}
+      }else{
+        _seam(def.w*0.96,0.02,0.05,0,ty,0);_seam(0.05,0.02,def.d*0.96,0,ty,0);
+        // 4 plyty
+        for(const sx of [-1,1])for(const sz of [-1,1]){
+          const t=_seam(def.w*0.4,0.025,def.d*0.4,sx*def.w*0.24,ty+0.005,sz*def.d*0.24);t.material=trimM;
+        }
+      }
+    }
     if(blockType==='table'){
       const top2=new THREE.Mesh(new THREE.BoxGeometry(def.w*1.2,0.15,def.d*1.2),mat);
       top2.position.y=def.h;g.add(top2);
+      // nogi stolu
+      for(const sx of [-1,1])for(const sz of [-1,1]){
+        const leg=new THREE.Mesh(new THREE.BoxGeometry(0.14,def.h,0.14),trimM);
+        leg.position.set(sx*def.w*0.42,def.h/2,sz*def.d*0.42);g.add(leg);
+      }
     }
   }
   g.traverse(c=>{if(c.isMesh){c.castShadow=!isMobile&&!ghost;c.receiveShadow=true;}});
@@ -3624,10 +3736,34 @@ function buildVillage(scene,cx,cz){
     // kolizja plotu
     _wallBoxes.push({minX:fx-0.4,maxX:fx+0.4,minZ:fz-0.4,maxZ:fz+0.4});
   }
-  // brama - dwa duze slupki
-  addBox(grp,0.5,3.2,0.5,-2.2,1.6,fenceR,fenceMat);
-  addBox(grp,0.5,3.2,0.5,2.2,1.6,fenceR,fenceMat);
-  addBox(grp,5,0.6,0.5,0,3.2,fenceR,fenceMat);
+  // ── okazala brama kamienna z lukiem, sztandarem i latarniami ──
+  const gateStone=matStone(0x8a8278,0.92);
+  const gateWood=matStone(0x5a4030,0.9);
+  for(const sx of [-1,1]){
+    // filary kamienne
+    addBox(grp,0.7,3.8,0.7,sx*2.4,1.9,fenceR,gateStone);
+    addBox(grp,0.85,0.3,0.85,sx*2.4,3.85,fenceR,matStone(0x6a6258,0.9));
+    addBox(grp,0.5,0.4,0.5,sx*2.4,0.2,fenceR,matStone(0x6a6258,0.9));
+    // latarnia na filarze
+    const gl=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.3),new THREE.MeshStandardMaterial({color:0xffddaa,emissive:0xffaa44,emissiveIntensity:0.9}));
+    gl.position.set(sx*2.4,4.2,fenceR);grp.add(gl);
+    const glp=new THREE.PointLight(0xffbb66,0.8,12);glp.position.set(sx*2.4,4.2,fenceR);grp.add(glp);
+    // kolizja filara
+    _wallBoxes.push({minX:cx+sx*2.4-0.4,maxX:cx+sx*2.4+0.4,minZ:cz+fenceR-0.4,maxZ:cz+fenceR+0.4});
+  }
+  // belka pozioma + luk
+  addBox(grp,5.5,0.5,0.6,0,3.9,fenceR,gateWood);
+  addBox(grp,5.5,0.25,0.7,0,4.25,fenceR,matStone(0x4a3020,0.9));
+  for(const sx of [-1,1]){const brace=addBox(grp,1.4,0.25,0.4,sx*1.6,3.4,fenceR,gateWood);brace.rotation.z=sx*0.5;}
+  // sztandar wisi z belki
+  const banner=new THREE.Mesh(new THREE.BoxGeometry(1.3,1.6,0.06),new THREE.MeshStandardMaterial({color:0x8a2030,roughness:0.8,flatShading:true}));
+  banner.position.set(0,2.9,fenceR-0.05);grp.add(banner);
+  const bemb=new THREE.Mesh(new THREE.CircleGeometry(0.35,12),new THREE.MeshStandardMaterial({color:0xddbb44,side:THREE.DoubleSide}));
+  bemb.position.set(0,3.0,fenceR-0.09);grp.add(bemb);
+  // proporczyki na lince przy bramie
+  for(let i=-2;i<=2;i++){if(i===0)continue;
+    const flag=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.4,3),new THREE.MeshStandardMaterial({color:[0x44aa66,0x4488cc,0xccaa33,0xcc4444][(i+2)%4],flatShading:true}));
+    flag.position.set(i*0.9,3.7,fenceR-0.1);flag.rotation.z=Math.PI;grp.add(flag);}
   // ── domki (16, w pierscieniu) z kolejnymi skrzyniami ──
   const houseCount=16;
   for(let i=0;i<houseCount;i++){
@@ -3656,13 +3792,40 @@ function buildVillage(scene,cx,cz){
   const fire=new THREE.Mesh(new THREE.ConeGeometry(0.5,0.9,6),new THREE.MeshBasicMaterial({color:0xff8822}));
   fire.position.set(5,0.5,5);grp.add(fire);
   const fl=new THREE.PointLight(0xff7722,1.8,16);fl.position.set(5,1.2,5);grp.add(fl);
-  // kram targowy
+  // ── kramy targowe z towarami i daszkami ──
+  const stallWood=matStone(0x8a6a40,0.9),stallLeg=matStone(0x6a4a30,0.9);
+  const awnCols=[0xcc4444,0x4488cc,0x44aa66];
   for(let i=0;i<3;i++){
-    const sx=cx-6+i*3,sz=cz+8;
-    addBox(grp,2.2,0.2,1.4,sx-cx,baseH+1.0-baseH,sz-cz,matStone(0x8a6a40,0.9));
-    addBox(grp,0.15,1.0,0.15,sx-cx-1,baseH+0.5-baseH,sz-cz,matStone(0x6a4a30,0.9));
-    addBox(grp,0.15,1.0,0.15,sx-cx+1,baseH+0.5-baseH,sz-cz,matStone(0x6a4a30,0.9));
-    const awn=addBox(grp,2.4,0.1,1.6,sx-cx,baseH+1.6-baseH,sz-cz,matStone([0xcc4444,0x4488cc,0x44aa66][i],0.8));
+    const lx=-6+i*4.5, lz=8;
+    // blat
+    addBox(grp,2.6,0.18,1.4,lx,1.0,lz,stallWood);
+    addBox(grp,2.6,0.25,0.18,lx,0.85,lz+0.6,stallLeg); // listwa przednia
+    // 4 nogi
+    for(const sx of [-1,1])for(const sz2 of [-1,1])
+      addBox(grp,0.14,0.95,0.14,lx+sx*1.15,0.47,lz+sz2*0.55,stallLeg);
+    // slupy daszka
+    addBox(grp,0.14,2.1,0.14,lx-1.2,1.55,lz-0.6,stallLeg);
+    addBox(grp,0.14,2.1,0.14,lx+1.2,1.55,lz-0.6,stallLeg);
+    // pasiasty daszek (dwuspadowy)
+    for(const sx of [-1,1]){
+      const panel=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.08,1.8),matStone(awnCols[i],0.8));
+      panel.position.set(lx+sx*0.7,2.7,lz);panel.rotation.z=sx*0.5;grp.add(panel);
+      const stripe=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.085,0.4),matStone(0xeeeeee,0.8));
+      stripe.position.set(lx+sx*0.7,2.71,lz+0.5);stripe.rotation.z=sx*0.5;grp.add(stripe);
+    }
+    addBox(grp,2.7,0.12,0.12,lx,2.95,lz,stallLeg);
+    // towary na blacie zaleznie od kramu
+    if(i===0){ // owoce
+      const fruitCols=[0xdd3322,0xff9922,0xcc2244,0xeebb22];
+      for(let f=0;f<8;f++){const fr=new THREE.Mesh(new THREE.SphereGeometry(0.13,6,5),new THREE.MeshStandardMaterial({color:fruitCols[f%4],roughness:0.6,flatShading:true}));
+        fr.position.set(lx-0.9+f*0.26,1.2,lz-0.2);grp.add(fr);}
+    }else if(i===1){ // ryby
+      for(let f=0;f<4;f++){const fish=new THREE.Mesh(new THREE.SphereGeometry(0.16,6,5),new THREE.MeshStandardMaterial({color:0x88aabb,roughness:0.4,metalness:0.3,flatShading:true}));
+        fish.scale.set(1.8,0.6,0.7);fish.position.set(lx-0.8+f*0.5,1.18,lz-0.2);fish.rotation.y=0.3;grp.add(fish);}
+    }else{ // garnki/dzbany
+      for(let f=0;f<3;f++){const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.12,0.35,7),matStone([0x9a6a3a,0x7a8a9a,0xaa8844][f],0.8));
+        pot.position.set(lx-0.7+f*0.7,1.27,lz-0.2);grp.add(pot);}
+    }
   }
   // duza kuznia (enterable)
   buildHouse(scene,cx-12,cz-12,rng,true,'e');
@@ -3715,6 +3878,56 @@ function buildVillage(scene,cx,cz){
     const flwr=new THREE.Mesh(new THREE.SphereGeometry(0.15,5,4),
       new THREE.MeshStandardMaterial({color:[0xff4466,0xffaa22,0xff66cc,0x44aaff][i],flatShading:true}));
     flwr.position.set(px3,ph2+0.45,pz3);grp.add(flwr);
+  }
+  // ── brukowany plac wokol studni ──
+  const cobbleM=matStone(0x8c8c84,0.95),cobbleM2=matStone(0x76766e,0.95);
+  for(let i=0;i<70;i++){
+    const ca=rng()*Math.PI*2, cr=rng()*8.5;
+    const cxp=Math.cos(ca)*cr, czp=Math.sin(ca)*cr;
+    if(Math.hypot(cxp,czp)<1.6)continue; // nie na studni
+    const ph=terrainHeight(cx+cxp,cz+czp)-baseH;
+    const cob=new THREE.Mesh(new THREE.CylinderGeometry(0.32+rng()*0.22,0.36+rng()*0.22,0.1,6),rng()>0.5?cobbleM:cobbleM2);
+    cob.position.set(cxp,ph+0.05,czp);cob.rotation.y=rng()*Math.PI;grp.add(cob);
+  }
+  // ── pomnik maga na cokole (przy placu) ──
+  const monX=-6,monZ=6;
+  const mh0=terrainHeight(cx+monX,cz+monZ)-baseH;
+  const ped=matStone(0x9a9288,0.92);
+  addBox(grp,2.0,0.5,2.0,monX,mh0+0.25,monZ,ped);
+  addBox(grp,1.6,0.4,1.6,monX,mh0+0.7,monZ,matStone(0x8a8278,0.92));
+  addBox(grp,1.2,0.3,1.2,monX,mh0+1.05,monZ,ped);
+  // figura maga (kamienna)
+  const statM=matStone(0x7a8a9a,0.85);
+  const robe=new THREE.Mesh(new THREE.ConeGeometry(0.6,1.8,8),statM);robe.position.set(monX,mh0+2.1,monZ);grp.add(robe);
+  const shead=new THREE.Mesh(new THREE.SphereGeometry(0.28,8,6),statM);shead.position.set(monX,mh0+3.1,monZ);grp.add(shead);
+  const shat=new THREE.Mesh(new THREE.ConeGeometry(0.4,0.9,8),statM);shat.position.set(monX,mh0+3.7,monZ);grp.add(shat);
+  const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,2.2,6),matStone(0x5a4a3a,0.85));staff.position.set(monX+0.7,mh0+2.5,monZ);grp.add(staff);
+  const orb=new THREE.Mesh(new THREE.SphereGeometry(0.2,8,6),new THREE.MeshStandardMaterial({color:0x66ccff,emissive:0x3399cc,emissiveIntensity:0.8,roughness:0.3}));
+  orb.position.set(monX+0.7,mh0+3.7,monZ);grp.add(orb);
+  const orbL=new THREE.PointLight(0x66ccff,0.7,8);orbL.position.set(monX+0.7,mh0+3.7,monZ);grp.add(orbL);
+  _wallBoxes.push({minX:cx+monX-1.0,maxX:cx+monX+1.0,minZ:cz+monZ-1.0,maxZ:cz+monZ+1.0});
+  // ── drzewka i zywoploty ozdobne ──
+  const _vtree=(tx,tz,sc)=>{
+    const th2=terrainHeight(cx+tx,cz+tz)-baseH;
+    if(th2<-1.5)return;
+    const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.18*sc,0.26*sc,1.8*sc,6),matStone(0x6a4a2a,0.9));
+    trunk.position.set(tx,th2+0.9*sc,tz);grp.add(trunk);
+    const leafC=[0x3a7a32,0x4a8a3a,0x2f6a2a][(rng()*3)|0];
+    for(let k=0;k<3;k++){
+      const blob=new THREE.Mesh(new THREE.SphereGeometry((0.9-k*0.18)*sc,6,5),new THREE.MeshStandardMaterial({color:shadeColor(leafC,1-k*0.08),roughness:0.95,flatShading:true}));
+      blob.position.set(tx+(rng()-0.5)*0.4*sc,th2+(1.7+k*0.55)*sc,tz+(rng()-0.5)*0.4*sc);grp.add(blob);
+    }
+    _wallBoxes.push({minX:cx+tx-0.4,maxX:cx+tx+0.4,minZ:cz+tz-0.4,maxZ:cz+tz+0.4});
+  };
+  for(let i=0;i<5;i++){const ta=i/5*Math.PI*2+0.6, tr=18+rng()*10;_vtree(Math.cos(ta)*tr,Math.sin(ta)*tr,0.9+rng()*0.4);}
+  // zywoploty wzdluz placu
+  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;const hr=11;
+    const hx2=Math.cos(a)*hr, hz2=Math.sin(a)*hr;
+    const hh=terrainHeight(cx+hx2,cz+hz2)-baseH;if(hh<-1)continue;
+    const hb=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.0,0.7),new THREE.MeshStandardMaterial({color:0x3a6a28,roughness:0.95,flatShading:true}));
+    hb.position.set(hx2,hh+0.5,hz2);hb.rotation.y=a;grp.add(hb);
+    const hb2=new THREE.Mesh(new THREE.SphereGeometry(0.5,5,4),new THREE.MeshStandardMaterial({color:0x447a30,roughness:0.95,flatShading:true}));
+    hb2.position.set(hx2,hh+1.0,hz2);grp.add(hb2);
   }
   // ── tablica wioskowa przy bramie ──
   const signM=matStone(0x6a4a30,0.9);
@@ -10587,7 +10800,7 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get xpState(){return xpState;},giveXP,
   get skillPoints(){return skillPoints;},set skillPoints(v){skillPoints=v;},
   heldIsBlock,placeHeldBlock,getNearDoor,toggleDoor,tryFish,nearCampfire,
-  setTime:(t)=>{worldTime=t*CYCLE_LEN;},setYawPitch:(y,p)=>{yaw=y;pitch=p;}};
+  setTime:(t)=>{worldTime=t*CYCLE_LEN;},setYawPitch:(y,p)=>{yaw=y;pitch=p;},makeBlockMesh};
 </script>
 </body>
 </html>
