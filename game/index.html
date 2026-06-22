@@ -3206,7 +3206,9 @@ function buildChunk(scene,cx,cz){
     pos.setY(i,c.h);
     let cr=c.r,cg=c.g,cb=c.b;
     const t=THREE.MathUtils.clamp((c.h+6)/26,0,1);
-    cr*=0.78+t*0.38;cg*=0.78+t*0.38;cb*=0.78+t*0.38;
+    const noise=(Math.sin(wx*0.37+wz*0.29)*0.5+Math.cos(wx*0.19-wz*0.42)*0.5)*0.04;
+    cr*=0.76+t*0.40+noise;cg*=0.76+t*0.40+noise;cb*=0.76+t*0.40+noise;
+    if(c.h>18){const sf=Math.min(1,(c.h-18)/8);cr=cr*(1-sf)+0.92*sf;cg=cg*(1-sf)+0.95*sf;cb=cb*(1-sf)+1.0*sf;}
     if(c.lava>0.45&&c.h<2.6){cr=0.95;cg=0.32+Math.sin(wx*0.3+wz*0.3)*0.06;cb=0.06;}
     colors[i*3]=cr;colors[i*3+1]=cg;colors[i*3+2]=cb;
   }
@@ -3252,20 +3254,20 @@ function hideInstance(im,idx){
   im.setMatrixAt(idx,_zeroMat);im.instanceMatrix.needsUpdate=true;
 }
 function initSceneryPools(){
-  _scnGeos.trunk=new THREE.CylinderGeometry(0.15,0.28,2.0,7);
-  _scnGeos.leaf=new THREE.ConeGeometry(1.15,1.7,8);
-  _scnGeos.rock=new THREE.DodecahedronGeometry(1,0);
-  _scnGeos.cactus=new THREE.CylinderGeometry(0.32,0.4,2.6,6);
-  _scnGeos.sTrunk=new THREE.CylinderGeometry(0.15,0.28,2.0,7);
-  _scnGeos.sLeaf=new THREE.ConeGeometry(1.15,1.7,8);
-  _scnGeos.spike=new THREE.ConeGeometry(0.8,2.4,5);
-  _scnGeos.jTrunk=new THREE.CylinderGeometry(0.25,0.35,4.0,6);
-  _scnGeos.jLeaf=new THREE.SphereGeometry(1.8,5,4);
-  _scnGeos.acacia=new THREE.CylinderGeometry(0.12,0.18,3.5,5);
-  _scnGeos.aCrown=new THREE.CylinderGeometry(2.0,2.2,0.5,6);
-  _scnGeos.mPine=new THREE.ConeGeometry(0.8,2.5,5);
-  _scnGeos.boulder=new THREE.DodecahedronGeometry(1.5,0);
-  _scnGeos.flower=new THREE.SphereGeometry(0.15,4,4);
+  _scnGeos.trunk=new THREE.CylinderGeometry(0.18,0.35,2.5,8);
+  _scnGeos.leaf=new THREE.ConeGeometry(1.4,2.0,8);
+  _scnGeos.rock=new THREE.DodecahedronGeometry(1.1,1);
+  _scnGeos.cactus=new THREE.CylinderGeometry(0.35,0.45,3.0,7);
+  _scnGeos.sTrunk=new THREE.CylinderGeometry(0.18,0.32,2.5,7);
+  _scnGeos.sLeaf=new THREE.ConeGeometry(1.35,2.0,8);
+  _scnGeos.spike=new THREE.ConeGeometry(0.9,2.8,6);
+  _scnGeos.jTrunk=new THREE.CylinderGeometry(0.3,0.42,4.5,7);
+  _scnGeos.jLeaf=new THREE.SphereGeometry(2.2,6,5);
+  _scnGeos.acacia=new THREE.CylinderGeometry(0.15,0.22,4.0,6);
+  _scnGeos.aCrown=new THREE.CylinderGeometry(2.5,2.8,0.6,8);
+  _scnGeos.mPine=new THREE.ConeGeometry(1.0,3.0,6);
+  _scnGeos.boulder=new THREE.DodecahedronGeometry(1.8,1);
+  _scnGeos.flower=new THREE.SphereGeometry(0.2,5,5);
   {const gV=[],gN=[];
   for(let b=0;b<3;b++){
     const ba=b*Math.PI*2/3+Math.sin(b*2.1)*0.25;
@@ -3298,20 +3300,20 @@ function initSceneryPools(){
        transformed.z+=sway*0.5*max(0.0,position.y+0.25);
        #endif`);
   };
-  _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x7a5530,roughness:0.92,flatShading:true});
-  _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.75,flatShading:true,emissive:0x1a3a10,emissiveIntensity:0.1});
-  _scnMats.rock=new THREE.MeshStandardMaterial({roughness:0.9,flatShading:true});
-  _scnMats.cactus=new THREE.MeshStandardMaterial({color:0x4a7a3a,roughness:0.8,flatShading:true});
-  _scnMats.sTrunk=new THREE.MeshStandardMaterial({color:0x6a5a4a,roughness:0.9,flatShading:true});
-  _scnMats.sLeaf=new THREE.MeshStandardMaterial({color:0xeaf2ff,roughness:0.7,flatShading:true});
-  _scnMats.spike=new THREE.MeshStandardMaterial({color:0x2a1410,roughness:0.95,flatShading:true});
-  _scnMats.jTrunk=new THREE.MeshStandardMaterial({color:0x3a2a18,roughness:0.9,flatShading:true});
-  _scnMats.jLeaf=new THREE.MeshStandardMaterial({color:0x1a4a12,roughness:0.8,flatShading:true});
-  _scnMats.acacia=new THREE.MeshStandardMaterial({color:0x5a4030,roughness:0.9,flatShading:true});
-  _scnMats.aCrown=new THREE.MeshStandardMaterial({color:0x4a6a28,roughness:0.85,flatShading:true});
-  _scnMats.mPine=new THREE.MeshStandardMaterial({color:0x2a4a22,roughness:0.85,flatShading:true});
-  _scnMats.boulder=new THREE.MeshStandardMaterial({color:0x5a5852,roughness:0.95,flatShading:true});
-  _scnMats.flower=new THREE.MeshStandardMaterial({roughness:0.6,flatShading:true});
+  _scnMats.trunk=new THREE.MeshStandardMaterial({color:0x6a4828,roughness:0.88,flatShading:true,emissive:0x1a1008,emissiveIntensity:0.08});
+  _scnMats.leaf=new THREE.MeshStandardMaterial({roughness:0.7,flatShading:true,emissive:0x1a4a10,emissiveIntensity:0.15});
+  _scnMats.rock=new THREE.MeshStandardMaterial({roughness:0.85,flatShading:true,emissive:0x0a0a08,emissiveIntensity:0.05});
+  _scnMats.cactus=new THREE.MeshStandardMaterial({color:0x4a8a3a,roughness:0.75,flatShading:true,emissive:0x0a2a08,emissiveIntensity:0.1});
+  _scnMats.sTrunk=new THREE.MeshStandardMaterial({color:0x6a5a4a,roughness:0.85,flatShading:true});
+  _scnMats.sLeaf=new THREE.MeshStandardMaterial({color:0xe8f4ff,roughness:0.6,flatShading:true,emissive:0x445566,emissiveIntensity:0.1});
+  _scnMats.spike=new THREE.MeshStandardMaterial({color:0x2a1410,roughness:0.9,flatShading:true});
+  _scnMats.jTrunk=new THREE.MeshStandardMaterial({color:0x3a2a18,roughness:0.85,flatShading:true,emissive:0x0a0804,emissiveIntensity:0.06});
+  _scnMats.jLeaf=new THREE.MeshStandardMaterial({color:0x1c5214,roughness:0.7,flatShading:true,emissive:0x0a2a06,emissiveIntensity:0.12});
+  _scnMats.acacia=new THREE.MeshStandardMaterial({color:0x5a4030,roughness:0.85,flatShading:true});
+  _scnMats.aCrown=new THREE.MeshStandardMaterial({color:0x5a7a30,roughness:0.75,flatShading:true,emissive:0x142a08,emissiveIntensity:0.1});
+  _scnMats.mPine=new THREE.MeshStandardMaterial({color:0x2a5424,roughness:0.78,flatShading:true,emissive:0x0a2008,emissiveIntensity:0.1});
+  _scnMats.boulder=new THREE.MeshStandardMaterial({color:0x5a5852,roughness:0.9,flatShading:true,emissive:0x080808,emissiveIntensity:0.04});
+  _scnMats.flower=new THREE.MeshStandardMaterial({roughness:0.5,flatShading:true,emissive:0x220808,emissiveIntensity:0.15});
 }
 function _buildIM(scene,geo,mat,mats,cols){
   if(mats.length===0)return null;
@@ -3329,8 +3331,8 @@ function rebuildScenery(scene,cx,cz){
   _treePositions.length=0;
   _rockPositions.length=0;
   const dummy=new THREE.Object3D();
-  const leafColors=[0x4a9a3a,0x3d8a2e,0x55a542,0x368227];
-  const flowerColors=[0xff4466,0xffdd44,0x44aaff,0xff88cc,0xaa66ff];
+  const leafColors=[0x4da83c,0x3e8e30,0x58b045,0x38882a,0x62b84e,0x2d7a22];
+  const flowerColors=[0xff4466,0xffdd44,0x44aaff,0xff88cc,0xaa66ff,0xff6622,0x44ffaa];
   const trunkM=[],leafM=[],leafC=[],rockM=[],rockC=[];
   const cactM=[],sTrunkM=[],sConeM=[],spikeM=[];
   const jTrunkM=[],jLeafM=[],acaciaM=[],aCrownM=[];
@@ -3480,13 +3482,12 @@ let _water=null,_waterDetail=null,_waterUniforms=null;
 function buildWater(scene){
   // bazowa tafla wody (cala mapa, plaska) - tania
   const baseGeo=new THREE.PlaneGeometry(WORLD_HALF*2.2,WORLD_HALF*2.2);baseGeo.rotateX(-Math.PI/2);
-  const baseMat=new THREE.MeshStandardMaterial({color:0x163a4c,transparent:true,opacity:0.75,roughness:0.2,metalness:0.5});
+  const baseMat=new THREE.MeshStandardMaterial({color:0x0e3848,transparent:true,opacity:0.8,roughness:0.15,metalness:0.55});
   _water=new THREE.Mesh(baseGeo,baseMat);_water.position.y=SEA_LEVEL-0.05;scene.add(_water);
-  // szczegolowa tafla z falami (shader), podaza za graczem
-  const D=isMobile?260:420, segs=isMobile?48:80;
+  const D=isMobile?280:450, segs=isMobile?56:96;
   const geo=new THREE.PlaneGeometry(D,D,segs,segs);geo.rotateX(-Math.PI/2);
-  const mat=new THREE.MeshStandardMaterial({color:0x1d4a5e,transparent:true,opacity:0.82,
-    roughness:0.12,metalness:0.65});
+  const mat=new THREE.MeshStandardMaterial({color:0x184a60,transparent:true,opacity:0.85,
+    roughness:0.08,metalness:0.7});
   _waterUniforms={uTime:{value:0}};
   mat.onBeforeCompile=(shader)=>{
     shader.uniforms.uTime=_waterUniforms.uTime;
@@ -3495,14 +3496,18 @@ function buildWater(scene){
       `#include <begin_vertex>
        vec4 _wp=modelMatrix*vec4(position,1.0);
        float wx=_wp.x; float wz=_wp.z;
-       float w=sin(wx*0.18+uTime*1.4)*0.18
-              +cos(wz*0.15-uTime*1.1)*0.15
-              +sin((wx+wz)*0.27+uTime*2.0)*0.08;
+       float w=sin(wx*0.16+uTime*1.3)*0.22
+              +cos(wz*0.13-uTime*1.0)*0.18
+              +sin((wx+wz)*0.25+uTime*1.8)*0.10
+              +sin(wx*0.4+wz*0.3+uTime*2.8)*0.05
+              +cos(wx*0.08-wz*0.12+uTime*0.6)*0.12;
        transformed.y+=w; vWave=w;`);
     shader.fragmentShader='varying float vWave;\n'+shader.fragmentShader;
     shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',
       `#include <color_fragment>
-       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.4,0.72,0.82),clamp((vWave+0.18)*1.6,0.0,0.45));`);
+       float foam=smoothstep(0.15,0.35,vWave)*0.3;
+       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.35,0.68,0.82),clamp((vWave+0.2)*1.8,0.0,0.5));
+       diffuseColor.rgb+=vec3(foam);`);
   };
   _waterDetail=new THREE.Mesh(geo,mat);_waterDetail.position.y=SEA_LEVEL;scene.add(_waterDetail);
   // piaszczyste dno (widoczne pod woda) - podaza za graczem
@@ -3513,77 +3518,78 @@ function buildWater(scene){
 let _seabed=null;
 let _ambient=null,_hemi=null;
 function setupLighting(scene){
-  _ambient=new THREE.AmbientLight(0x556080,0.5);scene.add(_ambient);
-  _hemi=new THREE.HemisphereLight(0xbfdcff,0x5a6a3a,0.6);scene.add(_hemi);
-  const sun=new THREE.DirectionalLight(0xfff2d8,1.25);sun.position.set(50,80,30);sun.castShadow=!isMobile;
+  _ambient=new THREE.AmbientLight(0x667a9a,0.55);scene.add(_ambient);
+  _hemi=new THREE.HemisphereLight(0xc4e0ff,0x6a7a3a,0.65);scene.add(_hemi);
+  const sun=new THREE.DirectionalLight(0xfff0c8,1.35);sun.position.set(50,80,30);sun.castShadow=!isMobile;
   sun.shadow.mapSize.set(isMobile?1024:2048,isMobile?1024:2048);
   sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;
   sun.shadow.camera.near=0.5;sun.shadow.camera.far=240;sun.shadow.bias=-0.001;scene.add(sun);
   scene.add(sun.target);_sun=sun;
-  const fill=new THREE.DirectionalLight(0x8899bb,0.25);fill.position.set(-30,40,-20);scene.add(fill);
+  const fill=new THREE.DirectionalLight(0x99aacc,0.3);fill.position.set(-30,40,-20);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xffd8aa,0.2);rim.position.set(-50,30,50);scene.add(rim);
 }
 let _stars=null;
 let _dustParticles=null;
 function setupAtmosphere(scene){
-  scene.background=new THREE.Color(0x6688cc);
-  scene.fog=new THREE.FogExp2(0x6688cc,isMobile?0.006:0.004);
-  const starCount=isMobile?200:500;
+  scene.background=new THREE.Color(0x5e82c4);
+  scene.fog=new THREE.FogExp2(0x5e82c4,isMobile?0.0055:0.0035);
+  const starCount=isMobile?300:800;
   const starGeo=new THREE.BufferGeometry();
   const starPos=new Float32Array(starCount*3);
+  const starSizes=new Float32Array(starCount);
   for(let i=0;i<starCount;i++){
     const theta=Math.random()*Math.PI*2,phi=Math.acos(Math.random()*2-1);
-    const r=400+Math.random()*200;
+    const r=350+Math.random()*250;
     starPos[i*3]=r*Math.sin(phi)*Math.cos(theta);
     starPos[i*3+1]=Math.abs(r*Math.cos(phi));
     starPos[i*3+2]=r*Math.sin(phi)*Math.sin(theta);
+    starSizes[i]=0.8+Math.random()*2.0;
   }
   starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
-  const starMat=new THREE.PointsMaterial({color:0xffffff,size:1.2,transparent:true,opacity:0});
+  const starMat=new THREE.PointsMaterial({color:0xffeeff,size:1.5,transparent:true,opacity:0,sizeAttenuation:true});
   _stars=new THREE.Points(starGeo,starMat);
   scene.add(_stars);
-  const dustCount=isMobile?80:200;
+  const dustCount=isMobile?120:300;
   const dustGeo=new THREE.BufferGeometry();
   const dustPos=new Float32Array(dustCount*3);
   for(let i=0;i<dustCount;i++){
-    dustPos[i*3]=(Math.random()-0.5)*60;
-    dustPos[i*3+1]=Math.random()*15+1;
-    dustPos[i*3+2]=(Math.random()-0.5)*60;
+    dustPos[i*3]=(Math.random()-0.5)*80;
+    dustPos[i*3+1]=Math.random()*20+0.5;
+    dustPos[i*3+2]=(Math.random()-0.5)*80;
   }
   dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3));
-  const dustMat=new THREE.PointsMaterial({color:0xffeedd,size:0.15,transparent:true,opacity:0.4});
+  const dustMat=new THREE.PointsMaterial({color:0xffeedd,size:0.18,transparent:true,opacity:0.45});
   _dustParticles=new THREE.Points(dustGeo,dustMat);
   scene.add(_dustParticles);
-  // chmury (proste platy dryfujace wysoko)
   _clouds=new THREE.Group();scene.add(_clouds);
-  const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:0.75,
-    roughness:1,emissive:0x445566,emissiveIntensity:0.15,depthWrite:false});
-  const cloudN=isMobile?10:18;
+  const cloudN=isMobile?14:24;
   for(let i=0;i<cloudN;i++){
     const puff=new THREE.Group();
-    const nBlobs=2+((Math.random()*3)|0);
+    const nBlobs=3+((Math.random()*4)|0);
+    const cloudMat=new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,
+      opacity:0.6+Math.random()*0.25,roughness:1,emissive:0x556677,emissiveIntensity:0.2,depthWrite:false});
     for(let b=0;b<nBlobs;b++){
-      const s=8+Math.random()*14;
-      const blob=new THREE.Mesh(new THREE.SphereGeometry(s,6,5),cloudMat);
-      blob.scale.y=0.45;
-      blob.position.set((Math.random()-0.5)*30,(Math.random()-0.5)*4,(Math.random()-0.5)*30);
+      const s=10+Math.random()*18;
+      const blob=new THREE.Mesh(new THREE.SphereGeometry(s,7,5),cloudMat);
+      blob.scale.set(1+Math.random()*0.5,0.35+Math.random()*0.15,1+Math.random()*0.5);
+      blob.position.set((Math.random()-0.5)*35,(Math.random()-0.5)*5,(Math.random()-0.5)*35);
       puff.add(blob);
     }
-    const a=Math.random()*Math.PI*2,r=80+Math.random()*340;
-    puff.position.set(Math.cos(a)*r,120+Math.random()*60,Math.sin(a)*r);
-    puff.userData.drift=0.6+Math.random()*1.2;
+    const a=Math.random()*Math.PI*2,r=60+Math.random()*380;
+    puff.position.set(Math.cos(a)*r,110+Math.random()*80,Math.sin(a)*r);
+    puff.userData.drift=0.4+Math.random()*1.5;
     _clouds.add(puff);
   }
-  // swietliki (pojawiaja sie w nocy)
-  const fireflyCount=isMobile?30:60;
+  const fireflyCount=isMobile?50:100;
   const ffGeo=new THREE.BufferGeometry();
   const ffPos=new Float32Array(fireflyCount*3);
   for(let i=0;i<fireflyCount;i++){
-    ffPos[i*3]=(Math.random()-0.5)*80;
-    ffPos[i*3+1]=1+Math.random()*6;
-    ffPos[i*3+2]=(Math.random()-0.5)*80;
+    ffPos[i*3]=(Math.random()-0.5)*100;
+    ffPos[i*3+1]=0.5+Math.random()*8;
+    ffPos[i*3+2]=(Math.random()-0.5)*100;
   }
   ffGeo.setAttribute('position',new THREE.BufferAttribute(ffPos,3));
-  _fireflies=new THREE.Points(ffGeo,new THREE.PointsMaterial({color:0xaaff44,size:0.4,transparent:true,opacity:0}));
+  _fireflies=new THREE.Points(ffGeo,new THREE.PointsMaterial({color:0xccff55,size:0.5,transparent:true,opacity:0}));
   scene.add(_fireflies);
 }
 let _clouds=null;
@@ -3592,14 +3598,16 @@ function updateDayNight(dt){
   worldTime=(worldTime+dt)%CYCLE_LEN;
   const t=worldTime/CYCLE_LEN;
   let skyR,skyG,skyB,sunInt,ambInt;
-  if(t<0.4){sunInt=1.0;ambInt=0.6;skyR=0.40;skyG=0.53;skyB=0.80;}
-  else if(t<0.5){const f=(t-0.4)/0.1;sunInt=1.0-f*0.8;ambInt=0.6-f*0.4;
-    skyR=0.40+f*0.45;skyG=0.53-f*0.25;skyB=0.80-f*0.55;}
-  else if(t<0.55){const f=(t-0.5)/0.05;sunInt=0.2-f*0.1;ambInt=0.2-f*0.05;
-    skyR=0.85-f*0.8;skyG=0.28-f*0.22;skyB=0.25-f*0.13;}
-  else if(t<0.9){sunInt=0.1;ambInt=0.15;skyR=0.04;skyG=0.06;skyB=0.12;}
-  else{const f=(t-0.9)/0.1;sunInt=0.1+f*0.9;ambInt=0.15+f*0.45;
-    skyR=0.04+f*0.36;skyG=0.06+f*0.47;skyB=0.12+f*0.68;}
+  if(t<0.35){sunInt=1.1;ambInt=0.65;skyR=0.37;skyG=0.51;skyB=0.77;}
+  else if(t<0.45){const f=(t-0.35)/0.1;sunInt=1.1-f*0.5;ambInt=0.65-f*0.25;
+    skyR=0.37+f*0.55;skyG=0.51-f*0.18;skyB=0.77-f*0.55;}
+  else if(t<0.52){const f=(t-0.45)/0.07;sunInt=0.6-f*0.45;ambInt=0.4-f*0.2;
+    skyR=0.92-f*0.7;skyG=0.33-f*0.2;skyB=0.22+f*0.05;}
+  else if(t<0.55){const f=(t-0.52)/0.03;sunInt=0.15-f*0.05;ambInt=0.2-f*0.04;
+    skyR=0.22-f*0.17;skyG=0.13-f*0.06;skyB=0.27-f*0.12;}
+  else if(t<0.88){sunInt=0.1;ambInt=0.16;skyR=0.05;skyG=0.07;skyB=0.15;}
+  else{const f=(t-0.88)/0.12;sunInt=0.1+f*1.0;ambInt=0.16+f*0.49;
+    skyR=0.05+f*0.32;skyG=0.07+f*0.44;skyB=0.15+f*0.62;}
   if(_sun){_sun.intensity=sunInt;
     const ang=t*Math.PI*2;
     if(_camera){_sun.position.set(_camera.position.x+Math.cos(ang)*60,
@@ -7153,12 +7161,15 @@ function updateFallingTrees(dt){
 // drobne czasteczki przy uderzeniu
 function spawnHitParticles(x,y,z,color){
   if(!_scene)return;
-  for(let i=0;i<5;i++){
-    const g=new THREE.BoxGeometry(0.08,0.08,0.08);
-    const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:1});
+  for(let i=0;i<8;i++){
+    const sz=0.05+Math.random()*0.08;
+    const g=new THREE.BoxGeometry(sz,sz,sz);
+    const m=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9+Math.random()*0.1});
     const sh=new THREE.Mesh(g,m);sh.position.set(x,y,z);
-    const v=new THREE.Vector3((Math.random()-0.5)*3,Math.random()*2+1,(Math.random()-0.5)*3);
-    _scene.add(sh);shards.push({mesh:sh,mat:m,vel:v,life:0.6});
+    sh.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+    const spd=2+Math.random()*3;
+    const v=new THREE.Vector3((Math.random()-0.5)*spd,Math.random()*2.5+1,(Math.random()-0.5)*spd);
+    _scene.add(sh);shards.push({mesh:sh,mat:m,vel:v,life:0.5+Math.random()*0.4});
   }
 }
 // chwilowe drgniecie - wizualny feedback (placeholder, scenery to instancing)
@@ -7167,10 +7178,13 @@ function spawnProjectile(scene,camera,sp){
   const geo=new THREE.SphereGeometry(sp.size,12,12);
   const mat=new THREE.MeshBasicMaterial({color:sp.color});
   const mesh=new THREE.Mesh(geo,mat);
+  const glowGeo=new THREE.SphereGeometry(sp.size*1.6,10,8);
+  const glowMat=new THREE.MeshBasicMaterial({color:sp.light,transparent:true,opacity:0.25});
+  const glow=new THREE.Mesh(glowGeo,glowMat);mesh.add(glow);
   const dir=new THREE.Vector3();camera.getWorldDirection(dir);
   const start=camera.position.clone().addScaledVector(dir,0.7);start.y-=0.18;
   mesh.position.copy(start);
-  mesh.add(new THREE.PointLight(sp.light,2.2,9));
+  mesh.add(new THREE.PointLight(sp.light,3.0,12));
   scene.add(mesh);
   projectiles.push({mesh,mat,vel:dir.clone().multiplyScalar(sp.speed),life:sp.life,
     gravity:sp.gravity,color:sp.light,dmg:Math.round(sp.dmg*spellDmgMul()),
@@ -7184,16 +7198,19 @@ function spawnTrailParticle(pos,color){
   _scene.add(sh);shards.push({mesh:sh,mat:m,vel:new THREE.Vector3(0,0.3,0),life:0.3});
 }
 function spawnImpact(scene,pos,color){
-  const geo=new THREE.SphereGeometry(0.3,10,10);
-  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9});
-  const m=new THREE.Mesh(geo,mat);m.position.copy(pos);m.add(new THREE.PointLight(color,3,10));
+  const geo=new THREE.SphereGeometry(0.4,12,10);
+  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.95});
+  const m=new THREE.Mesh(geo,mat);m.position.copy(pos);
+  m.add(new THREE.PointLight(color,4,14));
   scene.add(m);impacts.push({mesh:m,mat,t:0});
-  for(let k=0;k<6;k++){
-    const sg=new THREE.SphereGeometry(0.08,4,3);
-    const sm=new THREE.MeshBasicMaterial({color,transparent:true,opacity:1});
-    const sp=new THREE.Mesh(sg,sm);sp.position.copy(pos);
-    const v=new THREE.Vector3((Math.random()-0.5)*6,Math.random()*3+1,(Math.random()-0.5)*6);
-    scene.add(sp);shards.push({mesh:sp,mat:sm,vel:v,life:0.5});
+  for(let k=0;k<10;k++){
+    const sz=0.06+Math.random()*0.06;
+    const sg=new THREE.SphereGeometry(sz,5,4);
+    const sm=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9});
+    const sp2=new THREE.Mesh(sg,sm);sp2.position.copy(pos);
+    const spd=3+Math.random()*5;
+    const v=new THREE.Vector3((Math.random()-0.5)*spd,Math.random()*4+1,(Math.random()-0.5)*spd);
+    scene.add(sp2);shards.push({mesh:sp2,mat:sm,vel:v,life:0.4+Math.random()*0.4});
   }
 }
 function attemptCast(now){
