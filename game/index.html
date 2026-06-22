@@ -593,13 +593,14 @@
     display:flex;align-items:center;justify-content:center}
   #build-btn:active{transform:scale(.95)}
   #build-btn.active{background:rgba(40,90,60,.85);border-color:#7adca0;box-shadow:0 0 14px rgba(120,220,160,.5)}
-  #build-place-btn,#build-remove-btn{position:absolute;right:14px;width:58px;height:58px;
+  #build-place-btn,#build-remove-btn,#build-rotate-btn{position:absolute;right:14px;width:58px;height:58px;
     border-radius:50%;font-size:26px;font-weight:800;display:none;
     align-items:center;justify-content:center;pointer-events:auto;cursor:pointer;z-index:6}
   #build-place-btn{bottom:170px;background:rgba(30,90,40,.8);border:2px solid rgba(120,220,120,.7);color:#dfffd0}
   #build-remove-btn{bottom:240px;background:rgba(120,30,30,.8);border:2px solid rgba(220,120,120,.7);color:#ffd0d0}
-  #build-place-btn:active,#build-remove-btn:active{transform:scale(.9)}
-  body.build-on #build-place-btn,body.build-on #build-remove-btn{display:flex}
+  #build-rotate-btn{bottom:310px;background:rgba(40,60,120,.8);border:2px solid rgba(120,160,220,.7);color:#d0e0ff}
+  #build-place-btn:active,#build-remove-btn:active,#build-rotate-btn:active{transform:scale(.9)}
+  body.build-on #build-place-btn,body.build-on #build-remove-btn,body.build-on #build-rotate-btn{display:flex}
   /* ── BUILD PANEL ──────────────────────────────────── */
   #build-panel{position:absolute;left:0;right:0;bottom:0;z-index:20;
     background:linear-gradient(0deg,rgba(8,14,12,.97),rgba(12,22,18,.92));
@@ -814,6 +815,7 @@
   <button id="build-btn" title="Budowanie">🧱</button>
   <button id="build-place-btn" title="Postaw blok">✓</button>
   <button id="build-remove-btn" title="Usun blok">✗</button>
+  <button id="build-rotate-btn" title="Obroc blok">↻</button>
   <div id="build-panel">
     <div class="build-head">🧱 Budowanie <button id="build-close">✕</button></div>
     <div class="build-hint">Wybierz blok, celuj i kliknij ✓ aby postawic, ✗ aby usunac</div>
@@ -2549,6 +2551,7 @@ const placedBlocks=[]; // {mesh,bx,bz,by,blockType,box?}
 let buildMode=false;
 let buildBlockType=null; // aktualnie wybrany blok do postawienia
 let _ghostMesh=null;
+let buildRotation=0; // 0 lub 1 (obrot o 90 stopni)
 const BLOCK_DEFS={
   stone_wall:{w:GRID,h:3,d:0.3,color:0x8a8a92,solid:true,name:'Sciana Kamienna'},
   wood_wall:{w:GRID,h:3,d:0.3,color:0x9a6f3a,solid:true,name:'Sciana Drewniana'},
@@ -2751,7 +2754,7 @@ function makeBlockMesh(blockType,ghost){
 function snapToGrid(v){return Math.round(v/GRID)*GRID;}
 function getBuildTarget(camera){
   const dir=new THREE.Vector3();camera.getWorldDirection(dir);
-  const dist=4;
+  const dist=6;
   const tx=camera.position.x+dir.x*dist;
   const tz=camera.position.z+dir.z*dist;
   return {x:snapToGrid(tx),z:snapToGrid(tz)};
@@ -2760,17 +2763,16 @@ function updateBuildGhost(camera){
   const heldBlock=heldIsBlock();
   const effectiveBt=buildMode?buildBlockType:(heldBlock?ITEMS[player.heldItem].blockType:null);
   if(!effectiveBt){if(_ghostMesh){_ghostMesh.visible=false;}return;}
-  if(!_ghostMesh||_ghostMesh.userData.bt!==effectiveBt){
+  if(!_ghostMesh||_ghostMesh.userData.bt!==effectiveBt||_ghostMesh.userData.rot!==buildRotation){
     if(_ghostMesh){_scene.remove(_ghostMesh);}
     _ghostMesh=makeBlockMesh(effectiveBt,true);
-    if(_ghostMesh){_ghostMesh.userData.bt=effectiveBt;_scene.add(_ghostMesh);}
+    if(_ghostMesh){_ghostMesh.userData.bt=effectiveBt;_ghostMesh.userData.rot=buildRotation;_scene.add(_ghostMesh);}
   }
   if(!_ghostMesh)return;
   _ghostMesh.visible=true;
   const t=getBuildTarget(camera);
   let by=terrainHeight(t.x,t.z);
   const def=BLOCK_DEFS[effectiveBt];
-  // jesli stawiamy na istniejacym bloku w tej kolumnie, ustaw wyzej
   for(const pb of placedBlocks){
     if(pb.bx===t.x&&pb.bz===t.z){
       const pd=BLOCK_DEFS[pb.blockType];
@@ -2779,15 +2781,14 @@ function updateBuildGhost(camera){
     }
   }
   _ghostMesh.position.set(t.x,by,t.z);
+  _ghostMesh.rotation.y=buildRotation*Math.PI/2;
 }
 function placeBlock(camera){
   if(!buildMode||!buildBlockType)return false;
-  // sprawdz czy mamy item
   const invIdx=ITEMS.findIndex(it=>it&&it.type==='block'&&it.blockType===buildBlockType&&it.count>0);
   if(invIdx<0){toast('Brak bloku w ekwipunku');return false;}
   const t=getBuildTarget(camera);
   const def=BLOCK_DEFS[buildBlockType];
-  // policz najwyzszy wierzcholek w tej kolumnie
   let by=terrainHeight(t.x,t.z);
   let blocksHere=0;
   for(const pb of placedBlocks){
@@ -2801,17 +2802,19 @@ function placeBlock(camera){
   const mesh=makeBlockMesh(buildBlockType,false);
   if(!mesh)return false;
   mesh.position.set(t.x,by,t.z);
+  mesh.rotation.y=buildRotation*Math.PI/2;
   _scene.add(mesh);
-  const block={mesh,bx:t.x,bz:t.z,by,blockType:buildBlockType};
-  // kolizja dla solidnych blokow
+  const rotated=buildRotation%2===1;
+  const bw=rotated?def.d:def.w;
+  const bd=rotated?def.w:def.d;
+  const block={mesh,bx:t.x,bz:t.z,by,blockType:buildBlockType,rot:buildRotation};
   if(def.solid){
-    block.box={minX:t.x-def.w/2,maxX:t.x+def.w/2,minZ:t.z-def.d/2,maxZ:t.z+def.d/2};
+    block.box={minX:t.x-bw/2,maxX:t.x+bw/2,minZ:t.z-bd/2,maxZ:t.z+bd/2};
     _wallBoxes.push(block.box);
   }
   if(def.bed)block.spawnPoint=true;
   if(def.chestBlock){block.storage=new Array(9).fill(null);}
   placedBlocks.push(block);
-  // zuzyj item
   ITEMS[invIdx].count--;if(ITEMS[invIdx].count<=0)ITEMS[invIdx]=null;
   buildItembar();
   if(def.bed){buildSpawnPoint={x:t.x,z:t.z};toast('Punkt odrodzenia ustawiony!');}
@@ -6518,6 +6521,7 @@ document.getElementById('build-btn').addEventListener('click',toggleBuildMode);
 document.getElementById('build-close').addEventListener('click',toggleBuildMode);
 document.getElementById('build-place-btn').addEventListener('click',()=>{if(_camera)placeBlock(_camera);});
 document.getElementById('build-remove-btn').addEventListener('click',()=>{if(_camera)removeBlockAt(_camera);});
+document.getElementById('build-rotate-btn').addEventListener('click',()=>{buildRotation=(buildRotation+1)%4;toast('Obrot: '+buildRotation*90+'°');});
 
 // ═══ ZMIANA KLASY (Krysztal Przemiany / Admin) ═══════════
 function changeClass(newClass){
@@ -6614,6 +6618,10 @@ function renderAdminPanel(){
         <button class="admin-btn2" id="adm-gold">+1000 Zlota</button>
         <button class="admin-btn2" id="adm-xp">+1000 XP</button>
       </div>
+      <div class="admin-row">
+        <button class="admin-btn2" id="adm-scroll">+1 📜 Sekretna Kartka (${secretScrolls})</button>
+        <button class="admin-btn2" id="adm-scroll5">+5 📜 Kartek</button>
+      </div>
     </div>
     <div class="admin-sec">
       <div class="admin-sec-t">Spawn Moba</div>
@@ -6658,6 +6666,8 @@ function renderAdminPanel(){
   body.querySelector('#adm-heal').onclick=()=>{player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;_breath=100;toast('Uzdrowiono!');};
   body.querySelector('#adm-gold').onclick=()=>{player.gold+=1000;toast('+1000 zlota');};
   body.querySelector('#adm-xp').onclick=()=>{giveXP(1000);toast('+1000 XP');};
+  body.querySelector('#adm-scroll').onclick=()=>{secretScrolls++;renderAdminPanel();toast('📜 Sekretna Kartka +1 (Masz: '+secretScrolls+')');};
+  body.querySelector('#adm-scroll5').onclick=()=>{secretScrolls+=5;renderAdminPanel();toast('📜 Sekretne Kartki +5 (Masz: '+secretScrolls+')');};
   body.querySelector('#adm-spawn-mob').onclick=()=>{
     const id=body.querySelector('#adm-mob').value;adminSpawnMob(id);};
   body.querySelector('#adm-spawn-boss').onclick=()=>{
@@ -8823,6 +8833,29 @@ function updateMobs(dt,now,camera,scene){
         if(m.poison){statusEffects.push({type:'dmgBoost',until:now+4000,value:0.85});toast('Jadowity pajak! Trucizna!');}
       }
     }
+    // kolizja mobow ze scianami/blokami i drzewami
+    {
+      let mx2=m.mesh.position.x,mz2=m.mesh.position.z;
+      const MR=0.5;
+      for(const b of _wallBoxes){
+        if(mx2>b.minX-MR&&mx2<b.maxX+MR&&mz2>b.minZ-MR&&mz2<b.maxZ+MR){
+          const pL=mx2-(b.minX-MR),pR=(b.maxX+MR)-mx2;
+          const pD=mz2-(b.minZ-MR),pU=(b.maxZ+MR)-mz2;
+          const mp=Math.min(pL,pR,pD,pU);
+          if(mp===pL)mx2=b.minX-MR;
+          else if(mp===pR)mx2=b.maxX+MR;
+          else if(mp===pD)mz2=b.minZ-MR;
+          else mz2=b.maxZ+MR;
+        }
+      }
+      for(const t of _treePositions){
+        if(t.destroyed)continue;
+        const tdx=mx2-t.x,tdz=mz2-t.z;const td=Math.sqrt(tdx*tdx+tdz*tdz);
+        const minD=MR+t.r;
+        if(td<minD&&td>0.01){const push=(minD-td)/td;mx2+=tdx*push;mz2+=tdz*push;}
+      }
+      m.mesh.position.x=mx2;m.mesh.position.z=mz2;
+    }
     const gh=terrainHeight(m.mesh.position.x,m.mesh.position.z);
     if(m.type.water){
       // potwory wodne plywaja miedzy dnem a powierzchnia; gina na ladzie
@@ -9754,6 +9787,23 @@ function updateBosses(dt,now,camera){
       if(b.aoeTimer<=0&&dist<8){b.aoeTimer=5;hurtPlayer(Math.round(b.type.dmg*0.3));
         toast(b.type.name+' — atak obszarowy!');}
     }
+    // kolizja bossow ze scianami
+    if(!b.type.water){
+      let bx2=b.mesh.position.x,bz2=b.mesh.position.z;
+      const BR=1.0;
+      for(const wb of _wallBoxes){
+        if(bx2>wb.minX-BR&&bx2<wb.maxX+BR&&bz2>wb.minZ-BR&&bz2<wb.maxZ+BR){
+          const pL=bx2-(wb.minX-BR),pR=(wb.maxX+BR)-bx2;
+          const pD=bz2-(wb.minZ-BR),pU=(wb.maxZ+BR)-bz2;
+          const mp=Math.min(pL,pR,pD,pU);
+          if(mp===pL)bx2=wb.minX-BR;
+          else if(mp===pR)bx2=wb.maxX+BR;
+          else if(mp===pD)bz2=wb.minZ-BR;
+          else bz2=wb.maxZ+BR;
+        }
+      }
+      b.mesh.position.x=bx2;b.mesh.position.z=bz2;
+    }
     if(bid!=='leviathan'||!ai.submerged){
       const gh=b.type.water?SEA_LEVEL-2.5:terrainHeight(b.mesh.position.x,b.mesh.position.z);
       if(bid!=='spider_queen'&&bid!=='dragon')b.mesh.position.y=gh;
@@ -9898,6 +9948,7 @@ function setupDesktopInput(){
     if(buildMode&&_camera){
       if(e.code==='KeyQ'){e.preventDefault();placeBlock(_camera);}
       if(e.code==='KeyX'){e.preventDefault();removeBlockAt(_camera);}
+      if(e.code==='KeyR'){e.preventDefault();buildRotation=(buildRotation+1)%4;toast('Obrot: '+buildRotation*90+'°');}
     }
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;if(e.code==='Space')_flyUp=false;});
@@ -9956,7 +10007,7 @@ function setupMobileInput(){
     joyKnob.style.transform='translate(0,0)';}}};
   joyZone.addEventListener('touchend',endJoy,{passive:true});
   joyZone.addEventListener('touchcancel',endJoy,{passive:true});
-  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#map-btn,#abil-btn,#interact-prompt,#boss-bar,#companion-hud,#bars,#corner-stats,#fullmap,.cp-close,.cp-arrow');
+  const isUITouch=el=>el.closest&&el.closest('#spellbar,#hotbar,#cast-btn,#jump-btn,#fs-game,#char-btn,#char-panel,#craft-btn,#craft-panel,#build-btn,#build-panel,#build-place-btn,#build-remove-btn,#build-rotate-btn,#map-btn,#abil-btn,#interact-prompt,#boss-bar,#companion-hud,#bars,#corner-stats,#fullmap,.cp-close,.cp-arrow');
   document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
       if(isUITouch(t.target))continue;
@@ -10808,6 +10859,10 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get xpState(){return xpState;},giveXP,
   get skillPoints(){return skillPoints;},set skillPoints(v){skillPoints=v;},
   heldIsBlock,placeHeldBlock,getNearDoor,toggleDoor,tryFish,nearCampfire,
+  get secretScrolls(){return secretScrolls;},set secretScrolls(v){secretScrolls=v;},
+  get buildRotation(){return buildRotation;},set buildRotation(v){buildRotation=v;},
+  get wallBoxes(){return _wallBoxes;},get BLOCK_DEFS(){return BLOCK_DEFS;},
+  renderAdminPanel,
   setTime:(t)=>{worldTime=t*CYCLE_LEN;},setYawPitch:(y,p)=>{yaw=y;pitch=p;},makeBlockMesh};
 </script>
 </body>
