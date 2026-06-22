@@ -1458,6 +1458,50 @@ const RECIPES = [
   {id:'wool_hood',name:'Welniany Kaptur',icon:'🎩',equip:'hood',bonus:{mana:50},rarity:'common',need:[{id:'wool',count:5}],desc:'+50 many'},
   {id:'gold_ring',name:'Zloty Pierscien',icon:'💍',equip:'ring',bonus:{hp:10,mana:20},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+10 HP +20 many'},
   {id:'gold_amulet',name:'Zloty Naszyjnik',icon:'📿',equip:'amulet',bonus:{mana:40,dmg:3},rarity:'rare',need:[{id:'gold_ore',count:4},{id:'crystal',count:1}],desc:'+40 many +3% dmg'},
+  // ── ZBROJA ZLOTA (rzadka) ──
+  {id:'gold_helm',name:'Zloty Helm',icon:'🪖',equip:'hood',bonus:{hp:35,dmgRed:8,mana:20},rarity:'rare',need:[{id:'gold_ore',count:6}],desc:'+35 HP +8% red. +20 many'},
+  {id:'gold_chest',name:'Zloty Napiersnik',icon:'🦺',equip:'chest',bonus:{hp:50,dmgRed:14},rarity:'rare',need:[{id:'gold_ore',count:10}],desc:'+50 HP +14% redukcji'},
+  {id:'gold_legs',name:'Zlote Spodnie',icon:'👖',equip:'legs',bonus:{hp:35,dmgRed:11},rarity:'rare',need:[{id:'gold_ore',count:8}],desc:'+35 HP +11% redukcji'},
+  {id:'gold_boots',name:'Zlote Buty',icon:'🥾',equip:'boots',bonus:{hp:25,dmgRed:6,speed:6},rarity:'rare',need:[{id:'gold_ore',count:5}],desc:'+25 HP +6% red. +6% speed'},
+  {id:'gold_gloves',name:'Zlote Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:9,hp:20},rarity:'rare',need:[{id:'gold_ore',count:5},{id:'leather',count:1}],desc:'+9% dmg +20 HP'},
+  // ── ZBROJA MITHRILOWA (epicka) ──
+  {id:'mithril_helm',name:'Mithrilowy Helm',icon:'🪖',equip:'hood',bonus:{hp:55,dmgRed:12,mana:40},rarity:'epic',need:[{id:'mithril',count:6}],desc:'+55 HP +12% red. +40 many'},
+  {id:'mithril_chest',name:'Mithrilowy Napiersnik',icon:'🦺',equip:'chest',bonus:{hp:75,dmgRed:18,dmg:5},rarity:'epic',need:[{id:'mithril',count:10}],desc:'+75 HP +18% red.'},
+  {id:'mithril_legs',name:'Mithrilowe Spodnie',icon:'👖',equip:'legs',bonus:{hp:50,dmgRed:14},rarity:'epic',need:[{id:'mithril',count:8}],desc:'+50 HP +14% redukcji'},
+  {id:'mithril_boots',name:'Mithrilowe Buty',icon:'🥾',equip:'boots',bonus:{hp:40,dmgRed:9,speed:9},rarity:'epic',need:[{id:'mithril',count:5}],desc:'+40 HP +9% red. +9% speed'},
+  {id:'mithril_gloves',name:'Mithrilowe Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:14,hp:30},rarity:'epic',need:[{id:'mithril',count:5},{id:'leather',count:2}],desc:'+14% dmg +30 HP'},
+  // ── ZBROJA DIAMENTOWA (mityczna) ──
+  {id:'diamond_helm',name:'Diamentowy Helm',icon:'🪖',equip:'hood',bonus:{hp:75,dmgRed:16,mana:60},rarity:'mythic',need:[{id:'diamond',count:6}],desc:'+75 HP +16% red. +60 many'},
+  {id:'diamond_chest',name:'Diamentowy Napiersnik',icon:'🦺',equip:'chest',bonus:{hp:100,dmgRed:22,dmg:8},rarity:'mythic',need:[{id:'diamond',count:10}],desc:'+100 HP +22% red.'},
+  {id:'diamond_legs',name:'Diamentowe Spodnie',icon:'👖',equip:'legs',bonus:{hp:70,dmgRed:18},rarity:'mythic',need:[{id:'diamond',count:8}],desc:'+70 HP +18% redukcji'},
+  {id:'diamond_boots',name:'Diamentowe Buty',icon:'🥾',equip:'boots',bonus:{hp:55,dmgRed:12,speed:12},rarity:'mythic',need:[{id:'diamond',count:5}],desc:'+55 HP +12% red. +12% speed'},
+  {id:'diamond_gloves',name:'Diamentowe Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:20,hp:40},rarity:'mythic',need:[{id:'diamond',count:5},{id:'leather',count:2}],desc:'+20% dmg +40 HP'},
+  // ── ZBROJA RUBINOWA (legendarna) ──
+  {id:'ruby_helm',name:'Rubinowy Helm',icon:'🪖',equip:'hood',bonus:{hp:95,dmgRed:20,dmg:8},rarity:'legend',need:[{id:'ruby',count:6},{id:'magma_heart',count:1}],desc:'+95 HP +20% red. +8% dmg'},
+  {id:'ruby_chest',name:'Rubinowy Napiersnik',icon:'🦺',equip:'chest',bonus:{hp:130,dmgRed:26,dmg:12},rarity:'legend',need:[{id:'ruby',count:10},{id:'magma_heart',count:2}],desc:'+130 HP +26% red.'},
+  {id:'ruby_legs',name:'Rubinowe Spodnie',icon:'👖',equip:'legs',bonus:{hp:90,dmgRed:22},rarity:'legend',need:[{id:'ruby',count:8}],desc:'+90 HP +22% redukcji'},
+  {id:'ruby_boots',name:'Rubinowe Buty',icon:'🥾',equip:'boots',bonus:{hp:70,dmgRed:15,speed:15},rarity:'legend',need:[{id:'ruby',count:5}],desc:'+70 HP +15% red. +15% speed'},
+  {id:'ruby_gloves',name:'Rubinowe Rekawice',icon:'🧤',equip:'gloves',bonus:{dmg:28,hp:50},rarity:'legend',need:[{id:'ruby',count:5},{id:'leather',count:3}],desc:'+28% dmg +50 HP'},
+  // ── ZBROJA MROKU (sekretna) ──
+  {id:'dark_helm',name:'Helm Mroku',icon:'🪖',equip:'hood',bonus:{hp:120,dmgRed:24,dmg:14,mana:80},rarity:'secret',need:[{id:'dark_ore',count:8},{id:'shadow_gem',count:2}],desc:'SECRET: +120 HP +24% red. +14% dmg'},
+  {id:'dark_chest',name:'Napiersnik Mroku',icon:'🦺',equip:'chest',bonus:{hp:170,dmgRed:32,dmg:18},rarity:'secret',need:[{id:'dark_ore',count:12},{id:'shadow_gem',count:3}],desc:'SECRET: +170 HP +32% red. +18% dmg'},
+  {id:'dark_legs',name:'Spodnie Mroku',icon:'👖',equip:'legs',bonus:{hp:120,dmgRed:26,speed:8},rarity:'secret',need:[{id:'dark_ore',count:10},{id:'shadow_gem',count:2}],desc:'SECRET: +120 HP +26% red.'},
+  {id:'dark_boots',name:'Buty Mroku',icon:'🥾',equip:'boots',bonus:{hp:90,dmgRed:18,speed:22},rarity:'secret',need:[{id:'dark_ore',count:7},{id:'shadow_gem',count:1}],desc:'SECRET: +90 HP +18% red. +22% speed'},
+  {id:'dark_gloves',name:'Rekawice Mroku',icon:'🧤',equip:'gloves',bonus:{dmg:38,hp:60},rarity:'secret',need:[{id:'dark_ore',count:7},{id:'shadow_gem',count:1}],desc:'SECRET: +38% dmg +60 HP'},
+  // ── PELERYNY ──
+  {id:'wool_cape',name:'Welniana Peleryna',icon:'🧣',equip:'cape',bonus:{hp:15,mana:30},rarity:'common',need:[{id:'wool',count:6}],desc:'+15 HP +30 many'},
+  {id:'silk_cape',name:'Jedwabna Peleryna',icon:'🧣',equip:'cape',bonus:{hp:30,speed:10,mana:40},rarity:'epic',need:[{id:'wool',count:8},{id:'crystal',count:3}],desc:'+30 HP +10% speed +40 many'},
+  {id:'shadow_cape',name:'Peleryna Cieni',icon:'🧣',equip:'cape',bonus:{dmg:20,speed:18,dmgRed:12},rarity:'secret',need:[{id:'shadow_gem',count:3},{id:'dark_ore',count:4}],desc:'SECRET: +20% dmg +18% speed'},
+  // ── PIERSCIENIE i NASZYJNIKI ──
+  {id:'crystal_ring',name:'Krysztalowy Pierscien',icon:'💍',equip:'ring',bonus:{mana:60,dmg:5},rarity:'epic',need:[{id:'crystal',count:5},{id:'silver',count:2}],desc:'+60 many +5% dmg'},
+  {id:'ruby_ring',name:'Rubinowy Pierscien',icon:'💍',equip:'ring',bonus:{hp:40,dmg:12},rarity:'legend',need:[{id:'ruby',count:4},{id:'gold_ore',count:3}],desc:'+40 HP +12% dmg'},
+  {id:'dragon_ring',name:'Smoczy Pierscien',icon:'💍',equip:'ring',bonus:{hp:60,dmg:18,dmgRed:8},rarity:'secret',need:[{id:'dragon_gem',count:2},{id:'ruby',count:3}],desc:'SECRET: +60 HP +18% dmg'},
+  {id:'crystal_amulet',name:'Krysztalowy Amulet',icon:'📿',equip:'amulet',bonus:{mana:90,dmg:6},rarity:'epic',need:[{id:'crystal',count:6},{id:'gold_ore',count:2}],desc:'+90 many +6% dmg'},
+  {id:'shadow_amulet',name:'Amulet Cieni',icon:'📿',equip:'amulet',bonus:{mana:120,dmg:16,hp:40},rarity:'secret',need:[{id:'shadow_gem',count:2},{id:'dark_ore',count:3}],desc:'SECRET: +120 many +16% dmg'},
+  // ── TOPORY (bron) ──
+  {id:'axe_iron',name:'Zelazny Topor',icon:'🪓',type:'axe',equip:'weapon',bonus:{dmg:14},rarity:'common',need:[{id:'iron_ore',count:5},{id:'wood',count:2}],desc:'Obrażenia: 40'},
+  {id:'axe_steel',name:'Stalowy Topor Bojowy',icon:'🪓',type:'axe',equip:'weapon',bonus:{dmg:28},rarity:'epic',need:[{id:'mithril',count:5},{id:'wood',count:2}],desc:'Obrażenia: 65'},
+  {id:'axe_dark',name:'Topor Mroku',icon:'🪓',type:'axe',equip:'weapon',bonus:{dmg:55},rarity:'secret',need:[{id:'dark_ore',count:7},{id:'shadow_gem',count:2}],desc:'SECRET: Obrażenia 120'},
   {id:'campfire_block',name:'Ognisko',icon:'🔥',type:'block',blockType:'campfire',need:[{id:'wood',count:3},{id:'stone',count:2}],desc:'Postaw - gotuj jedzenie w poblizu'},
   {id:'fishing_rod',name:'Wedka',icon:'🎣',type:'tool',need:[{id:'wood',count:3},{id:'wool',count:1}],desc:'Lowienie ryb w wodzie'},
   {id:'shield_wood',name:'Drewniana Tarcza',icon:'🛡️',type:'shield',equip:'orb',bonus:{dmgRed:15,hp:30},rarity:'common',need:[{id:'wood',count:5},{id:'iron_ore',count:2}],desc:'+15% redukcji +30 HP'},
@@ -1595,6 +1639,7 @@ const player={hp:100,maxHp:100,mana:1000,maxMana:1000,manaRegen:5,
 // Punkty inwestowane w staty (kazda max 5, +20% za punkt)
 const stats={hp:0,mana:0,speed:0,regen:0};
 let skillPoints=0;
+let secretScrolls=0;
 let lastPointLvl=0;
 // Ekwipunek: 2 sety, kazdy z slotami na czesci pancerza
 const EQUIP_SLOTS=[
@@ -1967,8 +2012,8 @@ document.getElementById('comp-mode-btn').addEventListener('click',()=>{
 
 // ═══ JAZDA / LATANIE NA WIERZCHOWCU ════════════════════
 let riding=null, _flyUp=false;
-const FLY_MOUNTS=['moltres','eagle','dragon'];
-const RIDEABLE=['moltres','eagle','horse','lion','arcticwolf','wolf','bear','raptor','small_dino','tiger'];
+const FLY_MOUNTS=['moltres','eagle','dragon','dragon_common'];
+const RIDEABLE=['moltres','eagle','horse','lion','arcticwolf','wolf','bear','raptor','small_dino','tiger','dragon_common'];
 function canRideComp(c){return c&&(RIDEABLE.includes(c.type.id)||FLY_MOUNTS.includes(c.type.id));}
 function isFlyMount(c){return c&&FLY_MOUNTS.includes(c.type.id);}
 function toggleRide(){
@@ -6146,6 +6191,7 @@ function renderPointsPage(){
     ?`Wolne punkty: <b>${skillPoints}</b> &nbsp;·&nbsp; co 5 poziomow +5 pkt`
     :'Brak wolnych punktow (zdobywasz +5 co 5 poziomow)';
   if(playerClass==='nekromanta')ptsHtml+=`<br>Punkty Mroku: <b style="color:#8844cc">${shadowPoints}</b> (uzyte: ${totalMrokUsed()})`;
+  ptsHtml+=`<br>📜 Sekretne Kartki: <b style="color:#ff3b6b">${secretScrolls}</b> (drop z bossow - odblokuj sekretne zaklecia)`;
   pts.innerHTML=ptsHtml;
   const ATTR=[
     {key:'hp',name:'Wytrzymalosc',desc:'+20% maks. HP',icon:'❤️'},
@@ -6196,14 +6242,15 @@ function renderPointsPage(){
     el.innerHTML=`<span class="cp-spell-ic" style="filter:${owned?'none':'grayscale(1) brightness(.6)'}">${s.icon}</span>
       <span class="cp-spell-nm">${s.name}</span>
       <span class="cp-spell-rar" style="color:${r.col}">${r.nm}</span>
-      ${owned?'':`<span class="cp-spell-req">${lvlOk?'':'Poz.'+s.lvl+' '}💠${s.cost}</span>`}`;
+      ${owned?'':`<span class="cp-spell-req">${lvlOk?'':'Poz.'+s.lvl+' '}💠${s.cost}${s.needScroll?' 📜':''}</span>`}`;
     el.addEventListener('click',()=>{
       if(owned){selectSpell(i);renderCharPanel();return;}
       if(!lvlOk){toast('Wymaga poziomu '+s.lvl);return;}
       if(!ptsOk){toast('Potrzebujesz '+s.cost+' punktow');return;}
-      if(s.needScroll){toast('To zaklecie wymaga Kartki (drop z bossa)');return;}
+      if(s.needScroll&&secretScrolls<1){toast('Wymaga 📜 Sekretnej Kartki (drop z bossa)');return;}
       skillPoints-=s.cost;ownedSpells.add(i);
-      toast('Odblokowano: '+s.name);
+      if(s.needScroll){secretScrolls--;toast('Uzyto 📜 Kartki! Odblokowano: '+s.name);}
+      else toast('Odblokowano: '+s.name);
       buildSpellbar();renderCharPanel();updateCharBtn();
     });
     sp.appendChild(el);
@@ -6215,6 +6262,10 @@ function equipItem(invIdx){
   const prev=equipSets[activeSet][slot];
   equipSets[activeSet][slot]=it;ITEMS[invIdx]=prev||null;
   applyStats();buildItembar();renderCharPanel();toast('Zalozono: '+it.name);
+  if(slot==='gloves')rebuildHands();
+}
+function rebuildHands(){
+  if(_handGroup&&_scene){_scene.remove(_handGroup);_handGroup=null;_handItem=null;}
 }
 function unequip(slotKey){
   const it=equipSets[activeSet][slotKey];if(!it)return;
@@ -6222,6 +6273,7 @@ function unequip(slotKey){
   if(free<0){toast('Plecak pelny');return;}
   ITEMS[free]=it;equipSets[activeSet][slotKey]=undefined;
   applyStats();buildItembar();renderCharPanel();
+  if(slotKey==='gloves')rebuildHands();
 }
 function updateCharBtn(){
   const btn=document.getElementById('char-btn');
@@ -6622,10 +6674,10 @@ function nearCampfire(){
   }
   return false;
 }
-let buffSpeedUntil=0,hasRevive=false,shieldHP=0;
+let buffSpeedUntil=0,hasRevive=false,shieldHP=0,playerFlyUntil=0;
 function getMeleeDmg(){
   const held=ITEMS[player.heldItem];
-  if(held&&(held.type==='sword'||held.type==='trident')){
+  if(held&&(held.type==='sword'||held.type==='trident'||held.type==='axe'||held.type==='melee')){
     const base=({common:30,rare:45,epic:60,mythic:75,legend:90,secret:110})[held.rarity||'common']||30;
     return base+(held.bonus?held.bonus.dmg||0:0);
   }
@@ -6920,7 +6972,7 @@ function castUtil(sp){
     _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);
     toast('Teleport do wioski!');
   }else if(sp.id==='lewitacja'||sp.id==='lewitacja_n'){velY=6;toast('Lewitacja!');}
-  else if(sp.id==='lot_smoka'){buffSpeedUntil=performance.now()+15000;velY=10;toast('Lot Smoka!');}
+  else if(sp.id==='lot_smoka'){buffSpeedUntil=performance.now()+15000;playerFlyUntil=performance.now()+15000;velY=8;toast('Lot Smoka! SKOK=w gore, patrz w dol by opasc');}
   else if((sp.id==='przywolanie_swiatla'||sp.id==='mroczna_wizja')&&_scene){
     const l=new THREE.PointLight(sp.id==='mroczna_wizja'?0xaa88ff:0xffffcc,3,sp.id==='mroczna_wizja'?20:40);
     l.position.copy(_camera.position);
@@ -9274,6 +9326,10 @@ function killBoss(idx){
     if(addToInventory({...d,count:1}))toast('Drop: '+d.name+'!');
     else toast('Plecak pelny! Stracono: '+d.name);
   });
+  // Sekretna Kartka - kazdy boss daje 1 (do odblokowania sekretnych zaklec)
+  secretScrolls++;
+  toast('📜 Sekretna Kartka! (Masz: '+secretScrolls+') - odblokuj sekretne zaklecia');
+  updateCharBtn();
   // Nekromanta: bonus punkty za bossow
   if(playerClass==='nekromanta'){
     const bossBonus={skeleton_king:30,dragon:30,dark_lord:50,pharaoh:20};
@@ -9626,7 +9682,7 @@ function setupDesktopInput(){
       if(e.code==='KeyX'){e.preventDefault();removeBlockAt(_camera);}
     }
   });
-  document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;});
+  document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;if(e.code==='Space')_flyUp=false;});
   document.addEventListener('click',()=>{if(!document.pointerLockElement)document.body.requestPointerLock();});
   document.addEventListener('mousemove',e=>{
     if(!document.pointerLockElement)return;
@@ -9740,10 +9796,40 @@ function setupMobileInput(){
 }
 
 // ═══ PLAYER MOVEMENT ════════════════════════════════
+function updatePlayerFlight(dt,camera){
+  let mx=0,mz=0;
+  if(isMobile){mx=joyState.dx;mz=joyState.dy;}
+  else{
+    if(keys['KeyW']||keys['ArrowUp'])mz-=1;
+    if(keys['KeyS']||keys['ArrowDown'])mz+=1;
+    if(keys['KeyA']||keys['ArrowLeft'])mx-=1;
+    if(keys['KeyD']||keys['ArrowRight'])mx+=1;
+  }
+  const len=Math.sqrt(mx*mx+mz*mz);if(len>0.01){mx/=len;mz/=len;}
+  const baseSpd=20;
+  const sinY=Math.sin(yaw),cosY=Math.cos(yaw);
+  let px=camera.position.x+(mx*cosY+mz*sinY)*baseSpd*dt;
+  let pz=camera.position.z+(-mx*sinY+mz*cosY)*baseSpd*dt;
+  px=THREE.MathUtils.clamp(px,-WORLD_HALF,WORLD_HALF);pz=THREE.MathUtils.clamp(pz,-WORLD_HALF,WORLD_HALF);
+  let py=camera.position.y;
+  py+=-Math.sin(pitch)*len*baseSpd*dt;             // patrzysz w dol -> opadasz
+  if(_flyUp||keys['Space'])py+=baseSpd*0.7*dt;     // SKOK -> w gore
+  const ground=terrainHeight(px,pz);
+  const minY=ground+2.5, maxY=ground+170;
+  if(py<minY)py=minY;
+  if(py>maxY)py=maxY;
+  velY=0;onGround=false;
+  camera.position.set(px,py,pz);
+  const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
+  camera.quaternion.copy(quat);
+  // znika lot - lagodne ladowanie
+  if(playerFlyUntil-performance.now()<100){_flyUp=false;}
+}
 function updatePlayer(dt,camera){
   if(playerDead||dialogOpen||charOpen||craftOpen||fullmapOpen||chestOpen)return;
   if(playerStunUntil>performance.now()){return;}
   if(riding){updateRiding(dt,camera);return;}
+  if(playerFlyUntil>performance.now()){updatePlayerFlight(dt,camera);return;}
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
   else{
@@ -10049,29 +10135,57 @@ function updateHUD(camera){
 let _handGroup=null;
 let _handItem=null;
 let _handSwing=0;
+function _buildHand(side,skin,darkSkin,sleeve,glovesItem){
+  // side: +1 prawa, -1 lewa
+  const g=new THREE.Group();
+  const useGlove=!!glovesItem;
+  const handMat=useGlove?new THREE.MeshStandardMaterial({
+    color:glovesItem.id&&glovesItem.id.includes('gold')?0xffcc44:glovesItem.id&&glovesItem.id.includes('venom')?0x44aa55:
+      glovesItem.id&&glovesItem.id.includes('dragon')?0x8a2222:0x6a5a4a,
+    roughness:0.5,metalness:useGlove?0.4:0,flatShading:true}):skin;
+  // przedramie/rekaw
+  const sleeveM=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.065,0.22,7),sleeve);
+  sleeveM.position.set(0,0.10,0.02);sleeveM.rotation.x=0.25;g.add(sleeveM);
+  // mankiet
+  const cuff=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.078,0.05,8),darkSkin);
+  cuff.position.set(0,0,0);g.add(cuff);
+  // dlon (grzbiet) - lekko splaszczona
+  const palm=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.13,0.075),handMat);
+  palm.position.set(0,-0.10,-0.02);g.add(palm);
+  // knykcie (zaokraglenie)
+  const knuckles=new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.13,8),handMat);
+  knuckles.rotation.z=Math.PI/2;knuckles.position.set(0,-0.16,-0.02);g.add(knuckles);
+  // kciuk (2 segmenty)
+  const thumb1=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.03,0.07,6),handMat);
+  thumb1.position.set(side*-0.07,-0.12,0.01);thumb1.rotation.z=side*0.7;g.add(thumb1);
+  const thumb2=new THREE.Mesh(new THREE.CylinderGeometry(0.024,0.028,0.06,6),handMat);
+  thumb2.position.set(side*-0.10,-0.16,0.02);thumb2.rotation.z=side*0.5;g.add(thumb2);
+  // 4 palce po 2 segmenty (lekko zgiete)
+  for(let f=0;f<4;f++){
+    const fx=-0.048+f*0.032;
+    const seg1=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.024,0.07,6),handMat);
+    seg1.position.set(fx,-0.215,-0.02);g.add(seg1);
+    const seg2=new THREE.Mesh(new THREE.CylinderGeometry(0.019,0.022,0.055,6),handMat);
+    seg2.position.set(fx,-0.265,-0.005);seg2.rotation.x=0.5;g.add(seg2);
+    if(useGlove){const stud=new THREE.Mesh(new THREE.SphereGeometry(0.012,5,4),
+      new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.6,roughness:0.3}));
+      stud.position.set(fx,-0.20,-0.06);g.add(stud);}
+  }
+  return g;
+}
 function createHands(scene){
   _handGroup=new THREE.Group();
   const skinCol=playerClass==='nieumarly'?0x7a8a6a:playerClass==='wampir'?0xc8a8a0:0xe0b090;
   const skin=new THREE.MeshStandardMaterial({color:skinCol,roughness:0.7,flatShading:true});
   const darkSkin=new THREE.MeshStandardMaterial({color:skinCol*0.85|0,roughness:0.75,flatShading:true});
-  const rWrist=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.07,0.08,6),skin);
-  rWrist.position.set(0.32,-0.18,-0.42);rWrist.userData._baseY=-0.18;_handGroup.add(rWrist);
-  const rHand=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.22,0.10),skin);
-  rHand.position.set(0.32,-0.30,-0.45);rHand.userData._baseY=-0.30;
-  _handGroup.add(rHand);
-  const rThumb=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.08,0.04),darkSkin);
-  rThumb.position.set(0.25,-0.34,-0.44);rThumb.userData._baseY=-0.34;_handGroup.add(rThumb);
-  for(let f=0;f<3;f++){const finger=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.10,0.03),skin);
-    finger.position.set(0.28+f*0.04,-0.44,-0.46);finger.userData._baseY=-0.44;_handGroup.add(finger);}
-  const lWrist=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.07,0.08,6),skin);
-  lWrist.position.set(-0.25,-0.22,-0.42);lWrist.userData._baseY=-0.22;_handGroup.add(lWrist);
-  const lHand=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.22,0.10),skin);
-  lHand.position.set(-0.25,-0.34,-0.45);lHand.userData._baseY=-0.34;
-  _handGroup.add(lHand);
-  const lThumb=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.08,0.04),darkSkin);
-  lThumb.position.set(-0.18,-0.38,-0.44);lThumb.userData._baseY=-0.38;_handGroup.add(lThumb);
-  for(let f=0;f<3;f++){const finger=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.10,0.03),skin);
-    finger.position.set(-0.29+f*0.04,-0.48,-0.46);finger.userData._baseY=-0.48;_handGroup.add(finger);}
+  const sleeveCol=playerClass==='nekromanta'?0x2a1a3a:playerClass==='wampir'?0x5a1a2a:
+    playerClass==='nieumarly'?0x2a3a2a:playerClass==='atlantyda'?0x1a4a5a:0x3a4a6a;
+  const sleeve=new THREE.MeshStandardMaterial({color:sleeveCol,roughness:0.8,flatShading:true});
+  const glovesItem=equipSets&&equipSets[activeSet]?equipSets[activeSet].gloves:null;
+  const rHand=_buildHand(1,skin,darkSkin,sleeve,glovesItem);
+  rHand.position.set(0.34,-0.40,-0.62);rHand.scale.setScalar(0.78);rHand.userData._baseY=-0.40;_handGroup.add(rHand);
+  const lHand=_buildHand(-1,skin,darkSkin,sleeve,glovesItem);
+  lHand.position.set(-0.34,-0.44,-0.60);lHand.scale.set(-0.78,0.78,0.78);lHand.userData._baseY=-0.44;_handGroup.add(lHand);
   scene.add(_handGroup);
   updateHandItem();
 }
@@ -10106,16 +10220,48 @@ function updateHandItem(){
       const cradle2=cradle1.clone();cradle2.position.set(-0.03,0.40,0);cradle2.rotation.z=0.4;stick.add(cradle2);
     }
     itemMesh=stick;
-  }else if(it.type==='melee'){
-    const blade=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.6,0.035),
-      new THREE.MeshStandardMaterial({color:0xbbbbbb,roughness:0.3,flatShading:true,metalness:0.6}));
-    const hilt=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.08,0.05),
-      new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:0.8,flatShading:true}));
-    hilt.position.y=-0.32;blade.add(hilt);
-    const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.18,6),
-      new THREE.MeshStandardMaterial({color:0x4a2a0a,roughness:0.9}));
-    grip.position.y=-0.40;blade.add(grip);
-    itemMesh=blade;
+  }else if(it.type==='melee'||it.type==='sword'||it.type==='axe'){
+    const bladeCol=it.id&&it.id.includes('gold')?0xffd24a:it.id&&it.id.includes('diamond')?0x9af0ff:
+      it.id&&it.id.includes('ruby')?0xff5577:it.id&&it.id.includes('dark')?0x6a4a8a:
+      it.id&&it.id.includes('mithril')?0x88ddcc:it.id&&it.id.includes('bone')?0xe8e0d0:0xcfd6dd;
+    if(it.type==='axe'||(it.id&&it.id.includes('ax'))){
+      // topor: trzonek + glowica
+      const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.03,0.62,6),
+        new THREE.MeshStandardMaterial({color:0x5a3a1a,roughness:0.85,flatShading:true}));
+      const headM=new THREE.MeshStandardMaterial({color:bladeCol,roughness:0.3,metalness:0.6,flatShading:true});
+      const ahead=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.16,0.13),headM);ahead.position.set(0.07,0.22,0);handle.add(ahead);
+      const blade2=new THREE.Mesh(new THREE.CylinderGeometry(0.10,0.10,0.04,12,1,false,0,Math.PI),headM);
+      blade2.rotation.z=Math.PI/2;blade2.position.set(0.10,0.22,0);handle.add(blade2);
+      itemMesh=handle;
+    }else{
+      const blade=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.55,0.025),
+        new THREE.MeshStandardMaterial({color:bladeCol,roughness:0.25,flatShading:true,metalness:0.7,
+          emissive:it.rarity==='secret'||it.rarity==='legend'?bladeCol:0x000000,emissiveIntensity:0.25}));
+      const tip=new THREE.Mesh(new THREE.ConeGeometry(0.03,0.1,4),blade.material);tip.position.y=0.32;blade.add(tip);
+      const fuller=new THREE.Mesh(new THREE.BoxGeometry(0.012,0.5,0.03),
+        new THREE.MeshStandardMaterial({color:0x888d95,roughness:0.4,metalness:0.5}));fuller.position.z=0.001;blade.add(fuller);
+      const guard=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.05,0.05),
+        new THREE.MeshStandardMaterial({color:0x6a5020,roughness:0.5,metalness:0.5,flatShading:true}));
+      guard.position.y=-0.30;blade.add(guard);
+      const grip=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.16,6),
+        new THREE.MeshStandardMaterial({color:0x4a2a0a,roughness:0.9}));
+      grip.position.y=-0.38;blade.add(grip);
+      const pommel=new THREE.Mesh(new THREE.SphereGeometry(0.035,6,5),
+        new THREE.MeshStandardMaterial({color:0x6a5020,roughness:0.5,metalness:0.5,flatShading:true}));
+      pommel.position.y=-0.46;blade.add(pommel);
+      itemMesh=blade;
+    }
+  }else if(it.scepter||it.id==='skeleton_scepter'){
+    // berlo krola szkieletow
+    const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.03,0.8,6),
+      new THREE.MeshStandardMaterial({color:0xe8e0d0,roughness:0.6,flatShading:true}));
+    const skull=new THREE.Mesh(new THREE.SphereGeometry(0.06,7,6),
+      new THREE.MeshStandardMaterial({color:0xf0ead8,roughness:0.6,flatShading:true}));
+    skull.position.y=0.44;skull.scale.set(0.9,1,0.95);staff.add(skull);
+    const glow=new THREE.Mesh(new THREE.OctahedronGeometry(0.03,0),
+      new THREE.MeshStandardMaterial({color:0x33ff66,emissive:0x22cc44,emissiveIntensity:0.8}));
+    glow.position.y=0.52;staff.add(glow);
+    itemMesh=staff;
   }else if(it.id==='grimoire'||it.name?.includes('Grimu')||it.name?.includes('Ksi')){
     const cover=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.28,0.05),
       new THREE.MeshStandardMaterial({color:0x2a1a3a,roughness:0.7,flatShading:true}));
@@ -10149,11 +10295,69 @@ function updateHandItem(){
       new THREE.MeshStandardMaterial({color:0x44aacc,roughness:0.3,metalness:0.4,flatShading:true}));
     itemMesh=gem;
   }else if(it.equip){
-    const eqMat=new THREE.MeshStandardMaterial({color:0xbbbbcc,roughness:0.4,metalness:0.5,flatShading:true});
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(0.06,0.02,6,8),eqMat);
-    const plate=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.18,0.04),eqMat);
-    plate.add(ring);ring.position.y=0.06;
-    itemMesh=plate;
+    // kolor wg rzadkosci
+    const rarCol=(it.rarity&&RARITY[it.rarity])?parseInt(RARITY[it.rarity].col.slice(1),16):0x99aabb;
+    const metalC=it.id&&it.id.includes('gold')?0xffcc44:it.id&&(it.id.includes('iron')||it.id.includes('titan'))?0xaab0bb:
+      it.id&&it.id.includes('lava')?0xff5522:it.id&&it.id.includes('dragon')?0x8a2222:
+      it.id&&it.id.includes('dark')?0x3a2a4a:it.id&&it.id.includes('leviathan')?0x2a7a8a:0x99a0aa;
+    const eqMat=new THREE.MeshStandardMaterial({color:metalC,roughness:0.35,metalness:0.6,flatShading:true});
+    const accentMat=new THREE.MeshStandardMaterial({color:rarCol,emissive:rarCol,emissiveIntensity:0.5,roughness:0.3,metalness:0.4,flatShading:true});
+    const grp=new THREE.Group();
+    const slot=it.equip;
+    if(slot==='hood'){
+      // helm: kopula + osłona + grzebien
+      const dome=new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6,0,Math.PI*2,0,Math.PI*0.6),eqMat);
+      grp.add(dome);
+      const rim=new THREE.Mesh(new THREE.TorusGeometry(0.10,0.018,6,12),eqMat);rim.rotation.x=Math.PI/2;rim.position.y=0.01;grp.add(rim);
+      const visor=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.05,0.02),eqMat);visor.position.set(0,0.02,0.10);grp.add(visor);
+      const crest=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.06,0.14),accentMat);crest.position.y=0.10;grp.add(crest);
+    }else if(slot==='chest'){
+      const torso=new THREE.Mesh(new THREE.BoxGeometry(0.20,0.22,0.10),eqMat);grp.add(torso);
+      const pec1=new THREE.Mesh(new THREE.SphereGeometry(0.055,6,5),eqMat);pec1.position.set(-0.05,0.05,0.05);pec1.scale.set(1,1,0.6);grp.add(pec1);
+      const pec2=pec1.clone();pec2.position.x=0.05;grp.add(pec2);
+      const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.03,0),accentMat);gem.position.set(0,0.02,0.06);grp.add(gem);
+      for(const sx of[-1,1]){const pauldron=new THREE.Mesh(new THREE.SphereGeometry(0.05,6,5),eqMat);
+        pauldron.position.set(sx*0.11,0.10,0);pauldron.scale.set(1,0.6,1);grp.add(pauldron);}
+    }else if(slot==='legs'){
+      for(const sx of[-1,1]){const leg=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.20,0.07),eqMat);
+        leg.position.set(sx*0.05,-0.05,0);grp.add(leg);}
+      const belt=new THREE.Mesh(new THREE.BoxGeometry(0.17,0.05,0.09),accentMat);belt.position.y=0.08;grp.add(belt);
+    }else if(slot==='boots'){
+      const boot=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.10,0.10),eqMat);grp.add(boot);
+      const sole=new THREE.Mesh(new THREE.BoxGeometry(0.10,0.03,0.17),eqMat);sole.position.set(0,-0.06,0.03);grp.add(sole);
+      const cuff=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.015,6,10),accentMat);cuff.rotation.x=Math.PI/2;cuff.position.y=0.05;grp.add(cuff);
+    }else if(slot==='gloves'){
+      const palm=new THREE.Mesh(new THREE.BoxGeometry(0.10,0.11,0.05),eqMat);grp.add(palm);
+      for(let f=0;f<4;f++){const finger=new THREE.Mesh(new THREE.BoxGeometry(0.018,0.06,0.025),eqMat);
+        finger.position.set(-0.033+f*0.022,0.085,0);grp.add(finger);}
+      const cuff=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.04,0.06),accentMat);cuff.position.y=-0.07;grp.add(cuff);
+    }else if(slot==='cape'){
+      const cloth=new THREE.Mesh(new THREE.PlaneGeometry(0.20,0.30,1,3),
+        new THREE.MeshStandardMaterial({color:rarCol,roughness:0.7,side:THREE.DoubleSide,flatShading:true,emissive:rarCol,emissiveIntensity:0.15}));
+      grp.add(cloth);
+      const collar=new THREE.Mesh(new THREE.BoxGeometry(0.20,0.04,0.03),eqMat);collar.position.y=0.15;grp.add(collar);
+      for(const sx of[-1,1]){const clasp=new THREE.Mesh(new THREE.SphereGeometry(0.022,6,5),accentMat);
+        clasp.position.set(sx*0.07,0.15,0.02);grp.add(clasp);}
+    }else if(slot==='ring'){
+      const band=new THREE.Mesh(new THREE.TorusGeometry(0.06,0.018,8,14),eqMat);grp.add(band);
+      const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.035,0),accentMat);gem.position.y=0.06;grp.add(gem);
+    }else if(slot==='amulet'){
+      const chain=new THREE.Mesh(new THREE.TorusGeometry(0.08,0.008,6,16),eqMat);chain.rotation.x=0.4;grp.add(chain);
+      const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(0.045,0),accentMat);pendant.position.y=-0.07;grp.add(pendant);
+      const setting=new THREE.Mesh(new THREE.TorusGeometry(0.05,0.012,6,10),eqMat);setting.position.y=-0.07;grp.add(setting);
+    }else if(slot==='orb'){
+      // tarcza
+      const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,0.03,12),eqMat);disc.rotation.x=Math.PI/2;grp.add(disc);
+      const rim=new THREE.Mesh(new THREE.TorusGeometry(0.13,0.02,8,16),accentMat);grp.add(rim);
+      const boss=new THREE.Mesh(new THREE.SphereGeometry(0.04,7,6),accentMat);boss.position.z=0.03;grp.add(boss);
+      for(let i=0;i<4;i++){const a=i/4*Math.PI*2;const rivet=new THREE.Mesh(new THREE.SphereGeometry(0.012,5,4),eqMat);
+        rivet.position.set(Math.cos(a)*0.09,Math.sin(a)*0.09,0.02);grp.add(rivet);}
+    }else{
+      const plate=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.18,0.04),eqMat);
+      const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.03,0),accentMat);gem.position.z=0.03;plate.add(gem);
+      grp.add(plate);
+    }
+    itemMesh=grp;
   }else if(it.type==='tool'){
     const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.025,0.4,5),
       new THREE.MeshStandardMaterial({color:0x6a4a2a,roughness:0.8,flatShading:true}));
@@ -10166,9 +10370,9 @@ function updateHandItem(){
       new THREE.MeshStandardMaterial({color:0xaa8855,roughness:0.7,flatShading:true}));
     itemMesh=box;
   }
-  itemMesh.position.set(0.32,-0.18,-0.52);
+  itemMesh.position.set(0.34,-0.34,-0.66);
   itemMesh.rotation.set(-0.3,0,0.2);
-  itemMesh.userData._baseY=-0.18;
+  itemMesh.userData._baseY=-0.34;
   _handItem=itemMesh;
   _handGroup.add(_handItem);
 }
