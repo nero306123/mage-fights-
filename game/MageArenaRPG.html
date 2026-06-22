@@ -3406,6 +3406,9 @@ function updateDayNight(dt){
 
 // ═══ STRUKTURY ══════════════════════════════════════
 let _portal=null;
+const _structEntries=[];
+const STRUCT_SHOW_DIST=380;
+const STRUCT_HIDE_DIST=450;
 // kolizje budynkow - swiatowe AABB (minX,maxX,minZ,maxZ)
 const _wallBoxes=[];
 function matStone(c,rough){return new THREE.MeshStandardMaterial({color:c,roughness:rough||0.9,flatShading:true});}
@@ -5679,24 +5682,46 @@ function buildLeviathanLair(scene,cx,cz){
   }
   STRUCT_CLEARINGS.push({x:cx,z:cz,r:80,ocean:true});
 }
+function _captureSceneObjs(scene,fn){
+  const before=scene.children.length;
+  fn();
+  return scene.children.slice(before);
+}
+function _registerStruct(scene,x,z,fn,alwaysVisible){
+  const objs=_captureSceneObjs(scene,fn);
+  if(!alwaysVisible){
+    _structEntries.push({x,z,objs,visible:true});
+  }
+}
 function buildStructures(scene){
-  _wallBoxes.length=0;_portals.length=0;_portal=null;
+  _wallBoxes.length=0;_portals.length=0;_portal=null;_structEntries.length=0;
   buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
-  buildCastle(scene,LANDMARKS.castle.x,LANDMARKS.castle.z);
-  // Portal do Swiata Umarlych + portal powrotny
+  _registerStruct(scene,LANDMARKS.castle.x,LANDMARKS.castle.z,
+    ()=>buildCastle(scene,LANDMARKS.castle.x,LANDMARKS.castle.z));
   buildPortal(scene,LANDMARKS.portal.x,LANDMARKS.portal.z,0x9944dd,DEAD_WORLD.x,DEAD_WORLD.z,'Portal do Swiata Umarlych');
   buildPortal(scene,DEAD_WORLD.x,DEAD_WORLD.z,0x44ddaa,LANDMARKS.portal.x,LANDMARKS.portal.z,'Portal Powrotny');
-  buildDeadWorld(scene,DEAD_WORLD.x,DEAD_WORLD.z);
-  buildCemetery(scene,LANDMARKS.cemetery.x,LANDMARKS.cemetery.z);
-  buildDragonLair(scene,LANDMARKS.lair.x,LANDMARKS.lair.z);
-  buildPyramid(scene,LANDMARKS.pyramid.x,LANDMARKS.pyramid.z);
-  buildMine(scene,LANDMARKS.mine.x,LANDMARKS.mine.z);
-  buildIceTower(scene,LANDMARKS.ice_tower.x,LANDMARKS.ice_tower.z);
-  buildSpiderNest(scene,LANDMARKS.spider_nest.x,LANDMARKS.spider_nest.z);
-  buildLavaForge(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z);
-  buildSacredGrove(scene,LANDMARKS.sacred_grove.x,LANDMARKS.sacred_grove.z);
-  buildWampirCave(scene,50,1850);
-  buildLeviathanLair(scene,LANDMARKS.leviathan_lair.x,LANDMARKS.leviathan_lair.z);
+  _registerStruct(scene,DEAD_WORLD.x,DEAD_WORLD.z,
+    ()=>buildDeadWorld(scene,DEAD_WORLD.x,DEAD_WORLD.z));
+  _registerStruct(scene,LANDMARKS.cemetery.x,LANDMARKS.cemetery.z,
+    ()=>buildCemetery(scene,LANDMARKS.cemetery.x,LANDMARKS.cemetery.z));
+  _registerStruct(scene,LANDMARKS.lair.x,LANDMARKS.lair.z,
+    ()=>buildDragonLair(scene,LANDMARKS.lair.x,LANDMARKS.lair.z));
+  _registerStruct(scene,LANDMARKS.pyramid.x,LANDMARKS.pyramid.z,
+    ()=>buildPyramid(scene,LANDMARKS.pyramid.x,LANDMARKS.pyramid.z));
+  _registerStruct(scene,LANDMARKS.mine.x,LANDMARKS.mine.z,
+    ()=>buildMine(scene,LANDMARKS.mine.x,LANDMARKS.mine.z));
+  _registerStruct(scene,LANDMARKS.ice_tower.x,LANDMARKS.ice_tower.z,
+    ()=>buildIceTower(scene,LANDMARKS.ice_tower.x,LANDMARKS.ice_tower.z));
+  _registerStruct(scene,LANDMARKS.spider_nest.x,LANDMARKS.spider_nest.z,
+    ()=>buildSpiderNest(scene,LANDMARKS.spider_nest.x,LANDMARKS.spider_nest.z));
+  _registerStruct(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z,
+    ()=>buildLavaForge(scene,LANDMARKS.lava_forge.x,LANDMARKS.lava_forge.z));
+  _registerStruct(scene,LANDMARKS.sacred_grove.x,LANDMARKS.sacred_grove.z,
+    ()=>buildSacredGrove(scene,LANDMARKS.sacred_grove.x,LANDMARKS.sacred_grove.z));
+  _registerStruct(scene,50,1850,
+    ()=>buildWampirCave(scene,50,1850));
+  _registerStruct(scene,LANDMARKS.leviathan_lair.x,LANDMARKS.leviathan_lair.z,
+    ()=>buildLeviathanLair(scene,LANDMARKS.leviathan_lair.x,LANDMARKS.leviathan_lair.z));
   const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
   for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
     spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
@@ -5708,13 +5733,31 @@ function buildStructures(scene){
   spawnChest(scene,kx+8,kz+5,2);spawnChest(scene,kx-6,kz-8,2);spawnChest(scene,kx,kz+12,1);
   const px=LANDMARKS.pyramid.x,pz=LANDMARKS.pyramid.z;
   spawnChest(scene,px+4,pz+6,1);spawnChest(scene,px-5,pz-3,2);
+  _updateStructVisibility({position:{x:LANDMARKS.village.x,z:LANDMARKS.village.z}});
 }
-function updateStructures(now){
+function _updateStructVisibility(camera){
+  const px=camera.position.x,pz=camera.position.z;
+  for(const s of _structEntries){
+    const dx=px-s.x,dz=pz-s.z;
+    const dist2=dx*dx+dz*dz;
+    if(s.visible&&dist2>STRUCT_HIDE_DIST*STRUCT_HIDE_DIST){
+      for(const o of s.objs)o.visible=false;
+      s.visible=false;
+    }else if(!s.visible&&dist2<STRUCT_SHOW_DIST*STRUCT_SHOW_DIST){
+      for(const o of s.objs)o.visible=true;
+      s.visible=true;
+    }
+  }
+}
+let _structVisTimer=0;
+function updateStructures(now,dt,camera){
   for(const p of _portals){
     p.ring.rotation.z=now*0.0012;
     p.mat.opacity=0.45+Math.sin(now*0.003)*0.15;
     p.light.intensity=2.0+Math.sin(now*0.004)*0.6;
   }
+  _structVisTimer+=dt;
+  if(_structVisTimer>0.5){_structVisTimer=0;_updateStructVisibility(camera);}
 }
 function nearestLandmark(px,pz){
   let best=null,bd=1e18;
@@ -8867,7 +8910,7 @@ function buildBossMesh(type){
     g.add(new THREE.PointLight(0x33ff66,1.8,12));
   }else if(type.id==='spider_queen'){
     const proxyType={...type,id:'spider'};
-    g=buildMobMesh(proxyType);g.scale.setScalar(2.2);
+    g=buildMobMesh(proxyType);g.scale.setScalar(1.6);
     g.traverse(o=>{if(o.isMesh&&o.material&&o.material.isMeshStandardMaterial)o.material=_bMat(0x4a2a6a);});
     // korona
     const goldM=_bMat(0xcc66ff,{metalness:0.6,roughness:0.3,emissive:0x6622aa,emissiveIntensity:0.4});
@@ -10153,9 +10196,9 @@ function initWorld(){
   try{
   if(worldStarted)return;worldStarted=true;
   setLoadProgress(5,'Tworzenie renderera...');
-  const renderer=new THREE.WebGLRenderer({antialias:!isMobile});
+  const renderer=new THREE.WebGLRenderer({antialias:!isMobile,powerPreference:'high-performance'});
   renderer.setSize(window.innerWidth,window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?2:3));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?1.5:2));
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
   renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -10211,7 +10254,7 @@ function initWorld(){
     updateDayNight(dt);
     updateChunks(scene,camera);
     updateScenery(scene,camera);
-    updateStructures(now);
+    updateStructures(now,dt,camera);
     checkPortals(camera,dt);
     updateProjectiles(dt);updateImpacts(dt);updateTargets(dt,now);
     updateMobs(dt,now,camera,scene);
