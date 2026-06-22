@@ -1651,7 +1651,7 @@ const impacts=[];
 const mobs=[];
 let mobSpawnTimer=3;
 let _villagePopulated=false;
-let _scene=null,_camera=null,_sun=null;
+let _scene=null,_camera=null,_sun=null,_renderer=null;
 
 // ═══ MENU FUNCTIONS ═════════════════════════════════════
 function showScreen(id){
@@ -3533,6 +3533,30 @@ let _dustParticles=null;
 function setupAtmosphere(scene){
   scene.background=new THREE.Color(0x5e82c4);
   scene.fog=new THREE.FogExp2(0x5e82c4,isMobile?0.0055:0.0035);
+  // ── KOPULA NIEBA (gradient) - duzy wizualny zysk, 1 mesh ──
+  _skyUniforms={
+    topColor:{value:new THREE.Color(0x2f63b8)},
+    midColor:{value:new THREE.Color(0x6e9bd8)},
+    bottomColor:{value:new THREE.Color(0xbcd4ee)},
+    offset:{value:40},exponent:{value:0.7}
+  };
+  const skyGeo=new THREE.SphereGeometry(700,28,18);
+  const skyMat=new THREE.ShaderMaterial({
+    uniforms:_skyUniforms,side:THREE.BackSide,depthWrite:false,fog:false,
+    vertexShader:'varying vec3 vWP;void main(){vec4 wp=modelMatrix*vec4(position,1.0);vWP=wp.xyz-cameraPosition;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 topColor;uniform vec3 midColor;uniform vec3 bottomColor;uniform float offset;uniform float exponent;varying vec3 vWP;void main(){float h=normalize(vWP+vec3(0.0,offset,0.0)).y;float f=pow(clamp(h,0.0,1.0),exponent);vec3 col=h<0.0?bottomColor:mix(midColor,topColor,f);col=mix(bottomColor,col,clamp(h*3.0+0.3,0.0,1.0));gl_FragColor=vec4(col,1.0);}'
+  });
+  _skyDome=new THREE.Mesh(skyGeo,skyMat);_skyDome.renderOrder=-2;_skyDome.frustumCulled=false;scene.add(_skyDome);
+  // ── SLONCE i KSIEZYC (dyski na niebie) ──
+  _sunDisc=new THREE.Mesh(new THREE.CircleGeometry(22,24),
+    new THREE.MeshBasicMaterial({color:0xfff2c0,transparent:true,fog:false,depthWrite:false}));
+  _sunDisc.renderOrder=-1;_sunDisc.frustumCulled=false;scene.add(_sunDisc);
+  const sunGlow=new THREE.Mesh(new THREE.CircleGeometry(40,24),
+    new THREE.MeshBasicMaterial({color:0xffddaa,transparent:true,opacity:0.35,fog:false,depthWrite:false}));
+  sunGlow.position.z=-0.1;_sunDisc.add(sunGlow);
+  _moonDisc=new THREE.Mesh(new THREE.CircleGeometry(16,24),
+    new THREE.MeshBasicMaterial({color:0xdde4ff,transparent:true,fog:false,depthWrite:false}));
+  _moonDisc.renderOrder=-1;_moonDisc.frustumCulled=false;scene.add(_moonDisc);
   const starCount=isMobile?300:800;
   const starGeo=new THREE.BufferGeometry();
   const starPos=new Float32Array(starCount*3);
@@ -3591,9 +3615,25 @@ function setupAtmosphere(scene){
   ffGeo.setAttribute('position',new THREE.BufferAttribute(ffPos,3));
   _fireflies=new THREE.Points(ffGeo,new THREE.PointsMaterial({color:0xccff55,size:0.5,transparent:true,opacity:0}));
   scene.add(_fireflies);
+  // ── ptaki krazace wysoko (klimat, tanie) ──
+  _birds=new THREE.Group();scene.add(_birds);
+  const birdMat=new THREE.MeshBasicMaterial({color:0x2a2c30});
+  const birdN=isMobile?7:14;
+  for(let i=0;i<birdN;i++){
+    const b=new THREE.Group();
+    const wl=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.07,0.45),birdMat);wl.position.x=-0.8;b.add(wl);
+    const wr=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.07,0.45),birdMat);wr.position.x=0.8;b.add(wr);
+    const bd=new THREE.Mesh(new THREE.BoxGeometry(0.25,0.18,0.9),birdMat);b.add(bd);
+    b.userData={wl,wr,phase:Math.random()*6.28,r:50+Math.random()*150,
+      sp:(0.05+Math.random()*0.12)*(Math.random()<0.5?1:-1),h:48+Math.random()*55,off:Math.random()*6.28};
+    b.frustumCulled=false;_birds.add(b);
+  }
 }
 let _clouds=null;
 let _fireflies=null;
+let _skyDome=null,_skyUniforms=null,_sunDisc=null,_moonDisc=null,_birds=null;
+const _nightWindows=[];
+const _skyTmp=new THREE.Color();
 function updateDayNight(dt){
   worldTime=(worldTime+dt)%CYCLE_LEN;
   const t=worldTime/CYCLE_LEN;
@@ -3620,12 +3660,52 @@ function updateDayNight(dt){
   }
   if(_ambient)_ambient.intensity=ambInt;
   if(_hemi)_hemi.intensity=ambInt*0.8;
+  // dynamiczna ekspozycja: jasniej w dzien, ciemniej w nocy
+  if(_renderer)_renderer.toneMappingExposure=0.85+sunInt*0.35;
+  // okna domow swieca gdy ciemno
+  if(_nightWindows.length){
+    const winGlow=THREE.MathUtils.clamp(1.2-sunInt*1.4,0,1.1);
+    for(const m of _nightWindows)m.emissiveIntensity=winGlow;
+  }
   if(_scene){_scene.background.setRGB(skyR,skyG,skyB);
-    _scene.fog.color.setRGB(skyR,skyG,skyB);}
+    // mgla bierze kolor horyzontu (jasniejszy niz zenit)
+    _scene.fog.color.setRGB(Math.min(1,skyR*1.25+0.12),Math.min(1,skyG*1.25+0.14),Math.min(1,skyB*1.2+0.12));}
+  // ── kopula nieba: zenit (ciemniejszy) -> horyzont (jasniejszy) ──
+  if(_skyUniforms){
+    _skyUniforms.topColor.value.setRGB(skyR*0.82,skyG*0.85,skyB*0.95);
+    _skyUniforms.midColor.value.setRGB(skyR*1.05+0.04,skyG*1.05+0.05,skyB*1.02+0.04);
+    _skyUniforms.bottomColor.value.setRGB(Math.min(1,skyR*1.3+0.16),Math.min(1,skyG*1.3+0.18),Math.min(1,skyB*1.25+0.16));
+  }
+  const sunAng=t*Math.PI*2;
+  if(_skyDome&&_camera)_skyDome.position.copy(_camera.position);
+  // ── dysk slonca na niebie (podaza po luku, znika w nocy) ──
+  if(_sunDisc&&_camera){
+    const sy=Math.sin(sunAng-Math.PI*0.5),sx=Math.cos(sunAng-Math.PI*0.5);
+    _sunDisc.position.set(_camera.position.x+sx*420,_camera.position.y+sy*420+20,_camera.position.z-380);
+    _sunDisc.lookAt(_camera.position);
+    const sunVis=THREE.MathUtils.clamp((sy+0.15)*2,0,1);
+    _sunDisc.visible=sunVis>0.02;_sunDisc.material.opacity=sunVis;
+    if(_sunDisc.children[0])_sunDisc.children[0].material.opacity=sunVis*0.35;
+  }
+  if(_moonDisc&&_camera){
+    const my=Math.sin(sunAng+Math.PI*0.5),mx=Math.cos(sunAng+Math.PI*0.5);
+    _moonDisc.position.set(_camera.position.x+mx*420,_camera.position.y+my*420+20,_camera.position.z-380);
+    _moonDisc.lookAt(_camera.position);
+    const moonVis=THREE.MathUtils.clamp((my+0.1)*2,0,1);
+    _moonDisc.visible=moonVis>0.02;_moonDisc.material.opacity=moonVis*0.9;
+  }
   if(_stars){
     const nightFade=t>0.5&&t<0.9?1.0:t>0.45&&t<0.5?(t-0.45)/0.05:t>0.9&&t<0.95?1-(t-0.9)/0.05:0;
-    _stars.material.opacity=nightFade*0.8;
+    _stars.material.opacity=nightFade*0.85;
     if(_camera)_stars.position.copy(_camera.position);
+  }
+  // Swiat Umarlych: zgas slonce/ksiezyc, ciemna kopula
+  if(worldRealm==='dead'){
+    if(_sunDisc)_sunDisc.visible=false;
+    if(_moonDisc)_moonDisc.visible=false;
+    if(_skyUniforms){_skyUniforms.topColor.value.setRGB(0.08,0.03,0.13);
+      _skyUniforms.midColor.value.setRGB(0.14,0.05,0.20);
+      _skyUniforms.bottomColor.value.setRGB(0.22,0.10,0.28);}
   }
   const di=document.getElementById('day-ind');
   if(di)di.textContent=t>0.5&&t<0.9?'🌙':'☀️';
@@ -3744,8 +3824,9 @@ function buildHouse(scene,hx,hz,rng,withChest,doorDir){
     // prog
     addBox(g,1.6,0.12,0.2,ddx,0.56,ddz+(drot?0:0.1),foundM);
   }
-  // okna z detailami (2 okna po bokach)
-  const winMat=new THREE.MeshStandardMaterial({color:0x88bbdd,roughness:0.2,metalness:0.3,emissive:0x445566,emissiveIntensity:0.5});
+  // okna z detailami (2 okna po bokach) - swieca cieplo w nocy
+  const winMat=new THREE.MeshStandardMaterial({color:0x9cc4e0,roughness:0.2,metalness:0.3,emissive:0xffb24a,emissiveIntensity:0.0});
+  _nightWindows.push(winMat);
   const frameMat=matStone(0x4a3018,0.85);
   const winPositions=[];
   if(doorDir!=='n'&&doorDir!=='s'){winPositions.push({x:hw*0.45,z:hd-0.05},{x:-hw*0.45,z:-hd+0.05});}
@@ -6027,8 +6108,9 @@ function _registerStruct(scene,x,z,fn,alwaysVisible){
   }
 }
 function buildStructures(scene){
-  _wallBoxes.length=0;_portals.length=0;_portal=null;_structEntries.length=0;
-  buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z);
+  _wallBoxes.length=0;_portals.length=0;_portal=null;_structEntries.length=0;_nightWindows.length=0;
+  _registerStruct(scene,LANDMARKS.village.x,LANDMARKS.village.z,
+    ()=>buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z));
   _registerStruct(scene,LANDMARKS.castle.x,LANDMARKS.castle.z,
     ()=>buildCastle(scene,LANDMARKS.castle.x,LANDMARKS.castle.z));
   buildPortal(scene,LANDMARKS.portal.x,LANDMARKS.portal.z,0x9944dd,DEAD_WORLD.x,DEAD_WORLD.z,'Portal do Swiata Umarlych');
@@ -7604,7 +7686,8 @@ function buildMobMesh(type){
     skeleton_king:0xe8e0d0,dark_lord:0x442266,pharaoh:0xd4b060,dragon:0x881111,
     forest_queen:0x22aa44,rekin:0x607a8a,meduza:0xcc88dd,kraken_maly:0x4a6a5a,
     leviathan:0x2a6a7a})[type.id]||0x888888;
-  const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.85,flatShading:true,
+  const mat=new THREE.MeshStandardMaterial({color:col,roughness:0.8,flatShading:true,
+    emissive:new THREE.Color(col).multiplyScalar(0.18),emissiveIntensity:0.35,
     ...(type.id==='ghost'?{transparent:true,opacity:0.5,emissive:0x4444aa,emissiveIntensity:0.5}:{})});
   if(type.id==='rekin'){
     const H=type.height;
@@ -10870,7 +10953,7 @@ function initWorld(){
   const camera=new THREE.PerspectiveCamera(isMobile?65:70,window.innerWidth/window.innerHeight,0.1,1200);
   const sp=_classSpawn||{x:0,z:0};
   camera.position.set(sp.x,terrainHeight(sp.x,sp.z)+EYE_H,sp.z);
-  _scene=scene;_camera=camera;
+  _scene=scene;_camera=camera;_renderer=renderer;
   setLoadProgress(20,'Budowanie atmosfery...');
   setupAtmosphere(scene);setupLighting(scene);
   setLoadProgress(30,'Budowanie wody...');
@@ -10940,6 +11023,18 @@ function initWorld(){
       for(const c of _clouds.children){
         c.position.x+=c.userData.drift*dt;
         if(c.position.x>380)c.position.x=-380;
+      }
+    }
+    // ptaki: krazenie + machanie skrzydlami, tylko w dzien
+    if(_birds){
+      const tb=worldTime/CYCLE_LEN;const dayB=(tb<0.5||tb>0.9)&&worldRealm!=='dead';
+      _birds.visible=dayB;
+      if(dayB)for(const b of _birds.children){
+        const u=b.userData,ang=now*0.001*u.sp+u.off;
+        b.position.set(camera.position.x+Math.cos(ang)*u.r,u.h+Math.sin(now*0.0006+u.phase)*4,camera.position.z+Math.sin(ang)*u.r);
+        b.rotation.y=-ang+(u.sp>0?Math.PI/2:-Math.PI/2);
+        const flap=Math.sin(now*0.012+u.phase)*0.6;
+        u.wl.rotation.z=flap;u.wr.rotation.z=-flap;
       }
     }
     if(_waterDetail){_waterDetail.position.x=camera.position.x;_waterDetail.position.z=camera.position.z;}
