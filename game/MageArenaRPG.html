@@ -561,7 +561,7 @@
   #minimap{position:absolute;top:52px;right:10px;width:100px;height:100px;
     border-radius:50%;border:2px solid rgba(232,200,106,.4);
     background:rgba(0,0,0,.5);pointer-events:none;z-index:3}
-  #map-btn{position:absolute;top:156px;right:10px;width:38px;height:38px;
+  #map-btn{position:absolute;top:200px;right:10px;width:38px;height:38px;
     background:rgba(0,0,0,.55);border:1px solid rgba(232,200,106,.4);
     border-radius:10px;color:#e8c86a;pointer-events:auto;cursor:pointer;
     z-index:4;font-size:18px;display:flex;align-items:center;justify-content:center}
@@ -586,7 +586,7 @@
     pointer-events:auto;cursor:pointer;z-index:3;font-size:18px;
     display:flex;align-items:center;justify-content:center}
   #craft-btn:active{transform:scale(.95)}
-  #build-btn{position:absolute;top:200px;right:10px;
+  #build-btn{position:absolute;top:248px;right:10px;
     background:rgba(0,0,0,.55);border:1px solid rgba(120,200,160,.5);
     border-radius:10px;color:#7adca0;width:38px;height:38px;
     pointer-events:auto;cursor:pointer;z-index:3;font-size:18px;
@@ -1217,8 +1217,9 @@ function buildCzlowiekSpells(){
       cost:r.pts, lvl:r.lvl, wandReq:0, needScroll:r.scroll };
   });
 }
-// ── 5 STALYCH UMIEJETNOSCI NIEUMARŁEGO (bez ksiegi) ──
+// ── 5 STALYCH UMIEJETNOSCI NIEUMARŁEGO + CIOS (bez ksiegi) ──
 const NIEUMARLY_ABILITIES = [
+  {id:'punch',name:'Cios',icon:'👊',desc:'Zwykly atak piescia',cd:600},
   {id:'drain_heal',name:'Drenaż Rozkladu',icon:'🩸',desc:'20% rozkladu → leczenie 3x',cd:6000},
   {id:'bone_armor',name:'Kostna Zbroja',icon:'🦴',desc:'30% rozkladu → oslona 4x',cd:12000},
   {id:'trupi_skok',name:'Trupi Skok',icon:'💨',desc:'Teleport 12m do przodu (15 rozkladu)',cd:4000},
@@ -2995,7 +2996,9 @@ function useClassAbility(abilityId){
       strength-=40;shieldHP+=200;toast('Tarcza! +200 oslony');classAbilityCd=now+12000;
     }
   }else if(playerClass==='nieumarly'){
-    if(abilityId==='drain_heal'){
+    if(abilityId==='punch'){
+      meleeSwing();return;
+    }else if(abilityId==='drain_heal'){
       // Drenaż Rozkladu: zabiera 20% rozkladu, leczy za tę wartosc
       const cost=Math.max(5,decay*0.2);
       if(decay<cost){toast('Za malo rozkladu');return;}
@@ -10075,7 +10078,7 @@ function setupDesktopInput(){
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt2=ITEMS[player.heldItem];
     if(hIt2&&hIt2.id==='fishing_rod'){tryFish();return;}
-    if(playerClass==='nieumarly'){meleeSwing();return;}
+    if(playerClass==='nieumarly'){const sp=SPELLS[player.selSpell];if(sp&&sp.abilId)useClassAbility(sp.abilId);else meleeSwing();return;}
     if(heldIsWand())casting=true;else meleeSwing();
   });
   document.addEventListener('contextmenu',e=>{if(buildMode)e.preventDefault();});
@@ -10142,7 +10145,7 @@ function setupMobileInput(){
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt=ITEMS[player.heldItem];
     if(hIt&&hIt.id==='fishing_rod'){tryFish();return;}
-    if(playerClass==='nieumarly'){meleeSwing();return;}
+    if(playerClass==='nieumarly'){const sp=SPELLS[player.selSpell];if(sp&&sp.abilId)useClassAbility(sp.abilId);else meleeSwing();return;}
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
