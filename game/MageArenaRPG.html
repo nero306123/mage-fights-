@@ -1646,6 +1646,8 @@ const stats={hp:0,mana:0,speed:0,regen:0};
 let skillPoints=0;
 let secretScrolls=0;
 let lastPointLvl=0;
+let decaySpeedStat=0; // nieumarły: +1% szybkosci rozkladu na punkt, bez limitu
+let decayTotalGained=0; // suma calego zdobytego rozkladu (do skalowania sily)
 // Ekwipunek: 2 sety, kazdy z slotami na czesci pancerza
 const EQUIP_SLOTS=[
   {key:'hood',  nm:'Kaptur',    ic:'🎩'},
@@ -1871,7 +1873,7 @@ const CLASS_CONFIG={
   nekromanta:{name:'Nekromanta',hp:80,mana:500,manaRegen:5,resource:'mana',startWeapon:{id:'necro_staff',name:'Podstawowe Berlo',icon:'🪄',type:'wand',wandTier:0},figure:'💀'},
   czlowiek:{name:'Czlowiek',hp:450,mana:0,manaRegen:0,resource:'strength',startWeapon:{id:'iron_sword',name:'Zelazny Miecz',icon:'⚔️',type:'melee',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'⚔️'},
   atlantyda:{name:'Atlantyda',hp:300,mana:800,manaRegen:5,resource:'mana',startWeapon:{id:'trident_iron',name:'Zelazny Trojzab',icon:'🔱',type:'trident',equip:'weapon',bonus:{dmg:12},rarity:'common'},figure:'🔱'},
-  nieumarly:{name:'Nieumarly',hp:350,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'bone_axe',name:'Kosciany Topor',icon:'🪓',type:'melee',equip:'weapon',bonus:{dmg:8},rarity:'common'},figure:'🧟'},
+  nieumarly:{name:'Nieumarly',hp:120,mana:0,manaRegen:0,resource:'decay',startWeapon:{id:'bone_axe',name:'Kosciany Topor',icon:'🪓',type:'melee',equip:'weapon',bonus:{dmg:4},rarity:'common'},figure:'🧟'},
 };
 let playerClass='mag';
 let blood=1000,maxBlood=1000;
@@ -1901,7 +1903,7 @@ function startGame(){
   ITEMS[0]={...cfg.startWeapon,count:1};
   if(playerClass==='wampir'){blood=1000;maxBlood=1000;}
   if(playerClass==='czlowiek'){strength=0;maxStrength=100;}
-  if(playerClass==='nieumarly'){decay=0;maxDecay=100;}
+  if(playerClass==='nieumarly'){decay=0;maxDecay=100;decaySpeedStat=0;decayTotalGained=0;}
   if(playerClass==='nekromanta'){
     shadowPoints=5;maxShadowPoints=5;
     necroPet=null;necroPetMesh=null;
@@ -2967,27 +2969,41 @@ function useClassAbility(abilityId){
       strength-=40;shieldHP+=200;toast('Tarcza! +200 oslony');classAbilityCd=now+12000;
     }
   }else if(playerClass==='nieumarly'){
-    if(abilityId==='plague'){
-      if(decay<40){toast('Za malo rozkladu');return;}
-      decay-=40;
-      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){
-        damageMob(mobs.indexOf(m),60);
-        const fp=m.mesh.position.clone();fp.y+=1;floatNumber(fp,'Zaraza','#66ff33');
-      }});
-      toast('Zaraza!');classAbilityCd=now+10000;
+    if(abilityId==='drain_heal'){
+      // Drenaż Rozkladu: zabiera 20% rozkladu, leczy za tę wartosc
+      const cost=Math.max(5,decay*0.2);
+      if(decay<cost){toast('Za malo rozkladu');return;}
+      decay-=cost;
+      const healAmt=Math.round(cost*3);
+      player.hp=Math.min(player.maxHp,player.hp+healAmt);
+      toast('Drenaż Rozkladu! +'+healAmt+' HP');classAbilityCd=now+6000;
     }else if(abilityId==='bone_armor'){
-      if(decay<60){toast('Za malo rozkladu');return;}
-      decay-=60;shieldHP+=300;toast('Kostna Zbroja! +300 oslony');classAbilityCd=now+15000;
-    }else if(abilityId==='death_grip'){
-      if(decay<30){toast('Za malo rozkladu');return;}
-      decay-=30;
+      const cost=Math.max(10,decay*0.3);
+      if(decay<cost){toast('Za malo rozkladu');return;}
+      decay-=cost;
+      const shield=Math.round(cost*4);
+      shieldHP+=shield;toast('Kostna Zbroja! +'+shield+' oslony');classAbilityCd=now+12000;
+    }else if(abilityId==='plague_wave'){
+      // Fala Zarazy: zuzywa CALY rozklad, im wiecej tym mocniejsze
+      if(decay<10){toast('Za malo rozkladu');return;}
+      const power=decay;
+      decay=0;
+      const dmg=Math.round(power*4);
+      const range=8+Math.min(power/50,12);
+      let hits=0;
       for(let i=mobs.length-1;i>=0;i--){
-        const m=mobs[i];if(m.mesh.position.distanceTo(_camera.position)<15){
-          const dir=_camera.position.clone().sub(m.mesh.position).normalize();
-          m.mesh.position.addScaledVector(dir,8);damageMob(i,40);break;
+        const m=mobs[i];if(m.mesh.position.distanceTo(_camera.position)<range){
+          damageMob(i,dmg);hits++;
+          const fp=m.mesh.position.clone();fp.y+=1;floatNumber(fp,'-'+dmg,'#66ff33');
         }
       }
-      toast('Chwyt Smierci!');classAbilityCd=now+8000;
+      for(let i=bosses.length-1;i>=0;i--){
+        const b=bosses[i];if(b.mesh.position.distanceTo(_camera.position)<range){
+          damageBoss(i,dmg);hits++;
+        }
+      }
+      toast('Fala Zarazy! Moc: '+power+' | '+dmg+' dmg w '+Math.round(range)+'m ('+hits+' celow)');
+      classAbilityCd=now+15000;
     }
   }
 }
@@ -6421,6 +6437,27 @@ function renderPointsPage(){
     {key:'regen',name:'Regeneracja',desc:'+20% regeneracji many',icon:'💧'},
   ];
   const at=document.getElementById('cp-attrs');at.innerHTML='';
+  // Nieumarły: przycisk Szybkosc Rozkladu (bez limitu)
+  if(playerClass==='nieumarly'){
+    const dRow=document.createElement('div');dRow.className='cp-attr';
+    dRow.innerHTML=`<span style="font-size:18px">💀</span>
+      <span class="cp-attr-name">Szybkosc Rozkladu<br><span class="cp-attr-desc">+1% szybkosci rozkladu na punkt (bez limitu)</span></span>
+      <span class="cp-attr-pips" style="color:#6a9a4a">${decaySpeedStat} pkt (+${decaySpeedStat}%)</span>`;
+    const dBtn=document.createElement('button');dBtn.className='cp-attr-btn';dBtn.textContent='+';
+    dBtn.disabled=skillPoints<=0;
+    dBtn.addEventListener('click',()=>{
+      if(skillPoints<=0)return;
+      skillPoints--;decaySpeedStat++;
+      renderCharPanel();updateCharBtn();
+    });
+    dRow.appendChild(dBtn);at.appendChild(dRow);
+    // info o rozkladzie
+    const dInfo=document.createElement('div');dInfo.className='cp-attr';
+    dInfo.innerHTML=`<span style="font-size:18px">🧟</span>
+      <span class="cp-attr-name">Status Rozkladu<br><span class="cp-attr-desc">Rozklad: ${Math.round(decay)}/${Math.round(maxDecay)} | Calkowity: ${Math.round(decayTotalGained)} | Bonus DMG: +${Math.floor(decay*0.06+decayTotalGained*0.00004)}</span></span>
+      <span class="cp-attr-pips" style="color:#5a8a3a"></span>`;
+    at.appendChild(dInfo);
+  }
   // Nekromanta: przycisk zamiany punktow na mroku
   if(playerClass==='nekromanta'&&skillPoints>0){
     const mrokRow=document.createElement('div');mrokRow.className='cp-attr';
@@ -6534,7 +6571,7 @@ function changeClass(newClass){
   ITEMS[0]={...cfg.startWeapon,count:1};
   if(newClass==='wampir'){blood=1000;maxBlood=1000;}
   if(newClass==='czlowiek'){strength=0;maxStrength=100;}
-  if(newClass==='nieumarly'){decay=0;maxDecay=100;}
+  if(newClass==='nieumarly'){decay=0;maxDecay=100;decaySpeedStat=0;decayTotalGained=0;}
   if(newClass==='nekromanta'){shadowPoints=5;maxShadowPoints=5;}
   if(newClass==='nekromanta')SPELLS=buildNecroSpells();
   else if(newClass==='atlantyda')SPELLS=buildAtlantydaSpells();
@@ -6553,7 +6590,7 @@ function changeClass(newClass){
     const ab=document.createElement('button');ab.id='abil-btn';ab.textContent='⚡';
     ab.style.cssText='position:fixed;bottom:160px;right:96px;width:48px;height:48px;border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(ab);
-    const trig=e=>{e.stopPropagation();useClassAbility(newClass==='wampir'?'blood_fury':newClass==='czlowiek'?'strong_hit':'plague');};
+    const trig=e=>{e.stopPropagation();useClassAbility(newClass==='wampir'?'blood_fury':newClass==='czlowiek'?'strong_hit':'plague_wave');};
     ab.addEventListener('touchstart',trig,{passive:false});ab.addEventListener('click',trig);
   }
   if(newClass==='nekromanta'){
@@ -6622,6 +6659,10 @@ function renderAdminPanel(){
         <button class="admin-btn2" id="adm-scroll">+1 📜 Sekretna Kartka (${secretScrolls})</button>
         <button class="admin-btn2" id="adm-scroll5">+5 📜 Kartek</button>
       </div>
+      ${playerClass==='nieumarly'?`<div class="admin-row">
+        <button class="admin-btn2" id="adm-decay100">+100 Rozklad</button>
+        <button class="admin-btn2" id="adm-decay10k">+10k Total (symuluj czas)</button>
+      </div>`:''}
     </div>
     <div class="admin-sec">
       <div class="admin-sec-t">Spawn Moba</div>
@@ -6668,6 +6709,8 @@ function renderAdminPanel(){
   body.querySelector('#adm-xp').onclick=()=>{giveXP(1000);toast('+1000 XP');};
   body.querySelector('#adm-scroll').onclick=()=>{secretScrolls++;renderAdminPanel();toast('📜 Sekretna Kartka +1 (Masz: '+secretScrolls+')');};
   body.querySelector('#adm-scroll5').onclick=()=>{secretScrolls+=5;renderAdminPanel();toast('📜 Sekretne Kartki +5 (Masz: '+secretScrolls+')');};
+  const d100=body.querySelector('#adm-decay100');if(d100)d100.onclick=()=>{decay=Math.min(maxDecay,decay+100);toast('Rozklad +100');};
+  const d10k=body.querySelector('#adm-decay10k');if(d10k)d10k.onclick=()=>{decayTotalGained+=10000;maxDecay=100+Math.sqrt(decayTotalGained);decay=maxDecay;player.maxHp=Math.round((CLASS_CONFIG.nieumarly.hp+decayTotalGained*0.003)*hpMul());player.hp=player.maxHp;renderAdminPanel();toast('Total rozklad +10000 (symulacja ~55min gry)');};
   body.querySelector('#adm-spawn-mob').onclick=()=>{
     const id=body.querySelector('#adm-mob').value;adminSpawnMob(id);};
   body.querySelector('#adm-spawn-boss').onclick=()=>{
@@ -6905,11 +6948,15 @@ function nearCampfire(){
 let buffSpeedUntil=0,hasRevive=false,shieldHP=0,playerFlyUntil=0;
 function getMeleeDmg(){
   const held=ITEMS[player.heldItem];
+  let dmg;
   if(held&&(held.type==='sword'||held.type==='trident'||held.type==='axe'||held.type==='melee')){
     const base=({common:30,rare:45,epic:60,mythic:75,legend:90,secret:110})[held.rarity||'common']||30;
-    return base+(held.bonus?held.bonus.dmg||0:0);
+    dmg=base+(held.bonus?held.bonus.dmg||0:0);
+  }else{dmg=5;}
+  if(playerClass==='nieumarly'){
+    dmg+=Math.floor(decay*0.06+decayTotalGained*0.00004);
   }
-  return 5;
+  return dmg;
 }
 function meleeSwing(){
   if(playerDead)return;
@@ -9936,9 +9983,9 @@ function setupDesktopInput(){
       else if(_activeNPC){openDialog(_activeNPC);}
       else if(_camera){openNearbyChest(_camera);}
     }
-    if(e.code==='KeyR'&&_camera){useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':playerClass==='nieumarly'?'plague':'');}
+    if(e.code==='KeyR'&&_camera){useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':playerClass==='nieumarly'?'plague_wave':'');}
     if(e.code==='KeyF'&&_camera){useClassAbility(playerClass==='wampir'?'bat_form':playerClass==='czlowiek'?'shield':playerClass==='nieumarly'?'bone_armor':'');}
-    if(e.code==='KeyG'&&_camera){useClassAbility(playerClass==='wampir'?'blood_drain':playerClass==='czlowiek'?'war_cry':playerClass==='nieumarly'?'death_grip':'');}
+    if(e.code==='KeyG'&&_camera){useClassAbility(playerClass==='wampir'?'blood_drain':playerClass==='czlowiek'?'war_cry':playerClass==='nieumarly'?'drain_heal':'');}
     if(e.code==='Tab'){e.preventDefault();toggleCharPanel();}
     if(e.code==='KeyC'){e.preventDefault();
       craftOpen=!craftOpen;document.getElementById('craft-panel').classList.toggle('open',craftOpen);
@@ -10047,7 +10094,7 @@ function setupMobileInput(){
       'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(abilBtn);
     const trig=e=>{e.stopPropagation();
-      useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':'plague');};
+      useClassAbility(playerClass==='wampir'?'blood_fury':playerClass==='czlowiek'?'strong_hit':'plague_wave');};
     abilBtn.addEventListener('touchstart',trig,{passive:false});
     abilBtn.addEventListener('click',trig);
   }
@@ -10112,7 +10159,8 @@ function updatePlayer(dt,camera){
   const hungerPenalty=hunger<20?0.7:1;
   const gearSpeed=1+gearBonus().speed/100;
   const swimBonus=_swimming?(playerClass==='atlantyda'?1.9:0.5):1;
-  const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*speedMul()*speedBuff*hungerPenalty*gearSpeed*swimBonus*dt;
+  const undeadSlow=playerClass==='nieumarly'?0.82:1;
+  const spd=WALK_SPD*(sprinting?SPRINT_MUL:1)*speedMul()*speedBuff*hungerPenalty*gearSpeed*swimBonus*undeadSlow*dt;
   const sinY=Math.sin(yaw),cosY=Math.cos(yaw);
   let px=camera.position.x+(mx*cosY+mz*sinY)*spd;
   let pz=camera.position.z+(-mx*sinY+mz*cosY)*spd;
@@ -10259,10 +10307,19 @@ function updateClassPassives(dt){
     strength=Math.min(maxStrength,strength+2*dt);
   }
   if(playerClass==='nieumarly'){
-    decay=Math.min(maxDecay,decay+3*dt);
-    if(Math.random()<0.004*dt&&player.hp<player.maxHp*0.7){
-      player.hp=Math.min(player.maxHp,player.hp+3);
+    const dSpd=3*(1+decaySpeedStat*0.01);
+    const gained=dSpd*dt;
+    decay=Math.min(maxDecay,decay+gained);
+    decayTotalGained+=gained;
+    maxDecay=100+Math.sqrt(decayTotalGained);
+    // HP regen: 1 HP/s na poczatku, malejace z czasem (60/min -> 30 -> 20...)
+    const regenPerSec=1.0/(1+decayTotalGained/1800);
+    if(player.hp<player.maxHp){
+      player.hp=Math.min(player.maxHp,player.hp+Math.max(0.1,regenPerSec)*dt);
     }
+    const baseHp=CLASS_CONFIG.nieumarly.hp;
+    player.maxHp=Math.round((baseHp+decayTotalGained*0.003)*hpMul());
+    if(player.hp>player.maxHp)player.hp=player.maxHp;
   }
   if(playerClass==='atlantyda'){
     // regeneracja HP caly czas (lekko), mocniej w wodzie
@@ -10372,7 +10429,7 @@ function updateHUD(camera){
   }else if(cc.resource==='decay'){
     rBar.querySelector('.bar-fill').style.width=(decay/maxDecay*100)+'%';
     rBar.querySelector('.bar-fill').style.background='linear-gradient(90deg,#2d4a1e,#5a8a3a)';
-    rLabel.textContent=`ROZKLAD ${Math.round(decay)}/${maxDecay}`;
+    rLabel.textContent=`ROZKLAD ${Math.round(decay)}/${Math.round(maxDecay)}`;
   }
   document.querySelector('.bar-hp .bar-fill').style.width=(player.hp/player.maxHp*100)+'%';
   document.querySelector('.bar-hp .bar-label').textContent=`HP ${Math.round(player.hp)}/${player.maxHp}`;
@@ -10406,56 +10463,94 @@ function updateHUD(camera){
 let _handGroup=null;
 let _handItem=null;
 let _handSwing=0;
-function _buildHand(side,skin,darkSkin,sleeve,glovesItem){
-  // side: +1 prawa, -1 lewa
+function _buildHand(side,skin,darkSkin,sleeve,glovesItem,isBone){
   const g=new THREE.Group();
   const useGlove=!!glovesItem;
   const handMat=useGlove?new THREE.MeshStandardMaterial({
     color:glovesItem.id&&glovesItem.id.includes('gold')?0xffcc44:glovesItem.id&&glovesItem.id.includes('venom')?0x44aa55:
       glovesItem.id&&glovesItem.id.includes('dragon')?0x8a2222:0x6a5a4a,
     roughness:0.5,metalness:useGlove?0.4:0,flatShading:true}):skin;
-  // przedramie/rekaw
   const sleeveM=new THREE.Mesh(new THREE.CylinderGeometry(0.075,0.065,0.22,7),sleeve);
   sleeveM.position.set(0,0.10,0.02);sleeveM.rotation.x=0.25;g.add(sleeveM);
-  // mankiet
   const cuff=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.078,0.05,8),darkSkin);
   cuff.position.set(0,0,0);g.add(cuff);
-  // dlon (grzbiet) - lekko splaszczona
-  const palm=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.13,0.075),handMat);
-  palm.position.set(0,-0.10,-0.02);g.add(palm);
-  // knykcie (zaokraglenie)
-  const knuckles=new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.13,8),handMat);
-  knuckles.rotation.z=Math.PI/2;knuckles.position.set(0,-0.16,-0.02);g.add(knuckles);
-  // kciuk (2 segmenty)
-  const thumb1=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.03,0.07,6),handMat);
-  thumb1.position.set(side*-0.07,-0.12,0.01);thumb1.rotation.z=side*0.7;g.add(thumb1);
-  const thumb2=new THREE.Mesh(new THREE.CylinderGeometry(0.024,0.028,0.06,6),handMat);
-  thumb2.position.set(side*-0.10,-0.16,0.02);thumb2.rotation.z=side*0.5;g.add(thumb2);
-  // 4 palce po 2 segmenty (lekko zgiete)
-  for(let f=0;f<4;f++){
-    const fx=-0.048+f*0.032;
-    const seg1=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.024,0.07,6),handMat);
-    seg1.position.set(fx,-0.215,-0.02);g.add(seg1);
-    const seg2=new THREE.Mesh(new THREE.CylinderGeometry(0.019,0.022,0.055,6),handMat);
-    seg2.position.set(fx,-0.265,-0.005);seg2.rotation.x=0.5;g.add(seg2);
-    if(useGlove){const stud=new THREE.Mesh(new THREE.SphereGeometry(0.012,5,4),
-      new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.6,roughness:0.3}));
-      stud.position.set(fx,-0.20,-0.06);g.add(stud);}
+  if(isBone&&!useGlove){
+    // nekromanta: kosciane rece - widoczne kosci zamiast dloni
+    const boneMat=skin;
+    const wrist1=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.025,0.12,5),boneMat);
+    wrist1.position.set(0.015,-0.05,-0.01);g.add(wrist1);
+    const wrist2=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.022,0.12,5),boneMat);
+    wrist2.position.set(-0.015,-0.05,-0.01);g.add(wrist2);
+    const metacarpal=new THREE.Mesh(new THREE.BoxGeometry(0.11,0.06,0.04),boneMat);
+    metacarpal.position.set(0,-0.12,-0.02);g.add(metacarpal);
+    // kciuk kostny (3 segmenty)
+    const tb1=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.02,0.05,5),boneMat);
+    tb1.position.set(side*-0.06,-0.10,0.01);tb1.rotation.z=side*0.7;g.add(tb1);
+    const tb2=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.018,0.04,5),boneMat);
+    tb2.position.set(side*-0.085,-0.14,0.01);tb2.rotation.z=side*0.5;g.add(tb2);
+    const tb3=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.015,0.03,5),boneMat);
+    tb3.position.set(side*-0.10,-0.17,0.02);tb3.rotation.z=side*0.4;g.add(tb3);
+    const jt=new THREE.Mesh(new THREE.SphereGeometry(0.016,5,4),darkSkin);
+    jt.position.set(side*-0.085,-0.14,0.01);g.add(jt);
+    // 4 palce kostne (3 segmenty kazdy - falanga, srodkowa, pazur)
+    for(let f=0;f<4;f++){
+      const fx=-0.042+f*0.028;
+      const j0=new THREE.Mesh(new THREE.SphereGeometry(0.014,5,4),darkSkin);
+      j0.position.set(fx,-0.15,-0.02);g.add(j0);
+      const p1=new THREE.Mesh(new THREE.CylinderGeometry(0.015,0.017,0.06,5),boneMat);
+      p1.position.set(fx,-0.185,-0.02);g.add(p1);
+      const j1=new THREE.Mesh(new THREE.SphereGeometry(0.012,5,4),darkSkin);
+      j1.position.set(fx,-0.215,-0.015);g.add(j1);
+      const p2=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.015,0.05,5),boneMat);
+      p2.position.set(fx,-0.245,-0.005);p2.rotation.x=0.4;g.add(p2);
+      const p3=new THREE.Mesh(new THREE.CylinderGeometry(0.008,0.012,0.03,4),boneMat);
+      p3.position.set(fx,-0.275,0.01);p3.rotation.x=0.6;g.add(p3);
+    }
+  }else{
+    const palm=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.13,0.075),handMat);
+    palm.position.set(0,-0.10,-0.02);g.add(palm);
+    const knuckles=new THREE.Mesh(new THREE.CylinderGeometry(0.065,0.065,0.13,8),handMat);
+    knuckles.rotation.z=Math.PI/2;knuckles.position.set(0,-0.16,-0.02);g.add(knuckles);
+    // kciuk (3 segmenty)
+    const thumb1=new THREE.Mesh(new THREE.CylinderGeometry(0.028,0.03,0.06,6),handMat);
+    thumb1.position.set(side*-0.07,-0.11,0.01);thumb1.rotation.z=side*0.7;g.add(thumb1);
+    const thumbJ=new THREE.Mesh(new THREE.SphereGeometry(0.022,5,4),handMat);
+    thumbJ.position.set(side*-0.09,-0.14,0.015);g.add(thumbJ);
+    const thumb2=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.026,0.05,6),handMat);
+    thumb2.position.set(side*-0.10,-0.17,0.02);thumb2.rotation.z=side*0.45;g.add(thumb2);
+    const thumb3=new THREE.Mesh(new THREE.CylinderGeometry(0.016,0.020,0.035,5),handMat);
+    thumb3.position.set(side*-0.11,-0.20,0.025);thumb3.rotation.z=side*0.3;g.add(thumb3);
+    // 4 palce po 3 segmenty (falanga + srodkowa + opuszek)
+    for(let f=0;f<4;f++){
+      const fx=-0.048+f*0.032;
+      const seg1=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.024,0.06,6),handMat);
+      seg1.position.set(fx,-0.195,-0.02);g.add(seg1);
+      const joint=new THREE.Mesh(new THREE.SphereGeometry(0.017,5,4),handMat);
+      joint.position.set(fx,-0.225,-0.015);g.add(joint);
+      const seg2=new THREE.Mesh(new THREE.CylinderGeometry(0.019,0.022,0.05,6),handMat);
+      seg2.position.set(fx,-0.255,-0.005);seg2.rotation.x=0.4;g.add(seg2);
+      const seg3=new THREE.Mesh(new THREE.CylinderGeometry(0.014,0.018,0.03,5),handMat);
+      seg3.position.set(fx,-0.28,0.01);seg3.rotation.x=0.6;g.add(seg3);
+      if(useGlove){const stud=new THREE.Mesh(new THREE.SphereGeometry(0.012,5,4),
+        new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.6,roughness:0.3}));
+        stud.position.set(fx,-0.20,-0.06);g.add(stud);}
+    }
   }
   return g;
 }
 function createHands(scene){
   _handGroup=new THREE.Group();
-  const skinCol=playerClass==='nieumarly'?0x7a8a6a:playerClass==='wampir'?0xc8a8a0:0xe0b090;
-  const skin=new THREE.MeshStandardMaterial({color:skinCol,roughness:0.7,flatShading:true});
-  const darkSkin=new THREE.MeshStandardMaterial({color:skinCol*0.85|0,roughness:0.75,flatShading:true});
+  const isBone=playerClass==='nekromanta';
+  const skinCol=playerClass==='nieumarly'?0x5a8a4a:playerClass==='wampir'?0xd8b8b0:isBone?0xd4c8a0:0xe0c0a0;
+  const skin=new THREE.MeshStandardMaterial({color:skinCol,roughness:isBone?0.9:0.6,flatShading:true});
+  const darkSkin=new THREE.MeshStandardMaterial({color:isBone?0xa89870:shadeColor(skinCol,0.82),roughness:0.75,flatShading:true});
   const sleeveCol=playerClass==='nekromanta'?0x2a1a3a:playerClass==='wampir'?0x5a1a2a:
     playerClass==='nieumarly'?0x2a3a2a:playerClass==='atlantyda'?0x1a4a5a:0x3a4a6a;
   const sleeve=new THREE.MeshStandardMaterial({color:sleeveCol,roughness:0.8,flatShading:true});
   const glovesItem=equipSets&&equipSets[activeSet]?equipSets[activeSet].gloves:null;
-  const rHand=_buildHand(1,skin,darkSkin,sleeve,glovesItem);
+  const rHand=_buildHand(1,skin,darkSkin,sleeve,glovesItem,isBone);
   rHand.position.set(0.34,-0.40,-0.62);rHand.scale.setScalar(0.78);rHand.userData._baseY=-0.40;_handGroup.add(rHand);
-  const lHand=_buildHand(-1,skin,darkSkin,sleeve,glovesItem);
+  const lHand=_buildHand(-1,skin,darkSkin,sleeve,glovesItem,isBone);
   lHand.position.set(-0.34,-0.44,-0.60);lHand.scale.set(-0.78,0.78,0.78);lHand.userData._baseY=-0.44;_handGroup.add(lHand);
   scene.add(_handGroup);
   updateHandItem();
@@ -10855,6 +10950,8 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get strength(){return strength;},set strength(v){strength=v;},
   get maxStrength(){return maxStrength;},
   get decay(){return decay;},set decay(v){decay=v;},
+  get decayTotalGained(){return decayTotalGained;},set decayTotalGained(v){decayTotalGained=v;},
+  get decaySpeedStat(){return decaySpeedStat;},set decaySpeedStat(v){decaySpeedStat=v;},
   get maxDecay(){return maxDecay;},
   get xpState(){return xpState;},giveXP,
   get skillPoints(){return skillPoints;},set skillPoints(v){skillPoints=v;},
