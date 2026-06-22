@@ -220,7 +220,7 @@
     pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.12);
     transition:transform 0.05s ease-out}
 
-  #jump-btn{position:absolute;bottom:165px;right:22px;width:52px;height:52px;
+  #jump-btn{position:absolute;bottom:96px;right:96px;width:52px;height:52px;
     border-radius:50%;background:rgba(255,255,255,.12);
     border:2px solid rgba(255,255,255,.25);color:#aaa;font-size:11px;
     display:none;align-items:center;justify-content:center;
@@ -3023,7 +3023,7 @@ function updateScepterBtn(){
   if(hasScepter&&!btn){
     btn=document.createElement('button');btn.id='scepter-btn';btn.textContent='💀';
     btn.title='Przywolaj szkielety (max 5)';
-    btn.style.cssText='position:fixed;bottom:160px;right:90px;width:48px;height:48px;border-radius:50%;background:rgba(60,60,60,.8);border:2px solid rgba(200,200,200,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    btn.style.cssText='position:fixed;bottom:222px;right:96px;width:48px;height:48px;border-radius:50%;background:rgba(60,60,60,.8);border:2px solid rgba(200,200,200,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(btn);
     const trig=e=>{e.stopPropagation();summonScepterSkeletons();};
     btn.addEventListener('touchstart',trig,{passive:false});btn.addEventListener('click',trig);
@@ -3453,7 +3453,7 @@ let _ambient=null,_hemi=null;
 function setupLighting(scene){
   _ambient=new THREE.AmbientLight(0x556080,0.5);scene.add(_ambient);
   _hemi=new THREE.HemisphereLight(0xbfdcff,0x5a6a3a,0.6);scene.add(_hemi);
-  const sun=new THREE.DirectionalLight(0xfff2d8,1.25);sun.position.set(50,80,30);sun.castShadow=true;
+  const sun=new THREE.DirectionalLight(0xfff2d8,1.25);sun.position.set(50,80,30);sun.castShadow=!isMobile;
   sun.shadow.mapSize.set(isMobile?1024:2048,isMobile?1024:2048);
   sun.shadow.camera.left=-60;sun.shadow.camera.right=60;sun.shadow.camera.top=60;sun.shadow.camera.bottom=-60;
   sun.shadow.camera.near=0.5;sun.shadow.camera.far=240;sun.shadow.bias=-0.001;scene.add(sun);
@@ -3564,8 +3564,9 @@ function updateDayNight(dt){
 // ═══ STRUKTURY ══════════════════════════════════════
 let _portal=null;
 const _structEntries=[];
-const STRUCT_SHOW_DIST=380;
-const STRUCT_HIDE_DIST=450;
+// WYDAJNOSC: na mobile struktury laduja sie blizej (mniej meshy/draw calls)
+const STRUCT_SHOW_DIST=isMobile?260:380;
+const STRUCT_HIDE_DIST=isMobile?320:450;
 // kolizje budynkow - swiatowe AABB (minX,maxX,minZ,maxZ)
 const _wallBoxes=[];
 function matStone(c,rough){return new THREE.MeshStandardMaterial({color:c,roughness:rough||0.9,flatShading:true});}
@@ -3702,11 +3703,10 @@ function buildHouse(scene,hx,hz,rng,withChest,doorDir){
     else if(doorDir==='w')chx=hx+hw-0.8; else chx=hx-hw+0.8;
     spawnChest(scene,chx,chz,rng()<0.4?1:0);
   }
-  const lamp=new THREE.PointLight(0xffcc77,1.0,10);lamp.position.set(hx,baseH+2.5,hz);scene.add(lamp);
-  // lampion przy drzwiach
-  if(doorDir){const dl=new THREE.PointLight(0xffaa55,0.5,5);
-    dl.position.set(hx+ddx*0.8,baseH+2.8,hz+ddz*0.8);scene.add(dl);
-    const lantern=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.25,0.15),new THREE.MeshBasicMaterial({color:0xffaa55}));
+  // WYDAJNOSC: zamiast PointLight (drogie - bylo 2 na dom!) - swiecaca latarnia (emissive)
+  if(doorDir){
+    const lantern=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.3,0.2),
+      new THREE.MeshStandardMaterial({color:0xffcc66,emissive:0xffaa44,emissiveIntensity:0.9}));
     lantern.position.set(ddx*0.7,3.0,ddz*0.7);g.add(lantern);}
   return g;
 }
@@ -3747,7 +3747,8 @@ function buildVillage(scene,cx,cz){
     // latarnia na filarze
     const gl=new THREE.Mesh(new THREE.BoxGeometry(0.3,0.4,0.3),new THREE.MeshStandardMaterial({color:0xffddaa,emissive:0xffaa44,emissiveIntensity:0.9}));
     gl.position.set(sx*2.4,4.2,fenceR);grp.add(gl);
-    const glp=new THREE.PointLight(0xffbb66,0.8,12);glp.position.set(sx*2.4,4.2,fenceR);grp.add(glp);
+    // WYDAJNOSC: jedno wspolne swiatlo bramy zamiast dwoch
+    if(sx===1){const glp=new THREE.PointLight(0xffbb66,1.0,16);glp.position.set(0,4.2,fenceR);grp.add(glp);}
     // kolizja filara
     _wallBoxes.push({minX:cx+sx*2.4-0.4,maxX:cx+sx*2.4+0.4,minZ:cz+fenceR-0.4,maxZ:cz+fenceR+0.4});
   }
@@ -3839,15 +3840,19 @@ function buildVillage(scene,cx,cz){
     const stone2=new THREE.Mesh(new THREE.CylinderGeometry(0.5+rng()*0.3,0.6+rng()*0.3,0.12,6),pathM);
     stone2.position.set(px2-cx,ph-baseH+0.06,pz2-cz);stone2.rotation.y=rng()*Math.PI;grp.add(stone2);
   }
-  // ── latarnie (6 wzdluz drogi) ──
+  // ── latarnie (6 wzdluz drogi) - swiecace lampiony (emissive), tylko 2 realne swiatla ──
   const lampPost=matStone(0x3a3a3a,0.8);
+  const lampGlowM=new THREE.MeshStandardMaterial({color:0xffcc77,emissive:0xffaa44,emissiveIntensity:0.9});
   for(let i=0;i<6;i++){
     const la=i/5*Math.PI*2;
     const lx=cx+Math.cos(la)*22, lz=cz+Math.sin(la)*22;
     const lh=terrainHeight(lx,lz);
     addBox(grp,0.15,2.5,0.15,lx-cx,lh+1.25-baseH,lz-cz,lampPost);
     addBox(grp,0.5,0.12,0.5,lx-cx,lh+2.5-baseH,lz-cz,matStone(0x5a4a3a,0.8));
-    const ll=new THREE.PointLight(0xffaa55,0.6,10);ll.position.set(lx-cx,lh+2.8-baseH,lz-cz);grp.add(ll);
+    const glow=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.3,0.24),lampGlowM);
+    glow.position.set(lx-cx,lh+2.7-baseH,lz-cz);grp.add(glow);
+    // tylko 2 z 6 latarni daja realne swiatlo (wydajnosc)
+    if(i===0||i===3){const ll=new THREE.PointLight(0xffaa55,0.9,16);ll.position.set(lx-cx,lh+2.8-baseH,lz-cz);grp.add(ll);}
   }
   // ── beczki i skrzynki przy domach ──
   const barrelM=matStone(0x6a4a28,0.85);
@@ -3881,7 +3886,7 @@ function buildVillage(scene,cx,cz){
   }
   // ── brukowany plac wokol studni ──
   const cobbleM=matStone(0x8c8c84,0.95),cobbleM2=matStone(0x76766e,0.95);
-  for(let i=0;i<70;i++){
+  for(let i=0;i<42;i++){
     const ca=rng()*Math.PI*2, cr=rng()*8.5;
     const cxp=Math.cos(ca)*cr, czp=Math.sin(ca)*cr;
     if(Math.hypot(cxp,czp)<1.6)continue; // nie na studni
@@ -6542,14 +6547,14 @@ function changeClass(newClass){
   const oldSkel=document.getElementById('scepter-btn');if(oldSkel)oldSkel.remove();
   if(newClass==='wampir'||newClass==='czlowiek'||newClass==='nieumarly'){
     const ab=document.createElement('button');ab.id='abil-btn';ab.textContent='⚡';
-    ab.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    ab.style.cssText='position:fixed;bottom:160px;right:96px;width:48px;height:48px;border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(ab);
     const trig=e=>{e.stopPropagation();useClassAbility(newClass==='wampir'?'blood_fury':newClass==='czlowiek'?'strong_hit':'plague');};
     ab.addEventListener('touchstart',trig,{passive:false});ab.addEventListener('click',trig);
   }
   if(newClass==='nekromanta'){
     const rb=document.createElement('button');rb.id='recall-btn';rb.textContent='🌀';
-    rb.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;border-radius:50%;background:rgba(90,30,140,.8);border:2px solid rgba(200,120,255,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
+    rb.style.cssText='position:fixed;bottom:160px;right:96px;width:48px;height:48px;border-radius:50%;background:rgba(90,30,140,.8);border:2px solid rgba(200,120,255,.6);color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(rb);
     const trig=e=>{e.stopPropagation();recallShadowArmy();};
     rb.addEventListener('touchstart',trig,{passive:false});rb.addEventListener('click',trig);
@@ -9986,7 +9991,7 @@ function setupMobileInput(){
   if(playerClass!=='mag'&&playerClass!=='nekromanta'&&playerClass!=='atlantyda'){
     const abilBtn=document.createElement('button');
     abilBtn.id='abil-btn';abilBtn.textContent='⚡';
-    abilBtn.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;'+
+    abilBtn.style.cssText='position:fixed;bottom:160px;right:96px;width:48px;height:48px;'+
       'border-radius:50%;background:rgba(180,80,20,.7);border:2px solid rgba(255,200,60,.6);'+
       'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(abilBtn);
@@ -9998,7 +10003,7 @@ function setupMobileInput(){
   if(playerClass==='nekromanta'){
     const recallBtn=document.createElement('button');
     recallBtn.id='recall-btn';recallBtn.textContent='🌀';recallBtn.title='Wchlon armie cieni';
-    recallBtn.style.cssText='position:fixed;bottom:100px;right:90px;width:48px;height:48px;'+
+    recallBtn.style.cssText='position:fixed;bottom:160px;right:96px;width:48px;height:48px;'+
       'border-radius:50%;background:rgba(90,30,140,.8);border:2px solid rgba(200,120,255,.6);'+
       'color:#fff;font-size:22px;z-index:10;pointer-events:auto';
     document.getElementById('game-ui').appendChild(recallBtn);
@@ -10097,12 +10102,14 @@ function updatePlayer(dt,camera){
     const isAtl=playerClass==='atlantyda';
     let py=camera.position.y;
     if(isAtl){
-      // Atlantyda: swobodne nurkowanie 3D w kierunku patrzenia, prawie zerowe tonniecie
+      // Atlantyda: swobodne nurkowanie 3D w kierunku patrzenia.
+      // NIE wynurza sie sam - opada lekko, SKOK daje krotki impuls w gore (silne tlumienie wody)
       const swimSpd=WALK_SPD*1.9*speedMul()*dt;   // duzo szybszy pod woda
       const vertFromLook=-Math.sin(pitch)*len;     // patrzysz w dol -> nurkujesz
       py+=vertFromLook*swimSpd;
-      velY-=0.6*dt;                                // bardzo lekkie opadanie
-      if(velY<-2)velY=-2;
+      velY-=2.5*dt;                                // stale lekkie tonniecie
+      velY*=0.86;                                  // opor wody - impuls SKOK szybko gasnie
+      if(velY<-2.5)velY=-2.5;
       py+=velY*dt;
     }else{
       // pozostali: tona, trzeba naciskac SKOK by sie wynurzac (wolni)
@@ -10615,8 +10622,9 @@ function initWorld(){
   setLoadProgress(5,'Tworzenie renderera...');
   const renderer=new THREE.WebGLRenderer({antialias:!isMobile,powerPreference:'high-performance'});
   renderer.setSize(window.innerWidth,window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?1.5:2));
-  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?1:2));
+  // WYDAJNOSC: cienie tylko na desktopie (na mobile meshe i tak nie rzucaja cieni)
+  renderer.shadowMap.enabled=!isMobile;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
   renderer.outputColorSpace=THREE.SRGBColorSpace;
   document.body.prepend(renderer.domElement);
@@ -10779,7 +10787,7 @@ window.__game={get camera(){return _camera;},get scene(){return _scene;},
   get blood(){return blood;},set blood(v){blood=v;},get playerClass(){return playerClass;},
   get CLASS_CONFIG(){return CLASS_CONFIG;},get SEA_LEVEL(){return SEA_LEVEL;},
   setGodMode:(v)=>{godMode=v;},get godMode(){return godMode;},
-  hurtPlayer,adminSpawnMob,adminSpawnBoss,changeClass,
+  hurtPlayer,adminSpawnMob,adminSpawnBoss,damageBoss,changeClass,
   get RESOURCES(){return RESOURCES;},get RECIPES(){return RECIPES;},
   get swimming(){return _swimming;},get underwater(){return _underwater;},
   spawnMob:()=>spawnMob(_scene,_camera),get MAX_MOBS(){return MAX_MOBS;},get isMobile(){return isMobile;},
