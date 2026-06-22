@@ -586,7 +586,7 @@
     pointer-events:auto;cursor:pointer;z-index:3;font-size:18px;
     display:flex;align-items:center;justify-content:center}
   #craft-btn:active{transform:scale(.95)}
-  #build-btn{position:absolute;top:8px;left:50%;margin-left:184px;
+  #build-btn{position:absolute;top:200px;right:10px;
     background:rgba(0,0,0,.55);border:1px solid rgba(120,200,160,.5);
     border-radius:10px;color:#7adca0;width:38px;height:38px;
     pointer-events:auto;cursor:pointer;z-index:3;font-size:18px;
@@ -1765,11 +1765,16 @@ function buildSpellbar(){
     el.className='spell-slot'+(i===player.selSpell?' active':'');
     el.dataset.spell=i;
     const costCol=playerClass==='wampir'?' style="color:#ff4444"':playerClass==='czlowiek'?' style="color:#d4a017"':playerClass==='nieumarly'?' style="color:#5a8a3a"':'';
-    el.innerHTML=`${sp.icon}<span class="spell-cost"${costCol}>${sp.mana}</span>`;
+    const costTxt=(playerClass==='nieumarly'&&sp.abilId)?'':sp.mana;
+    el.innerHTML=`${sp.icon}<span class="spell-cost"${costCol}>${costTxt}</span>`;
     const g=document.createElement('div');g.className='spell-glow';
     g.style.background='#'+sp.color.toString(16).padStart(6,'0');
     el.appendChild(g);
-    el.addEventListener('click',()=>selectSpell(i));
+    if(playerClass==='nieumarly'&&sp.abilId){
+      el.addEventListener('click',()=>{selectSpell(i);useClassAbility(sp.abilId);});
+    }else{
+      el.addEventListener('click',()=>selectSpell(i));
+    }
     sb.appendChild(el);
   });
 }
@@ -2948,9 +2953,12 @@ function checkClimb(camera,dt){
 
 // ═══ CLASS ABILITIES ═════════════════════════════════════
 let classAbilityCd=0;
+const nieAbilCd={};
 function useClassAbility(abilityId){
   const now=performance.now();
-  if(now<classAbilityCd)return;
+  if(playerClass==='nieumarly'){
+    if(now<(nieAbilCd[abilityId]||0)){toast('Umiejetnosc sie laduje...');return;}
+  }else if(now<classAbilityCd)return;
   if(playerClass==='wampir'){
     if(abilityId==='bat_form'){
       if(blood<200){toast('Za malo krwi');return;}
@@ -2994,13 +3002,13 @@ function useClassAbility(abilityId){
       decay-=cost;
       const healAmt=Math.round(cost*3);
       player.hp=Math.min(player.maxHp,player.hp+healAmt);
-      toast('Drenaż Rozkladu! +'+healAmt+' HP');classAbilityCd=now+6000;
+      toast('Drenaż Rozkladu! +'+healAmt+' HP');nieAbilCd[abilityId]=now+6000;
     }else if(abilityId==='bone_armor'){
       const cost=Math.max(10,decay*0.3);
       if(decay<cost){toast('Za malo rozkladu');return;}
       decay-=cost;
       const shield=Math.round(cost*4);
-      shieldHP+=shield;toast('Kostna Zbroja! +'+shield+' oslony');classAbilityCd=now+12000;
+      shieldHP+=shield;toast('Kostna Zbroja! +'+shield+' oslony');nieAbilCd[abilityId]=now+12000;
     }else if(abilityId==='trupi_skok'){
       if(decay<15){toast('Za malo rozkladu (15)');return;}
       decay-=15;
@@ -3009,13 +3017,13 @@ function useClassAbility(abilityId){
       const nz=_camera.position.z+dir.z*12;
       const ny=terrainHeight(nx,nz)+1.7;
       _camera.position.set(nx,ny,nz);
-      toast('Trupi Skok!');classAbilityCd=now+4000;
+      toast('Trupi Skok!');nieAbilCd[abilityId]=now+4000;
     }else if(abilityId==='aura_strachu'){
       if(decay<20){toast('Za malo rozkladu (20)');return;}
       decay-=20;
       let hit=0;
       mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){m.dmgMul*=0.6;hit++;}});
-      toast('Aura Strachu! -40% dmg wrogow ('+hit+' celow)');classAbilityCd=now+15000;
+      toast('Aura Strachu! -40% dmg wrogow ('+hit+' celow)');nieAbilCd[abilityId]=now+15000;
     }else if(abilityId==='plague_wave'){
       if(decay<10){toast('Za malo rozkladu');return;}
       const power=decay;
@@ -3035,7 +3043,7 @@ function useClassAbility(abilityId){
         }
       }
       toast('Fala Zarazy! Moc: '+power+' | '+dmg+' dmg w '+Math.round(range)+'m ('+hits+' celow)');
-      classAbilityCd=now+15000;
+      nieAbilCd[abilityId]=now+15000;
     }
   }
 }
@@ -10067,7 +10075,7 @@ function setupDesktopInput(){
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt2=ITEMS[player.heldItem];
     if(hIt2&&hIt2.id==='fishing_rod'){tryFish();return;}
-    if(playerClass==='nieumarly'){meleeSwing();attemptCast(performance.now());return;}
+    if(playerClass==='nieumarly'){meleeSwing();return;}
     if(heldIsWand())casting=true;else meleeSwing();
   });
   document.addEventListener('contextmenu',e=>{if(buildMode)e.preventDefault();});
@@ -10134,7 +10142,7 @@ function setupMobileInput(){
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt=ITEMS[player.heldItem];
     if(hIt&&hIt.id==='fishing_rod'){tryFish();return;}
-    if(playerClass==='nieumarly'){meleeSwing();attemptCast(performance.now());return;}
+    if(playerClass==='nieumarly'){meleeSwing();return;}
     if(heldIsWand())casting=true;else meleeSwing();},{passive:false});
   castBtn.addEventListener('touchend',e=>{e.stopPropagation();casting=false;},{passive:false});
   castBtn.addEventListener('touchcancel',()=>{casting=false;},{passive:false});
@@ -10337,6 +10345,9 @@ function updateHunger(dt){
 // ═══ CLASS PASSIVES ════════════════════════════════
 let _sunDmgTimer=0;
 function updateClassPassives(dt){
+  // zabezpieczenie przed NaN w HP
+  if(!isFinite(player.maxHp)||player.maxHp<=0)applyStats();
+  if(!isFinite(player.hp))player.hp=player.maxHp;
   if(playerClass==='wampir'){
     const t=worldTime/CYCLE_LEN;
     const isDay=t<0.5||t>0.9;
@@ -10364,13 +10375,14 @@ function updateClassPassives(dt){
     decay=Math.min(maxDecay,decay+gained);
     decayTotalGained+=gained;
     maxDecay=100+Math.sqrt(decayTotalGained);
+    const baseHp=CLASS_CONFIG.nieumarly.hp;
+    player.maxHp=Math.round((baseHp+decayTotalGained*0.003)*hpMul());
+    if(!isFinite(player.hp))player.hp=player.maxHp;
     // HP regen: 1 HP/s na poczatku, malejace z czasem (60/min -> 30 -> 20...)
     const regenPerSec=1.0/(1+decayTotalGained/1800);
     if(player.hp<player.maxHp){
       player.hp=Math.min(player.maxHp,player.hp+Math.max(0.1,regenPerSec)*dt);
     }
-    const baseHp=CLASS_CONFIG.nieumarly.hp;
-    player.maxHp=Math.round((baseHp+decayTotalGained*0.003)*hpMul());
     if(player.hp>player.maxHp)player.hp=player.maxHp;
   }
   if(playerClass==='atlantyda'){
@@ -10593,17 +10605,19 @@ function _buildHand(side,skin,darkSkin,sleeve,glovesItem,isBone){
 function createHands(scene){
   _handGroup=new THREE.Group();
   const isBone=playerClass==='nekromanta';
-  const skinCol=playerClass==='nieumarly'?0x5a8a4a:playerClass==='wampir'?0xd8b8b0:isBone?0xd4c8a0:0xe0c0a0;
-  const skin=new THREE.MeshStandardMaterial({color:skinCol,roughness:isBone?0.9:0.6,flatShading:true});
-  const darkSkin=new THREE.MeshStandardMaterial({color:isBone?0xa89870:shadeColor(skinCol,0.82),roughness:0.75,flatShading:true});
+  const skinCol=playerClass==='nieumarly'?0x6cb24c:playerClass==='wampir'?0xe0c0b8:isBone?0xe0d4ac:0xefcfa8;
+  // emissive aby dlonie byly zawsze dobrze widoczne (nie czarne w cieniu)
+  const emCol=shadeColor(skinCol,0.35);
+  const skin=new THREE.MeshStandardMaterial({color:skinCol,emissive:emCol,emissiveIntensity:0.55,roughness:isBone?0.9:0.55,flatShading:true});
+  const darkSkin=new THREE.MeshStandardMaterial({color:isBone?0xa89870:shadeColor(skinCol,0.8),emissive:shadeColor(skinCol,0.28),emissiveIntensity:0.45,roughness:0.7,flatShading:true});
   const sleeveCol=playerClass==='nekromanta'?0x2a1a3a:playerClass==='wampir'?0x5a1a2a:
     playerClass==='nieumarly'?0x2a3a2a:playerClass==='atlantyda'?0x1a4a5a:0x3a4a6a;
   const sleeve=new THREE.MeshStandardMaterial({color:sleeveCol,roughness:0.8,flatShading:true});
   const glovesItem=equipSets&&equipSets[activeSet]?equipSets[activeSet].gloves:null;
   const rHand=_buildHand(1,skin,darkSkin,sleeve,glovesItem,isBone);
-  rHand.position.set(0.38,-0.30,-0.50);rHand.scale.setScalar(1.25);rHand.userData._baseY=-0.30;_handGroup.add(rHand);
+  rHand.position.set(0.32,-0.40,-0.58);rHand.rotation.x=0.85;rHand.scale.setScalar(1.05);rHand.userData._baseY=-0.40;_handGroup.add(rHand);
   const lHand=_buildHand(-1,skin,darkSkin,sleeve,glovesItem,isBone);
-  lHand.position.set(-0.38,-0.34,-0.48);lHand.scale.set(-1.25,1.25,1.25);lHand.userData._baseY=-0.34;_handGroup.add(lHand);
+  lHand.position.set(-0.32,-0.42,-0.56);lHand.rotation.x=0.85;lHand.scale.set(-1.05,1.05,1.05);lHand.userData._baseY=-0.42;_handGroup.add(lHand);
   scene.add(_handGroup);
   updateHandItem();
 }
@@ -10611,6 +10625,7 @@ function updateHandItem(){
   if(!_handGroup)return;
   if(_handItem){_handGroup.remove(_handItem);_handItem=null;}
   const it=ITEMS[player.heldItem];if(!it)return;
+  if(it.type==='fists')return; // golymi piesciami nic nie trzymamy
   let itemMesh;
   if(it.type==='wand'||it.type==='trident'){
     const wandCol=playerClass==='nekromanta'?0x2a1a3a:0x8b6b3a;
@@ -10788,9 +10803,9 @@ function updateHandItem(){
       new THREE.MeshStandardMaterial({color:0xaa8855,roughness:0.7,flatShading:true}));
     itemMesh=box;
   }
-  itemMesh.position.set(0.36,-0.22,-0.52);
+  itemMesh.position.set(0.30,-0.30,-0.62);
   itemMesh.rotation.set(-0.3,0,0.2);
-  itemMesh.userData._baseY=-0.22;
+  itemMesh.userData._baseY=-0.30;
   _handItem=itemMesh;
   _handGroup.add(_handItem);
 }
