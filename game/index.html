@@ -8574,8 +8574,9 @@ function castUtil(sp){
   else toast(sp.name+': '+(sp.fx||'efekt wkrotce'));
 }
 function removeProjectile(i){
-  const p=projectiles[i];
-  _scene.remove(p.mesh);p.mesh.geometry.dispose();p.mat.dispose();projectiles.splice(i,1);
+  const p=projectiles[i];if(!p)return;
+  if(p.mesh){_scene.remove(p.mesh);if(p.mesh.geometry)p.mesh.geometry.dispose();}
+  if(p.mat)p.mat.dispose();projectiles.splice(i,1);
 }
 function doAOE(pos,radius,dmg,color){
   for(let j=mobs.length-1;j>=0;j--){
@@ -9936,7 +9937,7 @@ function buildMobMesh(type){
   }
   return g;
 }
-function createMobHPBar(){
+function createMobHPBar(typeName){
   const group=new THREE.Group();
   const bgGeo=new THREE.PlaneGeometry(0.9,0.1);
   const bgMat=new THREE.MeshBasicMaterial({color:0x111111,transparent:true,opacity:0.6,side:THREE.DoubleSide,depthTest:false});
@@ -9945,6 +9946,18 @@ function createMobHPBar(){
   const fillMat=new THREE.MeshBasicMaterial({color:0xcc2222,side:THREE.DoubleSide,depthTest:false});
   const fill=new THREE.Mesh(fillGeo,fillMat);fill.position.z=0.001;
   group.add(fill);group.renderOrder=999;
+  // nametag
+  if(typeName){
+    const cv=document.createElement('canvas');cv.width=128;cv.height=24;
+    const cx=cv.getContext('2d');cx.font='bold 14px sans-serif';cx.textAlign='center';
+    cx.fillStyle='rgba(0,0,0,0.5)';cx.fillRect(0,0,128,24);
+    cx.fillStyle='#ffffff';cx.fillText(typeName,64,17);
+    const tex=new THREE.CanvasTexture(cv);
+    const tag=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.17),
+      new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false,side:THREE.DoubleSide}));
+    tag.position.y=0.14;tag.position.z=0.001;tag.renderOrder=999;
+    group.add(tag);
+  }
   return{group,fill};
 }
 function mobSpawnWeight(t){
@@ -9999,8 +10012,8 @@ function spawnMob(scene,camera){
   }
   const mesh=buildMobMesh(type);
   mesh.position.set(x,spawnY,z);scene.add(mesh);
-  const hpBar=createMobHPBar();
-  hpBar.group.position.y=type.height+0.3;hpBar.group.visible=false;
+  const hpBar=createMobHPBar(type.name);
+  hpBar.group.position.y=type.height+0.3;
   mesh.add(hpBar.group);
   mobs.push({type,mesh,hp:type.hp,maxHp:type.hp,hpBar,
     state:type.passive?'idle':'idle',wanderAngle:Math.random()*Math.PI*2,
@@ -10178,6 +10191,8 @@ function updateMobs(dt,now,camera,scene){
     }else{m.mesh.position.y=gh;}
     m.mesh.position.x=THREE.MathUtils.clamp(m.mesh.position.x,-WORLD_HALF,WORLD_HALF);
     m.mesh.position.z=THREE.MathUtils.clamp(m.mesh.position.z,-WORLD_HALF,WORLD_HALF);
+    const _md=m.mesh.position.distanceTo(camera.position);
+    m.hpBar.group.visible=_md<24;
     if(m.hpBar.group.visible)m.hpBar.group.quaternion.copy(camera.quaternion);
     if(m.hitTimer>0){
       m.hitTimer-=dt;
