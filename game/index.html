@@ -274,6 +274,26 @@
   .set-toggle:active{transform:scale(.95)}
   .set-toggle.on{background:rgba(30,100,50,.7);border-color:rgba(120,255,140,.5);color:#8aff9a}
 
+  #admin-btn{position:absolute;top:209px;left:10px;
+    background:rgba(80,30,90,.85);border:1px solid rgba(200,120,255,.5);
+    border-radius:10px;color:#e0b0ff;width:38px;height:38px;font-size:18px;
+    pointer-events:auto;cursor:pointer;z-index:12;align-items:center;justify-content:center}
+  #admin-btn:active{transform:scale(.95)}
+  #admin-panel{position:fixed;inset:0;z-index:46;background:rgba(6,9,16,.95);
+    display:none;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:24px 16px;overflow-y:auto}
+  #admin-panel.show{display:flex}
+  .admin-head{color:#e0b0ff;font-size:20px;font-weight:700;margin-bottom:16px;
+    display:flex;align-items:center;gap:14px}
+  .admin-head button{background:rgba(80,30,30,.7);border:1px solid rgba(220,100,100,.5);
+    border-radius:8px;color:#faa;width:30px;height:30px;cursor:pointer;font-size:14px}
+  .admin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-width:420px;width:100%}
+  .admin-grid button{background:rgba(50,30,70,.8);border:1px solid rgba(180,120,255,.4);
+    border-radius:10px;color:#e0c8ff;padding:12px 10px;cursor:pointer;font-size:13px;
+    font-weight:600;text-align:center}
+  .admin-grid button:active{transform:scale(.96)}
+  .admin-grid button.on{background:rgba(30,100,50,.75);border-color:rgba(120,255,140,.5);color:#9aff9a}
+
   #fs-game{position:absolute;top:10px;right:10px;
     background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);
     border-radius:8px;color:#ccc;font-size:18px;width:40px;height:40px;
@@ -907,7 +927,14 @@
     </div>
     <div class="set-row" style="margin-top:8px"><span class="set-label">Multiplayer</span>
       <button class="set-toggle" id="hotseat-toggle">Hotseat: OFF</button></div>
+    <div class="set-row" style="margin-top:8px"><span class="set-label">Admin Panel</span>
+      <button class="set-toggle" id="admin-enable-toggle">OFF</button></div>
     <button class="set-toggle" id="settings-close" style="margin-top:20px;background:rgba(80,30,30,.7);border-color:rgba(220,100,100,.5);color:#faa">CLOSE</button>
+  </div>
+  <button id="admin-btn" title="Admin" style="display:none">🛠️</button>
+  <div id="admin-panel">
+    <div class="admin-head">🛠️ Admin Panel <button id="admin-close">✕</button></div>
+    <div class="admin-grid" id="admin-grid"></div>
   </div>
   <button id="craft-btn" title="Rzemioslo">🔨</button>
   <button id="build-btn" title="Budowanie">🧱</button>
@@ -1856,8 +1883,8 @@ function populateWorldsList(){
       const si=slots[idx];
       document.getElementById('wd-title').textContent='Swiat '+(idx+1);
       document.getElementById('wd-info').textContent=si.cls+' — Poz. '+si.lvl+' — '+(new Date(si.time)).toLocaleDateString();
-      // load difficulty from save
-      try{const raw=localStorage.getItem(SAVE_PREFIX+idx);if(raw){const pd=JSON.parse(raw);document.getElementById('ws-diff-btn').textContent=(pd.difficulty||'normal')==='hardcore'?'Hardcore':(pd.difficulty||'normal')==='easy'?'Latwy':'Normalny';}}catch(e){}
+      // load difficulty + admin from save
+      try{const raw=localStorage.getItem(SAVE_PREFIX+idx);if(raw){const pd=JSON.parse(raw);_wsDiff=pd.difficulty||'normal';document.getElementById('ws-diff-btn').textContent=_wsDiff==='hardcore'?'Hardcore':_wsDiff==='easy'?'Latwy':'Normalny';adminEnabled=!!pd.adminEnabled;syncAdminBtn();}}catch(e){}
       showScreen('screen-world-detail');
     });
     list.appendChild(card);
@@ -1897,6 +1924,17 @@ document.getElementById('ws-diff-btn').addEventListener('click',()=>{
   document.getElementById('ws-diff-btn').textContent=_wsDiff==='hardcore'?'Hardcore':_wsDiff==='easy'?'Latwy':'Normalny';
   if(_selectedWorldIdx>=0){
     try{const raw=localStorage.getItem(SAVE_PREFIX+_selectedWorldIdx);if(raw){const d=JSON.parse(raw);d.difficulty=_wsDiff;localStorage.setItem(SAVE_PREFIX+_selectedWorldIdx,JSON.stringify(d));}}catch(e){}
+  }
+});
+
+// admin panel toggle (world settings)
+let adminEnabled=false;
+function syncAdminBtn(){const b=document.getElementById('ws-admin-btn');if(b){b.textContent=adminEnabled?'ON':'OFF';b.style.color=adminEnabled?'#8f8':'';b.style.borderColor=adminEnabled?'rgba(120,220,130,.6)':'';}}
+document.getElementById('ws-admin-btn').addEventListener('click',()=>{
+  adminEnabled=!adminEnabled;
+  syncAdminBtn();
+  if(_selectedWorldIdx>=0){
+    try{const raw=localStorage.getItem(SAVE_PREFIX+_selectedWorldIdx);if(raw){const d=JSON.parse(raw);d.adminEnabled=adminEnabled;localStorage.setItem(SAVE_PREFIX+_selectedWorldIdx,JSON.stringify(d));}}catch(e){}
   }
 });
 
@@ -2275,6 +2313,7 @@ function startGame(){
         session._loadSlot=null;
       },500);
     }
+    if(typeof refreshAdminBtn==='function')refreshAdminBtn();
   });
   }catch(e){showError('startGame: '+e.message+'\n'+e.stack);}
 }
@@ -3605,10 +3644,11 @@ let _lastScnX=99999,_lastScnZ=99999;
 const _treePositions=[];
 const _rockPositions=[];
 const _smallStones=[];
-const _mushPickups=[];
+const _mushPositions=[];   // grzyby z scenerii (do zbierania)
+const _boulderPositions=[]; // duze glazy (do kopania kilofem)
 const TREE_RADIUS=0.8;
 const ROCK_RADIUS=0.5;
-let _imTrunk=null,_imLeaf=null,_imRock=null,_imJTrunk=null,_imJLeaf=null;
+let _imTrunk=null,_imLeaf=null,_imRock=null,_imJTrunk=null,_imJLeaf=null,_imMush=null,_imMushCap=null,_imBoulder=null;
 const _zeroMat=new THREE.Matrix4().makeScale(0.0001,0.0001,0.0001);
 function hideInstance(im,idx){
   if(!im||idx==null||idx>=im.count)return;
@@ -3707,6 +3747,8 @@ function rebuildScenery(scene,cx,cz){
   _scnMeshes.length=0;
   _treePositions.length=0;
   _rockPositions.length=0;
+  _mushPositions.length=0;
+  _boulderPositions.length=0;
   const dummy=new THREE.Object3D();
   const leafColors=[0x4da83c,0x3e8e30,0x58b045,0x38882a,0x62b84e,0x2d7a22];
   const flowerColors=[0xff4466,0xffdd44,0x44aaff,0xff88cc,0xaa66ff,0xff6622,0x44ffaa];
@@ -3747,8 +3789,10 @@ function rebuildScenery(scene,cx,cz){
           const ms=0.5+rng()*0.8;
           dummy.position.set(wx,h+0.08*ms,wz);dummy.rotation.set(0,rng()*6.28,0);dummy.scale.set(ms,ms,ms);
           dummy.updateMatrix();mushroomM.push(dummy.matrix.clone());
+          const _mStemIdx=mushroomM.length-1,_mCapIdx=mushroomCapM.length;
           dummy.position.y+=0.16*ms;dummy.updateMatrix();mushroomCapM.push(dummy.matrix.clone());
-          mushroomCapC.push(new THREE.Color([0xcc3333,0xdd6622,0x8844aa,0xcc8833][Math.floor(rng()*4)]));}
+          mushroomCapC.push(new THREE.Color([0xcc3333,0xdd6622,0x8844aa,0xcc8833][Math.floor(rng()*4)]));
+          _mushPositions.push({x:wx,z:wz,h,picked:false,stemIdx:_mStemIdx,capIdx:_mCapIdx});}
         if((biome==='meadow'||biome==='forest')&&rng()<0.15){
           const tgs=0.7+rng()*0.6;
           dummy.position.set(wx,h+0.2*tgs,wz);dummy.rotation.set(0,rng()*6.28,0);dummy.scale.set(tgs,tgs*1.2,tgs);
@@ -3816,7 +3860,8 @@ function rebuildScenery(scene,cx,cz){
       else if(rng()<0.15){const bs=0.8+rng()*1.2;
         dummy.position.set(wx,h+bs*0.4,wz);dummy.rotation.set(rng()*3,rng()*3,rng()*3);
         dummy.scale.set(bs,bs*(0.5+rng()*0.5),bs);dummy.updateMatrix();
-        boulderM.push(dummy.matrix.clone());}
+        boulderM.push(dummy.matrix.clone());
+        _boulderPositions.push({x:wx,z:wz,h,bs,hits:0,destroyed:false,idx:boulderM.length-1});}
     }
   }
   // ── TRAWA ──
@@ -3863,14 +3908,14 @@ function rebuildScenery(scene,cx,cz){
   _scnMeshes.push(_buildIM(scene,_scnGeos.acacia,_scnMats.acacia,acaciaM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.aCrown,_scnMats.aCrown,aCrownM,null));
   _scnMeshes.push(_buildIM(scene,_scnGeos.mPine,_scnMats.mPine,mPineM,null));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.boulder,_scnMats.boulder,boulderM,null));
+  _imBoulder=_buildIM(scene,_scnGeos.boulder,_scnMats.boulder,boulderM,null);_scnMeshes.push(_imBoulder);
   _scnMeshes.push(_buildIM(scene,_scnGeos.flower,_scnMats.flower,flowerM,flowerC));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.mushroom,_scnMats.mushroom,mushroomM,null));
-  _scnMeshes.push(_buildIM(scene,_scnGeos.mushroomCap,_scnMats.mushroomCap,mushroomCapM,mushroomCapC));
+  _imMush=_buildIM(scene,_scnGeos.mushroom,_scnMats.mushroom,mushroomM,null);_scnMeshes.push(_imMush);
+  _imMushCap=_buildIM(scene,_scnGeos.mushroomCap,_scnMats.mushroomCap,mushroomCapM,mushroomCapC);_scnMeshes.push(_imMushCap);
   const tgIM=_buildIM(scene,_scnGeos.tallGrass,_scnMats.tallGrass,tallGrassM,tallGrassC);
   if(tgIM)tgIM.castShadow=false;
   _scnMeshes.push(tgIM);
-  // male kamienie do podnoszenia
+  // male kamienie do podnoszenia (luzem na trawie)
   for(const ss of _smallStones){if(ss.mesh&&scene)scene.remove(ss.mesh);}
   _smallStones.length=0;
   for(let i=0;i<60;i++){
@@ -3880,18 +3925,6 @@ function rebuildScenery(scene,cx,cz){
     _smallStones.push({x:ax,z:az,h:ah,picked:false,mesh:null});
   }
   _smallStones.forEach(ss=>spawnSmallStoneMesh(ss));
-  // grzyby do zbierania
-  for(const mu of _mushPickups){if(mu.mesh&&scene)scene.remove(mu.mesh);}
-  _mushPickups.length=0;
-  for(let i=0;i<20;i++){
-    const mx=cx+(Math.random()-0.5)*140,mz=cz+(Math.random()-0.5)*140;
-    const mh=terrainHeight(mx,mz);
-    if(mh<SEA_LEVEL)continue;
-    const bio=dominantBiome(mx,mz);
-    if(bio==='desert'||bio==='volcanic')continue;
-    _mushPickups.push({x:mx,z:mz,h:mh,picked:false,mesh:null});
-  }
-  _mushPickups.forEach(mu=>spawnMushroomMesh(mu));
   _lastScnX=cx;_lastScnZ=cz;
 }
 function spawnSmallStoneMesh(ss){
@@ -3902,18 +3935,6 @@ function spawnSmallStoneMesh(ss){
   g.rotation.set(Math.random()*2,Math.random()*2,Math.random()*2);
   g.scale.set(0.8+Math.random()*0.5,0.6+Math.random()*0.3,0.8+Math.random()*0.5);
   _scene.add(g);ss.mesh=g;
-}
-function spawnMushroomMesh(mu){
-  if(!_scene||mu.picked)return;
-  const g=new THREE.Group();
-  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.15,5),
-    new THREE.MeshStandardMaterial({color:0xc8a078,roughness:0.8,flatShading:true}));
-  stem.position.y=0.075;g.add(stem);
-  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.12,5,4,0,Math.PI*2,0,Math.PI*0.5),
-    new THREE.MeshStandardMaterial({color:[0xcc3333,0xdd6622,0x8844aa,0xcc8833][Math.floor(Math.random()*4)],roughness:0.6,flatShading:true}));
-  cap.position.y=0.14;g.add(cap);
-  g.position.set(mu.x,mu.h,mu.z);
-  _scene.add(g);mu.mesh=g;
 }
 function updateScenery(scene,camera){
   const dx=camera.position.x-_lastScnX,dz=camera.position.z-_lastScnZ;
@@ -7639,6 +7660,8 @@ document.getElementById('save-btn').addEventListener('click',()=>quickSave());
 document.getElementById('settings-btn').addEventListener('click',()=>{
   settingsOpen=!settingsOpen;
   document.getElementById('settings-panel').classList.toggle('show',settingsOpen);
+  const at=document.getElementById('admin-enable-toggle');
+  if(at){at.textContent=adminEnabled?'ON':'OFF';at.classList.toggle('on',adminEnabled);}
 });
 document.getElementById('settings-close').addEventListener('click',()=>{
   settingsOpen=false;
@@ -7674,6 +7697,51 @@ document.getElementById('hotseat-toggle').addEventListener('click',()=>{
     toast(T('Hotseat Mode')+' — '+T('Player 1'));
   }
 });
+
+// ═══ ADMIN PANEL (cheaty) ════════════════════════════════
+let adminInfMana=false, adminFly=false;
+function refreshAdminBtn(){
+  const b=document.getElementById('admin-btn');
+  if(b)b.style.display=adminEnabled?'flex':'none';
+}
+document.getElementById('admin-enable-toggle').addEventListener('click',()=>{
+  adminEnabled=!adminEnabled;
+  document.getElementById('admin-enable-toggle').textContent=adminEnabled?'ON':'OFF';
+  document.getElementById('admin-enable-toggle').classList.toggle('on',adminEnabled);
+  refreshAdminBtn();
+  toast(adminEnabled?'Admin panel WLACZONY':'Admin panel WYLACZONY');
+});
+document.getElementById('admin-btn').addEventListener('click',()=>{
+  buildAdminGrid();
+  document.getElementById('admin-panel').classList.add('show');
+});
+document.getElementById('admin-close').addEventListener('click',()=>{
+  document.getElementById('admin-panel').classList.remove('show');
+});
+function buildAdminGrid(){
+  const grid=document.getElementById('admin-grid');grid.innerHTML='';
+  const actions=[
+    {label:'God Mode',toggle:()=>godMode,fn:()=>{godMode=!godMode;toast('God Mode: '+(godMode?'ON':'OFF'));}},
+    {label:'Niesk. Mana',toggle:()=>adminInfMana,fn:()=>{adminInfMana=!adminInfMana;toast('Nieskonczona mana: '+(adminInfMana?'ON':'OFF'));}},
+    {label:'Lot',toggle:()=>adminFly,fn:()=>{adminFly=!adminFly;toast('Lot: '+(adminFly?'ON':'OFF'));}},
+    {label:'Pelne HP',fn:()=>{player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;toast('Wyleczono!');}},
+    {label:'+1000 Zlota',fn:()=>{player.gold+=1000;updateHUD&&updateHUD(_camera);toast('+1000 zlota');}},
+    {label:'+5 Poziomow',fn:()=>{for(let i=0;i<5;i++)giveXP(xpState.xpNext||100);toast('+5 poziomow');}},
+    {label:'Wszystkie surowce',fn:()=>{RESOURCES.forEach(r=>{if(r.type==='resource')addToInventory({...r,count:64});});buildItembar();toast('Surowce dodane!');}},
+    {label:'Wszystkie narzedzia',fn:()=>{['wooden_pickaxe','wooden_axe'].forEach(id=>{const it=ITEMS.find(x=>x&&x.id===id);if(!it)addToInventory({id,name:id==='wooden_pickaxe'?'Kilof':'Topor',icon:id==='wooden_pickaxe'?'⛏️':'🪓',type:'axe',count:1});});buildItembar();toast('Narzedzia dodane!');}},
+    {label:'Zabij potwory',fn:()=>{for(let i=mobs.length-1;i>=0;i--){_scene.remove(mobs[i].mesh);disposeMob(mobs[i]);}mobs.length=0;toast('Potwory usuniete');}},
+    {label:'Pelna Mana',fn:()=>{player.mana=player.maxMana;toast('Mana pelna');}},
+    {label:'Dzien',fn:()=>{worldTime=CYCLE_LEN*0.2;toast('Ustawiono dzien');}},
+    {label:'Noc',fn:()=>{worldTime=CYCLE_LEN*0.6;toast('Ustawiono noc');}},
+  ];
+  actions.forEach(a=>{
+    const btn=document.createElement('button');
+    btn.textContent=a.label;
+    if(a.toggle&&a.toggle())btn.classList.add('on');
+    btn.addEventListener('click',()=>{a.fn();if(a.toggle)btn.classList.toggle('on',a.toggle());});
+    grid.appendChild(btn);
+  });
+}
 
 // ═══ HOTSEAT MULTIPLAYER ════════════════════════════════
 let hotseatActive = false;
@@ -7852,7 +7920,7 @@ function getPickupTarget(){
     const dx=px-ss.x,dz=pz-ss.z;
     if(dx*dx+dz*dz<2.5*2.5)return{type:'stone',obj:ss};
   }
-  for(const mu of _mushPickups){
+  for(const mu of _mushPositions){
     if(mu.picked)continue;
     const dx=px-mu.x,dz=pz-mu.z;
     if(dx*dx+dz*dz<2.5*2.5)return{type:'mushroom',obj:mu};
@@ -7998,9 +8066,11 @@ function meleeSwing(){
   const lookX=px+dir.x*2.5,lookZ=pz+dir.z*2.5;
   // narzedzie w rece (aktywny slot hotbar)
   const heldNow=ITEMS[player.heldItem];
-  const holdingPickaxe=heldNow&&(heldNow.id==='wooden_pickaxe'||heldNow.type==='axe'||(heldNow.id&&heldNow.id.includes('pickaxe')));
-  const holdingStone=heldNow&&heldNow.id==='stone';
-  const holdingAxe=heldNow&&(heldNow.id==='wooden_axe'||heldNow.type==='axe'||(heldNow.id&&heldNow.id.includes('ax')));
+  const _hid=heldNow&&heldNow.id?heldNow.id:'';
+  const holdingPickaxe=heldNow&&_hid.includes('pickaxe');
+  const holdingStone=heldNow&&_hid==='stone';
+  // topor: id z 'axe' ale NIE 'pickaxe', albo bron typu axe
+  const holdingAxe=heldNow&&((_hid.includes('axe')&&!_hid.includes('pickaxe'))||heldNow.type==='axe');
   const holdingTool=holdingPickaxe||holdingStone||holdingAxe;
   // Male kamienie — zbierz z ziemi
   for(let si=_smallStones.length-1;si>=0;si--){
@@ -8019,19 +8089,48 @@ function meleeSwing(){
       return;
     }
   }
-  // Grzyby — zbierz
-  for(let mi=_mushPickups.length-1;mi>=0;mi--){
-    const mu=_mushPickups[mi];
+  // Grzyby — zbierz (z scenerii, instancjonowane)
+  for(let mi=_mushPositions.length-1;mi>=0;mi--){
+    const mu=_mushPositions[mi];
     if(mu.picked)continue;
     const mdx=lookX-mu.x,mdz=lookZ-mu.z;
-    if(mdx*mdx+mdz*mdz<2*2){
+    if(mdx*mdx+mdz*mdz<2.2*2.2){
       mu.picked=true;
-      if(mu.mesh&&_scene)_scene.remove(mu.mesh);
+      hideInstance(_imMush,mu.stemIdx);
+      hideInstance(_imMushCap,mu.capIdx);
       addToInventory({id:'mushroom',name:'Grzyb',icon:'🍄',type:'food',count:1,heal:15,desc:'Leczy 15 HP'});
       const wp=new THREE.Vector3(mu.x,mu.h+0.5,mu.z);
       floatNumber(wp,'+1 🍄','#cc4444');
       buildItembar();
-      setTimeout(()=>{mu.picked=false;spawnMushroomMesh(mu);},90000);
+      return;
+    }
+  }
+  // Duze glazy (mountains) — wymagaja kilofa
+  for(const bo of _boulderPositions){
+    if(bo.destroyed)continue;
+    const bdx=lookX-bo.x,bdz=lookZ-bo.z;
+    const reach=2.5+bo.bs*0.6;
+    if(bdx*bdx+bdz*bdz<reach*reach){
+      if(!holdingPickaxe){toast('Potrzebujesz kilofa na duze glazy!');return;}
+      bo.hits=(bo.hits||0)+1;
+      const need=4;
+      shakeScenery(bo.x,bo.z,0.5);
+      spawnHitParticles(bo.x,bo.h+bo.bs*0.4,bo.z,0x999999);
+      if(bo.hits<need){
+        floatNumber(new THREE.Vector3(bo.x,bo.h+bo.bs*0.8,bo.z),'💥','#cccccc');
+        return;
+      }
+      bo.destroyed=true;bo.hits=0;
+      hideInstance(_imBoulder,bo.idx);
+      const res=RESOURCES.find(r=>r.id==='stone');
+      const stoneN=4+Math.floor(Math.random()*3);
+      for(let k=0;k<stoneN;k++)if(res)addToInventory({...res});
+      floatNumber(new THREE.Vector3(bo.x,bo.h+bo.bs*0.8,bo.z),'+'+stoneN+' 🪨','#aaaaaa');
+      const oreId=['iron_ore','copper','silver','gold_ore','mithril','diamond','coal'][Math.floor(Math.random()*7)];
+      const ore=RESOURCES.find(r=>r.id===oreId);
+      if(ore&&addToInventory({...ore}))floatNumber(new THREE.Vector3(bo.x,bo.h+bo.bs*1.1,bo.z),'+1 '+ore.icon,'#ffcc44');
+      buildItembar();
+      setTimeout(()=>{bo.destroyed=false;},45000);
       return;
     }
   }
@@ -8081,9 +8180,9 @@ function meleeSwing(){
     if(tr.destroyed)continue;
     const tdx=lookX-tr.x,tdz=lookZ-tr.z;
     if(tdx*tdx+tdz*tdz<3*3){
-      if(!holdingStone&&!holdingAxe&&!holdingPickaxe){toast('Trzymaj kamien lub topor w rece!');return;}
+      if(!holdingStone&&!holdingAxe){toast('Trzymaj topor lub kamien w rece!');return;}
       tr.hits=(tr.hits||0)+1;
-      const need=holdingAxe?2:(holdingPickaxe?3:5);
+      const need=holdingAxe?2:5;
       shakeScenery(tr.x,tr.z,0.5);
       spawnHitParticles(tr.x,tr.h+2,tr.z,0x6a8a3a);
       if(tr.hits<need){
@@ -11365,7 +11464,7 @@ function updatePlayer(dt,camera){
   if(playerDead||dialogOpen||charOpen||craftOpen||fullmapOpen||chestOpen)return;
   if(playerStunUntil>performance.now()){return;}
   if(riding){updateRiding(dt,camera);return;}
-  if(playerFlyUntil>performance.now()){updatePlayerFlight(dt,camera);return;}
+  if(playerFlyUntil>performance.now()||adminFly){updatePlayerFlight(dt,camera);return;}
   let mx=0,mz=0;
   if(isMobile){mx=joyState.dx;mz=joyState.dy;}
   else{
@@ -11504,6 +11603,8 @@ let _uwFogSaved=null;
 // ═══ HUNGER ═════════════════════════════════════════
 let _hungerWarnTimer=0;
 function updateHunger(dt){
+  if(adminInfMana){player.mana=player.maxMana;}
+  if(godMode){hunger=100;return;}
   hunger=Math.max(0,hunger-HUNGER_RATE*dt);
   if(hunger<=0&&!playerDead){player.hp-=dt;if(player.hp<=0){player.hp=0;playerDeath();}}
   _hungerWarnTimer-=dt;
