@@ -286,14 +286,6 @@
     text-shadow:0 0 20px rgba(232,200,106,.3)}
   #overlay.hidden{display:none}
 
-  /* hotseat badge */
-  #hotseat-badge{position:absolute;top:10px;left:50%;margin-left:-80px;
-    background:rgba(80,40,120,.8);border:2px solid rgba(180,120,255,.6);
-    border-radius:12px;color:#e0c0ff;width:36px;height:36px;font-size:14px;font-weight:800;
-    pointer-events:auto;cursor:pointer;z-index:8;display:none;
-    align-items:center;justify-content:center}
-  #hotseat-badge:active{transform:scale(.9)}
-  body.hotseat-on #hotseat-badge{display:flex}
 
   /* damage flash overlay */
   #dmg-flash{position:absolute;inset:0;pointer-events:none;z-index:4;
@@ -699,7 +691,73 @@
     <div class="game-title">KRONIKI ŻYWIOŁÓW</div>
     <div class="game-sub">Otwarty Świat RPG</div>
     <button class="btn primary" data-go="screen-class">Nowa Gra</button>
-    <button class="btn" disabled>Kontynuuj</button>
+    <button class="btn" data-go="screen-worlds" id="menu-worlds-btn">Moje Swiaty</button>
+    <button class="btn" data-go="screen-multi" id="menu-multi-btn">Multiplayer</button>
+  </div>
+
+  <div class="menu-screen" id="screen-worlds">
+    <div class="screen-head">Moje Swiaty</div>
+    <div class="screen-desc">Wybierz swiat aby kontynuowac gre, usunac lub zmienic ustawienia.</div>
+    <div id="worlds-list" style="display:flex;flex-direction:column;gap:10px;max-width:480px;width:100%;margin-bottom:16px"></div>
+    <div class="nav-row">
+      <button class="btn ghost" data-go="screen-title">← Wstecz</button>
+    </div>
+  </div>
+
+  <div class="menu-screen" id="screen-world-detail">
+    <div class="screen-head" id="wd-title">Swiat 1</div>
+    <div class="screen-desc" id="wd-info">mag Lv1 — 01.01.2025</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:340px;width:100%">
+      <button class="btn primary" id="wd-continue">Kontynuuj</button>
+      <button class="btn" id="wd-settings" data-go="screen-world-settings">Ustawienia Swiata</button>
+      <button class="btn ghost" id="wd-delete" style="border-color:rgba(200,60,60,.5);color:#f88">Usun Swiat</button>
+    </div>
+    <div class="nav-row" style="margin-top:16px">
+      <button class="btn ghost" data-go="screen-worlds">← Wstecz</button>
+    </div>
+  </div>
+
+  <div class="menu-screen" id="screen-world-settings">
+    <div class="screen-head">Ustawienia Swiata</div>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:400px;width:100%">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(30,40,60,.7);padding:12px 18px;border-radius:10px;border:1px solid rgba(120,160,220,.3)">
+        <span style="color:#e8e0c8;font-size:14px">Poziom trudnosci</span>
+        <button class="btn ghost" id="ws-diff-btn" style="min-width:auto;padding:8px 16px">Normalny</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(30,40,60,.7);padding:12px 18px;border-radius:10px;border:1px solid rgba(120,160,220,.3)">
+        <span style="color:#e8e0c8;font-size:14px">Admin Panel</span>
+        <button class="btn ghost" id="ws-admin-btn" style="min-width:auto;padding:8px 16px">OFF</button>
+      </div>
+    </div>
+    <div class="nav-row" style="margin-top:16px">
+      <button class="btn ghost" data-go="screen-world-detail">← Wstecz</button>
+    </div>
+  </div>
+
+  <div class="menu-screen" id="screen-multi">
+    <div class="screen-head">Multiplayer</div>
+    <div class="screen-desc">Graj z innymi! Udostepnij kod albo dolacz do czyjejs gry.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:380px;width:100%">
+      <button class="btn primary" id="mp-host-btn">Udostepnij Gre (Host)</button>
+      <button class="btn" id="mp-join-btn">Dolacz do Gry</button>
+    </div>
+    <div id="mp-code-area" style="display:none;margin-top:16px;max-width:420px;width:100%">
+      <div style="color:#7a89a8;font-size:12px;margin-bottom:6px" id="mp-code-label">Skopiuj ten kod i wyslij znajomemu:</div>
+      <textarea id="mp-code-box" style="width:100%;height:80px;background:rgba(10,14,22,.9);border:1px solid rgba(120,160,220,.4);border-radius:8px;color:#9ad0ff;font-size:11px;padding:8px;resize:none;font-family:monospace" readonly></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn ghost" id="mp-copy-btn" style="min-width:auto;padding:8px 16px;font-size:12px">Kopiuj Kod</button>
+        <button class="btn ghost" id="mp-paste-btn" style="min-width:auto;padding:8px 16px;font-size:12px">Wklej Odpowiedz</button>
+      </div>
+    </div>
+    <div id="mp-join-area" style="display:none;margin-top:16px;max-width:420px;width:100%">
+      <div style="color:#7a89a8;font-size:12px;margin-bottom:6px">Wklej kod od hosta:</div>
+      <textarea id="mp-join-box" style="width:100%;height:80px;background:rgba(10,14,22,.9);border:1px solid rgba(120,160,220,.4);border-radius:8px;color:#9ad0ff;font-size:11px;padding:8px;resize:none;font-family:monospace"></textarea>
+      <button class="btn primary" id="mp-connect-btn" style="margin-top:8px;font-size:13px;padding:10px 24px">Polacz</button>
+    </div>
+    <div id="mp-status" style="color:#e8c86a;font-size:13px;margin-top:12px;display:none"></div>
+    <div class="nav-row" style="margin-top:16px">
+      <button class="btn ghost" data-go="screen-title">← Wstecz</button>
+    </div>
   </div>
 
   <div class="menu-screen" id="screen-class">
@@ -831,7 +889,6 @@
       <div class="dlg-body" id="dlg-body"></div>
     </div>
   </div>
-  <button id="hotseat-badge" title="Switch Player">P1</button>
   <button id="char-btn" title="Postac"><svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="6" r="3.4" fill="currentColor"/><path d="M5 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z" fill="currentColor"/></svg></button>
   <button id="save-btn" title="Save">💾</button>
   <button id="settings-btn" title="Settings">⚙️</button>
@@ -1770,9 +1827,228 @@ function applyMenuPixelArt(){
   });
 }
 applyMenuPixelArt();
-document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.go)));
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
+  showScreen(b.dataset.go);
+  if(b.dataset.go==='screen-worlds') populateWorldsList();
+}));
 document.getElementById('fs-menu').addEventListener('click',toggleFullscreen);
 document.getElementById('fs-game').addEventListener('click',toggleFullscreen);
+
+// ═══ WORLDS LIST (menu) ═══
+let _selectedWorldIdx = -1;
+function populateWorldsList(){
+  const list=document.getElementById('worlds-list'); list.innerHTML='';
+  const slots=getWorldSlots();
+  let hasAny=false;
+  for(let i=0;i<MAX_WORLDS;i++){
+    const s=slots[i];
+    if(!s) continue;
+    hasAny=true;
+    const card=document.createElement('div');
+    card.style.cssText='background:linear-gradient(180deg,rgba(30,40,64,.85),rgba(18,24,40,.85));border:2px solid rgba(122,137,168,.25);border-radius:12px;padding:14px 18px;cursor:pointer;transition:.15s;display:flex;justify-content:space-between;align-items:center';
+    card.addEventListener('mouseenter',()=>card.style.borderColor='#e8c86a');
+    card.addEventListener('mouseleave',()=>card.style.borderColor='rgba(122,137,168,.25)');
+    const d=new Date(s.time);
+    card.innerHTML=`<div><div style="color:#e8e0c8;font-size:16px;font-weight:700">Swiat ${i+1}</div><div style="color:#8a98b4;font-size:12px;margin-top:2px">${s.cls} — Poz. ${s.lvl}</div></div><div style="color:#7a89a8;font-size:11px">${d.toLocaleDateString()} ${d.toLocaleTimeString().slice(0,5)}</div>`;
+    const idx=i;
+    card.addEventListener('click',()=>{
+      _selectedWorldIdx=idx;
+      const si=slots[idx];
+      document.getElementById('wd-title').textContent='Swiat '+(idx+1);
+      document.getElementById('wd-info').textContent=si.cls+' — Poz. '+si.lvl+' — '+(new Date(si.time)).toLocaleDateString();
+      // load difficulty from save
+      try{const raw=localStorage.getItem(SAVE_PREFIX+idx);if(raw){const pd=JSON.parse(raw);document.getElementById('ws-diff-btn').textContent=(pd.difficulty||'normal')==='hardcore'?'Hardcore':(pd.difficulty||'normal')==='easy'?'Latwy':'Normalny';}}catch(e){}
+      showScreen('screen-world-detail');
+    });
+    list.appendChild(card);
+  }
+  if(!hasAny){
+    list.innerHTML='<div style="color:#7a89a8;font-size:14px;text-align:center;padding:30px">Brak zapisanych swiatow. Zacznij nowa gre!</div>';
+  }
+}
+
+// World detail actions
+document.getElementById('wd-continue').addEventListener('click',()=>{
+  if(_selectedWorldIdx<0)return;
+  const raw=localStorage.getItem(SAVE_PREFIX+_selectedWorldIdx);
+  if(!raw){toast('Brak zapisu');return;}
+  try{
+    const d=JSON.parse(raw);
+    session.class=d.playerClass||'mag';
+    session.difficulty=d.difficulty||'normal';
+    session._loadSlot=_selectedWorldIdx;
+    startGame();
+  }catch(e){toast('Blad wczytywania');}
+});
+document.getElementById('wd-delete').addEventListener('click',()=>{
+  if(_selectedWorldIdx<0)return;
+  if(!confirm('Na pewno usunac Swiat '+(_selectedWorldIdx+1)+'?'))return;
+  localStorage.removeItem(SAVE_PREFIX+_selectedWorldIdx);
+  toast('Swiat usuniety');
+  showScreen('screen-worlds');populateWorldsList();
+});
+
+// World settings
+let _wsDiff='normal';
+document.getElementById('ws-diff-btn').addEventListener('click',()=>{
+  const opts=['normal','easy','hardcore'];
+  const cur=opts.indexOf(_wsDiff);
+  _wsDiff=opts[(cur+1)%3];
+  document.getElementById('ws-diff-btn').textContent=_wsDiff==='hardcore'?'Hardcore':_wsDiff==='easy'?'Latwy':'Normalny';
+  if(_selectedWorldIdx>=0){
+    try{const raw=localStorage.getItem(SAVE_PREFIX+_selectedWorldIdx);if(raw){const d=JSON.parse(raw);d.difficulty=_wsDiff;localStorage.setItem(SAVE_PREFIX+_selectedWorldIdx,JSON.stringify(d));}}catch(e){}
+  }
+});
+
+// ═══ WEBRTC MULTIPLAYER ═══
+let _rtcConn=null, _rtcChannel=null, _rtcRole=null;
+let _peerMesh=null, _peerPos={x:0,y:0,z:0}, _peerYaw=0, _peerClass='mag';
+
+function mpStatus(msg){
+  const el=document.getElementById('mp-status');
+  el.textContent=msg;el.style.display='block';
+}
+
+document.getElementById('mp-host-btn').addEventListener('click',async()=>{
+  document.getElementById('mp-code-area').style.display='block';
+  document.getElementById('mp-join-area').style.display='none';
+  document.getElementById('mp-code-label').textContent='Tworzenie oferty...';
+  _rtcRole='host';
+  try{
+    _rtcConn=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    _rtcChannel=_rtcConn.createDataChannel('game');
+    setupDataChannel(_rtcChannel);
+    _rtcConn.onicecandidate=e=>{
+      if(!e.candidate){
+        const offer=btoa(JSON.stringify(_rtcConn.localDescription));
+        document.getElementById('mp-code-box').value=offer;
+        document.getElementById('mp-code-label').textContent='Skopiuj ten kod i wyslij znajomemu:';
+      }
+    };
+    const offer=await _rtcConn.createOffer();
+    await _rtcConn.setLocalDescription(offer);
+  }catch(e){mpStatus('Blad: '+e.message);}
+});
+
+document.getElementById('mp-copy-btn').addEventListener('click',()=>{
+  const box=document.getElementById('mp-code-box');
+  navigator.clipboard.writeText(box.value).then(()=>toast('Skopiowano!')).catch(()=>{box.select();document.execCommand('copy');toast('Skopiowano!');});
+});
+
+document.getElementById('mp-paste-btn').addEventListener('click',async()=>{
+  try{
+    const text=await navigator.clipboard.readText();
+    if(!text){toast('Schowek pusty');return;}
+    const answer=JSON.parse(atob(text));
+    await _rtcConn.setRemoteDescription(answer);
+    mpStatus('Polaczono! Mozesz zaczac gre.');
+  }catch(e){
+    const input=prompt('Wklej odpowiedz od znajomego:');
+    if(input){try{await _rtcConn.setRemoteDescription(JSON.parse(atob(input)));mpStatus('Polaczono!');}catch(e2){mpStatus('Blad: nieprawidlowy kod');}}
+  }
+});
+
+document.getElementById('mp-join-btn').addEventListener('click',()=>{
+  document.getElementById('mp-join-area').style.display='block';
+  document.getElementById('mp-code-area').style.display='none';
+  _rtcRole='guest';
+});
+
+document.getElementById('mp-connect-btn').addEventListener('click',async()=>{
+  const code=document.getElementById('mp-join-box').value.trim();
+  if(!code){toast('Wklej kod hosta');return;}
+  try{
+    _rtcConn=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    _rtcConn.ondatachannel=e=>{_rtcChannel=e.channel;setupDataChannel(_rtcChannel);};
+    _rtcConn.onicecandidate=e=>{
+      if(!e.candidate){
+        const answer=btoa(JSON.stringify(_rtcConn.localDescription));
+        document.getElementById('mp-join-box').value=answer;
+        mpStatus('Skopiuj odpowiedz powyzej i wyslij hostowi!');
+      }
+    };
+    const offer=JSON.parse(atob(code));
+    await _rtcConn.setRemoteDescription(offer);
+    const answer=await _rtcConn.createAnswer();
+    await _rtcConn.setLocalDescription(answer);
+  }catch(e){mpStatus('Blad: '+e.message);}
+});
+
+function setupDataChannel(ch){
+  ch.onopen=()=>{
+    mpStatus('Polaczono! Gra multiplayer aktywna.');
+    toast('Multiplayer polaczony!');
+  };
+  ch.onmessage=e=>{
+    try{
+      const msg=JSON.parse(e.data);
+      if(msg.t==='pos'){_peerPos=msg.p;_peerYaw=msg.y;_peerClass=msg.c||'mag';}
+      if(msg.t==='atk'){showPeerAttack();}
+      if(msg.t==='spell'){showPeerSpell(msg);}
+    }catch(err){}
+  };
+  ch.onclose=()=>{mpStatus('Polaczenie zamkniete');toast('Multiplayer rozlaczony');removePeerMesh();};
+}
+
+function sendPeerData(obj){
+  if(_rtcChannel&&_rtcChannel.readyState==='open'){
+    try{_rtcChannel.send(JSON.stringify(obj));}catch(e){}
+  }
+}
+
+function buildPeerModel(cls){
+  const g=new THREE.Group();
+  const cfg=CLASS_CONFIG[cls]||CLASS_CONFIG.mag;
+  const bodyCol=cls==='wampir'?0x5a1a2a:cls==='nekromanta'?0x2a1a3a:cls==='nieumarly'?0x2a3a2a:cls==='atlantyda'?0x1a4a5a:0x3a4a6a;
+  const skinCol=cls==='nieumarly'?0x6cb24c:cls==='wampir'?0xe0c0b8:cls==='nekromanta'?0xe0d4ac:0xefcfa8;
+  const bodyMat=new THREE.MeshStandardMaterial({color:bodyCol,roughness:0.7,flatShading:true});
+  const skinMat=new THREE.MeshStandardMaterial({color:skinCol,roughness:0.6,flatShading:true});
+  // body
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.8,0.35),bodyMat);
+  torso.position.y=1.0;g.add(torso);
+  // head
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.4,0.4),skinMat);
+  head.position.y=1.6;g.add(head);
+  // eyes
+  const eyeM=new THREE.MeshBasicMaterial({color:cls==='wampir'?0xff3333:cls==='nekromanta'?0x44ff66:0x333333});
+  const eyeL=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,0.05),eyeM);
+  eyeL.position.set(-0.1,1.64,0.2);g.add(eyeL);
+  const eyeR=eyeL.clone();eyeR.position.set(0.1,1.64,0.2);g.add(eyeR);
+  // arms
+  const armL=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.7,0.2),bodyMat);
+  armL.position.set(-0.4,0.85,0);g.add(armL);
+  const armR=armL.clone();armR.position.set(0.4,0.85,0);g.add(armR);
+  // legs
+  const legMat=new THREE.MeshStandardMaterial({color:0x2a2a3a,roughness:0.8,flatShading:true});
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.7,0.22),legMat);
+  legL.position.set(-0.15,0.3,0);g.add(legL);
+  const legR=legL.clone();legR.position.set(0.15,0.3,0);g.add(legR);
+  // name tag
+  const cv=document.createElement('canvas');cv.width=128;cv.height=32;
+  const cx=cv.getContext('2d');cx.fillStyle='rgba(0,0,0,0.6)';cx.fillRect(0,0,128,32);
+  cx.fillStyle='#e8c86a';cx.font='bold 16px sans-serif';cx.textAlign='center';
+  cx.fillText(cfg.name||cls,64,22);
+  const tex=new THREE.CanvasTexture(cv);
+  const tag=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.3),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthTest:false}));
+  tag.position.y=2.1;tag.renderOrder=999;g.add(tag);
+  g.castShadow=true;
+  return g;
+}
+
+function updatePeerMesh(){
+  if(!_rtcChannel||_rtcChannel.readyState!=='open')return;
+  if(!_peerMesh&&_scene){
+    _peerMesh=buildPeerModel(_peerClass);
+    _scene.add(_peerMesh);
+  }
+  if(_peerMesh){
+    _peerMesh.position.set(_peerPos.x,_peerPos.y-EYE_H,_peerPos.z);
+    _peerMesh.rotation.y=_peerYaw+Math.PI;
+  }
+}
+function removePeerMesh(){if(_peerMesh&&_scene){_scene.remove(_peerMesh);_peerMesh=null;}}
+function showPeerAttack(){/* future: animate peer's arms */}
+function showPeerSpell(msg){/* future: show peer's spell effect */}
 
 // ── Wybor klasy ──
 document.querySelectorAll('.class-card').forEach(card=>{
@@ -1990,7 +2266,16 @@ function startGame(){
   const sp=classSpawn();
   if(sp.realm==='dead'){worldRealm='dead';}
   _classSpawn=sp;
-  requestAnimationFrame(()=>initWorld());
+  requestAnimationFrame(()=>{
+    initWorld();
+    if(session._loadSlot!=null){
+      setTimeout(()=>{
+        const raw=localStorage.getItem(SAVE_PREFIX+session._loadSlot);
+        if(raw) deserializeWorld(raw);
+        session._loadSlot=null;
+      },500);
+    }
+  });
   }catch(e){showError('startGame: '+e.message+'\n'+e.stack);}
 }
 let _classSpawn=null;
@@ -3319,6 +3604,8 @@ let _scnMeshes=[];
 let _lastScnX=99999,_lastScnZ=99999;
 const _treePositions=[];
 const _rockPositions=[];
+const _smallStones=[];
+const _mushPickups=[];
 const TREE_RADIUS=0.8;
 const ROCK_RADIUS=0.5;
 let _imTrunk=null,_imLeaf=null,_imRock=null,_imJTrunk=null,_imJLeaf=null;
@@ -3583,7 +3870,50 @@ function rebuildScenery(scene,cx,cz){
   const tgIM=_buildIM(scene,_scnGeos.tallGrass,_scnMats.tallGrass,tallGrassM,tallGrassC);
   if(tgIM)tgIM.castShadow=false;
   _scnMeshes.push(tgIM);
+  // male kamienie do podnoszenia
+  for(const ss of _smallStones){if(ss.mesh&&scene)scene.remove(ss.mesh);}
+  _smallStones.length=0;
+  for(let i=0;i<60;i++){
+    const ax=cx+(Math.random()-0.5)*160,az=cz+(Math.random()-0.5)*160;
+    const ah=terrainHeight(ax,az);
+    if(ah<SEA_LEVEL)continue;
+    _smallStones.push({x:ax,z:az,h:ah,picked:false,mesh:null});
+  }
+  _smallStones.forEach(ss=>spawnSmallStoneMesh(ss));
+  // grzyby do zbierania
+  for(const mu of _mushPickups){if(mu.mesh&&scene)scene.remove(mu.mesh);}
+  _mushPickups.length=0;
+  for(let i=0;i<20;i++){
+    const mx=cx+(Math.random()-0.5)*140,mz=cz+(Math.random()-0.5)*140;
+    const mh=terrainHeight(mx,mz);
+    if(mh<SEA_LEVEL)continue;
+    const bio=dominantBiome(mx,mz);
+    if(bio==='desert'||bio==='volcanic')continue;
+    _mushPickups.push({x:mx,z:mz,h:mh,picked:false,mesh:null});
+  }
+  _mushPickups.forEach(mu=>spawnMushroomMesh(mu));
   _lastScnX=cx;_lastScnZ=cz;
+}
+function spawnSmallStoneMesh(ss){
+  if(!_scene||ss.picked)return;
+  const g=new THREE.Mesh(new THREE.DodecahedronGeometry(0.12,0),
+    new THREE.MeshStandardMaterial({color:0x888888,roughness:0.8,flatShading:true}));
+  g.position.set(ss.x,ss.h+0.08,ss.z);
+  g.rotation.set(Math.random()*2,Math.random()*2,Math.random()*2);
+  g.scale.set(0.8+Math.random()*0.5,0.6+Math.random()*0.3,0.8+Math.random()*0.5);
+  _scene.add(g);ss.mesh=g;
+}
+function spawnMushroomMesh(mu){
+  if(!_scene||mu.picked)return;
+  const g=new THREE.Group();
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.15,5),
+    new THREE.MeshStandardMaterial({color:0xc8a078,roughness:0.8,flatShading:true}));
+  stem.position.y=0.075;g.add(stem);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(0.12,5,4,0,Math.PI*2,0,Math.PI*0.5),
+    new THREE.MeshStandardMaterial({color:[0xcc3333,0xdd6622,0x8844aa,0xcc8833][Math.floor(Math.random()*4)],roughness:0.6,flatShading:true}));
+  cap.position.y=0.14;g.add(cap);
+  g.position.set(mu.x,mu.h,mu.z);
+  _scene.add(g);mu.mesh=g;
 }
 function updateScenery(scene,camera){
   const dx=camera.position.x-_lastScnX,dz=camera.position.z-_lastScnZ;
@@ -7170,6 +7500,7 @@ function serializeWorld(){
     v: 2,
     time: Date.now(),
     playerClass,
+    difficulty: session.difficulty||'normal',
     pos, yaw,
     player: {hp:player.hp,maxHp:player.maxHp,mana:player.mana,maxMana:player.maxMana,
              manaRegen:player.manaRegen,gold:player.gold,wandTier:player.wandTier},
@@ -7340,12 +7671,9 @@ document.getElementById('hotseat-toggle').addEventListener('click',()=>{
   if(hotseatActive){
     saveCurrentToSlot(0);
     activePlayer=0;
-    const badge=document.getElementById('hotseat-badge');
-    if(badge)badge.textContent='P1';
     toast(T('Hotseat Mode')+' — '+T('Player 1'));
   }
 });
-document.getElementById('hotseat-badge').addEventListener('click',()=>switchHotseatPlayer());
 
 // ═══ HOTSEAT MULTIPLAYER ════════════════════════════════
 let hotseatActive = false;
@@ -7393,8 +7721,6 @@ function switchHotseatPlayer(){
     loadFromSlot(activePlayer);
   }
   toast(T('Player '+(activePlayer+1))+' — '+playerClass);
-  const badge=document.getElementById('hotseat-badge');
-  if(badge) badge.textContent='P'+(activePlayer+1);
 }
 
 function nearCraftTable(){
@@ -7517,8 +7843,32 @@ function getTameTarget(){
   }
   return best;
 }
+function getPickupTarget(){
+  if(!_camera)return null;
+  const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+  const px=_camera.position.x+dir.x*2,pz=_camera.position.z+dir.z*2;
+  for(const ss of _smallStones){
+    if(ss.picked)continue;
+    const dx=px-ss.x,dz=pz-ss.z;
+    if(dx*dx+dz*dz<2.5*2.5)return{type:'stone',obj:ss};
+  }
+  for(const mu of _mushPickups){
+    if(mu.picked)continue;
+    const dx=px-mu.x,dz=pz-mu.z;
+    if(dx*dx+dz*dz<2.5*2.5)return{type:'mushroom',obj:mu};
+  }
+  return null;
+}
 function updateAttackIcon(){
   const btn=document.getElementById('cast-btn');
+  const pickup=getPickupTarget();
+  if(pickup){
+    btn.textContent=pickup.type==='stone'?'🪨':'🍄';btn.classList.add('melee');btn.dataset.tame='';btn.dataset.pickup='1';
+    document.getElementById('spellbar').style.display='none';
+    document.getElementById('spellname').style.display='none';
+    return;
+  }
+  btn.dataset.pickup='';
   const tameTarget=getTameTarget();
   if(tameTarget>=0){
     btn.textContent='🤝';btn.classList.add('melee');btn.dataset.tame='1';
@@ -7646,13 +7996,53 @@ function meleeSwing(){
   }
   const px=_camera.position.x,pz=_camera.position.z;
   const lookX=px+dir.x*2.5,lookZ=pz+dir.z*2.5;
-  const hasPickaxe=ITEMS.some(it=>it&&it.id==='wooden_pickaxe');
+  // narzedzie w rece (aktywny slot hotbar)
+  const heldNow=ITEMS[player.heldItem];
+  const holdingPickaxe=heldNow&&(heldNow.id==='wooden_pickaxe'||heldNow.type==='axe'||(heldNow.id&&heldNow.id.includes('pickaxe')));
+  const holdingStone=heldNow&&heldNow.id==='stone';
+  const holdingAxe=heldNow&&(heldNow.id==='wooden_axe'||heldNow.type==='axe'||(heldNow.id&&heldNow.id.includes('ax')));
+  const holdingTool=holdingPickaxe||holdingStone||holdingAxe;
+  // Male kamienie — zbierz z ziemi
+  for(let si=_smallStones.length-1;si>=0;si--){
+    const ss=_smallStones[si];
+    if(ss.picked)continue;
+    const sdx=lookX-ss.x,sdz=lookZ-ss.z;
+    if(sdx*sdx+sdz*sdz<2*2){
+      ss.picked=true;
+      if(ss.mesh&&_scene)_scene.remove(ss.mesh);
+      const res=RESOURCES.find(r=>r.id==='stone');
+      if(res)addToInventory({...res});
+      const wp=new THREE.Vector3(ss.x,ss.h+0.5,ss.z);
+      floatNumber(wp,'+1 🪨','#aaaaaa');
+      buildItembar();
+      setTimeout(()=>{ss.picked=false;spawnSmallStoneMesh(ss);},60000);
+      return;
+    }
+  }
+  // Grzyby — zbierz
+  for(let mi=_mushPickups.length-1;mi>=0;mi--){
+    const mu=_mushPickups[mi];
+    if(mu.picked)continue;
+    const mdx=lookX-mu.x,mdz=lookZ-mu.z;
+    if(mdx*mdx+mdz*mdz<2*2){
+      mu.picked=true;
+      if(mu.mesh&&_scene)_scene.remove(mu.mesh);
+      addToInventory({id:'mushroom',name:'Grzyb',icon:'🍄',type:'food',count:1,heal:15,desc:'Leczy 15 HP'});
+      const wp=new THREE.Vector3(mu.x,mu.h+0.5,mu.z);
+      floatNumber(wp,'+1 🍄','#cc4444');
+      buildItembar();
+      setTimeout(()=>{mu.picked=false;spawnMushroomMesh(mu);},90000);
+      return;
+    }
+  }
+  // Duze kamienie — musisz trzymac kilof lub kamien w rece
   for(const rk of _rockPositions){
     if(rk.destroyed)continue;
     const rdx=lookX-rk.x,rdz=lookZ-rk.z;
     if(rdx*rdx+rdz*rdz<2.5*2.5){
+      if(!holdingTool){toast('Trzymaj kilof lub kamien w rece!');return;}
       rk.hits=(rk.hits||0)+1;
-      const need=hasPickaxe?2:3;
+      const need=holdingPickaxe?2:(holdingAxe?3:5);
       shakeScenery(rk.x,rk.z,0.4);
       spawnHitParticles(rk.x,rk.h+0.4,rk.z,0x999999);
       if(rk.hits<need){
@@ -7660,7 +8050,6 @@ function meleeSwing(){
         floatNumber(wp,'💥','#cccccc');
         return;
       }
-      // skala pęka — daj materialy
       rk.destroyed=true;rk.hits=0;
       hideInstance(_imRock,rk.rockIdx);
       const res=RESOURCES.find(r=>r.id==='stone');
@@ -7668,7 +8057,7 @@ function meleeSwing(){
       for(let k=0;k<stoneN;k++)if(res)addToInventory({...res});
       const wp=new THREE.Vector3(rk.x,rk.h+0.7,rk.z);
       floatNumber(wp,'+'+stoneN+' 🪨','#aaaaaa');
-      if(hasPickaxe){
+      if(holdingPickaxe){
         const biome=dominantBiome(rk.x,rk.z);
         let oreId=null;
         if(biome==='mountains'&&Math.random()<0.5)oreId=['iron_ore','copper','silver','gold_ore','mithril','diamond'][Math.floor(Math.random()*6)];
@@ -7683,20 +8072,18 @@ function meleeSwing(){
           }
         }
       }
-      // respawn po 30s
       setTimeout(()=>{rk.destroyed=false;},30000);
       return;
     }
   }
-  const hasStone=ITEMS.some(it=>it&&it.id==='stone');
-  const hasAxe=ITEMS.some(it=>it&&it.id==='wooden_axe');
+  // Drzewa — musisz trzymac kamien lub topor w rece
   for(const tr of _treePositions){
     if(tr.destroyed)continue;
     const tdx=lookX-tr.x,tdz=lookZ-tr.z;
     if(tdx*tdx+tdz*tdz<3*3){
-      if(!hasStone&&!hasAxe){toast('Potrzebujesz kamienia lub topora');return;}
+      if(!holdingStone&&!holdingAxe&&!holdingPickaxe){toast('Trzymaj kamien lub topor w rece!');return;}
       tr.hits=(tr.hits||0)+1;
-      const need=hasAxe?2:4;
+      const need=holdingAxe?2:(holdingPickaxe?3:5);
       shakeScenery(tr.x,tr.z,0.5);
       spawnHitParticles(tr.x,tr.h+2,tr.z,0x6a8a3a);
       if(tr.hits<need){
@@ -10693,6 +11080,7 @@ function playerDeath(){
 }
 function respawnPlayer(){
   playerDead=false;player.hp=player.maxHp;player.mana=player.maxMana;hunger=100;
+  document.getElementById('boss-bar').classList.remove('show');
   blood=maxBlood;strength=maxStrength;decay=maxDecay;
   _breath=100;player.lastCast=0;statusEffects.length=0;shieldHP=0;
   if(companion&&companionMesh){_scene.remove(companionMesh);companionMesh=null;companion=null;riding=null;_flyUp=false;}
@@ -10841,6 +11229,7 @@ function setupDesktopInput(){
       return;
     }
     if(e.button!==0)return;
+    {const pu=getPickupTarget();if(pu){meleeSwing();return;}}
     if(getTameTarget()>=0){tryTameAimed();return;}
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt2=ITEMS[player.heldItem];
@@ -10908,6 +11297,7 @@ function setupMobileInput(){
   jumpBtn.addEventListener('touchend',e=>{e.stopPropagation();_flyUp=false;},{passive:false});
   jumpBtn.addEventListener('touchcancel',e=>{_flyUp=false;},{passive:false});
   castBtn.addEventListener('touchstart',e=>{e.stopPropagation();
+    {const pu=getPickupTarget();if(pu){meleeSwing();return;}}
     if(getTameTarget()>=0){tryTameAimed();return;}
     if(heldIsBlock()){placeHeldBlock();return;}
     const hIt=ITEMS[player.heldItem];
@@ -11397,9 +11787,9 @@ function createHands(scene){
   const sleeve=new THREE.MeshStandardMaterial({color:sleeveCol,roughness:0.8,flatShading:true});
   const glovesItem=equipSets&&equipSets[activeSet]?equipSets[activeSet].gloves:null;
   const rHand=_buildHand(1,skin,darkSkin,sleeve,glovesItem,isBone);
-  rHand.position.set(0.32,-0.40,-0.58);rHand.rotation.x=0.85;rHand.scale.setScalar(1.05);rHand.userData._baseY=-0.40;_handGroup.add(rHand);
+  rHand.position.set(0.32,-0.40,-0.58);rHand.rotation.x=0.85;rHand.scale.setScalar(1.05);rHand.userData._baseY=-0.40;rHand.userData._baseX=0.32;_handGroup.add(rHand);
   const lHand=_buildHand(-1,skin,darkSkin,sleeve,glovesItem,isBone);
-  lHand.position.set(-0.32,-0.42,-0.56);lHand.rotation.x=0.85;lHand.scale.set(-1.05,1.05,1.05);lHand.userData._baseY=-0.42;_handGroup.add(lHand);
+  lHand.position.set(-0.32,-0.42,-0.56);lHand.rotation.x=0.85;lHand.scale.set(-1.05,1.05,1.05);lHand.userData._baseY=-0.42;lHand.userData._baseX=-0.32;_handGroup.add(lHand);
   scene.add(_handGroup);
   updateHandItem();
 }
@@ -11587,7 +11977,7 @@ function updateHandItem(){
   }
   itemMesh.position.set(0.30,-0.30,-0.62);
   itemMesh.rotation.set(-0.3,0,0.2);
-  itemMesh.userData._baseY=-0.30;
+  itemMesh.userData._baseY=-0.30;itemMesh.userData._baseX=0.30;
   _handItem=itemMesh;
   _handGroup.add(_handItem);
 }
@@ -11821,6 +12211,11 @@ function initWorld(){
     }
     updateHands(camera,now);
     updateHUD(camera);
+    // multiplayer: send position & update peer
+    if(_rtcChannel&&_rtcChannel.readyState==='open'&&now%3<1){
+      sendPeerData({t:'pos',p:{x:camera.position.x,y:camera.position.y,z:camera.position.z},y:camera.rotation.y,c:playerClass});
+    }
+    updatePeerMesh();
     if(_screenShake>0){
       const s=_screenShake*6;
       camera.position.x+=(Math.random()-0.5)*s*0.08;
