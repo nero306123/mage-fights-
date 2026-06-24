@@ -701,6 +701,170 @@ const THEME_SCALES={
   cosmic:[0,2,4,7,9]
 };
 const THEME_ROOTS={shadow:110,inferno:130,frost:98,void:82,blood:120,cosmic:92};
+
+/* ============ EXTENDED DATA: EQUIPMENT / RUNE SYSTEM ============ */
+const RUNE_TYPES={
+  attack:{name:'Runa Ataku',icon:'⚔️',color:'#ff4a4a',maxLevel:5,
+    levels:[{bonus:.05,desc:'+5% obrażeń'},{bonus:.12,desc:'+12% obrażeń'},{bonus:.20,desc:'+20% obrażeń'},{bonus:.30,desc:'+30% obrażeń'},{bonus:.45,desc:'+45% obrażeń'}]},
+  defense:{name:'Runa Obrony',icon:'🛡️',color:'#4adaff',maxLevel:5,
+    levels:[{bonus:.05,desc:'+5% HP'},{bonus:.12,desc:'+12% HP'},{bonus:.20,desc:'+20% HP'},{bonus:.30,desc:'+30% HP'},{bonus:.45,desc:'+45% HP'}]},
+  speed:{name:'Runa Szybkości',icon:'💨',color:'#4aff7a',maxLevel:5,
+    levels:[{bonus:.03,desc:'+3% prędkość'},{bonus:.06,desc:'+6% prędkość'},{bonus:.10,desc:'+10% prędkość'},{bonus:.15,desc:'+15% prędkość'},{bonus:.22,desc:'+22% prędkość'}]},
+  crit:{name:'Runa Krytyka',icon:'💥',color:'#ffd24a',maxLevel:5,
+    levels:[{bonus:.02,desc:'+2% krytyk'},{bonus:.04,desc:'+4% krytyk'},{bonus:.07,desc:'+7% krytyk'},{bonus:.10,desc:'+10% krytyk'},{bonus:.15,desc:'+15% krytyk'}]},
+  lifesteal:{name:'Runa Wampiryzmu',icon:'🩸',color:'#cc2a3a',maxLevel:5,
+    levels:[{bonus:.02,desc:'+2% kradzież życia'},{bonus:.04,desc:'+4% kradzież życia'},{bonus:.07,desc:'+7% kradzież życia'},{bonus:.10,desc:'+10% kradzież życia'},{bonus:.15,desc:'+15% kradzież życia'}]},
+  cooldown:{name:'Runa Gotowości',icon:'⏱️',color:'#aa7aff',maxLevel:5,
+    levels:[{bonus:.03,desc:'-3% czas odnowienia'},{bonus:.06,desc:'-6% czas odnowienia'},{bonus:.10,desc:'-10% czas odnowienia'},{bonus:.15,desc:'-15% czas odnowienia'},{bonus:.22,desc:'-22% czas odnowienia'}]},
+  shadow:{name:'Runa Cienia',icon:'🌑',color:'#7a4aff',maxLevel:5,
+    levels:[{bonus:.05,desc:'+5% czas cienia'},{bonus:.12,desc:'+12% czas cienia'},{bonus:.20,desc:'+20% czas cienia'},{bonus:.30,desc:'+30% czas cienia'},{bonus:.45,desc:'+45% czas cienia'}]},
+  explosion:{name:'Runa Eksplozji',icon:'💣',color:'#ff5a2a',maxLevel:5,
+    levels:[{bonus:.05,desc:'5% szans na eksplozję'},{bonus:.10,desc:'10% szans na eksplozję'},{bonus:.18,desc:'18% szans na eksplozję'},{bonus:.25,desc:'25% szans na eksplozję'},{bonus:.35,desc:'35% szans na eksplozję'}]}
+};
+const RUNE_SLOTS=3;
+const RUNE_DROP_CHANCES={common:.02,rare:.04,epic:.06,mythic:.08,legendary:.10,ultimate:.12,unknown:.15,secret:.20};
+
+/* ============ BESTIARY DATA ============ */
+const BESTIARY={
+  zombie:{name:'Zombie',lore:'Ożywieni przez mroczną magię, powoli ale niestrudzenie dążą do ofiar. Ich gnijące ciała emanują toksycznym gazem.',weakness:'fire',strength:'poison',drops:['kość','gnijące mięso','zardzewiały hełm'],firstSeen:1},
+  skeleton:{name:'Szkielet',lore:'Powstali z kości dawnych wojowników areny. Szybsi niż zombies, atakują starymi broniami.',weakness:'holy',strength:'ice',drops:['pęknięta czaszka','kościany miecz','rdzewiena tarcza'],firstSeen:1},
+  bat:{name:'Nietoperz',lore:'Latające stworzenia ciemności. Szybkie i trudne do trafienia, atakują w stadach.',weakness:'lightning',strength:'shadow',drops:['skrzydło nietoperza','kieł wampira','ectoplazma'],firstSeen:3},
+  demon:{name:'Demon',lore:'Przyzwani z piekielnych wymiarów, posiadają ogromną siłę i odporność na ogień.',weakness:'ice',strength:'fire',drops:['róg demona','piekielna esencja','płonący kamień'],firstSeen:5},
+  imp:{name:'Chochlik',lore:'Mniejsze demony, szybkie i zwinne. Podstępne i trudne do złapania.',weakness:'nature',strength:'chaos',drops:['chochlikowy ogon','ognisty proszek','szklane oko'],firstSeen:3},
+  spider:{name:'Pająk',lore:'Gigantyczne pajęczaki z areny. Zatruwają ofiary jadem i oplatają siecią.',weakness:'fire',strength:'nature',drops:['jedwab pająka','jad','chitynowy pancerz'],firstSeen:4},
+  golem:{name:'Golem',lore:'Ożywione kamienne konstrukty. Powolne ale niemal niezniszczalne, ich ciosy druzgocą.',weakness:'void',strength:'lightning',drops:['kamienne serce','runiczna płytka','kryształ mocy'],firstSeen:8},
+  brute:{name:'Brutal',lore:'Prymitywne bestie o ogromnej sile. Szarżują na wroga bez namysłu.',weakness:'ice',strength:'nature',drops:['kieł bestii','surowa skóra','kość giganta'],firstSeen:6},
+  widmo:{name:'Widmo',lore:'Duchy dawnych wojowników areny. Przechodzą przez ściany i obrażenia fizyczne.',weakness:'holy',strength:'shadow',drops:['ectoplazma','duszna esencja','mglisty kryształ'],firstSeen:10},
+  banshee:{name:'Banshee',lore:'Demoniczne syreny, których krzyk paraliżuje i rani. Atakują z dystansu.',weakness:'fire',strength:'void',drops:['głos banshee','duszna aura','kryształ krzyku'],firstSeen:10},
+  smok:{name:'Smok',lore:'Potężne gady z ognistym oddechem. Latają i atakują z powietrza.',weakness:'ice',strength:'fire',drops:['smocza łuska','smoczy ząb','ognista perła'],firstSeen:15},
+  reaper:{name:'Żniwiarz',lore:'Uosobienie śmierci. Ich kosa pożera duszę ofiary z jednego ciosu.',weakness:'holy',strength:'void',drops:['żniwna kosa','czarna esencja','dusz fragment'],firstSeen:12}
+};
+
+/* ============ LORE ENTRIES ============ */
+const LORE_ENTRIES=[
+  {id:'arena',title:'Arena Cieni',text:'Starożytne miejsce walki, gdzie wojownicy z różnych wymiarów mierzą się w niekończących się bitwach. Arena pulsuje mroczną energią, która ożywia poległych i przywołuje nowe zagrożenia.'},
+  {id:'clans',title:'Dziesięć Klanów',text:'Dziesięć wielkich klanów rządzi światem Areny. Każdy kontroluje inny aspekt mocy: Cień, Ogień, Lód, Piorun, Natura, Otchłań, Krew, Chaos, Światło i Kosmos.'},
+  {id:'shadows',title:'Cienie-Słudzy',text:'Manifestacje mrocznej energii areny, które mogą służyć potężnym wojownikom. Tylko wybrani władają mocą przyzywania cieni do walki u swojego boku.'},
+  {id:'runes',title:'Pradawne Runy',text:'Fragmenty starożytnej magii wyryte w kamieniach areny. Wojownicy mogą je wprawiać w swoją broń i zbroję, aby zyskać nadprzyrodzoną moc.'},
+  {id:'secret',title:'Mistrz Cieni',text:'Legendarny wojownik, którego twarz jest pustką — samym cieniem. Mówi się, że istnieje między wymiarami, nigdy w pełni tu, nigdy w pełni tam.'},
+  {id:'bosses',title:'Strażnicy Fal',text:'Potężne istoty przyzywane co piątą falę. Każdy strażnik testuje wojownika w inny sposób — siłą, szybkością, podstępem.'},
+  {id:'waves',title:'Fale Cienia',text:'Arena pulsuje w cyklach, każda fala przynosząc silniejszych wrogów. Mroczna energia karmi się walką, tworząc niekończący się vortex przemocy.'},
+  {id:'coins',title:'Monety Areny',text:'Zdobywane za pokonywanie wrogów, monety areny pozwalają kupować skrzynie i ulepszenia. Im dalej zajdziesz, tym więcej zarobisz.'},
+  {id:'gems',title:'Klejnoty Mocy',text:'Rzadkie kryształy, które można zdobyć osiągając kamienie milowe. Pozwalają na zakup najcenniejszych skrzyń.'},
+  {id:'fusion',title:'Fuzja Bohaterów',text:'Zaawansowana technika łączenia dwóch bohaterów w jednego, potężniejszego. Wymaga specyficznych kombinacji klanów i rzadkości.'}
+];
+
+/* ============ CHALLENGE MODE DATA ============ */
+const WEEKLY_CHALLENGES=[
+  {id:'fire_only',name:'Ognista Arena',desc:'Tylko postacie z klanu Ognia. Wrogowie mają +20% HP.',clan:'fire',hpMul:1.2,reward:{coins:1000,gems:5}},
+  {id:'ice_only',name:'Lodowa Arena',desc:'Tylko postacie z klanu Lodu. Wrogowie są szybsi o 30%.',clan:'ice',spdMul:1.3,reward:{coins:1000,gems:5}},
+  {id:'shadow_only',name:'Arena Cieni',desc:'Tylko postacie z klanu Cienia. Widoczność ograniczona.',clan:'shadow',fogMul:2,reward:{coins:1200,gems:8}},
+  {id:'no_shield',name:'Bez Tarczy',desc:'Nie możesz używać tarczy. Wrogowie mają -10% HP.',noShield:true,hpMul:.9,reward:{coins:800,gems:4}},
+  {id:'boss_marathon',name:'Maraton Bossów',desc:'5 bossów pod rząd, rosnąca trudność.',bossOnly:true,reward:{coins:2000,gems:15}},
+  {id:'melee_only',name:'Tylko Wręcz',desc:'Ranged i AoE ataki wyłączone.',meleeOnly:true,reward:{coins:900,gems:6}},
+  {id:'speed_run',name:'Bieg na Czas',desc:'Ukończ 10 fal w 3 minuty.',timeLimit:180,waveCap:10,reward:{coins:1500,gems:10}},
+  {id:'survival_extreme',name:'Ekstremalne Przetrwanie',desc:'Wrogowie +50% HP, +30% DMG. Brak powerupów.',hpMul:1.5,dmgMul:1.3,noPowerups:true,reward:{coins:2500,gems:20}}
+];
+
+/* ============ SKIN SYSTEM DATA ============ */
+const SKIN_THEMES=[
+  {id:'default',name:'Domyślny',color:'inherit',unlock:'always'},
+  {id:'neon',name:'Neon',color:'#00ff88',unlock:'wave20',desc:'Neonowa poświata. Odblokuj: Fala 20.'},
+  {id:'golden',name:'Złoty',color:'#ffd24a',unlock:'kills1000',desc:'Złota aura. Odblokuj: 1000 zabójstw.'},
+  {id:'crimson',name:'Szkarłat',color:'#ff2a4a',unlock:'boss10',desc:'Krwista aura. Odblokuj: 10 bossów pokonanych.'},
+  {id:'phantom',name:'Fantom',color:'#7a4aff',unlock:'shadow50',desc:'Widmowa aura. Odblokuj: 50 rund z cieniami.'},
+  {id:'prismatic',name:'Pryzmat',color:'rainbow',unlock:'all_clans',desc:'Tęczowa aura. Odblokuj: postać z każdego klanu.'},
+  {id:'void',name:'Pustka',color:'#2a1a4a',unlock:'void_boss',desc:'Aura nicości. Odblokuj: pokonaj Lorda Otchłani.'},
+  {id:'divine',name:'Boski',color:'#ffffff',unlock:'wave50',desc:'Boska poświata. Odblokuj: Fala 50.'}
+];
+
+/* ============ TITLE SYSTEM DATA ============ */
+const PLAYER_TITLES=[
+  {id:'novice',name:'Nowicjusz',req:{},desc:'Każdy gdzieś zaczyna'},
+  {id:'warrior',name:'Wojownik',req:{kills:100},desc:'100 zabójstw'},
+  {id:'veteran',name:'Weteran',req:{kills:500,highWave:15},desc:'500 zabójstw, fala 15'},
+  {id:'champion',name:'Czempion',req:{kills:2000,highWave:25},desc:'2000 zabójstw, fala 25'},
+  {id:'legend',name:'Legenda',req:{kills:5000,highWave:40},desc:'5000 zabójstw, fala 40'},
+  {id:'shadow_lord',name:'Władca Cieni',req:{kills:10000,highWave:50,collected:50},desc:'10000 zabójstw, fala 50, 50 bohaterów'},
+  {id:'boss_slayer',name:'Pogromca Bossów',req:{bossesKilled:50},desc:'50 bossów pokonanych'},
+  {id:'collector',name:'Kolekcjoner',req:{collected:30},desc:'30 bohaterów'},
+  {id:'master_collector',name:'Mistrz Kolekcji',req:{collected:60},desc:'Wszystkie 60 bohaterów'},
+  {id:'speedster',name:'Biegacz',req:{timeAttackScore:200},desc:'200 zabójstw w trybie na czas'},
+  {id:'untouchable',name:'Nietykalny',req:{noHitWave:10},desc:'Przeżyj 10 fal bez obrażeń'},
+  {id:'ascended',name:'Wyniesiony',req:{level:50},desc:'Osiągnij poziom 50'}
+];
+
+/* ============ DAILY BONUS REWARDS ============ */
+const DAILY_BONUS_REWARDS=[
+  {day:1,reward:{coins:50},emoji:'🪙',desc:'50 monet'},
+  {day:2,reward:{coins:100},emoji:'🪙',desc:'100 monet'},
+  {day:3,reward:{coins:150,gems:1},emoji:'💎',desc:'150 monet + 1 klejnot'},
+  {day:4,reward:{coins:200},emoji:'🪙',desc:'200 monet'},
+  {day:5,reward:{coins:250,gems:2},emoji:'💎',desc:'250 monet + 2 klejnoty'},
+  {day:6,reward:{coins:300},emoji:'🪙',desc:'300 monet'},
+  {day:7,reward:{coins:500,gems:5},emoji:'🎁',desc:'500 monet + 5 klejnotów + Skrzynia Cienia'},
+  {day:14,reward:{coins:1000,gems:10},emoji:'🏆',desc:'1000 monet + 10 klejnotów'},
+  {day:30,reward:{coins:3000,gems:25},emoji:'👑',desc:'3000 monet + 25 klejnotów + Skrzynia Legend'}
+];
+
+/* ============ TUTORIAL STEPS ============ */
+const TUTORIAL_STEPS=[
+  {title:'Witaj w Arenie!',text:'Arena Cieni to survival arena — walcz z falami wrogów, zbieraj monety i otwieraj bohaterów.',emoji:'⚔️'},
+  {title:'Sterowanie',text:'WASD — ruch, Mysz — celowanie, LPM — atak, Q — super atak, E — tarcza, R — forma cienia, Shift — sprint.',emoji:'🎮'},
+  {title:'Fale',text:'Wrogowie przychodzą falami. Co 5 fal pojawia się boss. Przetrwaj jak najdłużej!',emoji:'🌊'},
+  {title:'Bohaterowie',text:'Odblokuj 60 unikalnych bohaterów z 10 klanów. Każdy ma inne umiejętności i styl walki.',emoji:'👥'},
+  {title:'Skrzynie',text:'Za monety kupuj skrzynie, aby odblokować nowych bohaterów. Rzadsze skrzynie dają lepszych bohaterów.',emoji:'📦'},
+  {title:'Cienie',text:'Niektórzy bohaterowie mogą przywoływać cienie-sługi, które walczą u ich boku.',emoji:'👻'},
+  {title:'Runy',text:'Zbieraj runy z walki i wprawiaj je w bohaterów, aby wzmocnić ich statystyki.',emoji:'🔮'},
+  {title:'Talenty',text:'Za punkty talentów (z levelowania) kupuj stałe ulepszenia w drzewku talentów.',emoji:'🌟'},
+  {title:'Powodzenia!',text:'Teraz wiesz wszystko. Idź i podbij Arenę Cieni!',emoji:'💪'}
+];
+
+/* ============ ARENA DECORATION TEMPLATES ============ */
+const ARENA_DECOR_TEMPLATES={
+  shadow:{
+    pillars:'cylinder',pillarEmissive:.15,
+    floorPattern:'pentagrams',floorGlow:.2,
+    crystals:'floating',crystalColor:'#7a4aff',
+    props:['tombstone','candelabra','chains','altar_dark'],
+    ambientParticles:'wisps',particleColor:'#9a5aff'
+  },
+  inferno:{
+    pillars:'lava_column',pillarEmissive:.3,
+    floorPattern:'cracks',floorGlow:.4,
+    crystals:'embedded',crystalColor:'#ff5a2a',
+    props:['lava_pool','fire_pillar','skull_pile','demon_statue'],
+    ambientParticles:'embers',particleColor:'#ff7a2a'
+  },
+  frost:{
+    pillars:'ice_spire',pillarEmissive:.1,
+    floorPattern:'frost_veins',floorGlow:.15,
+    crystals:'ice_formation',crystalColor:'#4adaff',
+    props:['frozen_warrior','icicle','snow_mound','frozen_fountain'],
+    ambientParticles:'snowflakes',particleColor:'#dfffff'
+  },
+  void:{
+    pillars:'obsidian',pillarEmissive:.2,
+    floorPattern:'void_runes',floorGlow:.25,
+    crystals:'void_shard',crystalColor:'#4a2aaa',
+    props:['rift','floating_rock','void_tentacle','broken_obelisk'],
+    ambientParticles:'fragments',particleColor:'#6a3aaa'
+  },
+  blood:{
+    pillars:'bone',pillarEmissive:.15,
+    floorPattern:'blood_veins',floorGlow:.3,
+    crystals:'blood_gem',crystalColor:'#cc2a3a',
+    props:['blood_pool','bone_pile','hanging_cage','sacrifice_altar'],
+    ambientParticles:'blood_drops',particleColor:'#cc4a5a'
+  },
+  cosmic:{
+    pillars:'crystal',pillarEmissive:.2,
+    floorPattern:'constellations',floorGlow:.2,
+    crystals:'star',crystalColor:'#aa8aff',
+    props:['star_gate','crystal_formation','nebula_sphere','planet_model'],
+    ambientParticles:'star_dust',particleColor:'#aaccff'
+  }
+};
 /* Audio engine */
 const Audio2=(function(){
 let ctx=null,master=null,musicGain=null,sfxGain=null,musicOn=false,musicTimer=0;
