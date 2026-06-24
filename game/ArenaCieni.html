@@ -323,9 +323,18 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
       <div class="menu-row">
         <button class="btn ghost small" onclick="ACshow('talents')">🌟 Talenty</button>
         <button class="btn ghost small" onclick="ACshow('tasks')">📋 Zadania</button>
-        <button class="btn ghost small" onclick="ACopenSettings()">⚙️ Ustawienia</button>
+        <button class="btn ghost small" onclick="ACshow('runes')">🔮 Runy</button>
       </div>
-      <button class="btn ghost small" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
+      <div class="menu-row">
+        <button class="btn ghost small" onclick="ACshow('bestiary')">📖 Bestiariusz</button>
+        <button class="btn ghost small" onclick="ACshow('lore')">📜 Wiedza</button>
+        <button class="btn ghost small" onclick="ACshow('stats')">📊 Statystyki</button>
+      </div>
+      <div class="menu-row">
+        <button class="btn ghost small" onclick="ACshow('challenges')">🏆 Wyzwania</button>
+        <button class="btn ghost small" onclick="ACopenSettings()">⚙️ Ustawienia</button>
+        <button class="btn ghost small" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
+      </div>
     </div>
   </div>
 
@@ -351,6 +360,32 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
     <div class="scr-head"><div class="scr-title">🌟 Talenty</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
     <div class="coin-pill" style="margin-bottom:12px">Punkty: <b id="tal-pts" style="color:#ffd24a;margin-left:4px">0</b></div>
     <div id="tal-list" style="width:min(560px,94vw);padding-bottom:80px"></div>
+  </div>
+
+  <div class="screen" id="scr-bestiary">
+    <div class="scr-head"><div class="scr-title">📖 Bestiariusz</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
+    <div id="bestiary-list" style="width:min(660px,94vw);padding-bottom:80px"></div>
+  </div>
+
+  <div class="screen" id="scr-lore">
+    <div class="scr-head"><div class="scr-title">📜 Wiedza</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
+    <div id="lore-list" style="width:min(660px,94vw);padding-bottom:80px"></div>
+  </div>
+
+  <div class="screen" id="scr-runes">
+    <div class="scr-head"><div class="scr-title">🔮 Runy</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
+    <div id="rune-inventory" style="width:min(660px,94vw)"></div>
+    <div id="rune-list" style="width:min(660px,94vw);padding-bottom:80px"></div>
+  </div>
+
+  <div class="screen" id="scr-stats">
+    <div class="scr-head"><div class="scr-title">📊 Statystyki</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
+    <div id="stats-body" style="width:min(560px,94vw);padding-bottom:80px"></div>
+  </div>
+
+  <div class="screen" id="scr-challenges">
+    <div class="scr-head"><div class="scr-title">🏆 Wyzwania</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
+    <div id="challenge-list" style="width:min(660px,94vw);padding-bottom:80px"></div>
   </div>
 
   <div class="screen" id="scr-tasks">
@@ -960,7 +995,7 @@ const $=id=>document.getElementById(id);
 
 /* ============ UI NAV ============ */
 let curScreen='menu';
-window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); };
+window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); };
 function refreshMenu(){ $('m-coins').textContent=state.coins; $('m-gems').textContent=state.gems; $('m-collected').textContent=state.unlockedIds.size; $('m-lvl').textContent=state.level; const need=xpForLevel(state.level); $('m-xp').textContent=state.xp+'/'+need+' XP'; $('m-xpfill').style.width=Math.min(100,state.xp/need*100)+'%'; }
 window.ACcloseModal=function(n){ Audio2.sfx.click(); $('modal-'+n).classList.remove('active'); };
 function openModal(n){ $('modal-'+n).classList.add('active'); }
@@ -1163,6 +1198,158 @@ function renderCharSel(){
     g.appendChild(card);
   });
 }
+/* ============ BESTIARY SCREEN ============ */
+function renderBestiary(){
+  const el=$('bestiary-list');if(!el)return;
+  let html='';
+  for(const[key,mob] of Object.entries(BESTIARY)){
+    const def=MOB_TYPES[key];if(!def)continue;
+    const seen=state.totalKills>0||state.highWave>=mob.firstSeen;
+    html+=`<div class="talent-node" style="border-color:${seen?def.color:'rgba(122,74,255,.15)'}">
+      <div class="talent-ic" style="font-size:36px;filter:${seen?'none':'grayscale(1) brightness(.5)'}">${def.emoji}</div>
+      <div class="talent-body">
+        <div class="tn-name" style="color:${seen?def.color:'#555'}">${seen?mob.name:'???'}</div>
+        <div class="tn-desc">${seen?mob.lore:'Pokonaj tego wroga, aby odblokować informacje.'}</div>
+        ${seen?`<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+          <span style="font-size:10px;color:#ff6a4a">❤️ ${def.hp} HP</span>
+          <span style="font-size:10px;color:#ffd24a">⚔️ ${def.dmg} DMG</span>
+          <span style="font-size:10px;color:#4adaff">💨 ${def.speed} SPD</span>
+          <span style="font-size:10px;color:#4aff7a">💀 Słabość: ${mob.weakness}</span>
+          <span style="font-size:10px;color:#ff4a8a">🛡️ Odporność: ${mob.strength}</span>
+        </div>
+        <div style="margin-top:4px;font-size:10px;color:#9a8ac8">Pojawia się od fali ${mob.firstSeen}</div>
+        <div style="margin-top:3px;font-size:10px;color:#ffd24a">Łupy: ${mob.drops.join(', ')}</div>`:''}
+      </div>
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
+/* ============ LORE SCREEN ============ */
+function renderLore(){
+  const el=$('lore-list');if(!el)return;
+  let html='';
+  LORE_ENTRIES.forEach(entry=>{
+    html+=`<div class="talent-node" style="border-color:rgba(122,74,255,.3)">
+      <div class="talent-ic">📜</div>
+      <div class="talent-body">
+        <div class="tn-name" style="color:#d9b8ff">${entry.title}</div>
+        <div class="tn-desc" style="line-height:1.5;margin-top:4px">${entry.text}</div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+/* ============ RUNES SCREEN ============ */
+function renderRunes(){
+  const inv=$('rune-inventory');const list=$('rune-list');
+  if(!inv||!list)return;
+  if(!state.runes)state.runes={};
+  let invHtml='<div style="font-family:Cinzel,serif;font-size:16px;color:#d9b8ff;margin-bottom:10px">Twoje Runy</div>';
+  invHtml+='<div class="inv-grid">';
+  for(let i=0;i<15;i++){
+    const rune=state.runes['slot'+i];
+    if(rune){
+      const def=RUNE_TYPES[rune.type];
+      invHtml+=`<div class="inv-slot" style="border-color:${def.color}40" onclick="ACruneDetail('slot${i}')">
+        <div class="inv-rarity" style="background:${def.color}"></div>
+        ${def.icon}<div class="inv-count">Lv${rune.level+1}</div>
+      </div>`;
+    }else{
+      invHtml+=`<div class="inv-slot" style="opacity:.4">-</div>`;
+    }
+  }
+  invHtml+='</div>';
+  inv.innerHTML=invHtml;
+
+  let listHtml='<div style="font-family:Cinzel,serif;font-size:16px;color:#d9b8ff;margin:16px 0 10px">Typy Run</div>';
+  for(const[key,rune] of Object.entries(RUNE_TYPES)){
+    listHtml+=`<div class="talent-node" style="border-color:${rune.color}40">
+      <div class="talent-ic" style="font-size:28px">${rune.icon}</div>
+      <div class="talent-body">
+        <div class="tn-name" style="color:${rune.color}">${rune.name}</div>
+        <div class="tn-desc">${rune.levels.map((l,i)=>`<span style="color:${i<3?'#9a8ac8':'#ffd24a'}">${l.desc}</span>`).join(' → ')}</div>
+      </div>
+    </div>`;
+  }
+  list.innerHTML=listHtml;
+}
+
+/* ============ STATS SCREEN ============ */
+function renderStats(){
+  const el=$('stats-body');if(!el)return;
+  const s=state.stats||{};
+  const stats=[
+    ['Łączne zabójstwa',state.totalKills||0,'#ff4a4a'],
+    ['Najwyższa fala',state.highWave||0,'#4adaff'],
+    ['Bossowie pokonani',s.bossesKilled||0,'#ffd24a'],
+    ['Czas gry',Math.floor((s.timePlayed||0)/60)+' min','#4aff7a'],
+    ['Najlepsze combo',s.bestCombo||0,'#ff8a2a'],
+    ['Celne krytyki',s.critsLanded||0,'#ffd24a'],
+    ['Odblokowane postacie',state.unlockedIds?state.unlockedIds.size:0,'#b44aff'],
+    ['Poziom gracza',state.level||1,'#aa7aff'],
+    ['Łączne monety',state.totalCoins||state.coins||0,'#ffd24a'],
+    ['Łączne klejnoty',state.gems||0,'#4adaff']
+  ];
+  let html='';
+  stats.forEach(([label,val,color])=>{
+    html+=`<div class="go-stat"><span>${label}</span><b style="color:${color}">${val}</b></div>`;
+  });
+  // title
+  let currentTitle='Nowicjusz';
+  PLAYER_TITLES.forEach(t=>{
+    let unlocked=true;
+    if(t.req.kills&&(state.totalKills||0)<t.req.kills)unlocked=false;
+    if(t.req.highWave&&(state.highWave||0)<t.req.highWave)unlocked=false;
+    if(t.req.collected&&(state.unlockedIds?state.unlockedIds.size:0)<t.req.collected)unlocked=false;
+    if(t.req.bossesKilled&&(s.bossesKilled||0)<t.req.bossesKilled)unlocked=false;
+    if(t.req.level&&(state.level||1)<t.req.level)unlocked=false;
+    if(unlocked)currentTitle=t.name;
+  });
+  html=`<div style="text-align:center;margin-bottom:16px">
+    <div style="font-family:Cinzel,serif;font-size:14px;color:#9a8ac8;letter-spacing:3px">TYTUŁ</div>
+    <div style="font-family:Cinzel,serif;font-size:24px;color:#ffd24a;margin-top:4px">${currentTitle}</div>
+  </div>`+html;
+  // titles list
+  html+='<div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff;margin:16px 0 8px;letter-spacing:2px">TYTUŁY</div>';
+  PLAYER_TITLES.forEach(t=>{
+    let unlocked=true;
+    for(const[k,v] of Object.entries(t.req)){
+      if(k==='kills'&&(state.totalKills||0)<v)unlocked=false;
+      if(k==='highWave'&&(state.highWave||0)<v)unlocked=false;
+      if(k==='collected'&&(state.unlockedIds?state.unlockedIds.size:0)<v)unlocked=false;
+      if(k==='bossesKilled'&&(s.bossesKilled||0)<v)unlocked=false;
+      if(k==='level'&&(state.level||1)<v)unlocked=false;
+    }
+    html+=`<div class="go-stat" style="border-color:${unlocked?'rgba(255,210,74,.4)':'rgba(122,74,255,.15)'}">
+      <span style="color:${unlocked?'#ffd24a':'#555'}">${unlocked?'✅':'🔒'} ${t.name}</span>
+      <b style="color:#9a8ac8;font-size:11px">${t.desc}</b>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+/* ============ CHALLENGES SCREEN ============ */
+function renderChallenges(){
+  const el=$('challenge-list');if(!el)return;
+  let html='<div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff;margin-bottom:12px;letter-spacing:2px">TYGODNIOWE WYZWANIA</div>';
+  WEEKLY_CHALLENGES.forEach(ch=>{
+    const completed=state.completedChallenges&&state.completedChallenges.includes(ch.id);
+    html+=`<div class="talent-node" style="border-color:${completed?'rgba(74,255,122,.4)':'rgba(122,74,255,.25)'}">
+      <div class="talent-ic" style="font-size:28px">${completed?'✅':'🏆'}</div>
+      <div class="talent-body">
+        <div class="tn-name" style="color:${completed?'#4aff7a':'#d9b8ff'}">${ch.name}</div>
+        <div class="tn-desc">${ch.desc}</div>
+        <div style="margin-top:4px;font-size:11px;color:#ffd24a">
+          Nagroda: ${ch.reward.coins?ch.reward.coins+' 🪙':''}${ch.reward.gems?' + '+ch.reward.gems+' 💎':''}
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
 window.ACgoPlay=function(){ Audio2.init(); if(!state.tutorialSeen){ showTutorial(); } else { ACshow('modes'); } };
 /* ============ TUTORIAL ============ */
 function showTutorial(){
