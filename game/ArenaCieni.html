@@ -2484,7 +2484,434 @@ function addProceduralDecor(theme,arenaGroup){
   }
 }
 
-/* ============ LIGHTING ============ */
+/* ============ PORTAL EFFECTS ============ */
+let portalMeshes=[];
+function createPortal(x,y,z,color,radius,life){
+  const c=new THREE.Color(color);
+  const group=new THREE.Group();
+  const portalMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    uniforms:{uColor:{value:c},uTime:{value:0},uRadius:{value:radius||2}},
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform vec3 uColor;uniform float uTime;uniform float uRadius;varying vec2 vUv;
+      void main(){
+        vec2 c=vUv-0.5;float d=length(c)*2.0;
+        float ring=smoothstep(0.8,0.85,d)*smoothstep(1.0,0.95,d);
+        float swirl=sin(atan(c.y,c.x)*6.0+uTime*3.0)*0.5+0.5;
+        float inner=smoothstep(0.8,0.3,d)*0.3;
+        float pattern=ring*swirl+inner;
+        gl_FragColor=vec4(uColor*1.5,pattern*0.8);
+      }`
+  });
+  const portalDisc=new THREE.Mesh(new THREE.CircleGeometry(radius||2,32),portalMat);
+  group.add(portalDisc);
+  for(let i=0;i<3;i++){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry((radius||2)-.2+i*.2,.05,8,32),
+      basicMat(c,{transparent:true,opacity:.6-i*.15,blending:THREE.AdditiveBlending,depthWrite:false}));
+    ring.userData.speed=1.5+i*.5;ring.userData.axis=i;
+    group.add(ring);
+  }
+  const portalLight=new THREE.PointLight(c.getHex(),3,(radius||2)*4);
+  group.add(portalLight);
+  group.position.set(x,y,z);
+  group.lookAt(x,y+5,z+.01);
+  scene.add(group);
+  portalMeshes.push({group,mat:portalMat,life:life||5,maxLife:life||5,portalLight});
+}
+function updatePortals(dt,t){
+  for(let i=portalMeshes.length-1;i>=0;i--){
+    const p=portalMeshes[i];
+    p.life-=dt;p.mat.uniforms.uTime.value=t;
+    const frac=Math.min(1,p.life/p.maxLife*3);
+    p.group.children.forEach(ch=>{
+      if(ch.userData&&ch.userData.speed!==undefined){
+        if(ch.userData.axis===0)ch.rotation.z+=ch.userData.speed*dt;
+        else if(ch.userData.axis===1)ch.rotation.x+=ch.userData.speed*dt;
+        else ch.rotation.y+=ch.userData.speed*dt;
+      }
+      if(ch.material&&ch.material.opacity!==undefined)ch.material.opacity*=frac;
+    });
+    p.portalLight.intensity=frac*3;
+    if(p.life<=0){scene.remove(p.group);portalMeshes.splice(i,1);}
+  }
+}
+
+/* ============ CHAIN LIGHTNING VFX ============ */
+function createChainLightning(targets,color,damage){
+  if(!targets||targets.length<2)return;
+  const c=new THREE.Color(color||'#ffe24a');
+  for(let i=0;i<targets.length-1;i++){
+    const t1=targets[i],t2=targets[i+1];
+    createLightningBolt(t1.x,t1.y||1.5,t1.z,t2.x,t2.y||1.5,t2.z,c.getHex(),6,.3,.08);
+    burst(t2.x,t2.y||1.5,t2.z,c,6,3,{life:.3});
+    CombatLighting.flash(t2.x,t2.y||1.5,t2.z,c,2,8,.2);
+  }
+}
+
+/* ============ FIRE TRAIL SYSTEM ============ */
+let fireTrails=[];
+function createFireTrail(x,z,color,radius,duration){
+  const c=new THREE.Color(color||'#ff5a2a');
+  const geo=new THREE.CircleGeometry(radius||1.5,16);
+  const fireMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    uniforms:{uColor:{value:c},uTime:{value:0},uLife:{value:1}},
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform vec3 uColor;uniform float uTime;uniform float uLife;varying vec2 vUv;
+      float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);
+        return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+      void main(){
+        vec2 c2=vUv-0.5;float d=length(c2)*2.0;
+        float n=noise(c2*4.0+vec2(0.0,uTime*2.0))*0.8;
+        float fire=smoothstep(1.0,0.3,d)*n;
+        fire*=uLife;
+        vec3 col=mix(uColor,vec3(1.0,0.8,0.2),fire*0.5);
+        gl_FragColor=vec4(col,fire*0.5);
+      }`
+  });
+  const mesh=new THREE.Mesh(geo,fireMat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,.06,z);
+  scene.add(mesh);
+  fireTrails.push({mesh,mat:fireMat,life:duration||3,maxLife:duration||3,x,z,dmgCD:0});
+}
+function updateFireTrails(dt,t){
+  for(let i=fireTrails.length-1;i>=0;i--){
+    const ft=fireTrails[i];
+    ft.life-=dt;
+    ft.mat.uniforms.uTime.value=t;
+    ft.mat.uniforms.uLife.value=ft.life/ft.maxLife;
+    if(Math.random()<.1)spawnParticle(ft.x+(Math.random()-.5)*1.5,.2,ft.z+(Math.random()-.5)*1.5,
+      new THREE.Color('#ff6a2a'),{life:.4+Math.random()*.3,vy:1.5+Math.random()*2,size:.06,shrink:.95,grav:.5});
+    if(ft.life<=0){scene.remove(ft.mesh);ft.mesh.geometry.dispose();ft.mat.dispose();fireTrails.splice(i,1);}
+  }
+}
+
+/* ============ ICE CRYSTAL FORMATION ============ */
+let iceCrystals=[];
+function createIceCrystalFormation(x,z,count,radius,life){
+  const group=new THREE.Group();
+  const c=new THREE.Color('#4adaff');
+  for(let i=0;i<(count||5);i++){
+    const a=i/(count||5)*Math.PI*2+Math.random()*.3;
+    const r=Math.random()*(radius||2);
+    const crystal=new THREE.Mesh(SG.octa,
+      new THREE.MeshStandardMaterial({color:c,metalness:.9,roughness:.1,emissive:c,emissiveIntensity:.5,transparent:true,opacity:.8}));
+    crystal.scale.set(.08+Math.random()*.1,.3+Math.random()*.6,.08+Math.random()*.1);
+    crystal.position.set(Math.cos(a)*r,crystal.scale.y*.5,Math.sin(a)*r);
+    crystal.rotation.set(Math.random()*.3,0,Math.random()*.3);
+    group.add(crystal);
+  }
+  const glow=new THREE.PointLight(c.getHex(),1.5,(radius||2)*3);
+  glow.position.y=.5;group.add(glow);
+  const base=new THREE.Mesh(new THREE.CircleGeometry((radius||2)*.8,12),
+    basicMat(c,{transparent:true,opacity:.2,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+  base.rotation.x=-Math.PI/2;base.position.y=.02;group.add(base);
+  group.position.set(x,0,z);
+  scene.add(group);
+  iceCrystals.push({group,life:life||4,maxLife:life||4,growT:0});
+}
+function updateIceCrystals(dt){
+  for(let i=iceCrystals.length-1;i>=0;i--){
+    const ic=iceCrystals[i];
+    ic.life-=dt;
+    ic.growT=Math.min(1,ic.growT+dt*3);
+    const growScale=ic.growT;
+    const fadeScale=Math.min(1,ic.life/ic.maxLife*3);
+    ic.group.scale.setScalar(growScale*fadeScale);
+    ic.group.children.forEach(ch=>{
+      if(ch.material&&ch.material.emissiveIntensity!==undefined)
+        ch.material.emissiveIntensity=.3+Math.sin(performance.now()*.005+i)*.2;
+    });
+    if(ic.life<=0){
+      burst(ic.group.position.x,.5,ic.group.position.z,new THREE.Color('#4adaff'),10,4,{life:.4,grav:3});
+      scene.remove(ic.group);iceCrystals.splice(i,1);
+    }
+  }
+}
+
+/* ============ BLOOD SPLATTER SYSTEM ============ */
+let bloodSplatters=[];
+function createBloodSplatter(x,z,color,radius){
+  const c=new THREE.Color(color||'#cc2a3a');
+  const geo=new THREE.CircleGeometry(radius||1,8);
+  const splatMat=new THREE.MeshStandardMaterial({
+    color:c,metalness:.1,roughness:.9,emissive:c,emissiveIntensity:.2,
+    transparent:true,opacity:.5,side:THREE.DoubleSide
+  });
+  const mesh=new THREE.Mesh(geo,splatMat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,.03,z);
+  mesh.scale.set(.5+Math.random()*.5,1,.5+Math.random()*.5);
+  mesh.rotation.z=Math.random()*Math.PI;
+  scene.add(mesh);
+  bloodSplatters.push({mesh,life:8+Math.random()*4,maxLife:12});
+  if(bloodSplatters.length>20){
+    const old=bloodSplatters.shift();scene.remove(old.mesh);old.mesh.geometry.dispose();
+  }
+}
+function updateBloodSplatters(dt){
+  for(let i=bloodSplatters.length-1;i>=0;i--){
+    const bs=bloodSplatters[i];
+    bs.life-=dt;
+    if(bs.life<2)bs.mesh.material.opacity=bs.life/2*.5;
+    if(bs.life<=0){scene.remove(bs.mesh);bs.mesh.geometry.dispose();bloodSplatters.splice(i,1);}
+  }
+}
+
+/* ============ FLOATING RUNE WORDS ============ */
+let floatingWords=[];
+function createFloatingWord(x,y,z,text,color,size,duration){
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d');
+  canvas.width=256;canvas.height=64;
+  ctx.font=(size||24)+'px Orbitron';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=color||'#ffffff';
+  ctx.shadowColor=color||'#7a4aff';ctx.shadowBlur=10;
+  ctx.fillText(text,128,32);
+  const texture=new THREE.CanvasTexture(canvas);
+  const spriteMat=new THREE.SpriteMaterial({map:texture,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false});
+  const sprite=new THREE.Sprite(spriteMat);
+  sprite.scale.set(2,.5,1);
+  sprite.position.set(x,y,z);
+  scene.add(sprite);
+  floatingWords.push({sprite,texture,life:duration||2,maxLife:duration||2,vy:.5});
+}
+function updateFloatingWords(dt){
+  for(let i=floatingWords.length-1;i>=0;i--){
+    const fw=floatingWords[i];
+    fw.life-=dt;
+    fw.sprite.position.y+=fw.vy*dt;
+    fw.sprite.material.opacity=Math.min(1,fw.life/fw.maxLife*2);
+    if(fw.life<=0){scene.remove(fw.sprite);fw.texture.dispose();fw.sprite.material.dispose();floatingWords.splice(i,1);}
+  }
+}
+
+/* ============ GRAVITY WELL EFFECT ============ */
+function createGravityWell(x,z,color,radius,duration){
+  const c=new THREE.Color(color||'#2a1a4a');
+  const wellMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    uniforms:{uColor:{value:c},uTime:{value:0},uRadius:{value:radius||4}},
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform vec3 uColor;uniform float uTime;uniform float uRadius;varying vec2 vUv;
+      void main(){
+        vec2 c2=vUv-0.5;float d=length(c2)*2.0;
+        float spiral=sin(atan(c2.y,c2.x)*4.0-uTime*5.0+d*8.0)*0.5+0.5;
+        float distort=smoothstep(1.0,0.1,d);
+        float dark=smoothstep(0.3,0.0,d)*0.6;
+        float pattern=spiral*distort*0.4+dark;
+        gl_FragColor=vec4(uColor*2.0,pattern);
+      }`
+  });
+  const mesh=new THREE.Mesh(new THREE.CircleGeometry(radius||4,32),wellMat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,.07,z);
+  scene.add(mesh);
+  const light=new THREE.PointLight(c.getHex(),2,(radius||4)*2);
+  light.position.set(x,1,z);scene.add(light);
+  const entry={mesh,mat:wellMat,light,life:duration||3,maxLife:duration||3,x,z,radius:radius||4};
+  if(!window._gravWells)window._gravWells=[];
+  window._gravWells.push(entry);
+}
+function updateGravityWells(dt,t){
+  if(!window._gravWells)return;
+  for(let i=window._gravWells.length-1;i>=0;i--){
+    const gw=window._gravWells[i];
+    gw.life-=dt;gw.mat.uniforms.uTime.value=t;
+    const frac=gw.life/gw.maxLife;
+    gw.light.intensity=frac*2;
+    gw.mesh.material.uniforms.uRadius.value=gw.radius*frac;
+    if(Math.random()<.15)spawnParticle(
+      gw.x+(Math.random()-.5)*gw.radius*2,1,gw.z+(Math.random()-.5)*gw.radius*2,
+      new THREE.Color(gw.mat.uniforms.uColor.value),
+      {life:.5,vx:(gw.x-gw.x+(Math.random()-.5)*gw.radius)*2,vy:.5,vz:(gw.z-gw.z+(Math.random()-.5)*gw.radius)*2,size:.06,shrink:.93,grav:-.5}
+    );
+    if(gw.life<=0){scene.remove(gw.mesh);scene.remove(gw.light);gw.mesh.geometry.dispose();gw.mat.dispose();window._gravWells.splice(i,1);}
+  }
+}
+
+/* ============ ELEMENTAL AURA SYSTEM ============ */
+let elementalAuras=[];
+function createElementalAura(target,element,duration){
+  const colors={fire:'#ff5a2a',ice:'#4adaff',lightning:'#ffe24a',nature:'#4aff7a',void:'#6a2aaa',shadow:'#7a4aff',blood:'#cc2a3a',chaos:'#ff4a8a',holy:'#ffd24a',cosmic:'#aa8aff'};
+  const c=new THREE.Color(colors[element]||'#ffffff');
+  const auraMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+    uniforms:{uColor:{value:c},uTime:{value:0}},
+    vertexShader:`varying vec3 vNorm;varying vec2 vUv;void main(){vNorm=normalize(normalMatrix*normal);vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform vec3 uColor;uniform float uTime;varying vec3 vNorm;varying vec2 vUv;
+      void main(){
+        float fresnel=pow(1.0-abs(dot(vNorm,vec3(0,0,1))),2.0);
+        float pulse=sin(uTime*4.0)*0.3+0.7;
+        float wave=sin(vUv.y*10.0-uTime*3.0)*0.3+0.7;
+        gl_FragColor=vec4(uColor*1.5,(fresnel*0.4+0.1)*pulse*wave);
+      }`
+  });
+  const auraSphere=new THREE.Mesh(SG.sphere,auraMat);
+  auraSphere.scale.setScalar(1.8);
+  if(target&&target.mesh)target.mesh.add(auraSphere);
+  else{auraSphere.position.set(target.x||0,1,target.z||0);scene.add(auraSphere);}
+  elementalAuras.push({mesh:auraSphere,mat:auraMat,life:duration||5,maxLife:duration||5,attached:!!(target&&target.mesh)});
+}
+function updateElementalAuras(dt,t){
+  for(let i=elementalAuras.length-1;i>=0;i--){
+    const ea=elementalAuras[i];
+    ea.life-=dt;ea.mat.uniforms.uTime.value=t;
+    const frac=ea.life/ea.maxLife;
+    ea.mesh.scale.setScalar(1.6+Math.sin(t*3)*.2);
+    if(frac<.3)ea.mesh.material.opacity*=frac/.3;
+    if(ea.life<=0){
+      if(ea.attached&&ea.mesh.parent)ea.mesh.parent.remove(ea.mesh);
+      else scene.remove(ea.mesh);
+      ea.mesh.geometry.dispose?.();ea.mat.dispose();
+      elementalAuras.splice(i,1);
+    }
+  }
+}
+
+/* ============ ARENA TRAP SYSTEM ============ */
+let arenaTraps=[];
+function spawnArenaTrap(type,x,z){
+  const trapDefs={
+    spike:{color:'#ff4a4a',radius:.8,height:2,interval:3,dmg:15,emoji:'🔺'},
+    fire:{color:'#ff5a2a',radius:1.5,height:0,interval:2,dmg:10,emoji:'🔥'},
+    lightning:{color:'#ffe24a',radius:1,height:3,interval:4,dmg:20,emoji:'⚡'},
+    poison:{color:'#4aff7a',radius:2,height:0,interval:1,dmg:5,emoji:'☠️'}
+  };
+  const def=trapDefs[type]||trapDefs.spike;
+  const c=new THREE.Color(def.color);
+  const group=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.CircleGeometry(def.radius,12),
+    basicMat(c,{transparent:true,opacity:.3,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+  base.rotation.x=-Math.PI/2;base.position.y=.04;group.add(base);
+  const indicator=new THREE.Mesh(new THREE.RingGeometry(def.radius-.1,def.radius,16),
+    basicMat(c,{transparent:true,opacity:.5,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+  indicator.rotation.x=-Math.PI/2;indicator.position.y=.05;group.add(indicator);
+  const light=new THREE.PointLight(c.getHex(),.5,def.radius*2);
+  light.position.y=.5;group.add(light);
+  group.position.set(x,0,z);
+  scene.add(group);
+  arenaTraps.push({group,type,def,x,z,triggerCD:def.interval,active:true,life:20+Math.random()*10});
+}
+function updateArenaTraps(dt,t){
+  for(let i=arenaTraps.length-1;i>=0;i--){
+    const trap=arenaTraps[i];
+    trap.life-=dt;
+    trap.triggerCD-=dt;
+    trap.group.children[1].rotation.z+=dt*1.5;
+    trap.group.children[1].material.opacity=.3+Math.sin(t*3)*.2;
+    if(trap.triggerCD<=0&&trap.active){
+      trap.triggerCD=trap.def.interval;
+      if(trap.type==='spike'){
+        const spike=new THREE.Mesh(new THREE.ConeGeometry(.15,trap.def.height,6),
+          basicMat(trap.def.color,{transparent:true,opacity:.8}));
+        spike.position.set(trap.x,0,trap.z);scene.add(spike);
+        setTimeout(()=>scene.remove(spike),500);
+      }
+      burst(trap.x,.5,trap.z,new THREE.Color(trap.def.color),6,3,{life:.3,up:true});
+      CombatLighting.flash(trap.x,.5,trap.z,trap.def.color,1.5,6,.2);
+      if(G&&G.player&&Math.hypot(G.player.x-trap.x,G.player.z-trap.z)<trap.def.radius){
+        damagePlayer(trap.def.dmg);
+      }
+    }
+    if(trap.life<=0){scene.remove(trap.group);arenaTraps.splice(i,1);}
+  }
+}
+
+/* ============ TELEPORT EFFECT ============ */
+function teleportEffect(fromX,fromZ,toX,toZ,color){
+  const c=new THREE.Color(color||'#7a4aff');
+  createPortal(fromX,1.5,fromZ,c,1.5,1.5);
+  createPortal(toX,1.5,toZ,c,1.5,1.5);
+  createLightningBolt(fromX,1.5,fromZ,toX,1.5,toZ,c.getHex(),8,.5,.06);
+  burst(fromX,1,fromZ,c,20,6,{life:.6,grav:2});
+  burst(toX,1,toZ,c,20,6,{up:true,life:.6,grav:2});
+  CombatLighting.flash(fromX,1.5,fromZ,c,3,12,.3);
+  CombatLighting.flash(toX,1.5,toZ,c,3,12,.3);
+}
+
+/* ============ PARTICLE FOUNTAIN ============ */
+function createParticleFountain(x,z,color,duration,intensity){
+  const c=new THREE.Color(color);
+  const entry={x,z,color:c,life:duration||3,maxLife:duration||3,intensity:intensity||1,emitCD:0};
+  if(!window._fountains)window._fountains=[];
+  window._fountains.push(entry);
+}
+function updateParticleFountains(dt,t){
+  if(!window._fountains)return;
+  for(let i=window._fountains.length-1;i>=0;i--){
+    const f=window._fountains[i];
+    f.life-=dt;f.emitCD-=dt;
+    if(f.emitCD<=0){
+      f.emitCD=.03/f.intensity;
+      const a=Math.random()*Math.PI*2;
+      spawnParticle(f.x,0,f.z,f.color,{
+        life:.8+Math.random()*.5,vx:Math.cos(a)*(1+Math.random())*f.intensity,
+        vy:5+Math.random()*3,vz:Math.sin(a)*(1+Math.random())*f.intensity,
+        grav:6,size:.06+Math.random()*.05,shrink:.96
+      });
+    }
+    if(f.life<=0)window._fountains.splice(i,1);
+  }
+}
+
+/* ============ SMOKE SYSTEM ============ */
+let smokePuffs=[];
+function createSmoke(x,y,z,color,count,radius,life){
+  const c=new THREE.Color(color||'#333333');
+  for(let i=0;i<(count||8);i++){
+    const mesh=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({
+      color:c,transparent:true,opacity:.3,depthWrite:false
+    }));
+    const s=.3+Math.random()*.5;
+    mesh.scale.setScalar(s);
+    mesh.position.set(x+(Math.random()-.5)*(radius||1),y+(Math.random()-.5)*.5,z+(Math.random()-.5)*(radius||1));
+    scene.add(mesh);
+    smokePuffs.push({
+      mesh,life:(life||2)+Math.random(),maxLife:(life||2)+Math.random(),
+      vx:(Math.random()-.5)*.5,vy:.5+Math.random()*.3,vz:(Math.random()-.5)*.5,growRate:1+Math.random()
+    });
+  }
+}
+function updateSmoke(dt){
+  for(let i=smokePuffs.length-1;i>=0;i--){
+    const s=smokePuffs[i];
+    s.life-=dt;
+    s.mesh.position.x+=s.vx*dt;s.mesh.position.y+=s.vy*dt;s.mesh.position.z+=s.vz*dt;
+    s.mesh.scale.multiplyScalar(1+s.growRate*dt*.3);
+    s.mesh.material.opacity=(s.life/s.maxLife)*.3;
+    if(s.life<=0){scene.remove(s.mesh);smokePuffs.splice(i,1);}
+  }
+}
+
+/* ============ ENHANCED COIN COLLECTION VFX ============ */
+function coinCollectVFX(x,y,z){
+  for(let i=0;i<6;i++){
+    const a=Math.random()*Math.PI*2;
+    spawnParticle(x,y,z,new THREE.Color('#ffd24a'),{
+      life:.5+Math.random()*.3,vx:Math.cos(a)*3,vy:2+Math.random()*2,vz:Math.sin(a)*3,
+      grav:6,size:.1,shrink:.94
+    });
+  }
+  spawnParticle(x,y,z,new THREE.Color('#ffffff'),{life:.2,size:.4,shrink:.85,vy:1});
+  CombatLighting.flash(x,y,z,'#ffd24a',1.5,5,.15);
+}
+
+/* ============ DASH EFFECT ============ */
+function createDashEffect(x,z,facing,color){
+  const c=new THREE.Color(color||'#7a4aff');
+  for(let i=0;i<10;i++){
+    const offset=i*.15;
+    const ox=x-Math.sin(facing)*offset;
+    const oz=z-Math.cos(facing)*offset;
+    spawnParticle(ox,1+Math.random()*.5,oz,c,{
+      life:.3+Math.random()*.2,size:.1,shrink:.9,vx:(Math.random()-.5),vy:.5,vz:(Math.random()-.5)
+    });
+  }
+  createShockwaveRing(x,z,c,3,.3);
+}
+
+/* ============ LIGHTNING ============ */
 let ambientLight,hemiLight,keyLight,fillLight,rimLight,playerLight;
 function setupLighting(theme){
   ambientLight=new THREE.AmbientLight(new THREE.Color(theme.ambient),.7); scene.add(ambientLight);
@@ -3456,6 +3883,10 @@ function gameLoop(now){
     updateVolumetricFog(dt,G.time); updateMagicCircles(dt); updateHelixBeams(dt);
     updateWeaponTrails(dt); updateDeathExplosions(dt); updateDynamicSurface(dt,G.time);
     updateArenaAnimations(dt,G.time); updateEnvEmitters(dt,G.time);
+    updatePortals(dt,G.time); updateFireTrails(dt,G.time); updateIceCrystals(dt);
+    updateBloodSplatters(dt); updateFloatingWords(dt); updateGravityWells(dt,G.time);
+    updateElementalAuras(dt,G.time); updateArenaTraps(dt,G.time);
+    updateParticleFountains(dt,G.time); updateSmoke(dt);
     if(G.player){const mv=getMoveInput();SpeedLines.update(mv.mag*(G.player.sprinting?1.5:1),1.5);}
     if(G.boss&&!G.boss.dying)updateBossPhaseIndicator(G.boss);
     MobHealthBars.update(camera,renderer);
@@ -3897,6 +4328,16 @@ function cleanupGame(){
   if(window._weaponTrails){window._weaponTrails.forEach(t=>{scene.remove(t.mesh);});window._weaponTrails=[];}
   if(window._deathExplosions){window._deathExplosions.forEach(d=>{scene.remove(d.flash);scene.remove(d.ring);});window._deathExplosions=[];}
   fogPlanes=[];arenaAnimObjs=[];envEmitters=[];dynamicSurface=null;
+  portalMeshes.forEach(p=>scene.remove(p.group));portalMeshes=[];
+  fireTrails.forEach(f=>{scene.remove(f.mesh);});fireTrails=[];
+  iceCrystals.forEach(c=>scene.remove(c.group));iceCrystals=[];
+  bloodSplatters.forEach(b=>scene.remove(b.mesh));bloodSplatters=[];
+  floatingWords.forEach(f=>scene.remove(f.sprite));floatingWords=[];
+  elementalAuras.forEach(a=>{if(a.attached&&a.mesh.parent)a.mesh.parent.remove(a.mesh);else scene.remove(a.mesh);});elementalAuras=[];
+  arenaTraps.forEach(t=>scene.remove(t.group));arenaTraps=[];
+  smokePuffs.forEach(s=>scene.remove(s.mesh));smokePuffs=[];
+  if(window._gravWells){window._gravWells.forEach(g=>{scene.remove(g.mesh);scene.remove(g.light);});window._gravWells=[];}
+  if(window._fountains)window._fountains=[];
   const bp=document.querySelector('.boss-phase');if(bp)bp.remove();
   $('boss-wrap').classList.remove('show');
   $('lowHpOverlay').style.opacity='0';
