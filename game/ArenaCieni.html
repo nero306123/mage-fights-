@@ -1716,6 +1716,74 @@ function buildArena(theme){
   mg.setAttribute('position',new THREE.BufferAttribute(mpos,3));
   const mmat=new THREE.PointsMaterial({color:accent,size:.18,transparent:true,opacity:.6,sizeAttenuation:true});
   const motes=new THREE.Points(mg,mmat); arenaGroup.add(motes); ambientMotes.push({points:motes,data:mdata,geo:mg});
+  // 4 arch gates at cardinal directions
+  for(let i=0;i<4;i++){
+    const a=i/4*Math.PI*2;
+    const gx=Math.cos(a)*33,gz=Math.sin(a)*33;
+    const archGroup=new THREE.Group();
+    // left/right pillars
+    for(const sx of [-1.5,1.5]){
+      const perp=a+Math.PI/2;
+      const px=gx+Math.cos(perp)*sx,pz=gz+Math.sin(perp)*sx;
+      const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.4,.5,7,8),mat(theme.floor,{metalness:.6,roughness:.4,emissive:accent,emissiveIntensity:.06}));
+      pillar.position.set(px,3.5,pz);archGroup.add(pillar);
+      const capGem=new THREE.Mesh(SG.sphere,basicMat(accent,{transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+      capGem.scale.setScalar(.25);capGem.position.set(px,7.2,pz);archGroup.add(capGem);
+    }
+    // arch crossbar
+    const cross=new THREE.Mesh(new THREE.BoxGeometry(3.5,.5,.4),mat(theme.floor,{metalness:.6,roughness:.4,emissive:accent,emissiveIntensity:.08}));
+    cross.position.set(gx,7.3,gz);cross.rotation.y=a;archGroup.add(cross);
+    // energy curtain in gateway
+    const curtainGeo=new THREE.PlaneGeometry(3,6.5);
+    const curtainMat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+      uniforms:{uColor:{value:accent.clone()},uTime:{value:i*2}},
+      vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:'uniform vec3 uColor;uniform float uTime;varying vec2 vUv;void main(){float scan=sin(vUv.y*12.0-uTime*3.0)*0.5+0.5;float edge=smoothstep(0.0,0.15,vUv.x)*smoothstep(1.0,0.85,vUv.x);float vFade=smoothstep(0.0,0.1,vUv.y)*smoothstep(1.0,0.9,vUv.y);gl_FragColor=vec4(uColor*1.5,scan*edge*vFade*0.15);}'
+    });
+    const curtain=new THREE.Mesh(curtainGeo,curtainMat);
+    curtain.position.set(gx,3.5,gz);curtain.rotation.y=a;archGroup.add(curtain);
+    arenaGroup.add(archGroup);
+  }
+  // floating energy chains between pillars
+  for(let i=0;i<12;i++){
+    const a1=i/12*Math.PI*2;
+    const a2=((i+1)%12)/12*Math.PI*2;
+    const x1=Math.cos(a1)*28,z1=Math.sin(a1)*28;
+    const x2=Math.cos(a2)*28,z2=Math.sin(a2)*28;
+    const mx=(x1+x2)/2,mz=(z1+z2)/2;
+    const chainGeo=new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3([new THREE.Vector3(x1,9.5,z1),new THREE.Vector3(mx,7,mz),new THREE.Vector3(x2,9.5,z2)]),12,.03,4);
+    const chain=new THREE.Mesh(chainGeo,basicMat(accent,{transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false}));
+    arenaGroup.add(chain);
+  }
+  // glowing floor symbols (6 clan symbols around altar)
+  for(let i=0;i<6;i++){
+    const a=i/6*Math.PI*2;
+    const sx=Math.cos(a)*8,sz=Math.sin(a)*8;
+    const sym=new THREE.Group();
+    const circle=new THREE.Mesh(new THREE.RingGeometry(.6,.8,24),basicMat(accent,{transparent:true,opacity:.3,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+    circle.rotation.x=-Math.PI/2;sym.add(circle);
+    const dot=new THREE.Mesh(new THREE.CircleGeometry(.2,12),basicMat(accent,{transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false}));
+    dot.rotation.x=-Math.PI/2;dot.position.y=.01;sym.add(dot);
+    for(let j=0;j<3;j++){
+      const la=j/3*Math.PI*2;
+      const line=new THREE.Mesh(new THREE.PlaneGeometry(.04,.5),basicMat(accent,{transparent:true,opacity:.3,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+      line.rotation.x=-Math.PI/2;line.position.set(Math.cos(la)*.35,.01,Math.sin(la)*.35);line.rotation.z=la;sym.add(line);
+    }
+    sym.position.set(sx,.05,sz);
+    arenaGroup.add(sym);
+  }
+  // scattered ruins/broken walls
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2,r=15+Math.random()*14;
+    const rx=Math.cos(a)*r,rz=Math.sin(a)*r;
+    const ruinGeo=new THREE.BoxGeometry(.4+Math.random()*.6,1+Math.random()*2,.3+Math.random()*.3);
+    const ruin=new THREE.Mesh(ruinGeo,mat(new THREE.Color(theme.floor).multiplyScalar(1.2).getHex(),{metalness:.3,roughness:.8}));
+    ruin.position.set(rx,ruinGeo.parameters.height/2,rz);
+    ruin.rotation.set(Math.random()*.2,Math.random()*Math.PI,(Math.random()-.5)*.3);
+    arenaGroup.add(ruin);
+  }
   // weather
   buildWeather(theme);
 }
@@ -1791,6 +1859,51 @@ function buildCharacterMesh(char){
   if(tier>=4){ for(let i=0;i<5;i++){ const a=(i/4-.5)*1.4; const spike=new THREE.Mesh(new THREE.ConeGeometry(.06,.3+Math.abs(a)*.1,6),mat('#ffd24a',{metalness:.9,roughness:.2,emissive:new THREE.Color('#ffaa00'),emissiveIntensity:.4})); spike.position.set(Math.sin(a)*.4,2.4,Math.cos(a)*.1); spike.rotation.z=-a*.5; g.add(spike); } }
   // shadow master trailing wisps
   if(faceless){ g.userData.shadowTrail=true; }
+  // cape/cloak for rare+
+  if(tier>=1){
+    const capeGeo=new THREE.PlaneGeometry(.8,1.2);
+    const capeMat=mat(clanColor.clone().multiplyScalar(.5).getHex(),{side:THREE.DoubleSide,transparent:true,opacity:.85,metalness:.3,roughness:.6});
+    const cape=new THREE.Mesh(capeGeo,capeMat);
+    cape.position.set(0,1,-.35);cape.rotation.x=.15;
+    g.add(cape); g.userData.cape=cape;
+  }
+  // floating runes for mythic+
+  if(tier>=3){
+    g.userData.floatingRunes=[];
+    const runeCount=tier>=5?6:tier>=4?4:3;
+    for(let i=0;i<runeCount;i++){
+      const rune=new THREE.Mesh(new THREE.OctahedronGeometry(.08,0),basicMat(rarityColor,{transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false}));
+      g.add(rune);
+      g.userData.floatingRunes.push({mesh:rune,phase:i/runeCount*Math.PI*2,radius:.8+tier*.15,height:1.8+Math.random()*.4,speed:1.5+tier*.3});
+    }
+  }
+  // ultimate+ cosmic aura particles
+  if(tier>=5){
+    g.userData.cosmicAura=true;
+    const auraSphere=new THREE.Mesh(new THREE.SphereGeometry(1.2,16,16),
+      basicMat(rarityColor,{transparent:true,opacity:.08,blending:THREE.AdditiveBlending,depthWrite:false}));
+    auraSphere.position.y=1.2;
+    g.add(auraSphere);
+    g.userData.auraSphere=auraSphere;
+  }
+  // belt detail
+  const belt=new THREE.Mesh(new THREE.TorusGeometry(.48,.04,6,16),mat(clanColor.clone().multiplyScalar(1.3).getHex(),{metalness:.7,roughness:.3}));
+  belt.rotation.x=Math.PI/2;belt.position.y=.72;
+  g.add(belt);
+  // gauntlets for epic+
+  if(tier>=2){
+    for(const sx of [-.62,.62]){
+      const gaunt=new THREE.Mesh(new THREE.CylinderGeometry(.18,.2,.2,8),mat(rarityColor.getHex(),{metalness:.8,roughness:.2,emissive:rarityColor,emissiveIntensity:.15}));
+      gaunt.position.set(sx,.85,0);
+      g.add(gaunt);
+    }
+  }
+  // boots
+  for(const sx of [-.22,.22]){
+    const boot=new THREE.Mesh(new THREE.BoxGeometry(.2,.1,.28),mat(clanColor.clone().multiplyScalar(.4).getHex(),{metalness:.5,roughness:.5}));
+    boot.position.set(sx,.05,.04);
+    g.add(boot);
+  }
   g.userData.char=char; g.userData.clanColor=clanColor; g.userData.rarityColor=rarityColor;
   return g;
 }
@@ -1806,8 +1919,51 @@ function buildMobMesh(type,elite){
   // type features
   if(def.fly){ for(const sx of [-1,1]){ const wing=new THREE.Mesh(new THREE.BoxGeometry(.5,.04,.35),mat(c.clone().multiplyScalar(.7).getHex(),{transparent:true,opacity:.8})); wing.position.set(sx*.5,1,0); g.add(wing); g.userData.wings=g.userData.wings||[]; g.userData.wings.push(wing); } }
   if(def.ghost){ body.material.transparent=true; body.material.opacity=.6; head.material.transparent=true; head.material.opacity=.6; }
+  // type-specific details
+  if(type==='zombie'){ // rotting body patches
+    for(let j=0;j<3;j++){const sp=new THREE.Mesh(new THREE.SphereGeometry(.08,6,6),basicMat('#4a5a2a'));sp.position.set((Math.random()-.5)*.5,.6+Math.random()*.5,(Math.random()-.5)*.3);g.add(sp);}
+  }
+  if(type==='skeleton'){ // bone protrusions
+    const spine=new THREE.Mesh(new THREE.CylinderGeometry(.04,.06,.5,4),mat('#d8d0c0',{roughness:.8}));spine.position.set(0,1.1,-.2);g.add(spine);
+    for(let j=0;j<3;j++){const rib=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.3,4),mat('#c8c0b0',{roughness:.8}));rib.position.set((j-.9)*.15,.7+j*.12,.15);rib.rotation.z=Math.PI/2;g.add(rib);}
+  }
+  if(type==='demon'||type==='imp'){ // tail
+    const tailPts=[new THREE.Vector3(0,.3,-.3),new THREE.Vector3(0,.2,-.6),new THREE.Vector3(0,.35,-.9),new THREE.Vector3(0,.2,-1.1)];
+    const tailCurve=new THREE.CatmullRomCurve3(tailPts);
+    const tailGeo=new THREE.TubeGeometry(tailCurve,8,.04,6);
+    const tail=new THREE.Mesh(tailGeo,mat(c.clone().multiplyScalar(.7).getHex(),{roughness:.6}));g.add(tail);g.userData.tail=tail;
+  }
+  if(type==='spider'){ // extra legs
+    for(let j=0;j<4;j++){for(const sx of [-1,1]){
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.5,4),mat('#2a1a2a',{roughness:.7}));
+      leg.position.set(sx*(.2+j*.08),.3+j*.05,0);leg.rotation.z=sx*(1+j*.3);g.add(leg);
+    }}
+  }
+  if(type==='golem'){ // crystal embedded in body
+    const crystal=new THREE.Mesh(SG.octa,basicMat(c.clone().multiplyScalar(2).getHex(),{transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+    crystal.scale.set(.12,.2,.12);crystal.position.set(0,1.1,.25);g.add(crystal);
+    g.add(new THREE.PointLight(c.getHex(),1,4));
+  }
+  if(type==='reaper'){ // scythe
+    const scytheHandle=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,1.8,6),mat('#2a1a2a',{roughness:.5}));
+    scytheHandle.position.set(.5,1,.1);scytheHandle.rotation.z=-.3;g.add(scytheHandle);
+    const scytheBlade=new THREE.Mesh(new THREE.TorusGeometry(.3,.02,4,12,Math.PI*.7),
+      mat('#8a8aa0',{metalness:.9,roughness:.1,emissive:new THREE.Color('#4a4a6a'),emissiveIntensity:.3}));
+    scytheBlade.position.set(.6,1.8,.1);scytheBlade.rotation.set(0,0,-.5);g.add(scytheBlade);
+  }
+  // ground shadow disc
+  const shadowDisc=new THREE.Mesh(new THREE.CircleGeometry(.4*def.scale,16),basicMat('#000000',{transparent:true,opacity:.3}));
+  shadowDisc.rotation.x=-Math.PI/2;shadowDisc.position.y=.02;g.add(shadowDisc);
   // elite aura
-  if(elite){ const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.06,8,20),basicMat('#ffd24a',{transparent:true,opacity:.8})); ring.rotation.x=-Math.PI/2; ring.position.y=.1; g.add(ring); g.userData.eliteRing=ring; const el=new THREE.PointLight(0xffd24a,1.5,8); el.position.y=1; g.add(el); }
+  if(elite){
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(.8,.06,8,20),basicMat('#ffd24a',{transparent:true,opacity:.8}));ring.rotation.x=-Math.PI/2;ring.position.y=.1;g.add(ring);g.userData.eliteRing=ring;
+    const el=new THREE.PointLight(0xffd24a,1.5,8);el.position.y=1;g.add(el);
+    // elite crown
+    for(let j=0;j<3;j++){const spike=new THREE.Mesh(new THREE.ConeGeometry(.04,.2,4),mat('#ffd24a',{metalness:.9,roughness:.2}));spike.position.set((j-1)*.12,1.65,0);g.add(spike);}
+    // elite glow sphere
+    const egs=new THREE.Mesh(SG.sphere,basicMat('#ffd24a',{transparent:true,opacity:.12,blending:THREE.AdditiveBlending,depthWrite:false}));
+    egs.scale.setScalar(1.3);egs.position.y=.8;g.add(egs);
+  }
   g.scale.setScalar(def.scale);
   return g;
 }
@@ -1823,8 +1979,28 @@ function buildBossMesh(type){
   for(const sx of [-1.3,1.3]){ const pad=new THREE.Mesh(new THREE.SphereGeometry(.7,12,12,0,Math.PI*2,0,Math.PI*.6),mat(c.clone().multiplyScalar(.8).getHex(),{metalness:.7,roughness:.3,emissive:c,emissiveIntensity:.3})); pad.position.set(sx,3.6,0); pad.rotation.z=sx>0?-.4:.4; g.add(pad); }
   // crown/horns
   for(let i=0;i<7;i++){ const a=(i/6-.5)*2; const horn=new THREE.Mesh(new THREE.ConeGeometry(.16,.7+Math.abs(a)*.2,6),mat('#1a1020',{metalness:.6,roughness:.4,emissive:c,emissiveIntensity:.2})); horn.position.set(Math.sin(a)*.8,5.1,Math.cos(a)*.3); horn.rotation.z=-a*.4; g.add(horn); }
-  // boss aura
+  // boss aura — double ring
   const aura=new THREE.Mesh(new THREE.TorusGeometry(2,.15,8,32),basicMat(c,{transparent:true,opacity:.7})); aura.rotation.x=-Math.PI/2; aura.position.y=.15; g.add(aura); g.userData.aura=aura;
+  const aura2=new THREE.Mesh(new THREE.TorusGeometry(2.6,.08,8,32),basicMat(c,{transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false})); aura2.rotation.x=-Math.PI/2; aura2.position.y=.12; g.add(aura2); g.userData.aura2=aura2;
+  // boss chest crystal
+  const bossGem=new THREE.Mesh(SG.octa,basicMat(c.clone().multiplyScalar(2),{transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));
+  bossGem.scale.set(.25,.35,.25);bossGem.position.set(0,2.8,.7);g.add(bossGem);g.userData.gem=bossGem;
+  // boss spine armor
+  for(let j=0;j<5;j++){
+    const spk=new THREE.Mesh(new THREE.ConeGeometry(.1,.4+j*.08,5),mat(c.clone().multiplyScalar(.7).getHex(),{metalness:.7,roughness:.3,emissive:c,emissiveIntensity:.15}));
+    spk.position.set(0,1.8+j*.5,-.8);spk.rotation.x=.3;g.add(spk);
+  }
+  // floating orbs
+  g.userData.bossOrbs=[];
+  for(let j=0;j<4;j++){
+    const orb=new THREE.Mesh(SG.sphere,basicMat(c,{transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+    orb.scale.setScalar(.2);g.add(orb);
+    const ol=new THREE.PointLight(c.getHex(),.8,5);g.add(ol);
+    g.userData.bossOrbs.push({mesh:orb,light:ol,phase:j/4*Math.PI*2});
+  }
+  // ground shadow
+  const bShadow=new THREE.Mesh(new THREE.CircleGeometry(2,24),basicMat('#000000',{transparent:true,opacity:.35}));
+  bShadow.rotation.x=-Math.PI/2;bShadow.position.y=.03;g.add(bShadow);
   const bl=new THREE.PointLight(c.getHex(),3,30); bl.position.y=3; g.add(bl); g.userData.light=bl;
   g.scale.setScalar(def.scale*.5);
   return g;
@@ -2272,6 +2448,9 @@ function updateBoss(dt,t){
   if(!b.curPattern){ if(d>6){ b.x+=dx/d*b.speed*dt; b.z+=dz/d*b.speed*dt; } b.mesh.rotation.y=Math.atan2(dx,dz); }
   b.mesh.position.set(b.x,b.y,b.z);
   if(b.mesh.userData.aura){ b.mesh.userData.aura.rotation.z+=dt; b.mesh.userData.aura.material.opacity=.5+Math.sin(t*3)*.2; }
+  if(b.mesh.userData.aura2){ b.mesh.userData.aura2.rotation.z-=dt*1.5; b.mesh.userData.aura2.material.opacity=.3+Math.sin(t*4)*.15; }
+  if(b.mesh.userData.gem){ b.mesh.userData.gem.rotation.y+=dt*3; b.mesh.userData.gem.material.opacity=.7+Math.sin(t*5)*.25; }
+  if(b.mesh.userData.bossOrbs){ b.mesh.userData.bossOrbs.forEach(o=>{ const a=t*2+o.phase; const r=2.5; o.mesh.position.set(Math.cos(a)*r,3+Math.sin(a*2)*.5,Math.sin(a)*r); o.light.position.copy(o.mesh.position); }); }
   if(b.mesh.userData.light)b.mesh.userData.light.intensity=2.5+Math.sin(t*4)*1;
   // patterns
   b.patternCD-=dt;
@@ -2360,7 +2539,25 @@ function gameLoop(now){
       // buffs
       for(const bk in G.buffs){ G.buffs[bk]-=dt; if(G.buffs[bk]<=0)delete G.buffs[bk]; }
       // player mesh anim
-      if(G.playerMesh){ const ud=G.playerMesh.userData; if(ud.aura){ud.aura.rotation.z+=dt;ud.aura.material.opacity=.5+Math.sin(G.time*3)*.2;} if(ud.glow)ud.glow.intensity=1.2+Math.sin(G.time*4)*.3; if(ud.swingT>0){ ud.swingT-=dt; if(ud.weapon)ud.weapon.rotation.x=-Math.sin(ud.swingT/.25*Math.PI)*1.5; } else if(ud.weapon){ud.weapon.rotation.x*=.8;} if(ud.orbiters){ud.orbiters.forEach((ob,oi)=>{ const a=G.time*3+oi*Math.PI; ob.position.set(Math.cos(a)*.9,1.4,Math.sin(a)*.9); });} if(ud.staffOrb){ud.staffOrb.scale.multiplyScalar(.92); if(ud.staffOrb.scale.x<.22)ud.staffOrb.scale.setScalar(.22);} if(ud.shadowTrail&&Math.random()<.3)spawnParticle(G.player.x+(Math.random()-.5),.8+Math.random(),G.player.z+(Math.random()-.5),new THREE.Color('#6a3a9a'),{life:.4,size:.12}); if(ud.faceGlow)ud.faceGlow.material.opacity=.6+Math.sin(G.time*5)*.3; }
+      if(G.playerMesh){ const ud=G.playerMesh.userData;
+        if(ud.aura){ud.aura.rotation.z+=dt;ud.aura.material.opacity=.5+Math.sin(G.time*3)*.2;}
+        if(ud.glow)ud.glow.intensity=1.2+Math.sin(G.time*4)*.3;
+        if(ud.swingT>0){ ud.swingT-=dt; if(ud.weapon)ud.weapon.rotation.x=-Math.sin(ud.swingT/.25*Math.PI)*1.5; } else if(ud.weapon){ud.weapon.rotation.x*=.8;}
+        if(ud.orbiters){ud.orbiters.forEach((ob,oi)=>{ const a=G.time*3+oi*Math.PI; ob.position.set(Math.cos(a)*.9,1.4,Math.sin(a)*.9); });}
+        if(ud.staffOrb){ud.staffOrb.scale.multiplyScalar(.92); if(ud.staffOrb.scale.x<.22)ud.staffOrb.scale.setScalar(.22);}
+        if(ud.shadowTrail&&Math.random()<.3)spawnParticle(G.player.x+(Math.random()-.5),.8+Math.random(),G.player.z+(Math.random()-.5),new THREE.Color('#6a3a9a'),{life:.4,size:.12});
+        if(ud.faceGlow)ud.faceGlow.material.opacity=.6+Math.sin(G.time*5)*.3;
+        // breathing idle animation
+        if(ud.body){const breath=Math.sin(G.time*2.5)*.015;ud.body.scale.set(1,1+breath,1);}
+        if(ud.head){ud.head.position.y=2.05+Math.sin(G.time*2.5)*.01;}
+        // floating runes animation
+        if(ud.floatingRunes)ud.floatingRunes.forEach(r=>{const a=G.time*r.speed+r.phase;r.mesh.position.set(Math.cos(a)*r.radius,r.height+Math.sin(a*2)*.15,Math.sin(a)*r.radius);r.mesh.rotation.set(a,a*1.5,0);r.mesh.material.opacity=.6+Math.sin(G.time*4+r.phase)*.25;});
+        // cape sway
+        if(ud.cape){const inp=getMoveInput();ud.cape.rotation.x=.15+Math.sin(G.time*3)*.05+(inp.mag>.1?.15:0);ud.cape.rotation.y=Math.sin(G.time*2.5)*.08;}
+        // cosmic aura pulse
+        if(ud.auraSphere){ud.auraSphere.scale.setScalar(1.2+Math.sin(G.time*3)*.15);ud.auraSphere.material.opacity=.06+Math.sin(G.time*4)*.03;}
+        if(ud.cosmicAura&&Math.random()<.2){const a=Math.random()*Math.PI*2;spawnParticle(G.player.x+Math.cos(a)*1.2,1+Math.random()*2,G.player.z+Math.sin(a)*1.2,new THREE.Color(ud.rarityColor),{life:.6,size:.08,vy:.5,grav:0,shrink:.96});}
+      }
     }
     // combo timer
     if(G.comboTimer>0){ G.comboTimer-=dt; if(G.comboTimer<=0)G.combo=0; }
