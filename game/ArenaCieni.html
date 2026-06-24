@@ -195,12 +195,20 @@ canvas{display:block}
 <div id="menu" class="screen active">
 <div class="menu-title title-font">Arena Cieni</div>
 <div class="menu-sub">SHADOW ARENA</div>
+<div id="menuLevel" style="margin-top:18px;width:min(320px,80vw)"></div>
 <div class="menu-btns">
 <button class="btn green" onclick="goPlay()">⚔️ GRAJ</button>
 <button class="btn" onclick="showScreen('collection');renderCollection()">📜 KOLEKCJA</button>
 <button class="btn gold" onclick="showScreen('shop');renderShop()">🛒 SKLEP</button>
+<button class="btn" onclick="showScreen('talents');renderTalents()">🌟 TALENTY <span id="tpBadge"></span></button>
 <button class="btn" onclick="openSettings()">⚙️ USTAWIENIA</button>
 </div>
+</div>
+<div id="talents" class="screen">
+<div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Talenty</h2>
+<div class="curr"><span class="pill gem" id="talPts">0 PKT</span></div></div>
+<div id="talentInfo" style="text-align:center;padding:12px;font-size:13px;color:#aaa"></div>
+<div class="shopgrid" id="talentGrid"></div>
 </div>
 <div id="collection" class="screen">
 <div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Kolekcja</h2>
@@ -541,17 +549,35 @@ stopMusic(){if(this.musicTimer){clearTimeout(this.musicTimer);this.musicTimer=nu
 
 const SAVE_KEY='arenaCieni_v2';
 let state={coins:500,gems:0,unlockedIds:new Set([1]),selectedId:1,duplicates:{},totalKills:0,highWave:0,sensitivity:5,upgrades:{hp:0,dmg:0,magnet:0,shadow:0,shield:0},completedMilestones:[],selectedShadows:{},fightStyles:{},
+level:1,xp:0,talentPoints:0,talents:{crit:0,dmg:0,hp:0,lifesteal:0,coin:0,xp:0,haste:0,thorns:0},ascension:{},
 stats:{bestCombo:0,powerupsGrabbed:0,bossesKilled:0,gamesPlayed:0,critsLanded:0,timePlayed:0},
 modeRecords:{survival:0,endless:0,bossrush:0,timeattack:0},
 settings:{reducedParticles:false,musicVol:5,sfxVol:6,fov:75}};
 function saveState(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...state,unlockedIds:[...state.unlockedIds]}))}catch(e){}}
-function loadState(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const d=JSON.parse(r);d.unlockedIds=new Set(d.unlockedIds||[1]);state={...state,...d,upgrades:{...state.upgrades,...(d.upgrades||{})},stats:{...state.stats,...(d.stats||{})},modeRecords:{...state.modeRecords,...(d.modeRecords||{})},settings:{...state.settings,...(d.settings||{})}}}}catch(e){}}
+function loadState(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const d=JSON.parse(r);d.unlockedIds=new Set(d.unlockedIds||[1]);state={...state,...d,upgrades:{...state.upgrades,...(d.upgrades||{})},talents:{...state.talents,...(d.talents||{})},ascension:{...(d.ascension||{})},stats:{...state.stats,...(d.stats||{})},modeRecords:{...state.modeRecords,...(d.modeRecords||{})},settings:{...state.settings,...(d.settings||{})}}}}catch(e){}}
 loadState();
+const TALENTS=[
+{id:'crit',name:'Precyzja',emoji:'🎯',desc:'+3% szansy na krytyka',max:8},
+{id:'dmg',name:'Siła',emoji:'⚔️',desc:'+4% obrażeń',max:10},
+{id:'hp',name:'Witalność',emoji:'❤️',desc:'+5% maks. HP',max:10},
+{id:'lifesteal',name:'Wampiryzm',emoji:'🩸',desc:'+2% kradzieży życia',max:6},
+{id:'coin',name:'Chciwość',emoji:'💰',desc:'+8% monet',max:8},
+{id:'xp',name:'Mądrość',emoji:'📖',desc:'+10% doświadczenia',max:6},
+{id:'haste',name:'Pośpiech',emoji:'⏩',desc:'-4% czasu odnowienia',max:6},
+{id:'thorns',name:'Kolce',emoji:'🌵',desc:'Odbij 5% obrażeń',max:6}
+];
+function xpForLevel(lvl){return Math.floor(100+lvl*lvl*18+lvl*40)}
+function gainXP(amt){amt=Math.round(amt*(1+state.talents.xp*0.1));state.xp+=amt;let leveled=false;
+while(state.xp>=xpForLevel(state.level)){state.xp-=xpForLevel(state.level);state.level++;state.talentPoints+=1;state.gems+=2;leveled=true}
+if(leveled){Audio2.sfx('levelup');toast('🎉 Poziom '+state.level+'! +1 punkt talentu, +2💎');if(gameRunning)floatDmg(camera.position.clone().add(getForward().multiplyScalar(3)).setY(2.5),'POZIOM '+state.level,'#ffcc44',true)}
+return leveled}
+function ascensionStars(id){return state.ascension[id]||0}
+function ascensionCost(stars){return [3,5,8,12,18,25][stars]||99}
 const isMobile=(('ontouchstart'in window)||navigator.maxTouchPoints>0)&&/Mobi|Android|iPhone|iPad|iPod|Touch/i.test(navigator.userAgent)||window.matchMedia('(pointer:coarse)').matches;
 let gameMode='survival';
 const charById=id=>CHARS.find(c=>c.id===id);
 
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const e=document.getElementById(id);if(e)e.classList.add('active');updateCurrency()}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const e=document.getElementById(id);if(e)e.classList.add('active');updateCurrency();if(id==='menu')renderMenuLevel()}
 function updateCurrency(){['colCoin','shopCoin'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.coins});['colGem','shopGem'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.gems})}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
 window.showScreen=showScreen;
@@ -565,7 +591,8 @@ function setFilter(f){curFilter=f;renderCollection()}
 window.setFilter=setFilter;
 function renderCollection(){renderFilters();const g=document.getElementById('charGrid');let h='';
 CHARS.forEach(c=>{if(curFilter!=='all'&&curFilter!==c.rarity&&curFilter!==c.clan)return;const unl=state.unlockedIds.has(c.id);const r=RARITIES[c.rarity];const dup=state.duplicates[c.id]||0;
-h+=`<div class="card rar-${c.rarity} ${unl?'':'locked'}" style="border-color:${r.color};color:${r.color}" onclick="openCharModal(${c.id})">${dup>1?`<span class="dupe">×${dup}</span>`:''}<div class="emoji">${unl?c.emoji:'🔒'}</div><div class="cname" style="color:#e8e8ff">${unl?c.name:'???'}</div><div class="crar" style="color:${r.color}">${r.label}</div></div>`});
+const st=unl?ascensionStars(c.id):0;
+h+=`<div class="card rar-${c.rarity} ${unl?'':'locked'}" style="border-color:${r.color};color:${r.color}" onclick="openCharModal(${c.id})">${dup>1?`<span class="dupe">×${dup}</span>`:''}<div class="emoji">${unl?c.emoji:'🔒'}</div><div class="cname" style="color:#e8e8ff">${unl?c.name:'???'}</div><div class="crar" style="color:${r.color}">${r.label}</div>${st>0?`<div style="font-size:10px;color:#ffaa00">${'★'.repeat(st)}</div>`:''}</div>`});
 g.innerHTML=h;updateCurrency()}
 window.renderCollection=renderCollection;
 
@@ -578,7 +605,9 @@ h+=`<div class="mstats"><div class="stat"><b>HP</b> ${c.hp}</div><div class="sta
 h+=`<div class="minfo"><span class="lbl">💥 ${c.superName}</span> (CD ${c.superCD}s)<br>${c.superDesc}</div>`;
 h+=`<div class="minfo"><span class="lbl">🛡️ ${c.shieldName}</span><br>Trwa ${c.shieldDur}s, blokuje obrażenia</div>`;
 if(c.faceless)h+=`<div class="minfo" style="border:1px solid #ff00ff"><span class="lbl" style="color:#ff00ff">⚠️ Bezimienny</span><br>Cień zamiast twarzy. Po śmierci 50% szansy na formę ducha. Zabicie bossa jako duch: 50% pełnego odrodzenia.</div>`;
-h+=`<div class="minfo"><span class="lbl">Duplikaty:</span> ${dup} ${dup>=1?`<button class="btn small" style="margin-left:8px;display:inline-block" onclick="upgradeChar(${id})">Ulepsz (${upCost}💰)</button>`:''}</div>`;
+const stars=ascensionStars(id);const ascCost=ascensionCost(stars);
+h+=`<div class="minfo"><span class="lbl">⭐ Ascendacja:</span> <span style="color:#ffaa00">${'★'.repeat(stars)}${'☆'.repeat(Math.max(0,6-stars))}</span> ${stars>0?`(+${stars*10}% HP/DMG)`:''}<br>${stars<6?`<button class="btn small" style="margin-top:6px" onclick="ascendChar(${id})">Wznieś (${ascCost} duplikatów)</button>`:'<span style="color:#ffaa00">MAKSIMUM</span>'}</div>`;
+h+=`<div class="minfo"><span class="lbl">Duplikaty:</span> ${dup} ${dup>=1?`<button class="btn small" style="margin-left:8px;display:inline-block" onclick="upgradeChar(${id})">Ulepsz statystyki (${upCost}💰)</button>`:''}</div>`;
 if(c.hasFightingStyles){const styles=FIGHTING_STYLES[id]||[];const sel=state.fightStyles[id]||(styles[0]&&styles[0].id);
 h+=`<div class="minfo"><span class="lbl">🥋 Styl Walki:</span></div><div class="styles">`;
 styles.forEach(st=>h+=`<div class="stylebtn ${sel===st.id?'active':''}" onclick="setStyle(${id},'${st.id}')">${st.name}<small>${atkLabel(st.atkType)} DMG×${st.dmgMod} SPD×${st.speedMod}</small></div>`);
@@ -596,6 +625,8 @@ function upgradeChar(id){const dup=state.duplicates[id]||0;if(dup<1){toast('Brak
 window.upgradeChar=upgradeChar;
 function setStyle(id,sid){state.fightStyles[id]=sid;saveState();openCharModal(id)}
 window.setStyle=setStyle;
+function ascendChar(id){const stars=ascensionStars(id);if(stars>=6){toast('Maksymalna ascendacja!');return}const cost=ascensionCost(stars);const dup=state.duplicates[id]||0;if(dup<cost){toast('Potrzebujesz '+cost+' duplikatów!');return}state.duplicates[id]=dup-cost;state.ascension[id]=stars+1;Audio2.sfx('levelup');toast('⭐ Wzniesiono do '+(stars+1)+' gwiazdek!');saveState();openCharModal(id)}
+window.ascendChar=ascendChar;
 function selectAndPlay(id){state.selectedId=id;saveState();closeModal('charModal');startGame()}
 window.selectAndPlay=selectAndPlay;
 
@@ -710,6 +741,18 @@ g.innerHTML=h}
 window.renderModeSelect=renderModeSelect;
 function pickMode(id){gameMode=id;Audio2.sfx('click');renderCharSelect();showScreen('charSelect')}
 window.pickMode=pickMode;
+function renderMenuLevel(){const el=document.getElementById('menuLevel');if(!el)return;const need=xpForLevel(state.level);const pct=Math.min(100,state.xp/need*100);
+el.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:#c44aff;font-weight:700">⭐ Poziom ${state.level}</span><span style="color:#888">${state.xp}/${need} XP</span></div><div style="height:8px;background:#0006;border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#b44aff,#ff4a8a)"></div></div><div style="margin-top:6px;font-size:12px;color:#888"><span class="pill coin">💰 ${state.coins}</span> <span class="pill gem">💎 ${state.gems}</span></div>`;
+const tb=document.getElementById('tpBadge');if(tb)tb.textContent=state.talentPoints>0?'('+state.talentPoints+')':''}
+function renderTalents(){document.getElementById('talPts').textContent=state.talentPoints+' PKT';
+document.getElementById('talentInfo').textContent='Zdobywaj poziomy w arenie aby otrzymać punkty talentów. Każdy poziom = +1 punkt.';
+const g=document.getElementById('talentGrid');let h='';
+TALENTS.forEach(t=>{const lvl=state.talents[t.id];const maxed=lvl>=t.max;const can=state.talentPoints>0&&!maxed;
+h+=`<div class="upcard"><h3>${t.emoji} ${t.name}</h3><p>${t.desc}</p><div class="lvl">Poziom ${lvl}/${t.max}</div><button class="btn small ${can?'green':''}" ${can?'':'disabled'} onclick="buyTalent('${t.id}')">${maxed?'MAX':'Ulepsz (1 PKT)'}</button></div>`});
+g.innerHTML=h}
+window.renderTalents=renderTalents;
+function buyTalent(id){const t=TALENTS.find(x=>x.id===id);if(state.talentPoints<=0||state.talents[id]>=t.max)return;state.talentPoints--;state.talents[id]++;Audio2.sfx('powerup');saveState();renderTalents()}
+window.buyTalent=buyTalent;
 function renderCharSelect(){const g=document.getElementById('selectGrid');let h='';
 [...state.unlockedIds].map(charById).sort((a,b)=>b.id-a.id).forEach(c=>{const r=RARITIES[c.rarity];
 h+=`<div class="card rar-${c.rarity}" style="border-color:${r.color};color:${r.color}" onclick="openCharModal(${c.id})"><div class="emoji" style="color:#e8e8ff">${c.emoji}</div><div class="cname" style="color:#e8e8ff">${c.name}</div><div class="crar" style="color:${r.color}">${r.label}</div></div>`});
@@ -827,10 +870,11 @@ function startGame(){
 const c=charById(state.selectedId);
 buildArena();
 const style=getActiveStyle(c);
-const hpUp=1+state.upgrades.hp*0.08,dmgUp=1+state.upgrades.dmg*0.06;
+const stars=ascensionStars(c.id);const starMul=1+stars*0.1;
+const hpUp=(1+state.upgrades.hp*0.08)*(1+state.talents.hp*0.05)*starMul;const dmgUp=(1+state.upgrades.dmg*0.06)*(1+state.talents.dmg*0.04)*starMul;
 let hp=c.hp*hpUp,dmg=c.dmg*dmgUp,spd=c.speed,atkType=c.atkType;
 if(style){hp*=style.hpMod;dmg*=style.dmgMod;spd*=style.speedMod;atkType=style.atkType}
-player={char:c,hp,maxHp:hp,baseDmg:dmg,dmg,speed:spd,atkType,baseAtkType:atkType,shieldDur:c.shieldDur+state.upgrades.shield*0.5,isGhost:false,shieldMesh:null};
+player={char:c,hp,maxHp:hp,baseDmg:dmg,dmg,speed:spd,atkType,baseAtkType:atkType,shieldDur:c.shieldDur+state.upgrades.shield*0.5,isGhost:false,shieldMesh:null,lifesteal:state.talents.lifesteal*0.02,thorns:state.talents.thorns*0.05};
 camera.position.set(0,1.6,0);yaw=0;pitch=0;
 mobs=[];projectiles=[];shadowMinions=[];boss=null;bossProjectiles=[];arenaSlash=null;arenaRings=[];powerupOrbs=[];activePowerups={};currentMutator=null;
 comboCount=0;comboTimer=0;modeTimer=gameMode==='timeattack'?180:0;
@@ -914,7 +958,7 @@ waveActive=true;betweenWaves=false;updateHUD()}
 function announceMutator(mut){const e=document.getElementById('bossAnno');e.style.color=mut.color;e.style.textShadow='0 0 30px '+mut.color;e.textContent=mut.emoji+' '+mut.name.toUpperCase();e.classList.remove('show');void e.offsetWidth;e.classList.add('show');toast(mut.emoji+' '+mut.name+': '+mut.desc);Audio2.sfx('boss')}
 function checkWaveEnd(){if(!waveActive)return;if(gameMode==='timeattack')return;if(waveMobsToSpawn<=0&&mobs.length===0&&!boss)endWave()}
 function endWave(){waveActive=false;betweenWaves=true;betweenTimer=gameMode==='bossrush'?1.5:2.5;
-const reward=Math.round((20+wave*10)*(1+state.upgrades.magnet*0.15));sessionCoins+=reward;
+const reward=Math.round((20+wave*10)*(1+state.upgrades.magnet*0.15)*(1+state.talents.coin*0.08));sessionCoins+=reward;gainXP(10+wave*2);
 toast('Fala '+wave+' ukończona! +'+reward+'💰');updateHUD()}
 
 addEventListener('keydown',e=>{keys[e.code]=true;if(!gameRunning)return;
@@ -968,7 +1012,7 @@ showScreen('menu')}
 window.pauseGame=pauseGame;window.resumeGame=resumeGame;window.quitGame=quitGame;
 
 function critChance(){return 0.12+(state.talents?(state.talents.crit||0)*0.03:0)}
-function useSuper(){if(abilityCD.super>0)return;const c=player.char;abilityCD.super=c.superCD;Audio2.sfx('super');
+function useSuper(){if(abilityCD.super>0)return;const c=player.char;abilityCD.super=c.superCD*hasteMul();Audio2.sfx('super');
 if(c.ghostMechanic&&c.id===60){doShadowMasterSuper();return}
 const fx=clanFx(c);const origin=camera.position.clone();
 for(let i=0;i<24;i++){const a=(i/24)*Math.PI*2;createProjectile(origin,new THREE.Vector3(Math.cos(a),0,Math.sin(a)),effDmg()*2.5,fx.proj,'super',fx.status)}
@@ -976,10 +1020,10 @@ spawnSuperParticles(origin,new THREE.Color(fx.proj));
 addTempLight(origin,fx.proj,4,30,0.6);
 doScreenShake(1.0);doFlash('#'+fx.proj.toString(16).padStart(6,'0'),0.35);fovPunch=10;updateHUD()}
 function doShadowMasterSuper(){smSuperActive=5;document.getElementById('shadowOverlay').style.opacity=0.7;doScreenShake(0.8);doFlash('#000000',0.5);Audio2.sfx('shadow');addTempLight(camera.position.clone(),0xff00ff,3,25,1.0)}
-function useShield(){if(abilityCD.shield>0)return;abilityCD.shield=20;shieldActive=player.shieldDur;Audio2.sfx('shield');
+function useShield(){if(abilityCD.shield>0)return;abilityCD.shield=20*hasteMul();shieldActive=player.shieldDur;Audio2.sfx('shield');
 if(!player.shieldMesh){const m=new THREE.Mesh(new THREE.SphereGeometry(1.5,20,20),new THREE.MeshBasicMaterial({color:0x4adaff,transparent:true,opacity:0.25,side:THREE.DoubleSide}));scene.add(m);player.shieldMesh=m}
 player.shieldMesh.visible=true;updateHUD()}
-function useShadowForm(){if(abilityCD.shadow>0)return;abilityCD.shadow=30;shadowFormActive=5+state.upgrades.shadow*0.5;document.getElementById('shadowOverlay').style.opacity=0.5;Audio2.sfx('shadow');
+function useShadowForm(){if(abilityCD.shadow>0)return;abilityCD.shadow=30*hasteMul();shadowFormActive=5+state.upgrades.shadow*0.5;document.getElementById('shadowOverlay').style.opacity=0.5;Audio2.sfx('shadow');
 if(scene.fog)scene.fog.color.set(0x2a0a4a);updateHUD()}
 
 function getForward(){return new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(-1).normalize()}
@@ -1015,6 +1059,7 @@ function damageMob(m,dmg,fromPlayer,statusId){if(m.dead||m._dissolve!==undefined
 let crit=false;
 if(fromPlayer){if(Math.random()<critChance()){crit=true;dmg*=2.2;state.stats.critsLanded++}dmg*=statusDmgTaken(m);if(statusId)applyStatus(m,statusId)}
 m.hp-=dmg;
+if(fromPlayer&&player.lifesteal>0&&player.hp<player.maxHp){player.hp=Math.min(player.maxHp,player.hp+dmg*player.lifesteal)}
 spawnHitParticles(m.group.position.clone().setY(1),crit?0xff3a6a:(m===boss?0xffff00:0xffaa00));
 floatDmg(m.group.position.clone().setY(2),(crit?'✦':'')+Math.round(dmg),crit?'#ff3a6a':(m===boss?'#ffff00':'#ffaa00'),crit);
 Audio2.sfx('hit');
@@ -1024,9 +1069,9 @@ function killMob(m,byPlayer){if(m.dead)return;m.dead=true;
 spawnDeathParticles(m.group.position.clone().setY(1),m.type.color);
 addTempLight(m.group.position.clone().setY(1),m.type.color,2,6,0.3);
 m._dissolve=0.4;m._dissolveT=0.4;
-kills++;Audio2.sfx('death');if(byPlayer)addCombo();
+kills++;Audio2.sfx('death');if(byPlayer)addCombo();gainXP((2+wave*0.5)*(m.elite?3:1));
 const golden=(currentMutator&&currentMutator.id==='golden')?2:1;const eliteC=m.elite?3:1;
-const coinUp=(1+state.upgrades.magnet*0.15)*(isPowerupActive('magnet')?1.5:1)*comboMult()*(gameMode==='timeattack'?1.5:1)*golden*eliteC;
+const coinUp=(1+state.upgrades.magnet*0.15)*(1+state.talents.coin*0.08)*(isPowerupActive('magnet')?1.5:1)*comboMult()*(gameMode==='timeattack'?1.5:1)*golden*eliteC;
 sessionCoins+=Math.round((5+wave*2)*coinUp);
 if(m.elite){spawnPowerupOrb(m.group.position.clone());spawnSuperParticles(m.group.position.clone().setY(1),new THREE.Color(0xffaa00))}
 else if(Math.random()<0.06)spawnPowerupOrb(m.group.position.clone());
@@ -1034,7 +1079,7 @@ updateHUD()}
 function killBoss(byPlayer){if(!boss)return;const bp=boss.group.position.clone();
 spawnSuperParticles(bp.clone().setY(2),new THREE.Color(boss.type.color));
 addTempLight(bp.clone().setY(1),boss.type.color,5,30,1.0);doScreenShake(1.5);doFlash('#ffaa00',0.5);Audio2.sfx('bosskill');
-const coinUp=(1+state.upgrades.magnet*0.15)*(gameMode==='bossrush'?1.5:1);const cg=Math.round((200+wave*30)*coinUp);sessionCoins+=cg;state.gems+=2;state.stats.bossesKilled++;
+const coinUp=(1+state.upgrades.magnet*0.15)*(1+state.talents.coin*0.08)*(gameMode==='bossrush'?1.5:1);const cg=Math.round((200+wave*30)*coinUp);sessionCoins+=cg;state.gems+=2;state.stats.bossesKilled++;gainXP(50+wave*5);
 for(let i=0;i<20;i++)spawnParticle(bp.clone().setY(1),0xffcc44,new THREE.Vector3((Math.random()-0.5)*8,Math.random()*8+2,(Math.random()-0.5)*8),1.5);
 kills++;if(byPlayer)addCombo();spawnPowerupOrb(bp.clone());
 toast('BOSS POKONANY! +'+cg+'💰 +2💎');
@@ -1044,7 +1089,9 @@ bossProjectiles.forEach(p=>scene.remove(p.mesh));bossProjectiles=[];
 document.getElementById('bossBar').classList.remove('active');updateHUD()}
 function damagePlayer(dmg){if(player.isGhost)return;if(shieldActive>0||shadowFormActive>0||smSuperActive>0)return;
 player.hp-=dmg;doHitIndicator();doScreenShake(0.4);Audio2.sfx('hurt');
+if(player.thorns>0){const refl=dmg*player.thorns*8;[...mobs,...(boss?[boss]:[])].forEach(m=>{if(!m.dead&&m._dissolve===undefined&&m.group.position.distanceTo(camera.position)<4)damageMob(m,refl,false)})}
 if(player.hp<=0)playerDeath();updateHUD()}
+function hasteMul(){return 1-state.talents.haste*0.04}
 function playerDeath(){const c=player.char;
 if(c.ghostMechanic&&!player.isGhost&&Math.random()<0.5){player.isGhost=true;player.hp=player.maxHp*0.5;player.atkType='melee';player.dmg=c.dmg*0.6;toast('FORMA DUCHA! Zabij bossa aby się odrodzić.');document.getElementById('shadowOverlay').style.opacity=0.6;return}
 doGameOver()}
@@ -1173,7 +1220,7 @@ animate();
 
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}if(crateCam){crateCam.aspect=innerWidth/innerHeight;crateCam.updateProjectionMatrix()}});
 
-updateCurrency();
+updateCurrency();renderMenuLevel();
 </script>
 </body>
 </html>
