@@ -191,6 +191,7 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
         <button class="btn ghost small" onclick="ACshow('tasks')">📋 Zadania</button>
         <button class="btn ghost small" onclick="ACopenSettings()">⚙️ Ustawienia</button>
       </div>
+      <button class="btn ghost small" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
     </div>
   </div>
 
@@ -880,6 +881,8 @@ renderer.setPixelRatio(Math.min(MOBILE?1.5:2,devicePixelRatio));
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=!MOBILE;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+try{ renderer.outputColorSpace=THREE.SRGBColorSpace; }catch(e){}
+try{ renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.18; }catch(e){}
 let scene=new THREE.Scene();
 let camera=new THREE.PerspectiveCamera(state.settings.fov,innerWidth/innerHeight,.1,300);
 camera.position.set(0,12,16);
@@ -925,12 +928,14 @@ function buildArena(theme){
   scene.fog=new THREE.FogExp2(new THREE.Color(theme.fog),0.018);
   scene.background=new THREE.Color(theme.fog);
   const accent=new THREE.Color(theme.accent);
-  // floor
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(35,64),mat(theme.floor,{metalness:.5,roughness:.6})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; arenaGroup.add(floor);
-  // glowing outer ring
-  for(let i=0;i<3;i++){ const r=33-i*1.2; const ring=new THREE.Mesh(new THREE.RingGeometry(r-.3,r,64),basicMat(accent,{transparent:true,opacity:.5-i*.12,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=.02; arenaGroup.add(ring); }
-  // rune rings (5 concentric)
-  for(let i=0;i<5;i++){ const r=6+i*5; const ring=new THREE.Mesh(new THREE.RingGeometry(r-.18,r+.18,48),basicMat(accent,{transparent:true,opacity:.3,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.y=.03; arenaGroup.add(ring); runeRings.push({mesh:ring,phase:i*1.2}); }
+  // floor — metallic with subtle emissive sheen so it catches the glow
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(35,64),mat(theme.floor,{metalness:.75,roughness:.42,emissive:accent.clone().multiplyScalar(.12)})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; arenaGroup.add(floor);
+  // grid lines on floor for depth
+  const grid=new THREE.GridHelper(70,40,accent.getHex(),accent.getHex()); grid.material.transparent=true; grid.material.opacity=.07; grid.position.y=.01; arenaGroup.add(grid);
+  // glowing outer ring (additive bloom)
+  for(let i=0;i<3;i++){ const r=33-i*1.2; const ring=new THREE.Mesh(new THREE.RingGeometry(r-.3,r,64),basicMat(accent,{transparent:true,opacity:.6-i*.14,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); ring.rotation.x=-Math.PI/2; ring.position.y=.02; arenaGroup.add(ring); }
+  // rune rings (5 concentric, additive)
+  for(let i=0;i<5;i++){ const r=6+i*5; const ring=new THREE.Mesh(new THREE.RingGeometry(r-.18,r+.18,48),basicMat(accent,{transparent:true,opacity:.35,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); ring.rotation.x=-Math.PI/2; ring.position.y=.03; arenaGroup.add(ring); runeRings.push({mesh:ring,phase:i*1.2}); }
   // central altar
   const altar=new THREE.Group();
   const base=new THREE.Mesh(new THREE.CylinderGeometry(3.5,4,.6,32),mat(theme.floor,{metalness:.6,roughness:.4})); base.position.y=.3; base.receiveShadow=true; altar.add(base);
@@ -943,15 +948,16 @@ function buildArena(theme){
     const col=new THREE.Mesh(new THREE.CylinderGeometry(.9,1.1,8,8),mat(theme.floor,{metalness:.5,roughness:.5})); col.position.y=5; col.castShadow=!MOBILE; pg.add(col);
     const cap=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.1,1,8),mat(theme.floor,{metalness:.6,roughness:.4})); cap.position.y=9.5; pg.add(cap);
     const orb=new THREE.Mesh(SG.sphere,basicMat(accent)); orb.scale.setScalar(.7); orb.position.y=10.6; pg.add(orb);
-    const ol=new THREE.PointLight(accent.getHex(),1.2,18); ol.position.y=10.6; pg.add(ol);
+    const halo=new THREE.Mesh(SG.sphere,basicMat(accent,{transparent:true,opacity:.28,blending:THREE.AdditiveBlending,depthWrite:false})); halo.scale.setScalar(1.5); halo.position.y=10.6; pg.add(halo);
+    const ol=new THREE.PointLight(accent.getHex(),1.6,22); ol.position.y=10.6; pg.add(ol);
     // vertical light strip
-    const strip=new THREE.Mesh(new THREE.BoxGeometry(.12,8,.12),basicMat(accent,{transparent:true,opacity:.6})); strip.position.set(.95,5,0); pg.add(strip);
+    const strip=new THREE.Mesh(new THREE.BoxGeometry(.12,8,.12),basicMat(accent,{transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false})); strip.position.set(.95,5,0); pg.add(strip);
     pg.position.set(px,0,pz); arenaGroup.add(pg); pillarOrbs.push({orb,light:ol,phase:i*.5});
   }
   // outer wall
   const wall=new THREE.Mesh(new THREE.CylinderGeometry(36,36,20,48,1,true),mat(theme.floor,{side:THREE.BackSide,metalness:.4,roughness:.7,transparent:true,opacity:.85})); wall.position.y=10; arenaGroup.add(wall);
-  // wall light strips
-  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; const strip=new THREE.Mesh(new THREE.BoxGeometry(.2,18,.2),basicMat(accent,{transparent:true,opacity:.4})); strip.position.set(Math.cos(a)*35.5,9,Math.sin(a)*35.5); arenaGroup.add(strip); }
+  // wall light strips (additive glow)
+  for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; const strip=new THREE.Mesh(new THREE.BoxGeometry(.2,18,.2),basicMat(accent,{transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false})); strip.position.set(Math.cos(a)*35.5,9,Math.sin(a)*35.5); arenaGroup.add(strip); }
   // ambient floating motes (300)
   const moteCount=state.settings.reducedParticles?120:300;
   const mg=new THREE.BufferGeometry(); const mpos=new Float32Array(moteCount*3); const mdata=[];
@@ -1102,7 +1108,11 @@ function spawnPlayer(){
   const maxHp=Math.round(c.hp*rmul*um.hp*ascMul);
   G.player={hp:maxHp,maxHp,dmg:c.dmg*rmul*um.dmg*ascMul,speed:c.speed,x:0,y:0,z:0,rot:Math.PI,atkCD:0,facing:Math.PI};
   G.playerMesh=buildCharacterMesh(c); scene.add(G.playerMesh);
-  playerLight=new THREE.PointLight(new THREE.Color(RARITIES[c.rarity].color).getHex(),1.5,14); playerLight.position.set(0,3,0); scene.add(playerLight);
+  // glowing ground disc under the hero
+  const rc=new THREE.Color(RARITIES[c.rarity].color);
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.6,32),basicMat(rc,{transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false})); disc.rotation.x=-Math.PI/2; disc.position.y=.05; G.playerMesh.add(disc);
+  const ringFx=new THREE.Mesh(new THREE.RingGeometry(1.5,1.8,40),basicMat(rc,{transparent:true,opacity:.6,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); ringFx.rotation.x=-Math.PI/2; ringFx.position.y=.06; G.playerMesh.add(ringFx); G.playerMesh.userData.groundRing=ringFx;
+  playerLight=new THREE.PointLight(rc.getHex(),1.8,16); playerLight.position.set(0,3,0); scene.add(playerLight);
 }
 /* ============ SPAWNING ============ */
 function mobPoolForWave(w){
@@ -1394,7 +1404,7 @@ function updatePlayerMovement(dt){
   const inp=getMoveInput(); const p=G.player;
   // camera-relative movement
   const fwdX=Math.sin(G.camYaw),fwdZ=Math.cos(G.camYaw); // camera forward on XZ
-  const rightX=Math.sin(G.camYaw+Math.PI/2),rightZ=Math.cos(G.camYaw+Math.PI/2);
+  const rightX=Math.sin(G.camYaw-Math.PI/2),rightZ=Math.cos(G.camYaw-Math.PI/2); // screen-right (fixed handedness)
   // screen forward = away from camera => -fwd? camera looks along (sin yaw forward). We want W to move away from camera.
   let mvX=(inp.mx*rightX + (-inp.mz)*fwdX);
   let mvZ=(inp.mx*rightZ + (-inp.mz)*fwdZ);
@@ -1414,6 +1424,8 @@ function updatePlayerMovement(dt){
     let cur=G.playerMesh.rotation.y; let diff=((p.facing-cur+Math.PI)%(Math.PI*2))-Math.PI; G.playerMesh.rotation.y=cur+diff*Math.min(1,dt*12);
     // bob when moving
     if(mlen>.01){ G.playerMesh.userData.bobT=(G.playerMesh.userData.bobT||0)+dt*10; if(G.playerMesh.userData.body)G.playerMesh.userData.body.position.y=1.1+Math.abs(Math.sin(G.playerMesh.userData.bobT))*.06; }
+    // pulse + spin ground ring
+    if(G.playerMesh.userData.groundRing){ const gr=G.playerMesh.userData.groundRing; gr.rotation.z+=dt*1.2; const ps=1+Math.sin(performance.now()*.004)*.08; gr.scale.setScalar(ps); }
   }
   if(playerLight)playerLight.position.set(p.x,3,p.z);
 }
