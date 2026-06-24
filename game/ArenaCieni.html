@@ -195,6 +195,22 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
 .status-bar{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);display:flex;gap:3px;pointer-events:none}
 .status-icon{font-size:14px;animation:statusPulse 1s ease-in-out infinite}
 @keyframes statusPulse{0%,100%{opacity:1}50%{opacity:.5}}
+.achievement-popup{position:fixed;top:-80px;right:20px;z-index:25;display:flex;align-items:center;gap:12px;
+ padding:14px 20px;border-radius:16px;background:linear-gradient(135deg,rgba(40,28,60,.95),rgba(20,12,34,.98));
+ border:2px solid #ffd24a;box-shadow:0 8px 32px rgba(255,170,0,.4),inset 0 1px 0 rgba(255,255,255,.1);
+ transition:top .5s cubic-bezier(.34,1.56,.64,1);backdrop-filter:blur(8px)}
+.achievement-popup.show{top:20px}
+.achievement-popup .ap-ic{font-size:32px;filter:drop-shadow(0 0 12px rgba(255,170,0,.7))}
+.achievement-popup .ap-body{display:flex;flex-direction:column}
+.achievement-popup .ap-title{font-family:'Cinzel',serif;font-weight:700;font-size:14px;color:#ffd24a;letter-spacing:1px}
+.achievement-popup .ap-desc{font-size:11px;color:#b8a8e0;margin-top:2px}
+.combo-meter{position:absolute;bottom:48px;right:20px;width:6px;height:100px;border-radius:4px;background:rgba(20,12,34,.7);
+ border:1px solid rgba(122,74,255,.3);overflow:hidden;pointer-events:none;display:none}
+.combo-meter.show{display:block}
+.combo-meter-fill{position:absolute;bottom:0;left:0;right:0;border-radius:3px;transition:height .2s,background .3s}
+.dmg-heal{color:#4aff7a !important;text-shadow:0 0 10px rgba(74,255,122,.7),0 2px 4px #000 !important}
+.dmg-status{font-size:14px !important;opacity:.8}
+.screen-flash-white{position:fixed;inset:0;z-index:7;pointer-events:none;background:#ffffff;opacity:0;transition:opacity .1s}
 </style>
 </head>
 <body>
@@ -321,6 +337,7 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
   <div id="killStreak"></div>
   <div id="waveTransition"><div class="wt-inner" id="wt-inner"></div></div>
   <div class="env-warn" id="env-warn"></div>
+  <div class="achievement-popup" id="achievement-popup"><div class="ap-ic" id="ap-ic">🏆</div><div class="ap-body"><div class="ap-title" id="ap-title">Osiągnięcie!</div><div class="ap-desc" id="ap-desc"></div></div></div>
 
   <div class="modal-wrap" id="modal-char"><div class="panel modal" style="position:relative"><div class="modal-close" onclick="ACcloseModal('char')">✕</div><div id="modal-char-body"></div></div></div>
   <div class="modal-wrap" id="modal-shadows"><div class="panel modal" style="position:relative"><div class="modal-close" onclick="ACcloseModal('shadows')">✕</div><div id="modal-shadows-body"></div></div></div>
@@ -2217,6 +2234,7 @@ function killMob(m){
   if(G.combo>state.stats.bestCombo){ state.stats.bestCombo=G.combo; questProgress('combo',G.combo); }
   if(G.combo>1)showCombo(G.combo);
   Audio2.sfx.kill();
+  if(G.kills%50===0)checkAchievements();
   const coins=Math.round((2+G.wave*.5)*(m.elite?4:1)*(G.mutators.includes('golden')?2:1));
   addCoins(coins); addXP(2+G.wave);
   burst(m.x,m.y+.8,m.z,new THREE.Color(m.def.color),16,6,{up:true,life:.8,grav:5});
@@ -2248,7 +2266,8 @@ function killBoss(b){
   b.dying=true; b.deathT=0; G.bossActive=false; $('boss-wrap').classList.remove('show');
   state.stats.bossesKilled++; G.questStats.bosses++; questProgress('bosses',1);
   addCoins(100+G.wave*15); addXP(50+G.wave*5);
-  shake(2.5); flashScreen('#ffaa00',.7);
+  shake(2.5); flashScreen('#ffaa00',.7); flashWhite(200);
+  checkAchievements();
   burst(b.x,b.y+3,b.z,new THREE.Color(b.def.color),80,16,{up:true,life:2,grav:3,size:.35});
   burst(b.x,b.y+1,b.z,new THREE.Color('#ffd24a'),40,10,{up:true,life:1.5,grav:5,size:.18});
   // boss kill shockwave
@@ -2305,7 +2324,11 @@ function useShield(){
   G.shieldActive=true; G.shieldTime=dur; G.shieldCD=c.shieldDur+8;
   Audio2.sfx.shield();
   const col=new THREE.Color(RARITIES[c.rarity].color);
-  const sph=new THREE.Mesh(new THREE.SphereGeometry(1.6,20,20),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.25,side:THREE.DoubleSide})); sph.position.y=1.2; G.playerMesh.add(sph); G.shieldMesh=sph;
+  const shield=createEnhancedShield(G.player,RARITIES[c.rarity].color);
+  G.playerMesh.add(shield.group);
+  G.shieldMesh=shield.group;
+  G.shieldData=shield;
+  createOrbitRing(G.player.x,1.2,G.player.z,RARITIES[c.rarity].color,2,8,.6,5);
   announce(c.shieldName,'');
 }
 function useSummon(){
@@ -2576,7 +2599,15 @@ function gameLoop(now){
       // cooldowns
       if(G.superCD>0)G.superCD-=dt; if(G.shieldCD>0)G.shieldCD-=dt; if(G.summonCD>0)G.summonCD-=dt;
       // shield
-      if(G.shieldActive){ G.shieldTime-=dt; if(G.shieldMesh){ G.shieldMesh.rotation.y+=dt*2; G.shieldMesh.material.opacity=.2+Math.sin(G.time*8)*.08; if(Math.random()<.3)spawnParticle(G.player.x+(Math.random()-.5)*3,1.2+Math.random()*1,G.player.z+(Math.random()-.5)*3,new THREE.Color(RARITIES[G.char.rarity].color),{life:.4,size:.1}); } if(G.shieldTime<=0){ G.shieldActive=false; if(G.shieldMesh){G.playerMesh.remove(G.shieldMesh);G.shieldMesh=null;} } }
+      if(G.shieldActive){ G.shieldTime-=dt;
+        if(G.shieldData){
+          if(G.shieldData.sphere.material.uniforms)G.shieldData.sphere.material.uniforms.uTime.value=G.time;
+          G.shieldData.ring1.rotation.z+=dt*2;
+          G.shieldData.ring2.rotation.x+=dt*1.5;
+          G.shieldData.ring2.rotation.z+=dt;
+        }
+        if(Math.random()<.3)spawnParticle(G.player.x+(Math.random()-.5)*3,1.2+Math.random()*1,G.player.z+(Math.random()-.5)*3,new THREE.Color(RARITIES[G.char.rarity].color),{life:.4,size:.1});
+        if(G.shieldTime<=0){ G.shieldActive=false; if(G.shieldMesh){G.playerMesh.remove(G.shieldMesh);G.shieldMesh=null;G.shieldData=null;} burst(G.player.x,1.2,G.player.z,new THREE.Color(RARITIES[G.char.rarity].color),15,5,{up:true,life:.6}); } }
       // shadow form
       if(G.shadowForm){ G.shadowFormTime-=dt; if(Math.random()<.5)spawnParticle(G.player.x+(Math.random()-.5),1+Math.random(),G.player.z+(Math.random()-.5),new THREE.Color('#7a4aff'),{life:.5,size:.14,vy:1}); if(G.shadowFormTime<=0){ G.shadowForm=false; $('shadow-overlay').style.opacity='0'; if(G.playerMesh)G.playerMesh.children.forEach(ch=>{ if(ch.material&&ch.material.opacity!==undefined&&ch.material.opacity<1&&!G.char.faceless){ch.material.opacity=1;} }); } }
       // buffs
@@ -2727,6 +2758,103 @@ function updateBuffBar(){
   if(G.shieldActive)html+=`<div class="buff-icon" style="border-color:#4aff7a">🛡️</div>`;
   if(G.shadowForm)html+=`<div class="buff-icon" style="border-color:#7a4aff">👻</div>`;
   bar.innerHTML=html;
+}
+/* ============ ACHIEVEMENT POPUP ============ */
+let achievementQueue=[];
+let achievementShowing=false;
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(state.achievements&&state.achievements.includes(a.id))return;
+    let val=0;
+    if(a.stat==='totalKills')val=state.totalKills;
+    else if(a.stat==='collected')val=state.unlockedIds.size;
+    else if(a.stat==='bossesKilled')val=state.stats.bossesKilled;
+    else if(a.stat==='highWave')val=state.highWave;
+    else if(a.stat==='coins')val=state.coins;
+    else if(a.stat==='bestCombo')val=state.stats.bestCombo;
+    if(val>=a.req){
+      if(!state.achievements)state.achievements=[];
+      state.achievements.push(a.id);
+      saveState();
+      achievementQueue.push(a);
+    }
+  });
+  processAchievementQueue();
+}
+function processAchievementQueue(){
+  if(achievementShowing||achievementQueue.length===0)return;
+  achievementShowing=true;
+  const a=achievementQueue.shift();
+  const popup=$('achievement-popup');
+  $('ap-ic').textContent=a.icon;
+  $('ap-title').textContent=a.name;
+  $('ap-desc').textContent=a.desc;
+  popup.classList.add('show');
+  Audio2.sfx.levelup();
+  setTimeout(()=>{popup.classList.remove('show');},3500);
+  setTimeout(()=>{achievementShowing=false;processAchievementQueue();},4000);
+}
+/* ============ ENHANCED DAMAGE NUMBERS ============ */
+function enhancedDamageNum(wx,wy,wz,val,opts){
+  opts=opts||{};
+  const v=new THREE.Vector3(wx,wy,wz); v.project(camera); if(v.z>1)return;
+  const x=(v.x*.5+.5)*innerWidth, y=(-v.y*.5+.5)*innerHeight;
+  const el=document.createElement('div'); el.className='dmg-num';
+  el.textContent=opts.prefix?opts.prefix+val:val;
+  el.style.color=opts.color||'#ffffff';
+  el.style.left=x+'px'; el.style.top=y+'px';
+  if(opts.crit){el.classList.add('damage-crit');el.style.fontSize='32px';}
+  if(opts.heal){el.classList.add('dmg-heal');el.textContent='+'+val;}
+  if(opts.status){el.classList.add('dmg-status');}
+  if(opts.big){el.style.fontSize='28px';}
+  document.body.appendChild(el);
+  let t=0;
+  const vx=(Math.random()-.5)*40;
+  function anim(){
+    t+=.025;
+    el.style.top=(y-t*80)+'px';
+    el.style.left=(parseFloat(el.style.left)+vx*.02)+'px';
+    el.style.opacity=Math.max(0,1-t);
+    if(opts.crit)el.style.transform=`scale(${1+Math.max(0,(1-t*2))*.5})`;
+    if(t<1)requestAnimationFrame(anim); else el.remove();
+  }
+  anim();
+}
+/* ============ SCREEN FLASH EFFECTS ============ */
+function flashWhite(duration){
+  const el=document.createElement('div');
+  el.className='screen-flash-white';
+  el.style.opacity='.5';
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>{el.style.opacity='0';});
+  setTimeout(()=>el.remove(),duration||300);
+}
+/* ============ DYNAMIC DIFFICULTY SCALING ============ */
+function getDifficultyMul(){
+  let mul=1;
+  if(G.wave>=20)mul=1.3;
+  else if(G.wave>=15)mul=1.2;
+  else if(G.wave>=10)mul=1.1;
+  if(G.mode==='endless')mul*=1+G.wave*.01;
+  return mul;
+}
+/* ============ ENHANCED SHIELD VFX ============ */
+function createEnhancedShield(player,color){
+  const col=new THREE.Color(color);
+  const shieldGroup=new THREE.Group();
+  const sph=new THREE.Mesh(new THREE.SphereGeometry(1.6,20,20),new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,
+    uniforms:{uColor:{value:col},uTime:{value:0}},
+    vertexShader:'varying vec3 vNormal;varying vec2 vUv;void main(){vNormal=normal;vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:'uniform vec3 uColor;uniform float uTime;varying vec3 vNormal;varying vec2 vUv;void main(){float fresnel=pow(1.0-abs(dot(vNormal,vec3(0,0,1))),2.5);float hex=sin(vUv.x*20.0+uTime*3.0)*sin(vUv.y*20.0+uTime*2.0)*0.3+0.7;gl_FragColor=vec4(uColor*1.5,fresnel*0.5*hex);}'
+  }));
+  sph.position.y=1.2;
+  shieldGroup.add(sph);
+  const ring1=new THREE.Mesh(new THREE.TorusGeometry(1.7,.04,8,32),basicMat(color,{transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false}));
+  ring1.rotation.x=Math.PI/2;ring1.position.y=1.2;shieldGroup.add(ring1);
+  const ring2=new THREE.Mesh(new THREE.TorusGeometry(1.5,.03,8,32),basicMat(color,{transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false}));
+  ring2.rotation.set(Math.PI/3,Math.PI/4,0);ring2.position.y=1.2;shieldGroup.add(ring2);
+  return {group:shieldGroup,sphere:sph,ring1,ring2};
 }
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
