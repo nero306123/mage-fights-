@@ -402,10 +402,16 @@ const SHADOWS=[
 const MOB_TYPES=[
 {id:'zombie',name:'Zombie',hp:30,dmg:6,speed:2.5,color:0x4a7a3a,scale:1.0,minWave:1,emoji:'🧟'},
 {id:'skeleton',name:'Szkielet',hp:25,dmg:8,speed:3.2,color:0xcccccc,scale:0.95,minWave:1,emoji:'💀'},
+{id:'bat',name:'Nietoperz',hp:18,dmg:7,speed:4.6,color:0x6a2a5a,scale:0.8,minWave:3,emoji:'🦇'},
 {id:'demon',name:'Demon',hp:50,dmg:12,speed:3.0,color:0xcc3a2a,scale:1.2,minWave:5,emoji:'😈'},
+{id:'imp',name:'Chochlik',hp:35,dmg:11,speed:4.0,color:0xff6a2a,scale:0.9,minWave:6,emoji:'👹'},
+{id:'spider',name:'Pająk',hp:45,dmg:13,speed:3.8,color:0x4a3a2a,scale:1.1,minWave:7,emoji:'🕷️'},
 {id:'golem',name:'Golem',hp:90,dmg:15,speed:1.8,color:0x6a6a8a,scale:1.5,minWave:8,emoji:'🗿'},
+{id:'brute',name:'Ogr',hp:140,dmg:20,speed:1.6,color:0x7a5a3a,scale:1.7,minWave:10,emoji:'👺'},
 {id:'widmo',name:'Widmo',hp:40,dmg:14,speed:4.2,color:0x7a4aff,scale:1.1,minWave:12,emoji:'👻'},
-{id:'smok',name:'Smok',hp:130,dmg:22,speed:3.5,color:0x2a8a5a,scale:1.7,minWave:16,emoji:'🐉'}
+{id:'banshee',name:'Banshee',hp:60,dmg:18,speed:4.4,color:0xaa6aff,scale:1.2,minWave:14,emoji:'🧞'},
+{id:'smok',name:'Smok',hp:130,dmg:22,speed:3.5,color:0x2a8a5a,scale:1.7,minWave:16,emoji:'🐉'},
+{id:'reaper',name:'Żniwiarz',hp:110,dmg:26,speed:4.0,color:0x2a2a3a,scale:1.4,minWave:18,emoji:'☠️'}
 ];
 const BOSS_TYPES=[
 {id:'guardian',name:'Cienisty Strażnik',hp:600,dmg:25,speed:2.2,color:0x6a3a9a,scale:2.5,emoji:'🌑'},
@@ -487,6 +493,16 @@ const GAME_MODES=[
 {id:'bossrush',name:'Najazd Bossów',emoji:'👹',desc:'Sami bossowie, jeden po drugim. Ekstremalne wyzwanie i nagrody.',unlock:15},
 {id:'timeattack',name:'Na Czas',emoji:'⏱️',desc:'3 minuty. Zabij ile zdołasz dla mnożnika monet!',unlock:5}
 ];
+// ===== WAVE MUTATORS =====
+const MUTATORS=[
+{id:'horde',name:'Horda',emoji:'👥',desc:'Więcej wrogów',color:'#ff6a4a'},
+{id:'armored',name:'Pancerni',emoji:'🛡️',desc:'Wrogowie mają więcej HP',color:'#8a8aff'},
+{id:'frenzy',name:'Szał',emoji:'💢',desc:'Wrogowie są szybsi',color:'#ff4a4a'},
+{id:'golden',name:'Złota Fala',emoji:'💰',desc:'Podwójne monety',color:'#ffcc44'},
+{id:'elite',name:'Elitarni',emoji:'⭐',desc:'Więcej elitarnych wrogów',color:'#ffaa00'},
+{id:'swarm',name:'Rój',emoji:'🐝',desc:'Szybszy spawn wrogów',color:'#aaff4a'}
+];
+let currentMutator=null;
 // ===== AUDIO ENGINE (WebAudio synth) =====
 const Audio2={ctx:null,master:null,musicGain:null,sfxGain:null,muted:false,
 init(){if(this.ctx)return;try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=0.5;this.master.connect(this.ctx.destination);
@@ -793,7 +809,7 @@ function statusDmgTaken(m){if(!m.status)return 1;let mul=1;for(const k in m.stat
 function clanFx(c){return CLAN_FX[c.clan]||CLAN_FX.shadow}
 
 let gameRunning=false,gamePaused=false;
-let player=null,mobs=[],projectiles=[],shadowMinions=[],boss=null;
+let player=null,mobs=[],projectiles=[],shadowMinions=[],boss=null,bossProjectiles=[];
 let wave=0,waveMobsToSpawn=0,waveSpawnTimer=0,waveActive=false,betweenWaves=false,betweenTimer=0;
 let kills=0,sessionCoins=0;
 let screenShake=0,fovPunch=0;
@@ -816,7 +832,7 @@ let hp=c.hp*hpUp,dmg=c.dmg*dmgUp,spd=c.speed,atkType=c.atkType;
 if(style){hp*=style.hpMod;dmg*=style.dmgMod;spd*=style.speedMod;atkType=style.atkType}
 player={char:c,hp,maxHp:hp,baseDmg:dmg,dmg,speed:spd,atkType,baseAtkType:atkType,shieldDur:c.shieldDur+state.upgrades.shield*0.5,isGhost:false,shieldMesh:null};
 camera.position.set(0,1.6,0);yaw=0;pitch=0;
-mobs=[];projectiles=[];shadowMinions=[];boss=null;arenaSlash=null;arenaRings=[];powerupOrbs=[];activePowerups={};
+mobs=[];projectiles=[];shadowMinions=[];boss=null;bossProjectiles=[];arenaSlash=null;arenaRings=[];powerupOrbs=[];activePowerups={};currentMutator=null;
 comboCount=0;comboTimer=0;modeTimer=gameMode==='timeattack'?180:0;
 wave=0;kills=0;sessionCoins=0;waveActive=false;betweenWaves=true;betweenTimer=1.5;
 abilityCD={super:0,shield:0,shadow:0};shieldActive=0;shadowFormActive=0;smSuperActive=0;screenShake=0;fovPunch=0;
@@ -852,16 +868,22 @@ shadowMinions.push({group:g,data:sd,hp:sd.hp*shUp,maxHp:sd.hp*shUp,dmg:sd.dmg*sh
 
 function availableMobTypes(){return MOB_TYPES.filter(m=>wave>=m.minWave)}
 function spawnMob(){const types=availableMobTypes();const mt=types[Math.floor(Math.random()*types.length)];
+const mut=currentMutator;
+let eliteChance=0.04+wave*0.004;if(mut&&mut.id==='elite')eliteChance+=0.25;const isElite=wave>=4&&Math.random()<eliteChance;
+const sc=mt.scale*(isElite?1.45:1);
 const g=new THREE.Group();const waveMul=1+wave*0.12;
-const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.4*mt.scale,1.0*mt.scale,4,8),new THREE.MeshStandardMaterial({color:mt.color,emissive:mt.color,emissiveIntensity:0.2,roughness:0.6}));body.position.y=0.8*mt.scale;g.add(body);
-const eyeM=new THREE.MeshBasicMaterial({color:0xff2020});
-[-0.15,0.15].forEach(dx=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.08*mt.scale,6,6),eyeM);e.position.set(dx,1.3*mt.scale,0.35*mt.scale);g.add(e)});
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.4*sc,1.0*sc,4,8),new THREE.MeshStandardMaterial({color:mt.color,emissive:isElite?0xffaa00:mt.color,emissiveIntensity:isElite?0.6:0.2,roughness:0.6}));body.position.y=0.8*sc;g.add(body);
+const eyeM=new THREE.MeshBasicMaterial({color:isElite?0xffdd00:0xff2020});
+[-0.15,0.15].forEach(dx=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.08*sc,6,6),eyeM);e.position.set(dx*sc,1.3*sc,0.35*sc);g.add(e)});
+if(isElite){const aura=new THREE.Mesh(new THREE.TorusGeometry(0.7*sc,0.06,8,20),new THREE.MeshBasicMaterial({color:0xffaa00,transparent:true,opacity:0.7}));aura.rotation.x=Math.PI/2;aura.position.y=0.4;g.add(aura);g.add(new THREE.PointLight(0xffaa00,1.2,8))}
 const a=Math.random()*Math.PI*2,r=28+Math.random()*5;g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
-const hpbg=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.12),new THREE.MeshBasicMaterial({color:0x000000}));hpbg.position.y=1.9*mt.scale;g.add(hpbg);
-const hpfill=new THREE.Mesh(new THREE.PlaneGeometry(0.96,0.08),new THREE.MeshBasicMaterial({color:0xff3030}));hpfill.position.set(0,1.9*mt.scale,0.01);g.add(hpfill);
+const hpbg=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.12),new THREE.MeshBasicMaterial({color:0x000000}));hpbg.position.y=2.0*sc;g.add(hpbg);
+const hpfill=new THREE.Mesh(new THREE.PlaneGeometry(0.96,0.08),new THREE.MeshBasicMaterial({color:isElite?0xffaa00:0xff3030}));hpfill.position.set(0,2.0*sc,0.01);g.add(hpfill);
 scene.add(g);
 const modeMul=gameMode==='endless'?1+wave*0.06:1;
-mobs.push({group:g,type:mt,hp:mt.hp*waveMul*modeMul,maxHp:mt.hp*waveMul*modeMul,dmg:mt.dmg*(1+wave*0.06)*modeMul,speed:mt.speed,atkCD:0,hpfill,scale:mt.scale,dead:false,status:null,_statusMark:null})}
+const armorMul=(mut&&mut.id==='armored')?1.6:1;const frenzyMul=(mut&&mut.id==='frenzy')?1.4:1;const eHp=isElite?2.4:1,eDmg=isElite?1.6:1;
+const hp=mt.hp*waveMul*modeMul*armorMul*eHp;
+mobs.push({group:g,type:mt,hp,maxHp:hp,dmg:mt.dmg*(1+wave*0.06)*modeMul*eDmg,speed:mt.speed*frenzyMul,atkCD:0,hpfill,scale:sc,dead:false,status:null,_statusMark:null,elite:isElite})}
 
 function spawnBoss(){const idx=Math.min(Math.floor((wave-5)/5),BOSS_TYPES.length-1);const bt=BOSS_TYPES[idx];
 const cyc=Math.floor((wave-5)/(BOSS_TYPES.length*5));const mul=1+cyc*0.8+wave*0.05;
@@ -884,9 +906,12 @@ announceWave(wave);
 let isBoss=wave%5===0;
 if(gameMode==='bossrush')isBoss=true;
 if(gameMode==='timeattack')isBoss=false;
+currentMutator=null;
+if(!isBoss&&wave>=3&&Math.random()<0.45){currentMutator=MUTATORS[Math.floor(Math.random()*MUTATORS.length)];setTimeout(()=>announceMutator(currentMutator),900)}
 if(isBoss){spawnBoss();waveMobsToSpawn=gameMode==='bossrush'?0:Math.floor(wave*0.7);waveSpawnTimer=2}
-else{waveMobsToSpawn=5+wave*3;if(gameMode==='endless')waveMobsToSpawn=Math.floor((5+wave*3)*1.3);if(gameMode==='timeattack')waveMobsToSpawn=999;waveSpawnTimer=0}
+else{waveMobsToSpawn=5+wave*3;if(gameMode==='endless')waveMobsToSpawn=Math.floor((5+wave*3)*1.3);if(currentMutator&&currentMutator.id==='horde')waveMobsToSpawn=Math.floor(waveMobsToSpawn*1.6);if(gameMode==='timeattack')waveMobsToSpawn=999;waveSpawnTimer=0}
 waveActive=true;betweenWaves=false;updateHUD()}
+function announceMutator(mut){const e=document.getElementById('bossAnno');e.style.color=mut.color;e.style.textShadow='0 0 30px '+mut.color;e.textContent=mut.emoji+' '+mut.name.toUpperCase();e.classList.remove('show');void e.offsetWidth;e.classList.add('show');toast(mut.emoji+' '+mut.name+': '+mut.desc);Audio2.sfx('boss')}
 function checkWaveEnd(){if(!waveActive)return;if(gameMode==='timeattack')return;if(waveMobsToSpawn<=0&&mobs.length===0&&!boss)endWave()}
 function endWave(){waveActive=false;betweenWaves=true;betweenTimer=gameMode==='bossrush'?1.5:2.5;
 const reward=Math.round((20+wave*10)*(1+state.upgrades.magnet*0.15));sessionCoins+=reward;
@@ -1000,9 +1025,11 @@ spawnDeathParticles(m.group.position.clone().setY(1),m.type.color);
 addTempLight(m.group.position.clone().setY(1),m.type.color,2,6,0.3);
 m._dissolve=0.4;m._dissolveT=0.4;
 kills++;Audio2.sfx('death');if(byPlayer)addCombo();
-const coinUp=(1+state.upgrades.magnet*0.15)*(isPowerupActive('magnet')?1.5:1)*comboMult()*(gameMode==='timeattack'?1.5:1);
+const golden=(currentMutator&&currentMutator.id==='golden')?2:1;const eliteC=m.elite?3:1;
+const coinUp=(1+state.upgrades.magnet*0.15)*(isPowerupActive('magnet')?1.5:1)*comboMult()*(gameMode==='timeattack'?1.5:1)*golden*eliteC;
 sessionCoins+=Math.round((5+wave*2)*coinUp);
-if(Math.random()<0.06)spawnPowerupOrb(m.group.position.clone());
+if(m.elite){spawnPowerupOrb(m.group.position.clone());spawnSuperParticles(m.group.position.clone().setY(1),new THREE.Color(0xffaa00))}
+else if(Math.random()<0.06)spawnPowerupOrb(m.group.position.clone());
 updateHUD()}
 function killBoss(byPlayer){if(!boss)return;const bp=boss.group.position.clone();
 spawnSuperParticles(bp.clone().setY(2),new THREE.Color(boss.type.color));
@@ -1013,6 +1040,7 @@ kills++;if(byPlayer)addCombo();spawnPowerupOrb(bp.clone());
 toast('BOSS POKONANY! +'+cg+'💰 +2💎');
 if(player.isGhost&&player.char.ghostMechanic&&Math.random()<0.5)revivePlayer();
 scene.remove(boss.group);if(boss.telegraph)scene.remove(boss.telegraph);boss=null;
+bossProjectiles.forEach(p=>scene.remove(p.mesh));bossProjectiles=[];
 document.getElementById('bossBar').classList.remove('active');updateHUD()}
 function damagePlayer(dmg){if(player.isGhost)return;if(shieldActive>0||shadowFormActive>0||smSuperActive>0)return;
 player.hp-=dmg;doHitIndicator();doScreenShake(0.4);Audio2.sfx('hurt');
@@ -1035,7 +1063,7 @@ function doHitIndicator(){const h=document.getElementById('hitInd');h.style.tran
 function floatDmg(worldPos,val,color,big){const v=worldPos.clone().project(camera);if(v.z>1)return;const x=(v.x*0.5+0.5)*innerWidth,y=(-v.y*0.5+0.5)*innerHeight;
 const el=document.createElement('div');el.className='dmgnum';el.textContent=val;el.style.color=color;el.style.left=x+'px';el.style.top=y+'px';if(big)el.style.fontSize='28px';document.getElementById('app').appendChild(el);setTimeout(()=>el.remove(),1000)}
 function announceWave(n){const e=document.getElementById('waveAnno');e.textContent='FALA '+n;e.classList.remove('show');void e.offsetWidth;e.classList.add('show')}
-function announceBoss(name){const e=document.getElementById('bossAnno');e.textContent='BOSS: '+name;e.classList.remove('show');void e.offsetWidth;e.classList.add('show')}
+function announceBoss(name){const e=document.getElementById('bossAnno');e.style.color='#ff3a3a';e.style.textShadow='0 0 30px #ff0000';e.textContent='BOSS: '+name;e.classList.remove('show');void e.offsetWidth;e.classList.add('show')}
 
 function updateHUD(){if(!player)return;
 document.getElementById('hudWave').textContent=gameMode==='timeattack'?('⏱ '+Math.ceil(modeTimer)+'s'):('FALA '+(wave||1));
@@ -1072,10 +1100,11 @@ for(const k in abilityCD)if(abilityCD[k]>0)abilityCD[k]=Math.max(0,abilityCD[k]-
 if(shieldActive>0){shieldActive-=dt;if(player.shieldMesh){player.shieldMesh.position.copy(camera.position);player.shieldMesh.scale.setScalar(1+Math.sin(performance.now()*0.01)*0.05)}if(shieldActive<=0&&player.shieldMesh)player.shieldMesh.visible=false}
 if(shadowFormActive>0){shadowFormActive-=dt;if(Math.random()<dt*10)spawnParticle(camera.position.clone().setY(0.5+Math.random()),0x9a4aff,new THREE.Vector3((Math.random()-0.5),Math.random()*2,(Math.random()-0.5)),0.6);if(shadowFormActive<=0){document.getElementById('shadowOverlay').style.opacity=smSuperActive>0?0.7:(player.isGhost?0.6:0);if(scene.fog)scene.fog.color.set(0x080812)}}
 if(betweenWaves){betweenTimer-=dt;if(betweenTimer<=0)startWave()}
-if(waveActive&&waveMobsToSpawn>0){waveSpawnTimer-=dt;if(waveSpawnTimer<=0){spawnMob();waveMobsToSpawn--;waveSpawnTimer=Math.max(0.4,1.2-wave*0.03)}}
+if(waveActive&&waveMobsToSpawn>0&&mobs.length<(isMobile?22:40)){waveSpawnTimer-=dt;if(waveSpawnTimer<=0){spawnMob();waveMobsToSpawn--;const swarm=(currentMutator&&currentMutator.id==='swarm')?0.5:1;waveSpawnTimer=Math.max(0.3,1.2-wave*0.03)*swarm*(gameMode==='timeattack'?0.6:1)}}
 checkWaveEnd();
 updateMobs(dt);
 if(boss)updateBoss(dt);
+updateBossProjectiles(dt);
 updateShadowMinions(dt);
 updateProjectiles(dt);
 updateParticles(dt);
@@ -1094,14 +1123,27 @@ m.group.lookAt(camera.position.x,m.group.position.y,camera.position.z);
 if(m.hpfill)m.hpfill.lookAt(camera.position);
 if(m.atkCD>0)m.atkCD-=dt;
 if(d<1.8&&m.atkCD<=0){m.atkCD=1.2;damagePlayer(m.dmg)}}}
+function bossPattern(m){const id=m.type.id;if(id==='omega')return['slam','volley','nova','blink'][Math.floor(Math.random()*4)];
+return id==='guardian'?'slam':id==='titan'?'volley':id==='colossus'?'nova':id==='voidlord'?'blink':'slam'}
+function fireBossProjectile(from,dir,dmg,color){const mesh=new THREE.Mesh(new THREE.SphereGeometry(0.4,10,10),new THREE.MeshBasicMaterial({color}));mesh.add(new THREE.Mesh(new THREE.SphereGeometry(0.7,8,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.3})));mesh.add(new THREE.PointLight(color,1.5,8));mesh.position.copy(from);scene.add(mesh);bossProjectiles.push({mesh,vel:dir.clone().multiplyScalar(14),dmg,life:4,color})}
+function updateBossProjectiles(dt){for(let i=bossProjectiles.length-1;i>=0;i--){const p=bossProjectiles[i];p.life-=dt;p.mesh.position.addScaledVector(p.vel,dt);
+if(Math.random()<0.4)spawnParticle(p.mesh.position.clone(),p.color,new THREE.Vector3(0,0,0),0.3,false);
+if(p.mesh.position.distanceTo(camera.position)<1.4){damagePlayer(p.dmg);scene.remove(p.mesh);bossProjectiles.splice(i,1);continue}
+if(p.life<=0||Math.hypot(p.mesh.position.x,p.mesh.position.z)>42){scene.remove(p.mesh);bossProjectiles.splice(i,1)}}}
 function updateBoss(dt){const m=boss;const toP=camera.position.clone().setY(0).sub(m.group.position.clone().setY(0));const d=toP.length();toP.normalize();
-m.group.position.addScaledVector(toP,m.speed*dt);
+const wantDist=m.type.id==='titan'?14:m.type.id==='voidlord'?10:2;
+if(d>wantDist)m.group.position.addScaledVector(toP,m.speed*dt);
+else if(d<wantDist-3)m.group.position.addScaledVector(toP,-m.speed*dt*0.5);
 m.group.lookAt(camera.position.x,m.group.position.y,camera.position.z);
+m.group.rotation.y+=Math.sin(performance.now()*0.002)*0.01;
 if(m.atkCD>0)m.atkCD-=dt;
 if(d<3.5&&m.atkCD<=0){m.atkCD=2.0;damagePlayer(m.dmg)}
-m.special+=dt;
-if(m.special>5&&!m.telegraph){const tg=new THREE.Mesh(new THREE.RingGeometry(3,4,32),new THREE.MeshBasicMaterial({color:0xff3030,transparent:true,opacity:0.5,side:THREE.DoubleSide}));tg.rotation.x=-Math.PI/2;tg.position.copy(camera.position).setY(0.1);scene.add(tg);m.telegraph=tg;m._tgT=1.2}
-if(m.telegraph){m._tgT-=dt;m.telegraph.material.opacity=0.3+Math.abs(Math.sin(m._tgT*10))*0.4;if(m._tgT<=0){const ep=m.telegraph.position.clone();if(camera.position.distanceTo(ep)<4.5)damagePlayer(m.dmg*1.5);spawnSuperParticles(ep.clone().setY(1),new THREE.Color(0xff3030));addTempLight(ep.clone().setY(1),0xff3030,3,12,0.4);scene.remove(m.telegraph);m.telegraph=null;m.special=0}}
+m.special+=dt;const interval=m.type.id==='omega'?3.5:5;
+if(m.special>interval&&!m.telegraph){m._pattern=bossPattern(m);
+if(m._pattern==='volley'){const bp=m.group.position.clone().setY(2*m.scale);const base=camera.position.clone().sub(bp).normalize();for(let k=-2;k<=2;k++){const ang=Math.atan2(base.x,base.z)+k*0.18;fireBossProjectile(bp.clone(),new THREE.Vector3(Math.sin(ang),0,Math.cos(ang)),m.dmg*0.8,m.type.color)}Audio2.sfx('aoe');m.special=0}
+else if(m._pattern==='blink'){const a=Math.random()*Math.PI*2;m.group.position.set(camera.position.x+Math.cos(a)*5,0,camera.position.z+Math.sin(a)*5);spawnSuperParticles(m.group.position.clone().setY(2),new THREE.Color(m.type.color));addTempLight(m.group.position.clone().setY(2),m.type.color,4,20,0.5);doScreenShake(0.5);Audio2.sfx('shadow');m.special=0}
+else{const tgPos=m._pattern==='nova'?m.group.position.clone():camera.position.clone();const rad=m._pattern==='nova'?7:4;const tg=new THREE.Mesh(new THREE.RingGeometry(rad-1,rad,40),new THREE.MeshBasicMaterial({color:m.type.color,transparent:true,opacity:0.5,side:THREE.DoubleSide}));tg.rotation.x=-Math.PI/2;tg.position.copy(tgPos).setY(0.1);scene.add(tg);m.telegraph=tg;m._tgT=1.2;m._tgRad=rad}}
+if(m.telegraph){m._tgT-=dt;m.telegraph.material.opacity=0.3+Math.abs(Math.sin(m._tgT*10))*0.4;if(m._tgT<=0){const ep=m.telegraph.position.clone();if(camera.position.distanceTo(ep)<m._tgRad){damagePlayer(m.dmg*1.5)}spawnSuperParticles(ep.clone().setY(1),new THREE.Color(m.type.color));addTempLight(ep.clone().setY(1),m.type.color,3,m._tgRad*3,0.4);doScreenShake(0.6);scene.remove(m.telegraph);m.telegraph=null;m.special=0}}
 updateBossBar()}
 function updateShadowMinions(dt){for(const sm of shadowMinions){
 if(sm.dead){sm.respawn-=dt;if(sm.respawn<=0){sm.dead=false;sm.hp=sm.maxHp;sm.group.visible=true;const a=Math.random()*Math.PI*2;sm.group.position.set(camera.position.x+Math.cos(a)*3,0,camera.position.z+Math.sin(a)*3)}continue}
