@@ -3,1660 +3,870 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>Arena Cieni — Kolekcjoner Bohaterów</title>
+<title>Arena Cieni</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Cinzel:wght@700;900&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Orbitron:wght@400;700;900&display=swap');
-:root{
-  --bg:#0a0a12;--card:#13132a;--border:#2a2a4a;
-  --common:#8a8a8a;--rare:#4a9eff;--epic:#b44aff;
-  --mythic:#ff4a8a;--legendary:#ffaa00;--ultimate:#ff4444;
-  --unknown:#00ffaa;--secret:#ff00ff;
-  --text:#e0e0f0;--text2:#8888aa;
-  --glow:0 0 20px rgba(100,100,255,0.3);
-  --shadow-purple:#6a0dad;
-}
-html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Orbitron',sans-serif;}
-canvas{display:block;}
-
-/* ===== SCREENS ===== */
-.screen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:100;flex-direction:column;align-items:center;overflow-y:auto;}
-.screen.active{display:flex;}
-
-/* ===== MAIN MENU ===== */
-#screen-menu{
-  background:radial-gradient(ellipse at center,#1a1040 0%,#0a0a12 70%);
-  justify-content:center;gap:20px;
-}
-#screen-menu .title{
-  font-family:'Cinzel',serif;font-size:clamp(2rem,6vw,4.5rem);font-weight:900;
-  text-align:center;margin-bottom:20px;
-  background:linear-gradient(135deg,#b44aff,#6a0dad,#ff4a8a);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  text-shadow:0 0 60px rgba(106,13,173,0.5);
-  animation:titlePulse 3s ease-in-out infinite;
-}
-@keyframes titlePulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.3);}}
-#screen-menu .subtitle{font-size:clamp(0.7rem,2vw,1rem);color:var(--text2);margin-bottom:30px;text-align:center;}
-.menu-btn{
-  width:280px;padding:16px 0;border:2px solid var(--border);border-radius:12px;
-  background:linear-gradient(135deg,#1a1a3a,#13132a);color:var(--text);
-  font-family:'Orbitron',sans-serif;font-size:1rem;cursor:pointer;
-  transition:all .3s;text-transform:uppercase;letter-spacing:2px;
-}
-.menu-btn:hover{border-color:var(--epic);box-shadow:0 0 30px rgba(180,74,255,0.3);transform:scale(1.05);}
-.menu-btn.play{border-color:var(--epic);background:linear-gradient(135deg,#2a1050,#1a0830);}
-.menu-btn .coins-display{color:var(--legendary);font-size:0.8rem;margin-top:4px;}
-
-/* ===== COLLECTION ===== */
-#screen-collection{background:var(--bg);padding:20px;}
-.coll-header{
-  width:100%;display:flex;justify-content:space-between;align-items:center;
-  padding:10px 20px;flex-shrink:0;
-}
-.coll-header h2{font-family:'Cinzel',serif;font-size:1.5rem;}
-.back-btn{
-  padding:10px 20px;border:1px solid var(--border);border-radius:8px;
-  background:transparent;color:var(--text);cursor:pointer;font-family:'Orbitron',sans-serif;
-  font-size:0.8rem;
-}
-.back-btn:hover{border-color:var(--epic);}
-.coll-filters{
-  display:flex;gap:8px;padding:10px 20px;flex-wrap:wrap;flex-shrink:0;width:100%;
-}
-.filter-btn{
-  padding:6px 14px;border:1px solid var(--border);border-radius:20px;
-  background:transparent;color:var(--text2);cursor:pointer;font-size:0.7rem;
-  font-family:'Orbitron',sans-serif;transition:all .2s;
-}
-.filter-btn.active,.filter-btn:hover{color:#fff;border-color:var(--epic);background:rgba(180,74,255,0.2);}
-.filter-btn[data-r="common"].active{border-color:var(--common);background:rgba(138,138,138,0.2);}
-.filter-btn[data-r="rare"].active{border-color:var(--rare);background:rgba(74,158,255,0.2);}
-.filter-btn[data-r="epic"].active{border-color:var(--epic);background:rgba(180,74,255,0.2);}
-.filter-btn[data-r="mythic"].active{border-color:var(--mythic);background:rgba(255,74,138,0.2);}
-.filter-btn[data-r="legendary"].active{border-color:var(--legendary);background:rgba(255,170,0,0.2);}
-.filter-btn[data-r="ultimate"].active{border-color:var(--ultimate);background:rgba(255,68,68,0.2);}
-.filter-btn[data-r="unknown"].active{border-color:var(--unknown);background:rgba(0,255,170,0.2);}
-.filter-btn[data-r="secret"].active{border-color:var(--secret);background:rgba(255,0,255,0.2);}
-.coll-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;
-  padding:10px 20px 40px;width:100%;
-}
-.char-card{
-  border:2px solid var(--border);border-radius:12px;padding:12px;
-  background:var(--card);cursor:pointer;transition:all .3s;text-align:center;
-  position:relative;overflow:hidden;
-}
-.char-card:hover{transform:translateY(-4px);}
-.char-card.locked{opacity:0.4;filter:grayscale(1);}
-.char-card.locked .char-avatar{background:#222!important;}
-.char-card .char-avatar{
-  width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
-  display:flex;align-items:center;justify-content:center;font-size:2rem;
-}
-.char-card .char-name{font-size:0.7rem;margin-bottom:4px;min-height:2em;}
-.char-card .char-rarity{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;}
-.char-card[data-r="common"]{border-color:rgba(138,138,138,0.3);}
-.char-card[data-r="common"] .char-rarity{color:var(--common);}
-.char-card[data-r="rare"]{border-color:rgba(74,158,255,0.3);}
-.char-card[data-r="rare"] .char-rarity{color:var(--rare);}
-.char-card[data-r="epic"]{border-color:rgba(180,74,255,0.3);}
-.char-card[data-r="epic"] .char-rarity{color:var(--epic);}
-.char-card[data-r="mythic"]{border-color:rgba(255,74,138,0.3);}
-.char-card[data-r="mythic"] .char-rarity{color:var(--mythic);}
-.char-card[data-r="legendary"]{border-color:rgba(255,170,0,0.3);}
-.char-card[data-r="legendary"] .char-rarity{color:var(--legendary);}
-.char-card[data-r="legendary"]:not(.locked){animation:legendGlow 2s ease-in-out infinite;}
-.char-card[data-r="ultimate"]{border-color:rgba(255,68,68,0.3);}
-.char-card[data-r="ultimate"] .char-rarity{color:var(--ultimate);}
-.char-card[data-r="ultimate"]:not(.locked){animation:ultGlow 1.5s ease-in-out infinite;}
-.char-card[data-r="unknown"]{border-color:rgba(0,255,170,0.3);}
-.char-card[data-r="unknown"] .char-rarity{color:var(--unknown);}
-.char-card[data-r="secret"]{border-color:rgba(255,0,255,0.3);}
-.char-card[data-r="secret"] .char-rarity{color:var(--secret);}
-.char-card[data-r="secret"]:not(.locked){animation:secretGlow 1s ease-in-out infinite;}
-@keyframes legendGlow{0%,100%{box-shadow:0 0 10px rgba(255,170,0,0.2);}50%{box-shadow:0 0 30px rgba(255,170,0,0.5);}}
-@keyframes ultGlow{0%,100%{box-shadow:0 0 10px rgba(255,68,68,0.3);}50%{box-shadow:0 0 40px rgba(255,68,68,0.6);}}
-@keyframes secretGlow{0%,100%{box-shadow:0 0 15px rgba(255,0,255,0.3);}50%{box-shadow:0 0 50px rgba(255,0,255,0.7);}}
-
-/* ===== CHARACTER DETAIL MODAL ===== */
-.modal-overlay{
-  position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);
-  display:none;z-index:200;align-items:center;justify-content:center;
-}
-.modal-overlay.active{display:flex;}
-.modal-card{
-  background:var(--card);border:2px solid var(--border);border-radius:16px;
-  padding:30px;max-width:400px;width:90%;text-align:center;position:relative;
-}
-.modal-card .close-modal{
-  position:absolute;top:10px;right:15px;background:none;border:none;
-  color:var(--text2);font-size:1.5rem;cursor:pointer;
-}
-.modal-card .detail-avatar{
-  width:120px;height:120px;border-radius:50%;margin:0 auto 15px;
-  display:flex;align-items:center;justify-content:center;font-size:3.5rem;
-}
-.modal-card h3{font-family:'Cinzel',serif;font-size:1.3rem;margin-bottom:5px;}
-.modal-card .detail-rarity{font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:15px;}
-.modal-card .detail-clan{font-size:0.7rem;color:var(--text2);margin-bottom:15px;}
-.stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
-.stat-row .stat-label{color:var(--text2);font-size:0.75rem;}
-.stat-row .stat-val{font-size:0.75rem;}
-.detail-super{margin-top:15px;padding:12px;background:rgba(180,74,255,0.1);border-radius:8px;text-align:left;}
-.detail-super h4{font-size:0.8rem;margin-bottom:5px;color:var(--epic);}
-.detail-super p{font-size:0.7rem;color:var(--text2);line-height:1.4;}
-.btn-select{
-  margin-top:15px;padding:12px 30px;border:2px solid var(--epic);border-radius:8px;
-  background:linear-gradient(135deg,#2a1050,#1a0830);color:#fff;
-  font-family:'Orbitron',sans-serif;font-size:0.85rem;cursor:pointer;transition:all .3s;
-}
-.btn-select:hover{box-shadow:0 0 20px rgba(180,74,255,0.4);transform:scale(1.05);}
-.btn-select:disabled{opacity:0.3;cursor:not-allowed;}
-
-/* ===== CRATE SCREEN ===== */
-#screen-crates{background:radial-gradient(ellipse at center,#1a1040 0%,#0a0a12 70%);justify-content:center;gap:20px;}
-.crate-box{
-  width:200px;height:200px;border:3px solid var(--epic);border-radius:20px;
-  background:linear-gradient(135deg,#2a1060,#1a0830);
-  display:flex;align-items:center;justify-content:center;font-size:5rem;
-  cursor:pointer;transition:all .3s;position:relative;
-}
-.crate-box:hover{transform:scale(1.1) rotate(3deg);box-shadow:0 0 50px rgba(180,74,255,0.5);}
-.crate-box.opening{animation:crateShake 0.5s ease-in-out;}
-@keyframes crateShake{
-  0%,100%{transform:rotate(0);}
-  20%{transform:rotate(-10deg) scale(1.1);}
-  40%{transform:rotate(10deg) scale(1.15);}
-  60%{transform:rotate(-5deg) scale(1.2);}
-  80%{transform:rotate(5deg) scale(1.25);}
-}
-.crate-price{font-size:0.9rem;color:var(--legendary);}
-.crate-label{font-size:0.8rem;color:var(--text2);text-transform:uppercase;letter-spacing:2px;}
-
-/* ===== CRATE REVEAL ===== */
-#crate-reveal{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,0.95);display:none;z-index:300;
-  align-items:center;justify-content:center;flex-direction:column;
-}
-#crate-reveal.active{display:flex;}
-#crate-reveal .reveal-avatar{
-  width:160px;height:160px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:5rem;
-  animation:revealPop 0.6s cubic-bezier(0.175,0.885,0.32,1.275);
-  box-shadow:0 0 60px rgba(180,74,255,0.5);
-}
-@keyframes revealPop{0%{transform:scale(0) rotate(-180deg);opacity:0;}100%{transform:scale(1) rotate(0);opacity:1;}}
-#crate-reveal .reveal-name{font-family:'Cinzel',serif;font-size:1.8rem;margin-top:20px;animation:revealFade 0.8s ease-out 0.3s both;}
-#crate-reveal .reveal-rarity{font-size:1rem;text-transform:uppercase;letter-spacing:3px;margin-top:8px;animation:revealFade 0.8s ease-out 0.5s both;}
-#crate-reveal .reveal-new{font-size:0.8rem;color:var(--unknown);margin-top:10px;animation:revealFade 0.8s ease-out 0.7s both;}
-@keyframes revealFade{0%{opacity:0;transform:translateY(20px);}100%{opacity:1;transform:translateY(0);}}
-#crate-reveal .reveal-close{
-  margin-top:30px;padding:12px 40px;border:1px solid var(--border);border-radius:8px;
-  background:transparent;color:var(--text);cursor:pointer;font-family:'Orbitron',sans-serif;
-  animation:revealFade 0.8s ease-out 0.9s both;
-}
-.reveal-particles{position:absolute;width:100%;height:100%;pointer-events:none;overflow:hidden;}
-.reveal-particle{
-  position:absolute;width:6px;height:6px;border-radius:50%;
-  animation:particleFly 1.5s ease-out forwards;
-}
-@keyframes particleFly{
-  0%{transform:translate(0,0) scale(1);opacity:1;}
-  100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0;}
-}
-
-/* ===== CHARACTER SELECT ===== */
-#screen-select{background:var(--bg);padding:20px;}
-.select-grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;
-  padding:10px 20px 40px;width:100%;
-}
-
-/* ===== GAME HUD ===== */
-#game-screen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:50;}
-#game-screen.active{display:block;}
-#game-canvas{width:100%;height:100%;}
-.hud{position:fixed;z-index:60;pointer-events:none;}
-.hud>*{pointer-events:auto;}
-#hud-top{top:10px;left:0;width:100%;display:flex;justify-content:center;gap:20px;padding:0 20px;}
-#hud-wave{
-  background:rgba(10,10,20,0.8);border:1px solid var(--epic);border-radius:8px;
-  padding:8px 20px;font-size:0.9rem;
-}
-#hud-coins{
-  background:rgba(10,10,20,0.8);border:1px solid var(--legendary);border-radius:8px;
-  padding:8px 20px;font-size:0.9rem;color:var(--legendary);
-}
-#hud-bottom{bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;}
-.ability-slot{
-  width:70px;height:70px;border:2px solid var(--border);border-radius:12px;
-  background:rgba(10,10,20,0.8);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;position:relative;
-}
-.ability-slot .ability-icon{font-size:1.5rem;}
-.ability-slot .ability-key{font-size:0.6rem;color:var(--text2);margin-top:2px;}
-.ability-slot .ability-cd{
-  position:absolute;top:0;left:0;width:100%;height:100%;border-radius:10px;
-  background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;
-  font-size:1.2rem;color:var(--ultimate);
-}
-.ability-slot .ability-cd.hidden{display:none;}
-#hud-hp{
-  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:60;
-  width:300px;height:20px;background:rgba(10,10,20,0.8);border:1px solid var(--border);
-  border-radius:10px;overflow:hidden;
-}
-#hud-hp-fill{height:100%;background:linear-gradient(90deg,#ff4444,#ff6666);transition:width .3s;width:100%;}
-#hud-hp-text{
-  position:absolute;top:0;left:0;width:100%;height:100%;display:flex;
-  align-items:center;justify-content:center;font-size:0.65rem;
-}
-#hud-kills{
-  position:fixed;top:10px;right:20px;z-index:60;
-  background:rgba(10,10,20,0.8);border:1px solid var(--mythic);border-radius:8px;
-  padding:8px 15px;font-size:0.8rem;
-}
-#crosshair{
-  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;
-  width:24px;height:24px;pointer-events:none;
-}
-#crosshair::before,#crosshair::after{
-  content:'';position:absolute;background:rgba(255,255,255,0.7);
-}
-#crosshair::before{width:2px;height:24px;left:11px;top:0;}
-#crosshair::after{width:24px;height:2px;left:0;top:11px;}
-#game-over{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:70;
-  background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:15px;
-}
-#game-over.active{display:flex;}
-#game-over h2{font-family:'Cinzel',serif;font-size:2.5rem;color:var(--ultimate);}
-#game-over .go-stats{font-size:0.9rem;color:var(--text2);}
-#pause-menu{
-  position:fixed;top:0;left:0;width:100%;height:100%;z-index:65;
-  background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:12px;
-}
-#pause-menu.active{display:flex;}
-#pause-menu h2{font-family:'Cinzel',serif;font-size:1.8rem;margin-bottom:10px;}
-
-/* ===== SCROLLBAR ===== */
-::-webkit-scrollbar{width:6px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-::-webkit-scrollbar-thumb:hover{background:var(--epic);}
-
-/* ===== RESPONSIVE ===== */
-@media(max-width:600px){
-  .coll-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
-  .char-card .char-avatar{width:60px;height:60px;font-size:1.5rem;}
-  .ability-slot{width:55px;height:55px;}
-}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--c-common:#8a8a8a;--c-rare:#4a9eff;--c-epic:#b44aff;--c-mythic:#ff4a8a;--c-legendary:#ffaa00;--c-ultimate:#ff4444;--c-unknown:#00ffaa;--c-secret:#ff00ff}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a12;color:#e8e8ff;font-family:'Orbitron',sans-serif;user-select:none}
+#app{position:fixed;inset:0;overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.screen.active{display:flex}
+canvas{display:block}
+#gl{position:fixed;inset:0;z-index:1}
+.title-font{font-family:'Cinzel',serif}
+#menu{background:linear-gradient(135deg,#0a0a18,#1a0a2a,#0a0a18);background-size:400% 400%;animation:bgshift 18s ease infinite;align-items:center;justify-content:center;text-align:center}
+@keyframes bgshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.menu-title{font-family:'Cinzel',serif;font-size:clamp(40px,11vw,100px);font-weight:900;color:#c44aff;text-shadow:0 0 30px #b44aff,0 0 60px #6a2a9a;letter-spacing:6px;animation:titlepulse 3s ease-in-out infinite}
+@keyframes titlepulse{0%,100%{text-shadow:0 0 30px #b44aff,0 0 60px #6a2a9a;transform:scale(1)}50%{text-shadow:0 0 50px #d44aff,0 0 90px #8a3aba;transform:scale(1.03)}}
+.menu-sub{color:#8a7aaa;letter-spacing:4px;margin-top:8px;font-size:clamp(12px,3vw,18px)}
+.menu-btns{margin-top:48px;display:flex;flex-direction:column;gap:18px;width:min(320px,80vw)}
+.btn{background:linear-gradient(135deg,#2a1a4a,#3a1a5a);border:2px solid #6a3a9a;color:#e8e8ff;padding:16px 24px;border-radius:12px;font-family:'Orbitron';font-weight:700;font-size:18px;letter-spacing:2px;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(120,60,200,.3)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(160,80,255,.5);border-color:#a44aff}
+.btn:active{transform:translateY(0)}
+.btn.small{padding:10px 16px;font-size:14px}
+.btn.green{background:linear-gradient(135deg,#1a4a2a,#1a5a3a);border-color:#3a9a5a}
+.btn.gold{background:linear-gradient(135deg,#4a3a1a,#5a4a1a);border-color:#9a8a3a}
+.btn.red{background:linear-gradient(135deg,#4a1a1a,#5a1a1a);border-color:#9a3a3a}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.6)}
+.hdr{display:flex;align-items:center;padding:14px 18px;gap:14px;background:rgba(10,10,24,.85);border-bottom:1px solid #2a2a4a;position:sticky;top:0;z-index:10;backdrop-filter:blur(6px)}
+.hdr h2{font-family:'Cinzel';font-size:clamp(20px,5vw,32px);color:#c44aff;flex:1;text-shadow:0 0 12px #8a3aba}
+.curr{display:flex;gap:12px}
+.pill{background:#13132a;border:1px solid #2a2a4a;border-radius:20px;padding:6px 14px;font-weight:700;font-size:14px}
+.pill.coin{color:#ffcc44;border-color:#5a4a1a}
+.pill.gem{color:#44ddff;border-color:#1a4a5a}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding:12px 18px}
+.fbtn{background:#13132a;border:1px solid #2a2a4a;color:#aaa;padding:6px 12px;border-radius:16px;font-size:12px;cursor:pointer;font-family:'Orbitron'}
+.fbtn.active{background:#3a2a5a;color:#fff;border-color:#7a4aaa}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;padding:18px}
+.card{background:#13132a;border:2px solid #2a2a4a;border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.card.locked{filter:grayscale(1) brightness(.4)}
+.card .emoji{font-size:40px;margin-bottom:6px}
+.card .cname{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .crar{font-size:9px;letter-spacing:1px;margin-top:3px;text-transform:uppercase}
+.card .dupe{position:absolute;top:4px;right:4px;background:#000a;border-radius:8px;padding:1px 6px;font-size:10px;color:#ffcc44}
+.card.rar-legendary,.card.rar-ultimate,.card.rar-unknown,.card.rar-secret{animation:cardglow 2s ease-in-out infinite}
+@keyframes cardglow{0%,100%{box-shadow:0 0 8px currentColor}50%{box-shadow:0 0 20px currentColor}}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(5,5,12,.88);display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+.modal.active{display:flex}
+.mbox{background:#13132a;border:2px solid #4a3a6a;border-radius:16px;padding:20px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;position:relative}
+.mclose{position:absolute;top:10px;right:14px;font-size:26px;color:#888;cursor:pointer;line-height:1}
+.mavatar{font-size:70px;text-align:center}
+.mname{font-family:'Cinzel';font-size:26px;text-align:center;margin:6px 0}
+.mrar{text-align:center;font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.mstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}
+.stat{background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;padding:8px 12px;font-size:13px}
+.stat b{color:#c44aff}
+.minfo{background:#0a0a1a;border-radius:8px;padding:10px;margin:8px 0;font-size:13px;line-height:1.5}
+.minfo .lbl{color:#c44aff;font-weight:700}
+.mbtns{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.styles{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0}
+.stylebtn{background:#0a0a1a;border:2px solid #2a2a4a;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:12px;font-family:'Orbitron';color:#ccc;flex:1;min-width:90px}
+.stylebtn.active{border-color:#a44aff;background:#2a1a4a;color:#fff}
+.stylebtn small{display:block;color:#888;font-size:9px;margin-top:3px}
+.shadowgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;max-height:50vh;overflow-y:auto;padding:4px}
+.scard{background:#0a0a1a;border:2px solid #2a2a4a;border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px}
+.scard.sel{border-color:#a44aff;background:#2a1a4a}
+.scard .se{font-size:26px}
+.scard .st{font-size:8px;color:#888;text-transform:uppercase}
+.tabs{display:flex;gap:8px;padding:12px 18px}
+.tab{flex:1;background:#13132a;border:1px solid #2a2a4a;color:#aaa;padding:10px;border-radius:8px;cursor:pointer;font-family:'Orbitron';font-weight:700;font-size:13px}
+.tab.active{background:#3a2a5a;color:#fff;border-color:#7a4aaa}
+.shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;padding:18px}
+.cratecard{background:#13132a;border:2px solid #2a2a4a;border-radius:12px;padding:18px;text-align:center}
+.cratecard .ce{font-size:54px}
+.cratecard h3{margin:8px 0;font-size:18px;font-family:'Cinzel'}
+.cratecard p{font-size:11px;color:#999;margin-bottom:10px;line-height:1.4}
+.cratecard .cbtns{display:flex;gap:8px}
+.cratecard .cbtns .btn{flex:1}
+.upcard{background:#13132a;border:2px solid #2a2a4a;border-radius:12px;padding:16px}
+.upcard h3{font-size:16px;font-family:'Cinzel';margin-bottom:4px}
+.upcard p{font-size:11px;color:#999;margin-bottom:8px}
+.upcard .lvl{color:#c44aff;font-weight:700;margin-bottom:8px;font-size:13px}
+.mscard{background:#13132a;border:1px solid #2a2a4a;border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;margin:8px 18px}
+.mscard.done{border-color:#3a9a5a;opacity:.7}
+.mscard .mse{font-size:30px}
+.mscard .msinfo{flex:1}
+.mscard .msinfo b{font-size:14px}
+.mscard .msinfo p{font-size:11px;color:#999}
+.mscard .msrew{color:#ffcc44;font-size:12px;font-weight:700;text-align:right}
+#crateOverlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column}
+#crateOverlay.active{display:flex}
+#crateReveal{text-align:center;opacity:0;transition:opacity .4s}
+#crateReveal.show{opacity:1;animation:revealpop .5s ease}
+@keyframes revealpop{0%{transform:scale(.3)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+#crateReveal .re{font-size:90px;filter:drop-shadow(0 0 30px currentColor)}
+#crateReveal .rn{font-family:'Cinzel';font-size:34px;margin:8px}
+#crateReveal .rr{font-size:18px;letter-spacing:3px;text-transform:uppercase;font-weight:700}
+#crateReveal .rnew{font-size:22px;color:#ffcc44;margin-top:8px;font-weight:900;animation:titlepulse 1s infinite}
+#crateNext{margin-top:30px;display:none}
+#crateNext.show{display:block}
+#crateCounter{position:absolute;top:20px;color:#888;font-size:14px}
+#hud{position:fixed;inset:0;z-index:50;pointer-events:none;display:none}
+#hud.active{display:block}
+#crosshair{position:absolute;top:50%;left:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:#fff8;box-shadow:0 0 4px #000}
+#crosshair::before{left:50%;top:0;width:2px;height:22px;transform:translateX(-50%)}
+#crosshair::after{top:50%;left:0;height:2px;width:22px;transform:translateY(-50%)}
+#hudTop{position:absolute;top:14px;left:14px;display:flex;gap:14px}
+#hudKills{position:absolute;top:14px;right:14px}
+.hudpill{background:#000a;border:1px solid #4a3a6a;border-radius:18px;padding:6px 16px;font-weight:700;font-size:15px}
+#hpWrap{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:min(380px,80vw);height:22px;background:#000a;border:2px solid #4a3a6a;border-radius:12px;overflow:hidden}
+#hpFill{height:100%;width:100%;background:linear-gradient(90deg,#ff3a5a,#ff7a3a);transition:width .25s;border-radius:10px}
+#hpText{position:absolute;inset:0;text-align:center;font-size:13px;font-weight:700;line-height:22px;text-shadow:0 0 3px #000}
+#abilities{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:12px}
+.ability{width:58px;height:58px;background:#000a;border:2px solid #4a3a6a;border-radius:10px;position:relative;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.ability .key{position:absolute;top:2px;left:4px;font-size:9px;color:#aaa}
+.ability .cd{position:absolute;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#ff8a4a}
+#bossBar{position:absolute;top:60px;left:50%;transform:translateX(-50%);width:min(600px,90vw);display:none}
+#bossBar.active{display:block}
+#bossBar .bn{text-align:center;font-family:'Cinzel';color:#ff5a5a;text-shadow:0 0 10px #ff0000;font-size:18px;margin-bottom:4px}
+#bossBarBg{height:18px;background:#000a;border:2px solid #6a2a2a;border-radius:10px;overflow:hidden}
+#bossBarFill{height:100%;width:100%;background:linear-gradient(90deg,#ff2a2a,#ff7a2a);transition:width .2s}
+#waveAnno{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%);font-family:'Cinzel';font-size:56px;color:#c44aff;text-shadow:0 0 30px #8a3aba;opacity:0;pointer-events:none;text-align:center}
+#waveAnno.show{animation:waveanim 2.2s ease}
+@keyframes waveanim{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.2)}}
+#bossAnno{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-family:'Cinzel';font-size:48px;color:#ff3a3a;text-shadow:0 0 30px #ff0000;opacity:0;pointer-events:none;text-align:center}
+#bossAnno.show{animation:waveanim 2.6s ease}
+#vignette{position:fixed;inset:0;z-index:48;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(20,0,40,.55) 100%);display:none}
+#vignette.active{display:block}
+#shadowOverlay{position:fixed;inset:0;z-index:49;pointer-events:none;background:radial-gradient(ellipse at center,rgba(80,20,160,.15) 0%,rgba(60,10,140,.45) 100%);opacity:0;transition:opacity .3s}
+#flash{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;background:#fff}
+#hitInd{position:fixed;inset:0;z-index:47;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 40%,rgba(255,0,0,.6) 100%)}
+.dmgnum{position:fixed;z-index:55;pointer-events:none;font-weight:900;font-size:18px;text-shadow:0 0 4px #000;animation:dmgfloat 1s ease forwards}
+@keyframes dmgfloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-50px) scale(1.4)}}
+#pauseMenu{position:fixed;inset:0;z-index:120;background:rgba(5,5,12,.9);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#pauseMenu.active{display:flex}
+#pauseMenu h2{font-family:'Cinzel';font-size:40px;color:#c44aff}
+#gameOver{position:fixed;inset:0;z-index:120;background:rgba(20,0,0,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#gameOver.active{display:flex}
+#gameOver h2{font-family:'Cinzel';font-size:54px;color:#ff3a3a;text-shadow:0 0 30px #ff0000}
+.gostats{font-size:16px;color:#ccc;text-align:center;line-height:1.8}
+.slider{width:240px}
+.setrow{display:flex;align-items:center;gap:12px;margin:14px 0;justify-content:space-between}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#2a1a4a;border:1px solid #6a4a9a;border-radius:10px;padding:12px 24px;z-index:300;font-size:14px;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.back{cursor:pointer;font-size:24px;color:#888;padding:0 8px}
+@media(max-width:600px){.grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}.menu-btns{width:80vw}}
 </style>
 </head>
 <body>
-
-<!-- ===== MAIN MENU ===== -->
-<div id="screen-menu" class="screen active">
-  <div class="title">Arena Cieni</div>
-  <div class="subtitle">Kolekcjoner Bohaterów</div>
-  <button class="menu-btn play" onclick="showScreen('screen-select')">⚔️ Graj</button>
-  <button class="menu-btn" onclick="showScreen('screen-collection')">📚 Kolekcja <span id="coll-count" class="coins-display"></span></button>
-  <button class="menu-btn" onclick="showScreen('screen-crates')">📦 Skrzynki <span id="menu-coins" class="coins-display"></span></button>
-  <button class="menu-btn" onclick="showSettings()">⚙️ Ustawienia</button>
+<div id="app">
+<canvas id="gl"></canvas>
+<div id="menu" class="screen active">
+<div class="menu-title title-font">Arena Cieni</div>
+<div class="menu-sub">SHADOW ARENA</div>
+<div class="menu-btns">
+<button class="btn green" onclick="goPlay()">⚔️ GRAJ</button>
+<button class="btn" onclick="showScreen('collection');renderCollection()">📜 KOLEKCJA</button>
+<button class="btn gold" onclick="showScreen('shop');renderShop()">🛒 SKLEP</button>
+<button class="btn" onclick="openSettings()">⚙️ USTAWIENIA</button>
 </div>
-
-<!-- ===== COLLECTION ===== -->
-<div id="screen-collection" class="screen">
-  <div class="coll-header">
-    <h2>Kolekcja</h2>
-    <button class="back-btn" onclick="showScreen('screen-menu')">← Menu</button>
-  </div>
-  <div class="coll-filters" id="coll-filters"></div>
-  <div class="coll-grid" id="coll-grid"></div>
 </div>
-
-<!-- ===== CRATES ===== -->
-<div id="screen-crates" class="screen">
-  <button class="back-btn" style="position:absolute;top:20px;left:20px;" onclick="showScreen('screen-menu')">← Menu</button>
-  <div style="font-size:0.9rem;color:var(--legendary);margin-bottom:10px;" id="crate-coins">🪙 0</div>
-  <div class="crate-label">Skrzynka Cieni</div>
-  <div class="crate-box" id="crate-box" onclick="openCrate()">📦</div>
-  <div class="crate-price">Koszt: 100 🪙</div>
-  <div style="margin-top:20px;display:flex;gap:10px;">
-    <button class="menu-btn" style="width:auto;padding:10px 20px;font-size:0.7rem;" onclick="openCrate10()">Otwórz x10 (900 🪙)</button>
-  </div>
-  <div style="margin-top:30px;font-size:0.65rem;color:var(--text2);max-width:400px;text-align:center;line-height:1.6;">
-    Szanse: Common 40% · Rare 25% · Epic 15% · Mythic 10% · Legendary 5% · Ultimate 3% · Unknown 1.5% · Secret 0.5%
-  </div>
+<div id="collection" class="screen">
+<div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Kolekcja</h2>
+<div class="curr"><span class="pill coin" id="colCoin">0</span><span class="pill gem" id="colGem">0</span></div></div>
+<div class="filters" id="filters"></div>
+<div class="grid" id="charGrid"></div>
 </div>
-
-<!-- ===== CRATE REVEAL ===== -->
-<div id="crate-reveal">
-  <div class="reveal-particles" id="reveal-particles"></div>
-  <div class="reveal-avatar" id="reveal-avatar"></div>
-  <div class="reveal-name" id="reveal-name"></div>
-  <div class="reveal-rarity" id="reveal-rarity"></div>
-  <div class="reveal-new" id="reveal-new"></div>
-  <button class="reveal-close" onclick="closeReveal()">OK</button>
+<div id="shop" class="screen">
+<div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Sklep</h2>
+<div class="curr"><span class="pill coin" id="shopCoin">0</span><span class="pill gem" id="shopGem">0</span></div></div>
+<div class="tabs"><div class="tab active" data-tab="crates" onclick="shopTab('crates')">Skrzynki</div><div class="tab" data-tab="upgrades" onclick="shopTab('upgrades')">Ulepszenia</div><div class="tab" data-tab="milestones" onclick="shopTab('milestones')">Kamienie Milowe</div></div>
+<div id="shopContent"></div>
 </div>
-
-<!-- ===== CHARACTER SELECT ===== -->
-<div id="screen-select" class="screen">
-  <div class="coll-header">
-    <h2>Wybierz Bohatera</h2>
-    <button class="back-btn" onclick="showScreen('screen-menu')">← Menu</button>
-  </div>
-  <div class="select-grid" id="select-grid"></div>
+<div id="charSelect" class="screen">
+<div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Wybierz Bohatera</h2></div>
+<div class="grid" id="selectGrid"></div>
 </div>
-
-<!-- ===== CHARACTER DETAIL MODAL ===== -->
-<div class="modal-overlay" id="char-modal">
-  <div class="modal-card" id="modal-content"></div>
+<div id="hud">
+<div id="crosshair"></div>
+<div id="hudTop"><span class="hudpill" id="hudWave">FALA 1</span><span class="hudpill coin" id="hudCoin" style="color:#ffcc44">💰 0</span></div>
+<div id="hudKills"><span class="hudpill" id="hudKillN">☠ 0</span></div>
+<div id="bossBar"><div class="bn" id="bossName"></div><div id="bossBarBg"><div id="bossBarFill"></div></div></div>
+<div id="hpWrap"><div id="hpFill"></div><div id="hpText"></div></div>
+<div id="abilities">
+<div class="ability"><span class="key">LPM</span>⚔️<div class="cd" style="display:none"></div></div>
+<div class="ability" id="abQ"><span class="key">Q</span>💥<div class="cd" style="display:none"></div></div>
+<div class="ability" id="abE"><span class="key">E</span>🛡️<div class="cd" style="display:none"></div></div>
+<div class="ability" id="abR"><span class="key">R</span>👤<div class="cd" style="display:none"></div></div>
 </div>
-
-<!-- ===== GAME ===== -->
-<div id="game-screen">
-  <canvas id="game-canvas"></canvas>
-  <div id="crosshair"></div>
-  <div class="hud" id="hud-top">
-    <div id="hud-wave">Fala 1</div>
-    <div id="hud-coins">🪙 0</div>
-  </div>
-  <div id="hud-kills">☠️ 0</div>
-  <div id="hud-hp"><div id="hud-hp-fill"></div><div id="hud-hp-text">100/100</div></div>
-  <div class="hud" id="hud-bottom">
-    <div class="ability-slot" id="slot-attack"><div class="ability-icon">⚔️</div><div class="ability-key">LPM</div></div>
-    <div class="ability-slot" id="slot-super"><div class="ability-icon" id="super-icon">💥</div><div class="ability-key">Q</div><div class="ability-cd hidden" id="super-cd">60</div></div>
-    <div class="ability-slot" id="slot-shield"><div class="ability-icon">🛡️</div><div class="ability-key">E</div><div class="ability-cd hidden" id="shield-cd">0</div></div>
-    <div class="ability-slot" id="slot-shadow"><div class="ability-icon">👻</div><div class="ability-key">R</div><div class="ability-cd hidden" id="shadow-cd">0</div></div>
-  </div>
+<div id="waveAnno"></div><div id="bossAnno"></div>
 </div>
-<div id="game-over">
-  <h2>KONIEC</h2>
-  <div class="go-stats" id="go-stats"></div>
-  <button class="menu-btn" onclick="exitGame()">Menu</button>
-</div>
-<div id="pause-menu">
-  <h2>PAUZA</h2>
-  <button class="menu-btn" onclick="resumeGame()">Kontynuuj</button>
-  <button class="menu-btn" onclick="exitGame()">Wyjdź</button>
-</div>
-
-<!-- ===== SETTINGS MODAL ===== -->
-<div class="modal-overlay" id="settings-modal">
-  <div class="modal-card">
-    <button class="close-modal" onclick="document.getElementById('settings-modal').classList.remove('active')">&times;</button>
-    <h3 style="margin-bottom:15px;">Ustawienia</h3>
-    <div class="stat-row"><span class="stat-label">Czułość myszy</span><input type="range" min="1" max="20" value="5" id="sens-slider" style="width:120px;"></div>
-    <div class="stat-row"><span class="stat-label">Muzyka</span><input type="range" min="0" max="100" value="50" id="music-vol" style="width:120px;"></div>
-    <div class="stat-row"><span class="stat-label">Efekty</span><input type="range" min="0" max="100" value="80" id="sfx-vol" style="width:120px;"></div>
-    <button class="menu-btn" style="margin-top:15px;width:200px;" onclick="resetProgress()">🗑️ Reset Postępu</button>
-  </div>
+<div id="vignette"></div><div id="shadowOverlay"></div><div id="flash"></div><div id="hitInd"></div>
+<div id="pauseMenu"><h2 class="title-font">PAUZA</h2><button class="btn green" onclick="resumeGame()">Wznów</button><button class="btn red" onclick="quitGame()">Wyjdź do Menu</button></div>
+<div id="gameOver"><h2 class="title-font">KONIEC GRY</h2><div class="gostats" id="goStats"></div><button class="btn green" onclick="quitGame()">Menu Główne</button></div>
+<div id="crateOverlay"><div id="crateCounter"></div><div id="crateReveal"></div><button class="btn green" id="crateNext" onclick="crateNextOrClose()">Dalej</button></div>
+<div id="charModal" class="modal"><div class="mbox" id="charModalBox"></div></div>
+<div id="shadowModal" class="modal"><div class="mbox" id="shadowModalBox"></div></div>
+<div id="settingsModal" class="modal"><div class="mbox" id="settingsBox"></div></div>
+<div class="toast" id="toast"></div>
 </div>
 
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js"}}</script>
 <script type="module">
 import * as THREE from 'three';
 
-// =====================================================
-// ===== RARITY CONFIG =====
-// =====================================================
 const RARITIES={
-  common:   {label:'Common',   color:'#8a8a8a', glow:'rgba(138,138,138,0.4)', dropRate:0.40, statMul:1.0},
-  rare:     {label:'Rare',     color:'#4a9eff', glow:'rgba(74,158,255,0.4)',  dropRate:0.25, statMul:1.3},
-  epic:     {label:'Epic',     color:'#b44aff', glow:'rgba(180,74,255,0.4)',  dropRate:0.15, statMul:1.6},
-  mythic:   {label:'Mythic',   color:'#ff4a8a', glow:'rgba(255,74,138,0.4)', dropRate:0.10, statMul:2.0},
-  legendary:{label:'Legendary',color:'#ffaa00', glow:'rgba(255,170,0,0.4)',   dropRate:0.05, statMul:2.5},
-  ultimate: {label:'Ultimate', color:'#ff4444', glow:'rgba(255,68,68,0.5)',   dropRate:0.03, statMul:3.2},
-  unknown:  {label:'Unknown',  color:'#00ffaa', glow:'rgba(0,255,170,0.5)',   dropRate:0.015,statMul:4.0},
-  secret:   {label:'Secret',   color:'#ff00ff', glow:'rgba(255,0,255,0.6)',   dropRate:0.005,statMul:5.0},
+common:{label:'Pospolity',color:'#8a8a8a',glow:'#8a8a8a',dropRate:40,statMul:1.0},
+rare:{label:'Rzadki',color:'#4a9eff',glow:'#4a9eff',dropRate:25,statMul:1.25},
+epic:{label:'Epicki',color:'#b44aff',glow:'#b44aff',dropRate:16,statMul:1.55},
+mythic:{label:'Mityczny',color:'#ff4a8a',glow:'#ff4a8a',dropRate:9,statMul:1.9},
+legendary:{label:'Legendarny',color:'#ffaa00',glow:'#ffaa00',dropRate:5,statMul:2.4},
+ultimate:{label:'Ultimate',color:'#ff4444',glow:'#ff4444',dropRate:3,statMul:3.0},
+unknown:{label:'Nieznany',color:'#00ffaa',glow:'#00ffaa',dropRate:1.5,statMul:3.6},
+secret:{label:'Sekretny',color:'#ff00ff',glow:'#ff00ff',dropRate:0.5,statMul:5.0}
 };
-
 const CLANS={
-  shadow: {name:'Klan Cieni',    icon:'🌑', baseColor:0x3a1a6a},
-  fire:   {name:'Klan Ognia',    icon:'🔥', baseColor:0x8a2a0a},
-  ice:    {name:'Klan Lodu',     icon:'❄️', baseColor:0x1a4a8a},
-  lightning:{name:'Klan Piorunów',icon:'⚡', baseColor:0x6a6a1a},
-  nature: {name:'Klan Natury',   icon:'🌿', baseColor:0x1a5a2a},
-  void:   {name:'Klan Pustki',   icon:'🕳️', baseColor:0x1a1a3a},
-  blood:  {name:'Klan Krwi',     icon:'🩸', baseColor:0x5a0a0a},
-  chaos:  {name:'Klan Chaosu',   icon:'💀', baseColor:0x4a1a1a},
-  holy:   {name:'Klan Światła',  icon:'✨', baseColor:0x6a6a3a},
-  cosmic: {name:'Klan Kosmosu',  icon:'🌌', baseColor:0x2a1a5a},
+shadow:{name:'Cień',icon:'🌑',baseColor:'#6a3a9a'},
+fire:{name:'Ogień',icon:'🔥',baseColor:'#ff5a2a'},
+ice:{name:'Lód',icon:'❄️',baseColor:'#4adaff'},
+lightning:{name:'Piorun',icon:'⚡',baseColor:'#ffe24a'},
+nature:{name:'Natura',icon:'🌿',baseColor:'#4aff7a'},
+void:{name:'Otchłań',icon:'🕳️',baseColor:'#2a1a4a'},
+blood:{name:'Krew',icon:'🩸',baseColor:'#cc2a3a'},
+chaos:{name:'Chaos',icon:'🌀',baseColor:'#ff4adf'},
+holy:{name:'Świętość',icon:'✨',baseColor:'#fff0a0'},
+cosmic:{name:'Kosmos',icon:'🌌',baseColor:'#7a4aff'}
 };
-
-// =====================================================
-// ===== 100 CHARACTER DEFINITIONS =====
-// =====================================================
-const CHARACTERS=[
-  // ---- SHADOW CLAN (14) ----
-  {id:1,name:'Mrocznik',clan:'shadow',rarity:'common',hp:100,dmg:12,speed:5,emoji:'🗡️',atkType:'melee',
-   superName:'Cienisty Cios',superDesc:'Potężne uderzenie cieniem zadające 3x obrażenia',superCD:60,
-   shieldName:'Tarcza Cienia',shieldDur:3},
-  {id:2,name:'Cień Nocy',clan:'shadow',rarity:'common',hp:90,dmg:14,speed:6,emoji:'🌙',atkType:'ranged',
-   superName:'Nocna Salwa',superDesc:'Strzela 8 pociskami cienia naraz',superCD:55,
-   shieldName:'Mgła Nocy',shieldDur:3},
-  {id:3,name:'Szeptacz',clan:'shadow',rarity:'common',hp:85,dmg:15,speed:7,emoji:'👁️',atkType:'ranged',
-   superName:'Szept Śmierci',superDesc:'Osłabia wszystkich wrogów w zasięgu o 50%',superCD:65,
-   shieldName:'Cichy Krok',shieldDur:2},
-  {id:4,name:'Nocny Łowca',clan:'shadow',rarity:'rare',hp:120,dmg:18,speed:6,emoji:'🏹',atkType:'ranged',
-   superName:'Strzała Mroku',superDesc:'Przeszywająca strzała cienia trafiająca wszystko na drodze',superCD:50,
-   shieldName:'Kamuflarz',shieldDur:4},
-  {id:5,name:'Władca Mroku',clan:'shadow',rarity:'rare',hp:140,dmg:16,speed:5,emoji:'🦇',atkType:'aoe',
-   superName:'Mroczna Fala',superDesc:'Fala cieni zadająca obrażenia w 360°',superCD:55,
-   shieldName:'Bariera Ciemności',shieldDur:4},
-  {id:6,name:'Phantom',clan:'shadow',rarity:'epic',hp:160,dmg:22,speed:7,emoji:'👻',atkType:'ranged',
-   superName:'Przejście Fazowe',superDesc:'Teleportacja + eksplozja cienia w miejscu lądowania',superCD:45,
-   shieldName:'Forma Widmowa',shieldDur:3},
-  {id:7,name:'Cienisty Żniwiarz',clan:'shadow',rarity:'epic',hp:170,dmg:25,speed:5,emoji:'💀',atkType:'melee',
-   superName:'Żniwa Cienia',superDesc:'Kosa cienia uderzająca wszystkich w zasięgu 10m',superCD:50,
-   shieldName:'Płaszcz Śmierci',shieldDur:4},
-  {id:8,name:'Widmo Otchłani',clan:'shadow',rarity:'mythic',hp:220,dmg:30,speed:6,emoji:'🌀',atkType:'aoe',
-   superName:'Otchłań',superDesc:'Tworzy czarną dziurę wciągającą wrogów i zadającą ogromne obrażenia',superCD:60,
-   shieldName:'Nietykalność',shieldDur:5},
-  {id:9,name:'Lord Cieni',clan:'shadow',rarity:'legendary',hp:300,dmg:35,speed:7,emoji:'👑',atkType:'aoe',
-   superName:'Władza Absolutna',superDesc:'Kontroluje cienie wszystkich wrogów - ogromne obrażenia AoE',superCD:60,
-   shieldName:'Wieczna Ciemność',shieldDur:6},
-  {id:10,name:'Cienisty Skrytobójca',clan:'shadow',rarity:'rare',hp:100,dmg:22,speed:8,emoji:'🗡️',atkType:'melee',
-   superName:'Cios z Cienia',superDesc:'Teleportacja za cel i krytyczny cios',superCD:40,
-   shieldName:'Ukrycie',shieldDur:2},
-  {id:11,name:'Mroczny Strzelec',clan:'shadow',rarity:'common',hp:80,dmg:16,speed:6,emoji:'🎯',atkType:'ranged',
-   superName:'Deszcz Cieni',superDesc:'Grad pocisków cienia z nieba',superCD:55,
-   shieldName:'Cienista Unikacja',shieldDur:2},
-  {id:12,name:'Nocna Wiedźma',clan:'shadow',rarity:'epic',hp:150,dmg:28,speed:5,emoji:'🧙‍♀️',atkType:'ranged',
-   superName:'Klątwa Cienia',superDesc:'Przeklina wrogów - otrzymują podwójne obrażenia',superCD:50,
-   shieldName:'Iluzja',shieldDur:4},
-  {id:13,name:'Umbra',clan:'shadow',rarity:'mythic',hp:200,dmg:32,speed:7,emoji:'⬛',atkType:'melee',
-   superName:'Pożeracz',superDesc:'Pochłania wrogów w czysty cień - natychmiastowa eliminacja słabszych',superCD:65,
-   shieldName:'Absorpcja Cienia',shieldDur:5},
-  {id:14,name:'Nyx',clan:'shadow',rarity:'ultimate',hp:350,dmg:45,speed:8,emoji:'🌑',atkType:'aoe',
-   superName:'Wieczna Noc',superDesc:'Cały świat tonie w ciemnościach - olbrzymie obrażenia + leczenie',superCD:60,
-   shieldName:'Absolutna Ciemność',shieldDur:7},
-
-  // ---- FIRE CLAN (13) ----
-  {id:15,name:'Płomyk',clan:'fire',rarity:'common',hp:95,dmg:14,speed:5,emoji:'🕯️',atkType:'ranged',
-   superName:'Ognista Kula',superDesc:'Wielka kula ognia z eksplozją AoE',superCD:55,
-   shieldName:'Żarowa Tarcza',shieldDur:3},
-  {id:16,name:'Iskra',clan:'fire',rarity:'common',hp:85,dmg:16,speed:7,emoji:'✨',atkType:'ranged',
-   superName:'Iskrowy Łańcuch',superDesc:'Iskra przeskakuje między 5 wrogami',superCD:50,
-   shieldName:'Ognista Bariera',shieldDur:2},
-  {id:17,name:'Żar',clan:'fire',rarity:'common',hp:110,dmg:13,speed:4,emoji:'🔶',atkType:'aoe',
-   superName:'Erupcja',superDesc:'Eksplozja lawy w okół gracza',superCD:60,
-   shieldName:'Skóra z Lawy',shieldDur:4},
-  {id:18,name:'Płomienny Mag',clan:'fire',rarity:'rare',hp:130,dmg:20,speed:5,emoji:'🔥',atkType:'ranged',
-   superName:'Kolumna Ognia',superDesc:'Potężna kolumna ognia przed graczem',superCD:50,
-   shieldName:'Ognisty Mur',shieldDur:4},
-  {id:19,name:'Ogniomistrz',clan:'fire',rarity:'rare',hp:125,dmg:22,speed:6,emoji:'🌋',atkType:'aoe',
-   superName:'Deszcz Ognia',superDesc:'Meteoryty spadają z nieba na wrogów',superCD:55,
-   shieldName:'Magmowa Bariera',shieldDur:3},
-  {id:20,name:'Feniks',clan:'fire',rarity:'epic',hp:180,dmg:24,speed:7,emoji:'🦅',atkType:'ranged',
-   superName:'Odrodzenie',superDesc:'Eksplozja ognia + regeneracja 50% HP',superCD:60,
-   shieldName:'Skrzydła Feniksa',shieldDur:4},
-  {id:21,name:'Spalacz',clan:'fire',rarity:'epic',hp:160,dmg:28,speed:5,emoji:'💥',atkType:'aoe',
-   superName:'Nova',superDesc:'Masywna eksplozja ognia w okręgu 15m',superCD:55,
-   shieldName:'Ogień Ochronny',shieldDur:3},
-  {id:22,name:'Władca Ognia',clan:'fire',rarity:'mythic',hp:240,dmg:33,speed:6,emoji:'👹',atkType:'aoe',
-   superName:'Piekielna Burza',superDesc:'Deszcz ognia + lawa na podłodze',superCD:60,
-   shieldName:'Nieśmiertelny Płomień',shieldDur:5},
-  {id:23,name:'Inferno',clan:'fire',rarity:'legendary',hp:310,dmg:38,speed:6,emoji:'😈',atkType:'aoe',
-   superName:'Apokalipsa',superDesc:'Olbrzymi deszcz meteorytów niszczący wszystko',superCD:60,
-   shieldName:'Tarcza Słońca',shieldDur:6},
-  {id:24,name:'Ognisty Berserker',clan:'fire',rarity:'rare',hp:150,dmg:20,speed:7,emoji:'🪓',atkType:'melee',
-   superName:'Szał Ognia',superDesc:'Szybkie ciosy ognistym toporem x5',superCD:45,
-   shieldName:'Płonąca Zbroja',shieldDur:3},
-  {id:25,name:'Pyromanta',clan:'fire',rarity:'common',hp:80,dmg:17,speed:6,emoji:'🎆',atkType:'ranged',
-   superName:'Ognisty Wir',superDesc:'Wirujący pierścień ognia wokół gracza',superCD:50,
-   shieldName:'Termiczna Aura',shieldDur:2},
-  {id:26,name:'Hellfire',clan:'fire',rarity:'mythic',hp:230,dmg:35,speed:5,emoji:'🔱',atkType:'aoe',
-   superName:'Piekielne Wrota',superDesc:'Otwiera portal piekła - fala ognia',superCD:65,
-   shieldName:'Demoniczna Zbroja',shieldDur:5},
-  {id:27,name:'Sol',clan:'fire',rarity:'ultimate',hp:360,dmg:48,speed:7,emoji:'☀️',atkType:'aoe',
-   superName:'Supernova',superDesc:'Eksplozja słoneczna - olbrzymie obrażenia + oślepienie',superCD:60,
-   shieldName:'Korona Słoneczna',shieldDur:7},
-
-  // ---- ICE CLAN (12) ----
-  {id:28,name:'Mrozik',clan:'ice',rarity:'common',hp:100,dmg:11,speed:5,emoji:'🧊',atkType:'ranged',
-   superName:'Lodowa Strzała',superDesc:'Zamrażający pocisk - spowalnia na 3s',superCD:50,
-   shieldName:'Lodowy Pancerz',shieldDur:4},
-  {id:29,name:'Śnieżka',clan:'ice',rarity:'common',hp:85,dmg:13,speed:6,emoji:'⛄',atkType:'ranged',
-   superName:'Zamieć',superDesc:'Burza śnieżna spowalnia i rani wrogów',superCD:55,
-   shieldName:'Śnieżna Kula',shieldDur:3},
-  {id:30,name:'Lodowiec',clan:'ice',rarity:'common',hp:130,dmg:10,speed:3,emoji:'🏔️',atkType:'aoe',
-   superName:'Trzęsienie Lodu',superDesc:'Lodowe kolce wyrastają z ziemi',superCD:60,
-   shieldName:'Góra Lodowa',shieldDur:5},
-  {id:31,name:'Lodowy Strażnik',clan:'ice',rarity:'rare',hp:145,dmg:17,speed:5,emoji:'🛡️',atkType:'melee',
-   superName:'Lodowy Mur',superDesc:'Tworzy mur lodu blokujący i raniący',superCD:50,
-   shieldName:'Permafrost',shieldDur:5},
-  {id:32,name:'Mroźny Snajper',clan:'ice',rarity:'rare',hp:100,dmg:24,speed:6,emoji:'🎯',atkType:'ranged',
-   superName:'Lodowa Iglica',superDesc:'Precyzyjny strzał - 4x dmg + zamrożenie',superCD:45,
-   shieldName:'Lodowa Mgiełka',shieldDur:3},
-  {id:33,name:'Blizzard',clan:'ice',rarity:'epic',hp:175,dmg:22,speed:5,emoji:'🌨️',atkType:'aoe',
-   superName:'Absolutne Zero',superDesc:'Zamraża WSZYSTKICH wrogów na 4s',superCD:60,
-   shieldName:'Lodowa Zbroja',shieldDur:4},
-  {id:34,name:'Zamrażacz',clan:'ice',rarity:'epic',hp:155,dmg:26,speed:6,emoji:'💎',atkType:'ranged',
-   superName:'Kryształ Lodu',superDesc:'Gigantyczny kryształ spada na wrogów',superCD:55,
-   shieldName:'Diamentowy Lód',shieldDur:4},
-  {id:35,name:'Królowa Lodu',clan:'ice',rarity:'mythic',hp:230,dmg:30,speed:6,emoji:'👸',atkType:'aoe',
-   superName:'Wieczna Zima',superDesc:'Cała arena zamraża się - ogromne AoE',superCD:60,
-   shieldName:'Korona Mrozu',shieldDur:6},
-  {id:36,name:'Glacjusz',clan:'ice',rarity:'legendary',hp:290,dmg:35,speed:5,emoji:'🐉',atkType:'aoe',
-   superName:'Lodowy Oddech',superDesc:'Smok lodu zieje zamrażającym oddechem',superCD:60,
-   shieldName:'Smoczy Lód',shieldDur:6},
-  {id:37,name:'Frostbite',clan:'ice',rarity:'rare',hp:110,dmg:20,speed:7,emoji:'❄️',atkType:'melee',
-   superName:'Lodowe Ostrza',superDesc:'Szybkie cięcia lodowymi ostrzami x6',superCD:40,
-   shieldName:'Mrozowa Aura',shieldDur:3},
-  {id:38,name:'Cryo',clan:'ice',rarity:'common',hp:95,dmg:12,speed:5,emoji:'🌡️',atkType:'ranged',
-   superName:'Kriogenika',superDesc:'Zamraża teren - wrogowie ślizgają się',superCD:55,
-   shieldName:'Lodowa Powłoka',shieldDur:3},
-  {id:39,name:'Polaris',clan:'ice',rarity:'ultimate',hp:340,dmg:42,speed:7,emoji:'⭐',atkType:'aoe',
-   superName:'Gwiazda Północy',superDesc:'Lodowa gwiazda eksploduje - zamraża i niszczy',superCD:60,
-   shieldName:'Aurora Borealis',shieldDur:8},
-
-  // ---- LIGHTNING CLAN (12) ----
-  {id:40,name:'Iskrowiec',clan:'lightning',rarity:'common',hp:90,dmg:15,speed:7,emoji:'⚡',atkType:'ranged',
-   superName:'Łańcuch Piorunów',superDesc:'Piorun przeskakuje między 4 wrogami',superCD:50,
-   shieldName:'Elektro-Pole',shieldDur:2},
-  {id:41,name:'Piorunek',clan:'lightning',rarity:'common',hp:85,dmg:16,speed:8,emoji:'🌩️',atkType:'ranged',
-   superName:'Uderzenie Pioruna',superDesc:'Potężny piorun z nieba na cel',superCD:45,
-   shieldName:'Pole Siłowe',shieldDur:2},
-  {id:42,name:'Błyskawica',clan:'lightning',rarity:'common',hp:80,dmg:17,speed:9,emoji:'💛',atkType:'ranged',
-   superName:'Flash',superDesc:'Super szybkość na 3s + obrażenia przy kontakcie',superCD:50,
-   shieldName:'Refleks',shieldDur:1},
-  {id:43,name:'Burzowy Mag',clan:'lightning',rarity:'rare',hp:120,dmg:21,speed:7,emoji:'🌪️',atkType:'aoe',
-   superName:'Tornado',superDesc:'Elektryczne tornado wciąga i rani wrogów',superCD:55,
-   shieldName:'Burzowa Tarcza',shieldDur:4},
-  {id:44,name:'Elektryk',clan:'lightning',rarity:'rare',hp:115,dmg:23,speed:8,emoji:'🔌',atkType:'ranged',
-   superName:'Przeciążenie',superDesc:'Masywny wyładowanie elektryczne AoE',superCD:50,
-   shieldName:'Izolacja',shieldDur:3},
-  {id:45,name:'Gromowładny',clan:'lightning',rarity:'epic',hp:170,dmg:27,speed:7,emoji:'🔨',atkType:'melee',
-   superName:'Młot Gromu',superDesc:'Uderzenie młotem tworzące falę uderzeniową',superCD:50,
-   shieldName:'Tarcza Gromu',shieldDur:4},
-  {id:46,name:'Szok',clan:'lightning',rarity:'epic',hp:155,dmg:30,speed:8,emoji:'💫',atkType:'ranged',
-   superName:'Defibrylacja',superDesc:'Masywny szok paraliżuje wrogów na 3s',superCD:55,
-   shieldName:'Elektrostatyka',shieldDur:3},
-  {id:47,name:'Thor Cieni',clan:'lightning',rarity:'mythic',hp:250,dmg:34,speed:7,emoji:'⚒️',atkType:'melee',
-   superName:'Mjölnir',superDesc:'Rzuca młot - wraca po trafieniu wielu wrogów',superCD:55,
-   shieldName:'Boska Zbroja',shieldDur:5},
-  {id:48,name:'Zeus',clan:'lightning',rarity:'legendary',hp:320,dmg:40,speed:7,emoji:'🏛️',atkType:'aoe',
-   superName:'Boży Gniew',superDesc:'Deszcz piorunów z nieba na CAŁĄ arenę',superCD:60,
-   shieldName:'Olimpijska Tarcza',shieldDur:6},
-  {id:49,name:'Voltus',clan:'lightning',rarity:'rare',hp:105,dmg:19,speed:9,emoji:'🔋',atkType:'ranged',
-   superName:'Impuls EMP',superDesc:'Fala EMP spowalniająca wrogów',superCD:45,
-   shieldName:'Pole Magnetyczne',shieldDur:3},
-  {id:50,name:'Raijin',clan:'lightning',rarity:'mythic',hp:235,dmg:32,speed:8,emoji:'🥁',atkType:'aoe',
-   superName:'Bębny Gromu',superDesc:'Fale dźwiękowe z piorunami - ogromne AoE',superCD:60,
-   shieldName:'Sztorm',shieldDur:5},
-  {id:51,name:'Tempest',clan:'lightning',rarity:'ultimate',hp:370,dmg:46,speed:9,emoji:'🌀',atkType:'aoe',
-   superName:'Superbórza',superDesc:'Kontroluje pogodę - pioruny, tornado, grad',superCD:60,
-   shieldName:'Oko Cyklonu',shieldDur:7},
-
-  // ---- NATURE CLAN (11) ----
-  {id:52,name:'Drzewiec',clan:'nature',rarity:'common',hp:130,dmg:10,speed:3,emoji:'🌳',atkType:'melee',
-   superName:'Korzenie',superDesc:'Korzenie wyrastają z ziemi i chwytają wrogów',superCD:55,
-   shieldName:'Kora Ochronna',shieldDur:5},
-  {id:53,name:'Kolczak',clan:'nature',rarity:'common',hp:100,dmg:14,speed:5,emoji:'🌵',atkType:'ranged',
-   superName:'Deszcz Kolców',superDesc:'Grad trujących kolców we wszystkie strony',superCD:50,
-   shieldName:'Kolczasta Zbroja',shieldDur:3},
-  {id:54,name:'Mchowiec',clan:'nature',rarity:'common',hp:110,dmg:11,speed:4,emoji:'🍀',atkType:'aoe',
-   superName:'Trujące Spory',superDesc:'Chmura trujących zarodników',superCD:55,
-   shieldName:'Mech Leczniczy',shieldDur:4},
-  {id:55,name:'Strażnik Lasu',clan:'nature',rarity:'rare',hp:155,dmg:18,speed:5,emoji:'🦌',atkType:'melee',
-   superName:'Gaj Drzew',superDesc:'Las wyrasta wokół - drzewa biją wrogów',superCD:55,
-   shieldName:'Żywa Ściana',shieldDur:5},
-  {id:56,name:'Truciciel',clan:'nature',rarity:'rare',hp:110,dmg:20,speed:6,emoji:'🍄',atkType:'ranged',
-   superName:'Śmiertelna Trucizna',superDesc:'Trujący gaz - obrażenia w czasie',superCD:50,
-   shieldName:'Toksyczna Mgiełka',shieldDur:3},
-  {id:57,name:'Ent Wojownik',clan:'nature',rarity:'epic',hp:220,dmg:23,speed:4,emoji:'🌲',atkType:'melee',
-   superName:'Gniew Natury',superDesc:'Gigantyczne korzenie miażdżą wrogów',superCD:55,
-   shieldName:'Drewniany Bastion',shieldDur:5},
-  {id:58,name:'Jadowity',clan:'nature',rarity:'epic',hp:150,dmg:26,speed:6,emoji:'🐍',atkType:'ranged',
-   superName:'Plaga',superDesc:'Rój jadowitych stworzeń atakuje wrogów',superCD:50,
-   shieldName:'Jadowita Skóra',shieldDur:3},
-  {id:59,name:'Matka Natura',clan:'nature',rarity:'mythic',hp:260,dmg:28,speed:5,emoji:'🌸',atkType:'aoe',
-   superName:'Przebudzenie',superDesc:'Cała arena staje się dżunglą - masywne obrażenia',superCD:60,
-   shieldName:'Objęcia Ziemi',shieldDur:6},
-  {id:60,name:'Gaia',clan:'nature',rarity:'legendary',hp:300,dmg:36,speed:5,emoji:'🌍',atkType:'aoe',
-   superName:'Trzęsienie Ziemi',superDesc:'Ziemia pęka - erupcja natury',superCD:60,
-   shieldName:'Tarcza Planety',shieldDur:7},
-  {id:61,name:'Kwiecień',clan:'nature',rarity:'common',hp:90,dmg:12,speed:6,emoji:'🌺',atkType:'ranged',
-   superName:'Pyłek',superDesc:'Usypiający pyłek kwiatowy spowalnia wrogów',superCD:50,
-   shieldName:'Płatki Róży',shieldDur:2},
-  {id:62,name:'Sylvanus',clan:'nature',rarity:'ultimate',hp:380,dmg:44,speed:6,emoji:'🌟',atkType:'aoe',
-   superName:'Pierwotna Siła',superDesc:'Przyzwanie pradawnych drzew-wojowników',superCD:60,
-   shieldName:'Boski Las',shieldDur:8},
-
-  // ---- VOID CLAN (10) ----
-  {id:63,name:'Pustka',clan:'void',rarity:'rare',hp:120,dmg:20,speed:6,emoji:'⬜',atkType:'ranged',
-   superName:'Rozerwanie',superDesc:'Rozrywa przestrzeń - wrogowie tracą HP%',superCD:55,
-   shieldName:'Bańka Pustki',shieldDur:4},
-  {id:64,name:'Nicość',clan:'void',rarity:'rare',hp:115,dmg:22,speed:7,emoji:'🔳',atkType:'ranged',
-   superName:'Entropia',superDesc:'Losowe teleportacje wrogów + obrażenia',superCD:50,
-   shieldName:'Wymiar Kieszonkowy',shieldDur:3},
-  {id:65,name:'Pochłaniacz',clan:'void',rarity:'epic',hp:180,dmg:25,speed:5,emoji:'🕳️',atkType:'aoe',
-   superName:'Czarna Dziura',superDesc:'Wciąga i niszczy wrogów w promieniu',superCD:60,
-   shieldName:'Horyzont Zdarzeń',shieldDur:5},
-  {id:66,name:'Rozrywacz',clan:'void',rarity:'epic',hp:165,dmg:28,speed:6,emoji:'💠',atkType:'melee',
-   superName:'Rozdarcie Wymiaru',superDesc:'Ostrza z pustki tną wrogów',superCD:50,
-   shieldName:'Szczelina Czasowa',shieldDur:4},
-  {id:67,name:'Władca Pustki',clan:'void',rarity:'mythic',hp:240,dmg:33,speed:6,emoji:'🌐',atkType:'aoe',
-   superName:'Kolaps',superDesc:'Przestrzeń się zapada - ogromne AoE',superCD:60,
-   shieldName:'Anty-materia',shieldDur:6},
-  {id:68,name:'Anihilator',clan:'void',rarity:'legendary',hp:310,dmg:40,speed:6,emoji:'☢️',atkType:'aoe',
-   superName:'Anihilacja',superDesc:'Całkowite zniszczenie materii w zasięgu',superCD:60,
-   shieldName:'Pole Antymaterii',shieldDur:6},
-  {id:69,name:'Wszechistota',clan:'void',rarity:'ultimate',hp:400,dmg:50,speed:7,emoji:'♾️',atkType:'aoe',
-   superName:'Koniec Wszystkiego',superDesc:'Kasuje wymiar - wszystko ginie',superCD:60,
-   shieldName:'Poza Czasem',shieldDur:9},
-  {id:70,name:'Anomalia',clan:'void',rarity:'rare',hp:105,dmg:21,speed:8,emoji:'❓',atkType:'ranged',
-   superName:'Glitch',superDesc:'Losowy efekt - teleport, dmg, heal lub zamrożenie',superCD:40,
-   shieldName:'Niestabilność',shieldDur:3},
-  {id:71,name:'Singularis',clan:'void',rarity:'epic',hp:170,dmg:27,speed:5,emoji:'⚫',atkType:'aoe',
-   superName:'Singularność',superDesc:'Punkt grawitacyjny wciąga i miażdży',superCD:55,
-   shieldName:'Grawitacyjna Tarcza',shieldDur:4},
-  {id:72,name:'Quantum',clan:'void',rarity:'mythic',hp:225,dmg:31,speed:8,emoji:'🔮',atkType:'ranged',
-   superName:'Superpozycja',superDesc:'Istnieje w 3 miejscach naraz - potrójny atak',superCD:55,
-   shieldName:'Tunelowanie',shieldDur:4},
-
-  // ---- BLOOD CLAN (10) ----
-  {id:73,name:'Krwiopijca',clan:'blood',rarity:'common',hp:105,dmg:13,speed:6,emoji:'🧛',atkType:'melee',
-   superName:'Krwawy Ugryzienie',superDesc:'Gryzie wroga i kradnie HP',superCD:45,
-   shieldName:'Regeneracja',shieldDur:3},
-  {id:74,name:'Szpon',clan:'blood',rarity:'common',hp:95,dmg:15,speed:7,emoji:'🐺',atkType:'melee',
-   superName:'Szarpanie',superDesc:'Szybkie ciosy pazurami x4',superCD:40,
-   shieldName:'Wilcza Unikacja',shieldDur:2},
-  {id:75,name:'Wampir',clan:'blood',rarity:'rare',hp:140,dmg:19,speed:6,emoji:'🦇',atkType:'melee',
-   superName:'Krwawa Uczta',superDesc:'Drainuje HP z wielu wrogów naraz',superCD:50,
-   shieldName:'Mgła Wampirza',shieldDur:4},
-  {id:76,name:'Ghul',clan:'blood',rarity:'rare',hp:160,dmg:17,speed:5,emoji:'🧟',atkType:'melee',
-   superName:'Zaraza',superDesc:'Infekuje wrogów - obrażenia w czasie + spread',superCD:55,
-   shieldName:'Martwa Skóra',shieldDur:5},
-  {id:77,name:'Nosferatu',clan:'blood',rarity:'epic',hp:190,dmg:24,speed:6,emoji:'👁️',atkType:'aoe',
-   superName:'Hipnoza',superDesc:'Kontroluje umysły - wrogowie biją się nawzajem',superCD:60,
-   shieldName:'Starożytna Krew',shieldDur:5},
-  {id:78,name:'Krwawy Książę',clan:'blood',rarity:'epic',hp:185,dmg:26,speed:7,emoji:'🫀',atkType:'melee',
-   superName:'Krwawa Rzeź',superDesc:'Tornado szponów + lifesteal',superCD:50,
-   shieldName:'Szkarłatna Bariera',shieldDur:4},
-  {id:79,name:'Dracula',clan:'blood',rarity:'mythic',hp:260,dmg:32,speed:7,emoji:'🏰',atkType:'aoe',
-   superName:'Noc Walpurgii',superDesc:'Armia nietoperzy + drainowanie HP',superCD:60,
-   shieldName:'Zamek Ciemności',shieldDur:6},
-  {id:80,name:'Krwawa Bogini',clan:'blood',rarity:'legendary',hp:300,dmg:37,speed:6,emoji:'👑',atkType:'aoe',
-   superName:'Krwawa Pełnia',superDesc:'Krwawy księżyc - masywne AoE + full heal',superCD:60,
-   shieldName:'Boska Krew',shieldDur:7},
-  {id:81,name:'Hemoglobin',clan:'blood',rarity:'common',hp:100,dmg:14,speed:6,emoji:'💉',atkType:'ranged',
-   superName:'Krwawy Strzał',superDesc:'Strzela krwią - lifesteal z dystansu',superCD:45,
-   shieldName:'Krzepnięcie',shieldDur:3},
-  {id:82,name:'Sanguis',clan:'blood',rarity:'rare',hp:135,dmg:21,speed:5,emoji:'🩸',atkType:'aoe',
-   superName:'Fontanna Krwi',superDesc:'Eksplozja krwi we wszystkie strony',superCD:50,
-   shieldName:'Krwista Tarcza',shieldDur:4},
-
-  // ---- CHAOS CLAN (10) ----
-  {id:83,name:'Szaleniec',clan:'chaos',rarity:'rare',hp:90,dmg:25,speed:8,emoji:'🃏',atkType:'melee',
-   superName:'Szaleństwo',superDesc:'Losowe teleporty + ciosy we wszystkie strony',superCD:40,
-   shieldName:'Nieprzewidywalność',shieldDur:2},
-  {id:84,name:'Anarchista',clan:'chaos',rarity:'rare',hp:110,dmg:22,speed:7,emoji:'💣',atkType:'ranged',
-   superName:'Chaos Bomb',superDesc:'Eksplozja losowych efektów',superCD:45,
-   shieldName:'Entropia',shieldDur:3},
-  {id:85,name:'Destruktor',clan:'chaos',rarity:'epic',hp:165,dmg:28,speed:6,emoji:'🔨',atkType:'aoe',
-   superName:'Rozpad',superDesc:'Wszystko w zasięgu się rozpada',superCD:55,
-   shieldName:'Pole Chaosu',shieldDur:4},
-  {id:86,name:'Chaos Mag',clan:'chaos',rarity:'epic',hp:155,dmg:30,speed:7,emoji:'🎭',atkType:'ranged',
-   superName:'Losowy Żywioł',superDesc:'Losowy potężny atak: ogień/lód/piorun/cień',superCD:45,
-   shieldName:'Magiczna Niestabilność',shieldDur:3},
-  {id:87,name:'Berserk',clan:'chaos',rarity:'mythic',hp:280,dmg:35,speed:6,emoji:'👹',atkType:'melee',
-   superName:'Furia',superDesc:'2x dmg + 2x speed na 5s ale -50% HP',superCD:50,
-   shieldName:'Szał Bojowy',shieldDur:4},
-  {id:88,name:'Pan Chaosu',clan:'chaos',rarity:'legendary',hp:290,dmg:38,speed:7,emoji:'😵',atkType:'aoe',
-   superName:'Pandemonium',superDesc:'Totalna destrukcja - losowe eksplozje wszędzie',superCD:60,
-   shieldName:'Tarcza Szaleństwa',shieldDur:6},
-  {id:89,name:'Entropia',clan:'chaos',rarity:'ultimate',hp:370,dmg:47,speed:8,emoji:'🌪️',atkType:'aoe',
-   superName:'Koniec Porządku',superDesc:'Prawa fizyki przestają działać - zagłada',superCD:60,
-   shieldName:'Absolutny Chaos',shieldDur:8},
-  {id:90,name:'Trickster',clan:'chaos',rarity:'common',hp:80,dmg:18,speed:9,emoji:'🎪',atkType:'ranged',
-   superName:'Sztuczka',superDesc:'Zamienia się miejscami z wrogiem + wybuch',superCD:35,
-   shieldName:'Iluzja Klauna',shieldDur:2},
-  {id:91,name:'Glitcher',clan:'chaos',rarity:'rare',hp:100,dmg:23,speed:8,emoji:'📺',atkType:'ranged',
-   superName:'System Error',superDesc:'Wrogowie "glitchują" - tracą HP i się teleportują',superCD:45,
-   shieldName:'404 Not Found',shieldDur:3},
-  {id:92,name:'Demon Chaosu',clan:'chaos',rarity:'mythic',hp:245,dmg:33,speed:6,emoji:'👿',atkType:'aoe',
-   superName:'Piekielny Chaos',superDesc:'Demony chaosu pojawiają się i atakują',superCD:60,
-   shieldName:'Demoniczna Aura',shieldDur:5},
-
-  // ---- HOLY CLAN (5) ----
-  {id:93,name:'Paladyn',clan:'holy',rarity:'epic',hp:200,dmg:22,speed:5,emoji:'⚜️',atkType:'melee',
-   superName:'Święty Cios',superDesc:'Potężne uderzenie światłem + leczenie',superCD:50,
-   shieldName:'Boska Tarcza',shieldDur:5},
-  {id:94,name:'Anioł Stróż',clan:'holy',rarity:'epic',hp:180,dmg:24,speed:7,emoji:'👼',atkType:'ranged',
-   superName:'Boskie Światło',superDesc:'Promień światła oczyszcza wrogów',superCD:55,
-   shieldName:'Skrzydła Anielskie',shieldDur:4},
-  {id:95,name:'Archanioł',clan:'holy',rarity:'legendary',hp:330,dmg:38,speed:7,emoji:'😇',atkType:'aoe',
-   superName:'Sąd Ostateczny',superDesc:'Kolumny światła spadają na wszystkich wrogów',superCD:60,
-   shieldName:'Aureola',shieldDur:7},
-  {id:96,name:'Serafin',clan:'holy',rarity:'ultimate',hp:390,dmg:50,speed:8,emoji:'🕊️',atkType:'aoe',
-   superName:'Oczyszczenie',superDesc:'Czyste światło niszczy wszelkie zło - full arena',superCD:60,
-   shieldName:'6 Skrzydeł',shieldDur:9},
-  {id:97,name:'Mnich',clan:'holy',rarity:'rare',hp:130,dmg:18,speed:6,emoji:'🙏',atkType:'melee',
-   superName:'Wewnętrzny Pokój',superDesc:'Leczenie 40% HP + aura ochronna',superCD:50,
-   shieldName:'Medytacja',shieldDur:4},
-
-  // ---- COSMIC CLAN (3+) ----
-  {id:98,name:'Gwiezdny Strażnik',clan:'cosmic',rarity:'mythic',hp:250,dmg:34,speed:7,emoji:'💫',atkType:'ranged',
-   superName:'Gwiezdny Deszcz',superDesc:'Spadające gwiazdy niszczą wrogów',superCD:55,
-   shieldName:'Konstelacja',shieldDur:6},
-  {id:99,name:'Kosmiczny Władca',clan:'cosmic',rarity:'legendary',hp:340,dmg:42,speed:7,emoji:'🪐',atkType:'aoe',
-   superName:'Big Bang',superDesc:'Eksplozja kosmiczna - absolutna destrukcja',superCD:60,
-   shieldName:'Czaso-Przestrzeń',shieldDur:7},
-
-  // ---- UNKNOWN ----
-  {id:100,name:'???',clan:'cosmic',rarity:'unknown',hp:350,dmg:45,speed:9,emoji:'❓',atkType:'aoe',
-   superName:'???',superDesc:'Nikt nie wie co robi... ale jest potężne',superCD:50,
-   shieldName:'???',shieldDur:7},
-  {id:101,name:'Obserwator',clan:'cosmic',rarity:'unknown',hp:300,dmg:40,speed:10,emoji:'👁️‍🗨️',atkType:'ranged',
-   superName:'Wszechwiedza',superDesc:'Widzi słabości - każdy strzał to krytyczny cios',superCD:45,
-   shieldName:'Omniscjencja',shieldDur:6},
-
-  // ---- SECRET ----
-  {id:102,name:'Omega',clan:'cosmic',rarity:'secret',hp:500,dmg:60,speed:10,emoji:'Ω',atkType:'aoe',
-   superName:'Genesis',superDesc:'Tworzy i niszczy rzeczywistość - absolutna moc',superCD:60,
-   shieldName:'Omnipotencja',shieldDur:10},
+const CHARS=[
+{id:1,name:'Mroczny Adept',clan:'shadow',rarity:'common',hp:100,dmg:12,speed:5,emoji:'🥷',atkType:'melee',superName:'Cios Cienia',superDesc:'Wir mrocznych ostrzy',superCD:60,shieldName:'Mroczna Tarcza',shieldDur:4},
+{id:2,name:'Płomyk',clan:'fire',rarity:'common',hp:95,dmg:14,speed:5,emoji:'🔥',atkType:'ranged',superName:'Wybuch Ognia',superDesc:'Eksplozja płomieni',superCD:60,shieldName:'Ognista Aura',shieldDur:3},
+{id:3,name:'Lodowy Giermek',clan:'ice',rarity:'common',hp:110,dmg:10,speed:4,emoji:'🧊',atkType:'melee',superName:'Zamróz',superDesc:'Fala mrozu',superCD:60,shieldName:'Lodowa Skorupa',shieldDur:5},
+{id:4,name:'Iskra',clan:'lightning',rarity:'common',hp:90,dmg:15,speed:6,emoji:'⚡',atkType:'ranged',superName:'Burza',superDesc:'Wyładowania pioruna',superCD:60,shieldName:'Pole Statyczne',shieldDur:3},
+{id:5,name:'Leśny Strażnik',clan:'nature',rarity:'common',hp:115,dmg:11,speed:5,emoji:'🌿',atkType:'melee',superName:'Korzenie',superDesc:'Spętanie cierni',superCD:60,shieldName:'Kora',shieldDur:4},
+{id:6,name:'Pustkowy Cień',clan:'void',rarity:'common',hp:100,dmg:13,speed:5,emoji:'🕳️',atkType:'ranged',superName:'Pustka',superDesc:'Pochłonięcie',superCD:60,shieldName:'Welon Pustki',shieldDur:4},
+{id:7,name:'Krwawy Łowca',clan:'blood',rarity:'common',hp:105,dmg:14,speed:5,emoji:'🩸',atkType:'melee',superName:'Żniwo',superDesc:'Krwawy wir',superCD:60,shieldName:'Krzepnięcie',shieldDur:3},
+{id:8,name:'Chaotyk',clan:'chaos',rarity:'common',hp:95,dmg:13,speed:6,emoji:'🌀',atkType:'aoe',superName:'Anomalia',superDesc:'Eksplozja chaosu',superCD:60,shieldName:'Zniekształcenie',shieldDur:3},
+{id:9,name:'Akolita Światła',clan:'holy',rarity:'common',hp:120,dmg:10,speed:4,emoji:'✨',atkType:'ranged',superName:'Promień',superDesc:'Wiązka światła',superCD:60,shieldName:'Aureola',shieldDur:5},
+{id:10,name:'Gwiezdny Pyłek',clan:'cosmic',rarity:'common',hp:100,dmg:13,speed:5,emoji:'🌠',atkType:'ranged',superName:'Deszcz Gwiazd',superDesc:'Meteoryt',superCD:60,shieldName:'Bariera Astralna',shieldDur:4},
+{id:11,name:'Nocny Skrytobójca',clan:'shadow',rarity:'common',hp:90,dmg:16,speed:7,emoji:'🗡️',atkType:'melee',superName:'Zabójstwo',superDesc:'Seria pchnięć',superCD:60,shieldName:'Dym',shieldDur:3},
+{id:12,name:'Żarząca Iskra',clan:'fire',rarity:'common',hp:95,dmg:15,speed:5,emoji:'🌋',atkType:'aoe',superName:'Lawa',superDesc:'Erupcja',superCD:60,shieldName:'Magma',shieldDur:4},
+{id:13,name:'Cienisty Zwiadowca',clan:'shadow',rarity:'rare',hp:130,dmg:18,speed:6,emoji:'👁️‍🗨️',atkType:'ranged',superName:'Mrok',superDesc:'Salwa cieni',superCD:55,shieldName:'Cienista Osłona',shieldDur:5,canSummonShadows:true,shadowSlots:3},
+{id:14,name:'Ognisty Berserk',clan:'fire',rarity:'rare',hp:150,dmg:22,speed:6,emoji:'😤',atkType:'melee',superName:'Furia',superDesc:'Płomienny szał',superCD:55,shieldName:'Ognista Furia',shieldDur:4},
+{id:15,name:'Lodowa Czarodziejka',clan:'ice',rarity:'rare',hp:120,dmg:20,speed:5,emoji:'🥶',atkType:'ranged',superName:'Lodowy Sztorm',superDesc:'Burza śnieżna',superCD:55,shieldName:'Mróz',shieldDur:5},
+{id:16,name:'Burzowy Jeździec',clan:'lightning',rarity:'rare',hp:125,dmg:21,speed:7,emoji:'🌩️',atkType:'aoe',superName:'Grom',superDesc:'Łańcuch piorunów',superCD:55,shieldName:'Naładowanie',shieldDur:4},
+{id:17,name:'Druid Cierni',clan:'nature',rarity:'rare',hp:155,dmg:17,speed:5,emoji:'🌳',atkType:'melee',superName:'Dzicz',superDesc:'Eksplozja natury',superCD:55,shieldName:'Pancerz Kory',shieldDur:6},
+{id:18,name:'Pożeracz Otchłani',clan:'void',rarity:'rare',hp:140,dmg:19,speed:5,emoji:'🌑',atkType:'ranged',superName:'Pochłonięcie',superDesc:'Czarna dziura',superCD:55,shieldName:'Otchłań',shieldDur:5,canSummonShadows:true,shadowSlots:3},
+{id:19,name:'Krwawa Wiedźma',clan:'blood',rarity:'rare',hp:135,dmg:20,speed:6,emoji:'🧛‍♀️',atkType:'ranged',superName:'Krwotok',superDesc:'Wir krwi',superCD:55,shieldName:'Krwawa Tarcza',shieldDur:4,canSummonShadows:true,shadowSlots:3},
+{id:20,name:'Władca Chaosu',clan:'chaos',rarity:'rare',hp:130,dmg:21,speed:6,emoji:'🎭',atkType:'aoe',superName:'Pandemonium',superDesc:'Chaotyczna eksplozja',superCD:55,shieldName:'Iluzja',shieldDur:4},
+{id:21,name:'Paladyn Świtu',clan:'holy',rarity:'rare',hp:160,dmg:18,speed:5,emoji:'🛡️',atkType:'melee',superName:'Osąd',superDesc:'Święty młot',superCD:55,shieldName:'Boska Tarcza',shieldDur:6},
+{id:22,name:'Astralny Mag',clan:'cosmic',rarity:'rare',hp:130,dmg:21,speed:5,emoji:'🔮',atkType:'ranged',superName:'Supernowa',superDesc:'Wybuch gwiazdy',superCD:55,shieldName:'Tarcza Astralna',shieldDur:5},
+{id:23,name:'Cień Łowcy',clan:'shadow',rarity:'rare',hp:135,dmg:19,speed:7,emoji:'🏹',atkType:'ranged',superName:'Strzała Mroku',superDesc:'Salwa cieni',superCD:55,shieldName:'Maskowanie',shieldDur:4,canSummonShadows:true,shadowSlots:3},
+{id:24,name:'Pyromanta',clan:'fire',rarity:'rare',hp:125,dmg:23,speed:6,emoji:'🎆',atkType:'aoe',superName:'Holokaust',superDesc:'Morze ognia',superCD:55,shieldName:'Płaszcz Żaru',shieldDur:4},
+{id:25,name:'Mroczny Templariusz',clan:'shadow',rarity:'rare',hp:145,dmg:20,speed:6,emoji:'⚔️',atkType:'melee',superName:'Wyrok Cienia',superDesc:'Mroczny rozłam',superCD:55,shieldName:'Czarna Zbroja',shieldDur:5,canSummonShadows:true,shadowSlots:3},
+{id:26,name:'Cienisty Lord',clan:'shadow',rarity:'rare',hp:150,dmg:21,speed:6,emoji:'👑',atkType:'aoe',superName:'Imperium Cieni',superDesc:'Fala mroku',superCD:55,shieldName:'Korona Cieni',shieldDur:5,canSummonShadows:true,shadowSlots:3},
+{id:27,name:'Inferno Lord',clan:'fire',rarity:'epic',hp:180,dmg:28,speed:6,emoji:'😈',atkType:'aoe',superName:'Piekielna Brama',superDesc:'Otwarcie piekła',superCD:50,shieldName:'Piekielny Ogień',shieldDur:5},
+{id:28,name:'Lodowy Monarcha',clan:'ice',rarity:'epic',hp:200,dmg:25,speed:5,emoji:'👑',atkType:'ranged',superName:'Wieczna Zima',superDesc:'Apokalipsa mrozu',superCD:50,shieldName:'Lodowa Forteca',shieldDur:7},
+{id:29,name:'Gromowładny',clan:'lightning',rarity:'epic',hp:175,dmg:30,speed:8,emoji:'🌐',atkType:'aoe',superName:'Boska Burza',superDesc:'Niebiański grom',superCD:50,shieldName:'Pole Energii',shieldDur:5},
+{id:30,name:'Pradawny Ent',clan:'nature',rarity:'epic',hp:230,dmg:24,speed:4,emoji:'🌲',atkType:'melee',superName:'Gniew Lasu',superDesc:'Trzęsienie korzeni',superCD:50,shieldName:'Żywa Kora',shieldDur:8},
+{id:31,name:'Heroldka Otchłani',clan:'void',rarity:'epic',hp:185,dmg:28,speed:6,emoji:'🌌',atkType:'ranged',superName:'Kolaps',superDesc:'Implozja pustki',superCD:50,shieldName:'Wymazanie',shieldDur:6,canSummonShadows:true,shadowSlots:3},
+{id:32,name:'Krwawy Książę',clan:'blood',rarity:'epic',hp:190,dmg:29,speed:6,emoji:'🦇',atkType:'melee',superName:'Krwawa Rzeź',superDesc:'Wir ostrzy',superCD:50,shieldName:'Wampiryzm',shieldDur:5,canSummonShadows:true,shadowSlots:3},
+{id:33,name:'Awatar Chaosu',clan:'chaos',rarity:'epic',hp:180,dmg:29,speed:7,emoji:'🎲',atkType:'aoe',superName:'Entropia',superDesc:'Rozpad rzeczywistości',superCD:50,shieldName:'Rozszczepienie',shieldDur:5},
+{id:34,name:'Archanioł',clan:'holy',rarity:'epic',hp:210,dmg:26,speed:6,emoji:'😇',atkType:'ranged',superName:'Sąd Ostateczny',superDesc:'Niebiański gniew',superCD:50,shieldName:'Skrzydła Łaski',shieldDur:7},
+{id:35,name:'Kosmiczny Wędrowiec',clan:'cosmic',rarity:'epic',hp:185,dmg:28,speed:6,emoji:'🚀',atkType:'aoe',superName:'Wielki Wybuch',superDesc:'Narodziny gwiazdy',superCD:50,shieldName:'Pole Grawitacyjne',shieldDur:6},
+{id:36,name:'Pan Nocy',clan:'shadow',rarity:'epic',hp:195,dmg:30,speed:7,emoji:'🌃',atkType:'aoe',superName:'Wieczna Noc',superDesc:'Zaćmienie',superCD:50,shieldName:'Płaszcz Nocy',shieldDur:6,canSummonShadows:true,shadowSlots:5},
+{id:37,name:'Demoniczny Generał',clan:'fire',rarity:'epic',hp:200,dmg:29,speed:6,emoji:'🐲',atkType:'melee',superName:'Demoniczny Szturm',superDesc:'Piekielna nawałnica',superCD:50,shieldName:'Demoniczna Skóra',shieldDur:6},
+{id:38,name:'Mroźna Królowa',clan:'ice',rarity:'epic',hp:205,dmg:27,speed:5,emoji:'❄️',atkType:'ranged',superName:'Absolutne Zero',superDesc:'Zamrożenie areny',superCD:50,shieldName:'Kryształowa Tarcza',shieldDur:7},
+{id:39,name:'Mistrz Burzy',clan:'lightning',rarity:'mythic',hp:240,dmg:38,speed:8,emoji:'🌪️',atkType:'aoe',superName:'Apokaliptyczny Grom',superDesc:'Burza końca świata',superCD:48,shieldName:'Burzowa Egida',shieldDur:6},
+{id:40,name:'Pożeracz Światów',clan:'void',rarity:'mythic',hp:280,dmg:36,speed:6,emoji:'⚫',atkType:'ranged',superName:'Anihilacja',superDesc:'Pochłonięcie wszystkiego',superCD:48,shieldName:'Horyzont Zdarzeń',shieldDur:7,canSummonShadows:true,shadowSlots:5},
+{id:41,name:'Smoczy Władca',clan:'fire',rarity:'mythic',hp:300,dmg:40,speed:6,emoji:'🐉',atkType:'aoe',superName:'Smoczy Oddech',superDesc:'Piekielny pożar',superCD:48,shieldName:'Smocza Łuska',shieldDur:7},
+{id:42,name:'Pradawny Lód',clan:'ice',rarity:'mythic',hp:310,dmg:35,speed:5,emoji:'🏔️',atkType:'melee',superName:'Epoka Lodowa',superDesc:'Zamrożenie świata',superCD:48,shieldName:'Lodowiec',shieldDur:8},
+{id:43,name:'Krwawy Tytan',clan:'blood',rarity:'mythic',hp:320,dmg:39,speed:6,emoji:'🩸',atkType:'melee',superName:'Krwawy Potop',superDesc:'Ocean krwi',superCD:48,shieldName:'Krwawa Regeneracja',shieldDur:7,canSummonShadows:true,shadowSlots:5},
+{id:44,name:'Pan Pandemonium',clan:'chaos',rarity:'mythic',hp:270,dmg:40,speed:7,emoji:'🃏',atkType:'aoe',superName:'Koniec Wszystkiego',superDesc:'Totalny chaos',superCD:48,shieldName:'Fragmentacja',shieldDur:6},
+{id:45,name:'Serafin',clan:'holy',rarity:'mythic',hp:290,dmg:37,speed:7,emoji:'👼',atkType:'ranged',superName:'Boski Gniew',superDesc:'Niebiański ogień',superCD:48,shieldName:'Świętość',shieldDur:8},
+{id:46,name:'Galaktyczny Tyran',clan:'cosmic',rarity:'mythic',hp:285,dmg:39,speed:6,emoji:'🪐',atkType:'aoe',superName:'Kolizja Galaktyk',superDesc:'Kosmiczna zagłada',superCD:48,shieldName:'Osłona Kwantowa',shieldDur:7},
+{id:47,name:'Cesarz Cieni',clan:'shadow',rarity:'mythic',hp:300,dmg:40,speed:7,emoji:'🌑',atkType:'aoe',superName:'Wieczne Zaćmienie',superDesc:'Pochłonięcie światła',superCD:48,shieldName:'Imperialna Aura',shieldDur:7,canSummonShadows:true,shadowSlots:5},
+{id:48,name:'Tytan Piorunów',clan:'lightning',rarity:'legendary',hp:380,dmg:48,speed:8,emoji:'⚡',atkType:'aoe',superName:'Gniew Bogów',superDesc:'Niebiańska egzekucja',superCD:45,shieldName:'Egida Zeusa',shieldDur:8,hasFightingStyles:true},
+{id:49,name:'Pradawny Smok',clan:'fire',rarity:'legendary',hp:420,dmg:50,speed:7,emoji:'🐲',atkType:'aoe',superName:'Inferno Pradawne',superDesc:'Pożoga zagłady',superCD:45,shieldName:'Pradawna Łuska',shieldDur:9,hasFightingStyles:true},
+{id:50,name:'Architekt Otchłani',clan:'void',rarity:'legendary',hp:400,dmg:49,speed:7,emoji:'🕳️',atkType:'ranged',superName:'Wymazanie Istnienia',superDesc:'Pustka absolutna',superCD:45,shieldName:'Bariera Nicości',shieldDur:8,canSummonShadows:true,shadowSlots:5,hasFightingStyles:true},
+{id:51,name:'Boski Sędzia',clan:'holy',rarity:'legendary',hp:440,dmg:47,speed:7,emoji:'⚖️',atkType:'ranged',superName:'Ostateczny Werdykt',superDesc:'Boska kara',superCD:45,shieldName:'Niebiańska Egida',shieldDur:9,hasFightingStyles:true},
+{id:52,name:'Lord Krwi',clan:'blood',rarity:'legendary',hp:430,dmg:50,speed:7,emoji:'🧛',atkType:'melee',superName:'Wieczna Rzeź',superDesc:'Krwawa apokalipsa',superCD:45,shieldName:'Nieśmiertelność',shieldDur:8,canSummonShadows:true,shadowSlots:5,hasFightingStyles:true},
+{id:53,name:'Władca Wymiarów',clan:'cosmic',rarity:'legendary',hp:410,dmg:49,speed:8,emoji:'🌀',atkType:'aoe',superName:'Załamanie Czasu',superDesc:'Rozdarcie rzeczywistości',superCD:45,shieldName:'Tarcza Wymiarów',shieldDur:8},
+{id:54,name:'Omega Wojownik',clan:'chaos',rarity:'ultimate',hp:550,dmg:62,speed:8,emoji:'💀',atkType:'aoe',superName:'Protokół Omega',superDesc:'Totalna anihilacja',superCD:42,shieldName:'Pancerz Omega',shieldDur:10,hasFightingStyles:true},
+{id:55,name:'Pierwotny Płomień',clan:'fire',rarity:'ultimate',hp:580,dmg:64,speed:7,emoji:'☄️',atkType:'aoe',superName:'Narodziny Słońca',superDesc:'Eksplozja gwiazdy',superCD:42,shieldName:'Korona Słoneczna',shieldDur:10},
+{id:56,name:'Pustka Pierwotna',clan:'void',rarity:'ultimate',hp:600,dmg:60,speed:7,emoji:'🌑',atkType:'ranged',superName:'Powrót do Nicości',superDesc:'Wymazanie areny',superCD:42,shieldName:'Absolut Pustki',shieldDur:11,canSummonShadows:true,shadowSlots:5},
+{id:57,name:'Stwórca Gwiazd',clan:'cosmic',rarity:'ultimate',hp:570,dmg:63,speed:8,emoji:'🌟',atkType:'aoe',superName:'Geneza Wszechświata',superDesc:'Kosmiczne odrodzenie',superCD:42,shieldName:'Splot Czasoprzestrzeni',shieldDur:10},
+{id:58,name:'Nekromanta',clan:'void',rarity:'unknown',hp:480,dmg:55,speed:7,emoji:'💀',atkType:'ranged',superName:'Armia Umarłych',superDesc:'Przyzwanie nieumarłych',superCD:40,shieldName:'Welon Śmierci',shieldDur:9,canSummonShadows:true,shadowSlots:5},
+{id:59,name:'Obserwator',clan:'cosmic',rarity:'unknown',hp:460,dmg:58,speed:8,emoji:'👁️',atkType:'aoe',superName:'Wszechwidzące Oko',superDesc:'Spojrzenie zagłady',superCD:40,shieldName:'Bariera Przeznaczenia',shieldDur:9},
+{id:60,name:'Mistrz Cieni',clan:'shadow',rarity:'secret',hp:500,dmg:60,speed:10,emoji:'🌑',atkType:'melee',superName:'Atak z Cienia',superDesc:'Ukrywa się w cieniu podłogi i atakuje z dołu',superCD:35,shieldName:'Esencja Mroku',shieldDur:12,canSummonShadows:true,shadowSlots:5,hasFightingStyles:true,faceless:true,ghostMechanic:true}
 ];
-
-// =====================================================
-// ===== GAME STATE =====
-// =====================================================
-let state={
-  coins:500,
-  unlockedIds:new Set([1]),
-  selectedId:1,
-  duplicates:{},
-  totalKills:0,
-  highWave:0,
-  sensitivity:5,
+const SHADOWS=[
+{id:1,name:'Cienisty Wojownik',type:'warrior',hp:40,dmg:8,speed:4,emoji:'⚔️',special:'brak'},
+{id:2,name:'Mroczny Topornik',type:'warrior',hp:45,dmg:10,speed:4,emoji:'🪓',special:'brak'},
+{id:3,name:'Cień Klingi',type:'warrior',hp:38,dmg:9,speed:5,emoji:'🗡️',special:'szybki'},
+{id:4,name:'Mroczny Gladiator',type:'warrior',hp:50,dmg:11,speed:4,emoji:'🛡️',special:'brak'},
+{id:5,name:'Cienisty Berserk',type:'warrior',hp:42,dmg:12,speed:5,emoji:'😤',special:'furia'},
+{id:6,name:'Nocny Rębacz',type:'warrior',hp:44,dmg:10,speed:4,emoji:'⚔️',special:'brak'},
+{id:7,name:'Cień Wojny',type:'warrior',hp:48,dmg:11,speed:4,emoji:'🗡️',special:'brak'},
+{id:8,name:'Mroczny Najemnik',type:'warrior',hp:40,dmg:9,speed:5,emoji:'🪓',special:'brak'},
+{id:9,name:'Cienisty Szermierz',type:'warrior',hp:43,dmg:10,speed:5,emoji:'🤺',special:'szybki'},
+{id:10,name:'Mroczny Czempion',type:'warrior',hp:52,dmg:12,speed:4,emoji:'⚔️',special:'brak'},
+{id:11,name:'Cienisty Łucznik',type:'archer',hp:30,dmg:9,speed:5,emoji:'🏹',special:'zasięg'},
+{id:12,name:'Mroczny Kusznik',type:'archer',hp:32,dmg:11,speed:4,emoji:'🎯',special:'zasięg'},
+{id:13,name:'Cień Strzały',type:'archer',hp:28,dmg:10,speed:6,emoji:'🏹',special:'szybki'},
+{id:14,name:'Nocny Snajper',type:'archer',hp:30,dmg:13,speed:4,emoji:'🎯',special:'krytyk'},
+{id:15,name:'Mroczny Strzelec',type:'archer',hp:31,dmg:10,speed:5,emoji:'🏹',special:'zasięg'},
+{id:16,name:'Cienisty Myśliwy',type:'archer',hp:33,dmg:11,speed:5,emoji:'🏹',special:'zasięg'},
+{id:17,name:'Cień Bełtu',type:'archer',hp:29,dmg:12,speed:5,emoji:'🎯',special:'krytyk'},
+{id:18,name:'Mroczny Tropiciel',type:'archer',hp:30,dmg:10,speed:6,emoji:'🏹',special:'szybki'},
+{id:19,name:'Cienisty Strażnik',type:'tank',hp:90,dmg:6,speed:3,emoji:'🛡️',special:'wytrzymały'},
+{id:20,name:'Mroczny Kolos',type:'tank',hp:110,dmg:7,speed:2,emoji:'🗿',special:'wytrzymały'},
+{id:21,name:'Cień Mur',type:'tank',hp:100,dmg:5,speed:3,emoji:'🧱',special:'tarcza'},
+{id:22,name:'Mroczny Goliat',type:'tank',hp:120,dmg:8,speed:2,emoji:'🦾',special:'wytrzymały'},
+{id:23,name:'Cienisty Obrońca',type:'tank',hp:95,dmg:6,speed:3,emoji:'🛡️',special:'tarcza'},
+{id:24,name:'Mroczny Bastion',type:'tank',hp:105,dmg:7,speed:3,emoji:'🏰',special:'wytrzymały'},
+{id:25,name:'Cień Twierdzy',type:'tank',hp:115,dmg:6,speed:2,emoji:'🗿',special:'tarcza'},
+{id:26,name:'Mroczny Tytan',type:'tank',hp:125,dmg:9,speed:2,emoji:'🦾',special:'wytrzymały'},
+{id:27,name:'Cienisty Uzdrowiciel',type:'healer',hp:35,dmg:4,speed:4,emoji:'💚',special:'leczy'},
+{id:28,name:'Mroczny Kapłan',type:'healer',hp:40,dmg:5,speed:4,emoji:'🙏',special:'leczy'},
+{id:29,name:'Cień Życia',type:'healer',hp:38,dmg:4,speed:4,emoji:'✚',special:'leczy'},
+{id:30,name:'Mroczny Medyk',type:'healer',hp:36,dmg:5,speed:5,emoji:'💉',special:'leczy'},
+{id:31,name:'Cienisty Szaman',type:'healer',hp:42,dmg:6,speed:4,emoji:'🔮',special:'leczy'},
+{id:32,name:'Cień Odnowy',type:'healer',hp:39,dmg:5,speed:4,emoji:'💚',special:'leczy'},
+{id:33,name:'Cienisty Wspomożyciel',type:'support',hp:35,dmg:6,speed:5,emoji:'🎺',special:'wzmocnienie'},
+{id:34,name:'Mroczny Bard',type:'support',hp:37,dmg:7,speed:5,emoji:'🎵',special:'wzmocnienie'},
+{id:35,name:'Cień Wzmocnienia',type:'support',hp:36,dmg:6,speed:5,emoji:'⬆️',special:'wzmocnienie'},
+{id:36,name:'Mroczny Mentor',type:'support',hp:40,dmg:7,speed:4,emoji:'📜',special:'wzmocnienie'},
+{id:37,name:'Cienisty Iluzjonista',type:'support',hp:34,dmg:8,speed:6,emoji:'🎭',special:'spowolnienie'},
+{id:38,name:'Cień Zaklęcia',type:'support',hp:38,dmg:7,speed:5,emoji:'✨',special:'spowolnienie'},
+{id:39,name:'Mroczny Zaklinacz',type:'support',hp:36,dmg:8,speed:5,emoji:'🪄',special:'spowolnienie'},
+{id:40,name:'Cienisty Taktyk',type:'support',hp:39,dmg:7,speed:5,emoji:'🧠',special:'wzmocnienie'},
+{id:41,name:'Cienisty Elitarny',type:'elite',hp:70,dmg:18,speed:6,emoji:'👹',special:'potężny'},
+{id:42,name:'Mroczny Generał',type:'elite',hp:80,dmg:20,speed:5,emoji:'🎖️',special:'dowodzenie'},
+{id:43,name:'Cień Zagłady',type:'elite',hp:65,dmg:22,speed:6,emoji:'☠️',special:'potężny'},
+{id:44,name:'Mroczny Egzekutor',type:'elite',hp:75,dmg:21,speed:6,emoji:'⚰️',special:'potężny'},
+{id:45,name:'Cienisty Lord',type:'elite',hp:85,dmg:23,speed:5,emoji:'👑',special:'dowodzenie'},
+{id:46,name:'Cień Apokalipsy',type:'elite',hp:72,dmg:24,speed:6,emoji:'🔥',special:'potężny'},
+{id:47,name:'Mroczny Książę',type:'elite',hp:78,dmg:22,speed:6,emoji:'🦇',special:'potężny'},
+{id:48,name:'Cienisty Demon',type:'elite',hp:74,dmg:23,speed:6,emoji:'😈',special:'potężny'},
+{id:49,name:'Cień Nicości',type:'elite',hp:68,dmg:25,speed:7,emoji:'🕳️',special:'potężny'},
+{id:50,name:'Mroczny Awatar',type:'elite',hp:90,dmg:26,speed:6,emoji:'🌑',special:'dowodzenie'}
+];
+const MOB_TYPES=[
+{id:'zombie',name:'Zombie',hp:30,dmg:6,speed:2.5,color:0x4a7a3a,scale:1.0,minWave:1,emoji:'🧟'},
+{id:'skeleton',name:'Szkielet',hp:25,dmg:8,speed:3.2,color:0xcccccc,scale:0.95,minWave:1,emoji:'💀'},
+{id:'demon',name:'Demon',hp:50,dmg:12,speed:3.0,color:0xcc3a2a,scale:1.2,minWave:5,emoji:'😈'},
+{id:'golem',name:'Golem',hp:90,dmg:15,speed:1.8,color:0x6a6a8a,scale:1.5,minWave:8,emoji:'🗿'},
+{id:'widmo',name:'Widmo',hp:40,dmg:14,speed:4.2,color:0x7a4aff,scale:1.1,minWave:12,emoji:'👻'},
+{id:'smok',name:'Smok',hp:130,dmg:22,speed:3.5,color:0x2a8a5a,scale:1.7,minWave:16,emoji:'🐉'}
+];
+const BOSS_TYPES=[
+{id:'guardian',name:'Cienisty Strażnik',hp:600,dmg:25,speed:2.2,color:0x6a3a9a,scale:2.5,emoji:'🌑'},
+{id:'titan',name:'Płomienny Tytan',hp:1100,dmg:35,speed:2.0,color:0xff5a2a,scale:2.8,emoji:'🔥'},
+{id:'colossus',name:'Lodowy Kolos',hp:1800,dmg:42,speed:1.7,color:0x4adaff,scale:3.0,emoji:'🧊'},
+{id:'voidlord',name:'Władca Otchłani',hp:2800,dmg:50,speed:2.4,color:0x2a1a4a,scale:3.0,emoji:'🕳️'},
+{id:'omega',name:'Omega Boss',hp:4500,dmg:65,speed:2.6,color:0xff2a2a,scale:3.4,emoji:'💀'}
+];
+const CRATE_TYPES=[
+{id:'shadow',name:'Skrzynia Cienia',emoji:'📦',cost:100,curr:'coins',desc:'Podstawowa skrzynia. Szansa na rzadkie bohatery.',mod:{}},
+{id:'elite',name:'Skrzynia Elity',emoji:'🎁',cost:300,curr:'coins',desc:'Wyższe szanse na epickie i mityczne.',mod:{epic:2,mythic:2,legendary:1.5}},
+{id:'legendary',name:'Skrzynia Legendarna',emoji:'💎',cost:50,curr:'gems',desc:'Najlepsza szansa na legendy i więcej!',mod:{legendary:4,ultimate:4,unknown:3,secret:2,mythic:2}}
+];
+const UPGRADES=[
+{id:'hp',name:'Wzmocnienie HP',emoji:'❤️',desc:'+8% maks. HP za poziom',max:10,baseCost:150,each:0.08},
+{id:'dmg',name:'Wzmocnienie Obrażeń',emoji:'⚔️',desc:'+6% obrażeń za poziom',max:10,baseCost:200,each:0.06},
+{id:'magnet',name:'Magnes na Monety',emoji:'🧲',desc:'+15% monet za poziom',max:8,baseCost:120,each:0.15},
+{id:'shadow',name:'Mistrzostwo Cieni',emoji:'🌑',desc:'+10% HP/DMG cieni za poziom',max:8,baseCost:180,each:0.10},
+{id:'shield',name:'Wzmocnienie Tarczy',emoji:'🛡️',desc:'+0.5s trwania tarczy za poziom',max:6,baseCost:160,each:0.5}
+];
+const MILESTONES=[
+{id:'w10',name:'Fala 10',desc:'Osiągnij falę 10',emoji:'🌊',check:s=>s.highWave>=10,reward:{coins:300}},
+{id:'w20',name:'Fala 20',desc:'Osiągnij falę 20',emoji:'🌊',check:s=>s.highWave>=20,reward:{coins:800,gems:5}},
+{id:'w30',name:'Fala 30',desc:'Osiągnij falę 30',emoji:'🌊',check:s=>s.highWave>=30,reward:{gems:20}},
+{id:'k100',name:'100 Zabójstw',desc:'Zabij 100 wrogów',emoji:'☠️',check:s=>s.totalKills>=100,reward:{coins:200}},
+{id:'k500',name:'500 Zabójstw',desc:'Zabij 500 wrogów',emoji:'☠️',check:s=>s.totalKills>=500,reward:{coins:1000,gems:8}},
+{id:'k1000',name:'1000 Zabójstw',desc:'Zabij 1000 wrogów',emoji:'☠️',check:s=>s.totalKills>=1000,reward:{gems:25}},
+{id:'h10',name:'10 Bohaterów',desc:'Odblokuj 10 bohaterów',emoji:'🦸',check:s=>s.unlockedIds.size>=10,reward:{coins:400}},
+{id:'h30',name:'30 Bohaterów',desc:'Odblokuj 30 bohaterów',emoji:'🦸',check:s=>s.unlockedIds.size>=30,reward:{gems:15}},
+{id:'h50',name:'50 Bohaterów',desc:'Odblokuj 50 bohaterów',emoji:'🦸',check:s=>s.unlockedIds.size>=50,reward:{gems:40}}
+];
+const FIGHTING_STYLES={
+60:[{id:'mage',name:'Mag',atkType:'ranged',dmgMod:1.2,speedMod:0.8,hpMod:1.0},{id:'assassin',name:'Skrytobójca',atkType:'melee',dmgMod:0.9,speedMod:1.4,hpMod:0.9},{id:'all',name:'Wszechstronny',atkType:'ranged',dmgMod:1.0,speedMod:1.1,hpMod:1.0}],
+48:[{id:'storm',name:'Burzowy',atkType:'aoe',dmgMod:1.15,speedMod:1.0,hpMod:1.0},{id:'bolt',name:'Snajper',atkType:'ranged',dmgMod:1.3,speedMod:0.9,hpMod:0.9},{id:'thunder',name:'Gromowy',atkType:'melee',dmgMod:1.0,speedMod:1.3,hpMod:1.1}],
+49:[{id:'inferno',name:'Inferno',atkType:'aoe',dmgMod:1.25,speedMod:0.85,hpMod:1.0},{id:'flame',name:'Płomienny',atkType:'ranged',dmgMod:1.1,speedMod:1.0,hpMod:1.0},{id:'molten',name:'Roztopiony',atkType:'melee',dmgMod:1.0,speedMod:1.2,hpMod:1.2}],
+50:[{id:'void',name:'Pustka',atkType:'ranged',dmgMod:1.2,speedMod:0.9,hpMod:1.0},{id:'collapse',name:'Kolaps',atkType:'aoe',dmgMod:1.3,speedMod:0.8,hpMod:0.95},{id:'phase',name:'Faza',atkType:'melee',dmgMod:0.95,speedMod:1.35,hpMod:1.0}],
+51:[{id:'judge',name:'Sędzia',atkType:'ranged',dmgMod:1.2,speedMod:0.95,hpMod:1.0},{id:'smite',name:'Karzący',atkType:'aoe',dmgMod:1.25,speedMod:0.9,hpMod:1.05},{id:'guard',name:'Strażnik',atkType:'melee',dmgMod:1.0,speedMod:1.1,hpMod:1.25}],
+52:[{id:'reaper',name:'Żniwiarz',atkType:'melee',dmgMod:1.3,speedMod:1.2,hpMod:0.95},{id:'drain',name:'Wysysacz',atkType:'ranged',dmgMod:1.1,speedMod:1.0,hpMod:1.1},{id:'tyrant',name:'Tyran',atkType:'aoe',dmgMod:1.2,speedMod:0.85,hpMod:1.2}],
+54:[{id:'omega',name:'Omega',atkType:'aoe',dmgMod:1.3,speedMod:0.9,hpMod:1.1},{id:'destroyer',name:'Niszczyciel',atkType:'melee',dmgMod:1.2,speedMod:1.25,hpMod:1.0},{id:'annihilator',name:'Anihilator',atkType:'ranged',dmgMod:1.4,speedMod:0.85,hpMod:0.95}]
 };
 
-function saveState(){
-  const s={...state,unlockedIds:[...state.unlockedIds]};
-  localStorage.setItem('arenaCieni_save',JSON.stringify(s));
-}
-function loadState(){
-  const raw=localStorage.getItem('arenaCieni_save');
-  if(!raw)return;
-  try{
-    const s=JSON.parse(raw);
-    state.coins=s.coins||0;
-    state.unlockedIds=new Set(s.unlockedIds||[1]);
-    state.selectedId=s.selectedId||1;
-    state.duplicates=s.duplicates||{};
-    state.totalKills=s.totalKills||0;
-    state.highWave=s.highWave||0;
-    state.sensitivity=s.sensitivity||5;
-  }catch(e){}
-}
+const SAVE_KEY='arenaCieni_v2';
+let state={coins:500,gems:0,unlockedIds:new Set([1]),selectedId:1,duplicates:{},totalKills:0,highWave:0,sensitivity:5,upgrades:{hp:0,dmg:0,magnet:0,shadow:0,shield:0},completedMilestones:[],selectedShadows:{},fightStyles:{},settings:{reducedParticles:false}};
+function saveState(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...state,unlockedIds:[...state.unlockedIds]}))}catch(e){}}
+function loadState(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const d=JSON.parse(r);d.unlockedIds=new Set(d.unlockedIds||[1]);state={...state,...d,upgrades:{...state.upgrades,...(d.upgrades||{})},settings:{...state.settings,...(d.settings||{})}}}}catch(e){}}
 loadState();
+const charById=id=>CHARS.find(c=>c.id===id);
 
-// =====================================================
-// ===== SCREEN MANAGEMENT =====
-// =====================================================
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  document.getElementById('game-screen').classList.remove('active');
-  if(id==='screen-collection')renderCollection();
-  if(id==='screen-select')renderSelect();
-  if(id==='screen-menu')updateMenuInfo();
-  if(id==='screen-crates')updateCrateCoins();
-}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const e=document.getElementById(id);if(e)e.classList.add('active');updateCurrency()}
+function updateCurrency(){['colCoin','shopCoin'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.coins});['colGem','shopGem'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.gems})}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
 window.showScreen=showScreen;
 
-function updateMenuInfo(){
-  document.getElementById('coll-count').textContent=`${state.unlockedIds.size}/${CHARACTERS.length}`;
-  document.getElementById('menu-coins').textContent=`🪙 ${state.coins}`;
-}
+let curFilter='all';
+function renderFilters(){const f=document.getElementById('filters');let h=`<button class="fbtn ${curFilter==='all'?'active':''}" onclick="setFilter('all')">Wszystkie</button>`;
+Object.keys(RARITIES).forEach(r=>h+=`<button class="fbtn ${curFilter===r?'active':''}" onclick="setFilter('${r}')" style="color:${RARITIES[r].color}">${RARITIES[r].label}</button>`);
+Object.keys(CLANS).forEach(c=>h+=`<button class="fbtn ${curFilter===c?'active':''}" onclick="setFilter('${c}')">${CLANS[c].icon} ${CLANS[c].name}</button>`);
+f.innerHTML=h}
+function setFilter(f){curFilter=f;renderCollection()}
+window.setFilter=setFilter;
+function renderCollection(){renderFilters();const g=document.getElementById('charGrid');let h='';
+CHARS.forEach(c=>{if(curFilter!=='all'&&curFilter!==c.rarity&&curFilter!==c.clan)return;const unl=state.unlockedIds.has(c.id);const r=RARITIES[c.rarity];const dup=state.duplicates[c.id]||0;
+h+=`<div class="card rar-${c.rarity} ${unl?'':'locked'}" style="border-color:${r.color};color:${r.color}" onclick="openCharModal(${c.id})">${dup>1?`<span class="dupe">×${dup}</span>`:''}<div class="emoji">${unl?c.emoji:'🔒'}</div><div class="cname" style="color:#e8e8ff">${unl?c.name:'???'}</div><div class="crar" style="color:${r.color}">${r.label}</div></div>`});
+g.innerHTML=h;updateCurrency()}
+window.renderCollection=renderCollection;
 
-function updateCrateCoins(){
-  document.getElementById('crate-coins').textContent=`🪙 ${state.coins}`;
-}
+function openCharModal(id){const c=charById(id);const unl=state.unlockedIds.has(id);const r=RARITIES[c.rarity];const dup=state.duplicates[id]||0;
+const upCost=50*Math.ceil(dup/3||1);
+let h=`<span class="mclose" onclick="closeModal('charModal')">×</span>`;
+h+=`<div class="mavatar">${unl?c.emoji:'🔒'}</div><div class="mname">${unl?c.name:'???'}</div><div class="mrar" style="color:${r.color}">${r.label} · ${CLANS[c.clan].icon} ${CLANS[c.clan].name}</div>`;
+if(unl){
+h+=`<div class="mstats"><div class="stat"><b>HP</b> ${c.hp}</div><div class="stat"><b>DMG</b> ${c.dmg}</div><div class="stat"><b>Prędkość</b> ${c.speed}</div><div class="stat"><b>Atak</b> ${atkLabel(c.atkType)}</div></div>`;
+h+=`<div class="minfo"><span class="lbl">💥 ${c.superName}</span> (CD ${c.superCD}s)<br>${c.superDesc}</div>`;
+h+=`<div class="minfo"><span class="lbl">🛡️ ${c.shieldName}</span><br>Trwa ${c.shieldDur}s, blokuje obrażenia</div>`;
+if(c.faceless)h+=`<div class="minfo" style="border:1px solid #ff00ff"><span class="lbl" style="color:#ff00ff">⚠️ Bezimienny</span><br>Cień zamiast twarzy. Po śmierci 50% szansy na formę ducha. Zabicie bossa jako duch: 50% pełnego odrodzenia.</div>`;
+h+=`<div class="minfo"><span class="lbl">Duplikaty:</span> ${dup} ${dup>=1?`<button class="btn small" style="margin-left:8px;display:inline-block" onclick="upgradeChar(${id})">Ulepsz (${upCost}💰)</button>`:''}</div>`;
+if(c.hasFightingStyles){const styles=FIGHTING_STYLES[id]||[];const sel=state.fightStyles[id]||(styles[0]&&styles[0].id);
+h+=`<div class="minfo"><span class="lbl">🥋 Styl Walki:</span></div><div class="styles">`;
+styles.forEach(st=>h+=`<div class="stylebtn ${sel===st.id?'active':''}" onclick="setStyle(${id},'${st.id}')">${st.name}<small>${atkLabel(st.atkType)} DMG×${st.dmgMod} SPD×${st.speedMod}</small></div>`);
+h+=`</div>`}
+h+=`<div class="mbtns">`;
+if(c.canSummonShadows)h+=`<button class="btn" onclick="openShadowModal(${id})">🌑 Wybierz Cienie (${(state.selectedShadows[id]||[]).length}/${c.shadowSlots})</button>`;
+h+=`<button class="btn green" onclick="selectAndPlay(${id})">⚔️ Wybierz i Graj</button></div>`;
+}else{h+=`<div class="minfo" style="text-align:center">Zablokowany. Otwórz skrzynki w sklepie aby odblokować!</div>`}
+document.getElementById('charModalBox').innerHTML=h;document.getElementById('charModal').classList.add('active')}
+window.openCharModal=openCharModal;
+function atkLabel(t){return t==='melee'?'Walka wręcz':t==='ranged'?'Dystans':'Obszarowy'}
+function closeModal(id){document.getElementById(id).classList.remove('active')}
+window.closeModal=closeModal;
+function upgradeChar(id){const dup=state.duplicates[id]||0;if(dup<1){toast('Brak duplikatów!');return}const cost=50*Math.ceil(dup/3||1);if(state.coins<cost){toast('Za mało monet!');return}state.coins-=cost;state.duplicates[id]=dup-1;saveState();toast('Ulepszono!');openCharModal(id)}
+window.upgradeChar=upgradeChar;
+function setStyle(id,sid){state.fightStyles[id]=sid;saveState();openCharModal(id)}
+window.setStyle=setStyle;
+function selectAndPlay(id){state.selectedId=id;saveState();closeModal('charModal');startGame()}
+window.selectAndPlay=selectAndPlay;
 
-function showSettings(){
-  document.getElementById('settings-modal').classList.add('active');
-  document.getElementById('sens-slider').value=state.sensitivity;
-}
-window.showSettings=showSettings;
+let shadowModalChar=null;
+function openShadowModal(id){shadowModalChar=id;const c=charById(id);const limit=c.shadowSlots;const sel=state.selectedShadows[id]||[];
+let h=`<span class="mclose" onclick="closeModal('shadowModal')">×</span><div class="mname">Wybierz Cienie</div><div class="mrar">Wybrano: <span id="shCount">${sel.length}</span>/${limit}</div>`;
+h+=`<div class="shadowgrid">`;
+SHADOWS.forEach(s=>{const on=sel.includes(s.id);h+=`<div class="scard ${on?'sel':''}" id="sh${s.id}" onclick="toggleShadow(${s.id})"><div class="se">${s.emoji}</div><div>${s.name}</div><div class="st">${s.type}</div><div style="font-size:9px;color:#aaa">HP${s.hp} DMG${s.dmg}</div></div>`});
+h+=`</div><div class="mbtns"><button class="btn green" onclick="closeModal('shadowModal');openCharModal(${id})">Gotowe</button></div>`;
+document.getElementById('shadowModalBox').innerHTML=h;document.getElementById('shadowModal').classList.add('active')}
+window.openShadowModal=openShadowModal;
+function toggleShadow(sid){const id=shadowModalChar;const c=charById(id);const limit=c.shadowSlots;let sel=state.selectedShadows[id]||[];
+if(sel.includes(sid)){sel=sel.filter(x=>x!==sid)}else{if(sel.length>=limit){toast('Limit cieni!');return}sel.push(sid)}
+state.selectedShadows[id]=sel;saveState();
+document.getElementById('sh'+sid).classList.toggle('sel');document.getElementById('shCount').textContent=sel.length}
+window.toggleShadow=toggleShadow;
 
-function resetProgress(){
-  if(confirm('Na pewno chcesz zresetować cały postęp?')){
-    localStorage.removeItem('arenaCieni_save');
-    state={coins:500,unlockedIds:new Set([1]),selectedId:1,duplicates:{},totalKills:0,highWave:0,sensitivity:5};
-    showScreen('screen-menu');
-    document.getElementById('settings-modal').classList.remove('active');
-  }
-}
+let curTab='crates';
+function shopTab(t){curTab=t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));renderShop()}
+window.shopTab=shopTab;
+function renderShop(){updateCurrency();const c=document.getElementById('shopContent');
+if(curTab==='crates'){let h='<div class="shopgrid">';
+CRATE_TYPES.forEach(ct=>{const cur=ct.curr==='coins'?'💰':'💎';h+=`<div class="cratecard"><div class="ce">${ct.emoji}</div><h3>${ct.name}</h3><p>${ct.desc}</p><div style="color:${ct.curr==='coins'?'#ffcc44':'#44ddff'};font-weight:700;margin-bottom:10px">${ct.cost}${cur} / x1</div><div class="cbtns"><button class="btn small" onclick="openCrate('${ct.id}')">Otwórz</button><button class="btn small gold" onclick="openCrate10('${ct.id}')">×10</button></div></div>`});
+h+='</div>';c.innerHTML=h}
+else if(curTab==='upgrades'){let h='<div class="shopgrid">';
+UPGRADES.forEach(u=>{const lvl=state.upgrades[u.id];const cost=Math.floor(u.baseCost*(1+lvl*0.6));const maxed=lvl>=u.max;
+h+=`<div class="upcard"><h3>${u.emoji} ${u.name}</h3><p>${u.desc}</p><div class="lvl">Poziom ${lvl}/${u.max}</div><button class="btn small ${maxed?'':'green'}" ${maxed?'disabled':''} onclick="buyUpgrade('${u.id}')">${maxed?'MAX':'Kup ('+cost+'💰)'}</button></div>`});
+h+='</div>';c.innerHTML=h}
+else{checkMilestones();let h='';MILESTONES.forEach(m=>{const done=state.completedMilestones.includes(m.id);const rw=[];if(m.reward.coins)rw.push(m.reward.coins+'💰');if(m.reward.gems)rw.push(m.reward.gems+'💎');
+h+=`<div class="mscard ${done?'done':''}"><div class="mse">${m.emoji}</div><div class="msinfo"><b>${m.name}</b><p>${m.desc}</p></div><div class="msrew">${done?'✅':rw.join(' ')}</div></div>`});
+c.innerHTML=h}}
+window.renderShop=renderShop;
+function buyUpgrade(id){const u=UPGRADES.find(x=>x.id===id);const lvl=state.upgrades[id];if(lvl>=u.max){return}const cost=Math.floor(u.baseCost*(1+lvl*0.6));if(state.coins<cost){toast('Za mało monet!');return}state.coins-=cost;state.upgrades[id]++;saveState();toast('Ulepszono!');renderShop()}
+window.buyUpgrade=buyUpgrade;
+function checkMilestones(){MILESTONES.forEach(m=>{if(!state.completedMilestones.includes(m.id)&&m.check(state)){state.completedMilestones.push(m.id);if(m.reward.coins)state.coins+=m.reward.coins;if(m.reward.gems)state.gems+=m.reward.gems;toast('Kamień Milowy: '+m.name+'!');saveState()}})}
+
+function rollRarity(crateType){const ct=CRATE_TYPES.find(c=>c.id===crateType);const mod=ct.mod||{};let total=0;const weights={};
+Object.keys(RARITIES).forEach(r=>{const w=RARITIES[r].dropRate*(mod[r]||1);weights[r]=w;total+=w});
+let roll=Math.random()*total;for(const r of Object.keys(weights)){roll-=weights[r];if(roll<=0)return r}return 'common'}
+function rollCharacter(crateType){const rar=rollRarity(crateType);let pool=CHARS.filter(c=>c.rarity===rar);if(!pool.length)pool=CHARS.filter(c=>c.rarity==='common');return pool[Math.floor(Math.random()*pool.length)]}
+
+let crateQueue=[],crateActive=false,origQ=1;
+function openCrate(crateType){const ct=CRATE_TYPES.find(c=>c.id===crateType);if(state[ct.curr]<ct.cost){toast('Za mało '+(ct.curr==='coins'?'monet':'kamieni')+'!');return}
+state[ct.curr]-=ct.cost;const ch={...rollCharacter(crateType)};applyCharResult(ch);crateQueue=[ch];origQ=1;saveState();startCrateAnim()}
+function openCrate10(crateType){const ct=CRATE_TYPES.find(c=>c.id===crateType);const total=ct.cost*10;if(state[ct.curr]<total){toast('Za mało!');return}
+state[ct.curr]-=total;crateQueue=[];for(let i=0;i<10;i++){const ch={...rollCharacter(crateType)};applyCharResult(ch);crateQueue.push(ch)}origQ=10;saveState();startCrateAnim()}
+window.openCrate=openCrate;window.openCrate10=openCrate10;
+function applyCharResult(ch){if(state.unlockedIds.has(ch.id)){state.duplicates[ch.id]=(state.duplicates[ch.id]||0)+1;ch._new=false}else{state.unlockedIds.add(ch.id);state.duplicates[ch.id]=1;ch._new=true}}
+
+let crateScene,crateCam,crateObj,crateParts=[],crateBeam=null,cratePhase='',cratePhaseT=0;
+function initCrateScene(){crateScene=new THREE.Scene();crateScene.background=new THREE.Color(0x050510);crateCam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100);crateCam.position.set(0,1,5);crateCam.lookAt(0,0.5,0);
+crateScene.add(new THREE.AmbientLight(0x404060,1.2));const dl=new THREE.DirectionalLight(0xffffff,1);dl.position.set(3,5,4);crateScene.add(dl);
+const geo=new THREE.BoxGeometry(1.6,1.6,1.6);const mat=new THREE.MeshStandardMaterial({color:0x3a2a5a,metalness:0.6,roughness:0.3,emissive:0x1a0a2a});crateObj=new THREE.Mesh(geo,mat);crateScene.add(crateObj);
+crateObj.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo),new THREE.LineBasicMaterial({color:0xaa6aff})));
+crateBeam=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.6,8,16,1,true),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,side:THREE.DoubleSide}));crateBeam.position.y=2;crateScene.add(crateBeam)}
+function startCrateAnim(){if(!crateScene)initCrateScene();crateActive=true;document.getElementById('crateOverlay').classList.add('active');document.getElementById('crateReveal').classList.remove('show');document.getElementById('crateReveal').innerHTML='';document.getElementById('crateNext').classList.remove('show');
+document.getElementById('crateCounter').textContent=origQ>1?`Skrzynia 1/${origQ}`:'';
+runCratePhase('DARKEN')}
+function runCratePhase(p){cratePhase=p;cratePhaseT=0;
+const r=RARITIES[crateQueue[0].rarity];const col=new THREE.Color(r.color);
+if(p==='APPEAR'){crateObj.visible=true;crateObj.scale.set(0.01,0.01,0.01)}
+if(p==='CRACK'){crateObj.material.emissive=col;crateObj.material.emissiveIntensity=2}
+if(p==='EXPLODE'){crateObj.visible=false;spawnCrateParts(col);spawnCrateColorParts(col)}
+if(p==='BEAM'){crateBeam.material.color=col;crateBeam.material.opacity=0.8}
+if(p==='REVEAL'){showCrateReveal(crateQueue[0])}}
+function spawnCrateParts(col){const g=new THREE.BoxGeometry(0.3,0.3,0.3);const m=new THREE.MeshStandardMaterial({color:0x3a2a5a,emissive:0x2a1a4a});
+for(let i=0;i<14;i++){const f=new THREE.Mesh(g,m.clone());f.position.set((Math.random()-0.5)*0.6,0.3+(Math.random()-0.5)*0.6,(Math.random()-0.5)*0.6);f._v=new THREE.Vector3((Math.random()-0.5)*5,Math.random()*5+2,(Math.random()-0.5)*5);f._l=1.2;crateScene.add(f);crateParts.push(f)}}
+function spawnCrateColorParts(col){const g=new THREE.SphereGeometry(0.08,6,6);const m=new THREE.MeshBasicMaterial({color:col});
+for(let i=0;i<40;i++){const p=new THREE.Mesh(g,m);p.position.set(0,0.5,0);const a=Math.random()*Math.PI*2,e=Math.random()*Math.PI;const sp=Math.random()*4+2;p._v=new THREE.Vector3(Math.sin(e)*Math.cos(a)*sp,Math.cos(e)*sp,Math.sin(e)*Math.sin(a)*sp);p._l=1.5;crateScene.add(p);crateParts.push(p)}}
+function showCrateReveal(ch){const r=RARITIES[ch.rarity];const el=document.getElementById('crateReveal');
+el.innerHTML=`<div class="re" style="color:${r.color}">${ch.emoji}</div><div class="rn">${ch.name}</div><div class="rr" style="color:${r.color}">${r.label}</div><div class="rr" style="color:#aaa;font-size:13px">${CLANS[ch.clan].icon} ${CLANS[ch.clan].name}</div>${ch._new?'<div class="rnew">✨ NOWY! ✨</div>':'<div class="rnew" style="color:#aaa">Duplikat (+1)</div>'}`;
+el.classList.add('show');document.getElementById('crateNext').classList.add('show');crateBeam.material.opacity=0}
+function updateCrateAnim(dt){if(!crateActive)return;cratePhaseT+=dt;crateObj.rotation.y+=dt*1.5;const tt=cratePhaseT;
+if(cratePhase==='DARKEN'&&tt>0.4)runCratePhase('APPEAR');
+else if(cratePhase==='APPEAR'){crateObj.scale.lerp(new THREE.Vector3(1,1,1),dt*8);if(tt>0.5)runCratePhase('SHAKE')}
+else if(cratePhase==='SHAKE'){crateObj.position.x=(Math.random()-0.5)*0.15*Math.min(tt,1);if(tt>1.0){crateObj.position.x=0;runCratePhase('CRACK')}}
+else if(cratePhase==='CRACK'){crateObj.material.emissiveIntensity=2+Math.sin(tt*30)*2;crateObj.scale.setScalar(1+Math.sin(tt*20)*0.05);if(tt>0.9)runCratePhase('EXPLODE')}
+else if(cratePhase==='EXPLODE'&&tt>0.5)runCratePhase('BEAM');
+else if(cratePhase==='BEAM'){crateBeam.material.opacity=Math.max(0,0.8-tt*0.3);crateBeam.scale.x=crateBeam.scale.z=1+tt*0.5;if(tt>0.6)runCratePhase('REVEAL')}
+for(let i=crateParts.length-1;i>=0;i--){const p=crateParts[i];p._l-=dt;p._v.y-=9*dt;p.position.addScaledVector(p._v,dt);p.rotation.x+=dt*4;p.scale.multiplyScalar(0.96);if(p._l<=0){crateScene.remove(p);crateParts.splice(i,1)}}}
+function crateNextOrClose(){crateQueue.shift();if(crateQueue.length){document.getElementById('crateReveal').classList.remove('show');document.getElementById('crateNext').classList.remove('show');
+crateParts.forEach(p=>crateScene.remove(p));crateParts=[];crateBeam.scale.set(1,1,1);document.getElementById('crateCounter').textContent=`Skrzynia ${origQ-crateQueue.length+1}/${origQ}`;
+runCratePhase('DARKEN')}else{crateActive=false;document.getElementById('crateOverlay').classList.remove('active');crateParts.forEach(p=>crateScene.remove(p));crateParts=[];checkMilestones();renderShop();saveState()}}
+window.crateNextOrClose=crateNextOrClose;
+
+function openSettings(){let h=`<span class="mclose" onclick="closeModal('settingsModal')">×</span><div class="mname">Ustawienia</div>`;
+h+=`<div class="setrow"><span>Czułość myszy</span><input class="slider" type="range" min="1" max="10" value="${state.sensitivity}" oninput="setSens(this.value)"><span id="sensV">${state.sensitivity}</span></div>`;
+h+=`<div class="setrow"><span>Mniej cząsteczek</span><input type="checkbox" ${state.settings.reducedParticles?'checked':''} onchange="toggleParticles(this.checked)"></div>`;
+h+=`<div class="mbtns"><button class="btn red" onclick="resetProgress()">⚠️ Reset Postępu</button></div>`;
+document.getElementById('settingsBox').innerHTML=h;document.getElementById('settingsModal').classList.add('active')}
+window.openSettings=openSettings;
+function setSens(v){state.sensitivity=+v;document.getElementById('sensV').textContent=v;saveState()}
+window.setSens=setSens;
+function toggleParticles(v){state.settings.reducedParticles=v;saveState()}
+window.toggleParticles=toggleParticles;
+function resetProgress(){if(confirm('Na pewno zresetować cały postęp?')){localStorage.removeItem(SAVE_KEY);location.reload()}}
 window.resetProgress=resetProgress;
 
-document.getElementById('sens-slider').addEventListener('input',e=>{
-  state.sensitivity=parseInt(e.target.value);
-  saveState();
-});
+function goPlay(){renderCharSelect();showScreen('charSelect')}
+window.goPlay=goPlay;
+function renderCharSelect(){const g=document.getElementById('selectGrid');let h='';
+[...state.unlockedIds].map(charById).sort((a,b)=>b.id-a.id).forEach(c=>{const r=RARITIES[c.rarity];
+h+=`<div class="card rar-${c.rarity}" style="border-color:${r.color};color:${r.color}" onclick="openCharModal(${c.id})"><div class="emoji" style="color:#e8e8ff">${c.emoji}</div><div class="cname" style="color:#e8e8ff">${c.name}</div><div class="crar" style="color:${r.color}">${r.label}</div></div>`});
+g.innerHTML=h}
 
-// =====================================================
-// ===== COLLECTION =====
-// =====================================================
-let collFilter='all';
+const canvas=document.getElementById('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const clock=new THREE.Clock();
+let scene,camera;
+let arenaOrbs=[],arenaRunes=[],atmosParticles=null;
+function buildArena(){
+scene=new THREE.Scene();scene.background=new THREE.Color(0x080812);scene.fog=new THREE.FogExp2(0x080812,0.018);
+camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,200);camera.position.set(0,1.6,0);
+scene.add(new THREE.AmbientLight(0x303048,1.0));
+const dl=new THREE.DirectionalLight(0x9a7aff,0.8);dl.position.set(10,20,10);scene.add(dl);
+const pl=new THREE.PointLight(0xb44aff,1.5,60);pl.position.set(0,12,0);scene.add(pl);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(35,64),new THREE.MeshStandardMaterial({color:0x12122a,metalness:0.4,roughness:0.7}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(35,0.5,12,64),new THREE.MeshStandardMaterial({color:0x6a3a9a,emissive:0x4a2a7a,emissiveIntensity:0.6}));ring.rotation.x=-Math.PI/2;ring.position.y=0.2;scene.add(ring);
+const wall=new THREE.Mesh(new THREE.CylinderGeometry(36,36,12,64,1,true),new THREE.MeshStandardMaterial({color:0x1a1a3a,side:THREE.BackSide,transparent:true,opacity:0.7}));wall.position.y=6;scene.add(wall);
+arenaOrbs=[];
+for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2;const x=Math.cos(a)*30,z=Math.sin(a)*30;
+const pil=new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.0,9,12),new THREE.MeshStandardMaterial({color:0x2a2a4a,metalness:0.5,roughness:0.5}));pil.position.set(x,4.5,z);scene.add(pil);
+const orb=new THREE.Mesh(new THREE.SphereGeometry(0.6,16,16),new THREE.MeshStandardMaterial({color:0xb44aff,emissive:0xb44aff,emissiveIntensity:1.5}));orb.position.set(x,9.5,z);scene.add(orb);arenaOrbs.push(orb)}
+arenaRunes=[];
+for(let i=0;i<5;i++){const rad=8+i*5;const rune=new THREE.Mesh(new THREE.RingGeometry(rad,rad+0.3,48),new THREE.MeshBasicMaterial({color:0x6a3aaa,transparent:true,opacity:0.4,side:THREE.DoubleSide}));rune.rotation.x=-Math.PI/2;rune.position.y=0.05;scene.add(rune);arenaRunes.push(rune)}
+const pc=state.settings.reducedParticles?120:300;const pg=new THREE.BufferGeometry();const pos=new Float32Array(pc*3);
+for(let i=0;i<pc;i++){pos[i*3]=(Math.random()-0.5)*70;pos[i*3+1]=Math.random()*15;pos[i*3+2]=(Math.random()-0.5)*70}
+pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+atmosParticles=new THREE.Points(pg,new THREE.PointsMaterial({color:0x9a5aff,size:0.15,transparent:true,opacity:0.6}));scene.add(atmosParticles);
+initParticlePool()}
 
-function renderCollection(){
-  const filtersEl=document.getElementById('coll-filters');
-  filtersEl.innerHTML='';
-  const allBtn=document.createElement('button');
-  allBtn.className='filter-btn'+(collFilter==='all'?' active':'');
-  allBtn.textContent=`Wszystkie (${CHARACTERS.length})`;
-  allBtn.onclick=()=>{collFilter='all';renderCollection();};
-  filtersEl.appendChild(allBtn);
+let particlePool=[];const PARTICLE_GEO=new THREE.SphereGeometry(0.08,4,4);
+function initParticlePool(){particlePool=[];const n=state.settings.reducedParticles?250:500;
+for(let i=0;i<n;i++){const m=new THREE.Mesh(PARTICLE_GEO,new THREE.MeshBasicMaterial({color:0xffffff}));m.visible=false;scene.add(m);particlePool.push({mesh:m,vel:new THREE.Vector3(),life:0,maxLife:1,active:false,gravity:true})}}
+function spawnParticle(pos,color,vel,life,grav=true){for(const p of particlePool){if(!p.active){p.active=true;p.mesh.visible=true;p.mesh.position.copy(pos);p.mesh.material.color.set(color);p.mesh.scale.setScalar(1);p.vel.copy(vel);p.life=life;p.maxLife=life;p.gravity=grav;return}}}
+function updateParticles(dt){for(const p of particlePool){if(!p.active)continue;p.life-=dt;if(p.life<=0){p.active=false;p.mesh.visible=false;continue}if(p.gravity)p.vel.y-=9*dt;p.mesh.position.addScaledVector(p.vel,dt);p.mesh.scale.setScalar(p.life/p.maxLife)}}
+function spawnDeathParticles(pos,color){const n=state.settings.reducedParticles?6:12;for(let i=0;i<n;i++)spawnParticle(pos,color,new THREE.Vector3((Math.random()-0.5)*6,Math.random()*5+1,(Math.random()-0.5)*6),0.8)}
+function spawnHitParticles(pos,color){for(let i=0;i<5;i++)spawnParticle(pos,color,new THREE.Vector3((Math.random()-0.5)*4,Math.random()*3,(Math.random()-0.5)*4),0.5)}
+function spawnAttackParticles(pos,color,dir){for(let i=0;i<4;i++){const v=dir.clone().multiplyScalar(3+Math.random()*3);v.x+=(Math.random()-0.5)*2;v.z+=(Math.random()-0.5)*2;spawnParticle(pos,color,v,0.4,false)}}
+function spawnSuperParticles(pos,color){const n=state.settings.reducedParticles?30:60;for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,e=Math.random()*Math.PI;const sp=Math.random()*10+4;spawnParticle(pos,color,new THREE.Vector3(Math.sin(e)*Math.cos(a)*sp,Math.abs(Math.cos(e))*sp,Math.sin(e)*Math.sin(a)*sp),1.0)}}
 
-  for(const[key,r] of Object.entries(RARITIES)){
-    const count=CHARACTERS.filter(c=>c.rarity===key).length;
-    const unlocked=CHARACTERS.filter(c=>c.rarity===key&&state.unlockedIds.has(c.id)).length;
-    const btn=document.createElement('button');
-    btn.className='filter-btn'+(collFilter===key?' active':'');
-    btn.dataset.r=key;
-    btn.textContent=`${r.label} (${unlocked}/${count})`;
-    btn.onclick=()=>{collFilter=key;renderCollection();};
-    filtersEl.appendChild(btn);
-  }
+let tempLights=[];
+function addTempLight(pos,color,intensity,range,life){const l=new THREE.PointLight(color,intensity,range);l.position.copy(pos);scene.add(l);tempLights.push({light:l,life,maxLife:life,baseI:intensity})}
+function updateTempLights(dt){for(let i=tempLights.length-1;i>=0;i--){const t=tempLights[i];t.life-=dt;if(t.life<=0){scene.remove(t.light);tempLights.splice(i,1);continue}t.light.intensity=t.baseI*(t.life/t.maxLife)}}
 
-  const grid=document.getElementById('coll-grid');
-  grid.innerHTML='';
-  const chars=collFilter==='all'?CHARACTERS:CHARACTERS.filter(c=>c.rarity===collFilter);
-  const order=['common','rare','epic','mythic','legendary','ultimate','unknown','secret'];
-  const sorted=[...chars].sort((a,b)=>order.indexOf(a.rarity)-order.indexOf(b.rarity));
+let gameRunning=false,gamePaused=false;
+let player=null,mobs=[],projectiles=[],shadowMinions=[],boss=null;
+let wave=0,waveMobsToSpawn=0,waveSpawnTimer=0,waveActive=false,betweenWaves=false,betweenTimer=0;
+let kills=0,sessionCoins=0;
+let screenShake=0,fovPunch=0;
+const keys={};
+let yaw=0,pitch=0;
+let attackHeld=false,attackCD=0;
+let abilityCD={super:0,shield:0,shadow:0};
+let shieldActive=0,shadowFormActive=0,smSuperActive=0;
+let arenaSlash=null,arenaRings=[];
 
-  for(const c of sorted){
-    const card=document.createElement('div');
-    const unlocked=state.unlockedIds.has(c.id);
-    card.className='char-card'+(unlocked?'':' locked');
-    card.dataset.r=c.rarity;
-    const rColor=RARITIES[c.rarity].color;
-    card.innerHTML=`
-      <div class="char-avatar" style="background:${unlocked?RARITIES[c.rarity].glow:'#222'}">${unlocked?c.emoji:'🔒'}</div>
-      <div class="char-name">${unlocked?c.name:'???'}</div>
-      <div class="char-rarity">${RARITIES[c.rarity].label}</div>
-    `;
-    card.onclick=()=>showCharDetail(c.id);
-    grid.appendChild(card);
-  }
-}
+function getActiveStyle(c){if(!c.hasFightingStyles)return null;const styles=FIGHTING_STYLES[c.id]||[];const sid=state.fightStyles[c.id]||(styles[0]&&styles[0].id);return styles.find(s=>s.id===sid)||styles[0]}
 
-function showCharDetail(id){
-  const c=CHARACTERS.find(ch=>ch.id===id);
-  if(!c)return;
-  const unlocked=state.unlockedIds.has(c.id);
-  const r=RARITIES[c.rarity];
-  const mul=r.statMul;
-  const modal=document.getElementById('char-modal');
-  const content=document.getElementById('modal-content');
-  const clan=CLANS[c.clan];
-  const dupes=state.duplicates[c.id]||0;
-
-  content.innerHTML=`
-    <button class="close-modal" onclick="document.getElementById('char-modal').classList.remove('active')">&times;</button>
-    <div class="detail-avatar" style="background:${unlocked?r.glow:'#333'};box-shadow:0 0 40px ${r.glow}">${unlocked?c.emoji:'🔒'}</div>
-    <h3 style="color:${r.color}">${unlocked?c.name:'???'}</h3>
-    <div class="detail-rarity" style="color:${r.color}">${r.label}</div>
-    <div class="detail-clan">${clan.icon} ${clan.name}</div>
-    ${dupes>0?`<div style="font-size:0.7rem;color:var(--legendary);margin-bottom:10px;">Duplikaty: ${dupes} (+${dupes*5}% statystyk)</div>`:''}
-    ${unlocked?`
-      <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-val">${Math.floor(c.hp*(1+dupes*0.05))}</span></div>
-      <div class="stat-row"><span class="stat-label">⚔️ Obrażenia</span><span class="stat-val">${Math.floor(c.dmg*(1+dupes*0.05))}</span></div>
-      <div class="stat-row"><span class="stat-label">💨 Szybkość</span><span class="stat-val">${c.speed}</span></div>
-      <div class="stat-row"><span class="stat-label">🎯 Typ ataku</span><span class="stat-val">${c.atkType==='melee'?'Wręcz':c.atkType==='ranged'?'Dystans':'Obszarowy'}</span></div>
-      <div class="detail-super">
-        <h4>💥 ${c.superName} (${c.superCD}s CD)</h4>
-        <p>${c.superDesc}</p>
-      </div>
-      <div class="detail-super" style="background:rgba(0,150,255,0.1);margin-top:8px;">
-        <h4 style="color:var(--rare)">🛡️ ${c.shieldName} (${c.shieldDur}s)</h4>
-      </div>
-      <button class="btn-select" onclick="selectChar(${c.id})">Wybierz do walki</button>
-    `:`<p style="color:var(--text2);margin-top:20px;font-size:0.8rem;">Odblokuj ze skrzynki!</p>`}
-  `;
-  modal.classList.add('active');
-}
-window.showCharDetail=showCharDetail;
-
-function selectChar(id){
-  state.selectedId=id;
-  saveState();
-  document.getElementById('char-modal').classList.remove('active');
-  showScreen('screen-select');
-}
-window.selectChar=selectChar;
-
-// =====================================================
-// ===== CHARACTER SELECT =====
-// =====================================================
-function renderSelect(){
-  const grid=document.getElementById('select-grid');
-  grid.innerHTML='';
-  const unlocked=CHARACTERS.filter(c=>state.unlockedIds.has(c.id));
-  const order=['secret','unknown','ultimate','legendary','mythic','epic','rare','common'];
-  const sorted=[...unlocked].sort((a,b)=>order.indexOf(a.rarity)-order.indexOf(b.rarity));
-
-  for(const c of sorted){
-    const card=document.createElement('div');
-    card.className='char-card';
-    card.dataset.r=c.rarity;
-    if(c.id===state.selectedId)card.style.border=`3px solid ${RARITIES[c.rarity].color}`;
-    card.innerHTML=`
-      <div class="char-avatar" style="background:${RARITIES[c.rarity].glow}">${c.emoji}</div>
-      <div class="char-name" style="font-size:0.65rem;">${c.name}</div>
-      <div class="char-rarity">${RARITIES[c.rarity].label}</div>
-    `;
-    card.onclick=()=>{
-      state.selectedId=c.id;
-      saveState();
-      startGame(c.id);
-    };
-    grid.appendChild(card);
-  }
-}
-
-// =====================================================
-// ===== CRATE SYSTEM =====
-// =====================================================
-let crateQueue=[];
-let crateOpening=false;
-
-function rollRarity(){
-  const r=Math.random();
-  let cumulative=0;
-  for(const[key,val] of Object.entries(RARITIES)){
-    cumulative+=val.dropRate;
-    if(r<=cumulative)return key;
-  }
-  return 'common';
-}
-
-function rollCharacter(){
-  const rarity=rollRarity();
-  const pool=CHARACTERS.filter(c=>c.rarity===rarity);
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-
-function openCrate(){
-  if(state.coins<100){alert('Za mało monet! Graj w arenie, żeby zdobyć więcej.');return;}
-  if(crateOpening)return;
-  state.coins-=100;
-  saveState();
-  updateCrateCoins();
-  crateOpening=true;
-
-  const box=document.getElementById('crate-box');
-  box.classList.add('opening');
-
-  setTimeout(()=>{
-    box.classList.remove('opening');
-    const char=rollCharacter();
-    const isNew=!state.unlockedIds.has(char.id);
-    state.unlockedIds.add(char.id);
-    if(!isNew){
-      state.duplicates[char.id]=(state.duplicates[char.id]||0)+1;
-      state.coins+=20;
-    }
-    saveState();
-    showReveal(char,isNew);
-  },600);
-}
-window.openCrate=openCrate;
-
-function openCrate10(){
-  if(state.coins<900){alert('Za mało monet! Potrzebujesz 900.');return;}
-  if(crateOpening)return;
-  state.coins-=900;
-  saveState();
-  updateCrateCoins();
-  crateQueue=[];
-  for(let i=0;i<10;i++){
-    const char=rollCharacter();
-    const isNew=!state.unlockedIds.has(char.id);
-    state.unlockedIds.add(char.id);
-    if(!isNew){
-      state.duplicates[char.id]=(state.duplicates[char.id]||0)+1;
-      state.coins+=20;
-    }
-    crateQueue.push({char,isNew});
-  }
-  saveState();
-  showNextReveal();
-}
-window.openCrate10=openCrate10;
-
-function showNextReveal(){
-  if(crateQueue.length===0){crateOpening=false;updateCrateCoins();return;}
-  const next=crateQueue.shift();
-  showReveal(next.char,next.isNew);
-}
-
-function showReveal(char,isNew){
-  const reveal=document.getElementById('crate-reveal');
-  const r=RARITIES[char.rarity];
-  document.getElementById('reveal-avatar').textContent=char.emoji;
-  document.getElementById('reveal-avatar').style.background=r.glow;
-  document.getElementById('reveal-avatar').style.boxShadow=`0 0 80px ${r.glow}`;
-  document.getElementById('reveal-name').textContent=char.name;
-  document.getElementById('reveal-name').style.color=r.color;
-  document.getElementById('reveal-rarity').textContent=r.label;
-  document.getElementById('reveal-rarity').style.color=r.color;
-  document.getElementById('reveal-new').textContent=isNew?'🆕 NOWY!':'Duplikat (+20🪙 +5% statystyk)';
-  document.getElementById('reveal-new').style.color=isNew?'var(--unknown)':'var(--text2)';
-
-  const particles=document.getElementById('reveal-particles');
-  particles.innerHTML='';
-  for(let i=0;i<30;i++){
-    const p=document.createElement('div');
-    p.className='reveal-particle';
-    p.style.left='50%';p.style.top='50%';
-    p.style.background=r.color;
-    p.style.setProperty('--dx',(Math.random()-0.5)*600+'px');
-    p.style.setProperty('--dy',(Math.random()-0.5)*600+'px');
-    p.style.animationDelay=Math.random()*0.5+'s';
-    particles.appendChild(p);
-  }
-  reveal.classList.add('active');
-}
-
-function closeReveal(){
-  document.getElementById('crate-reveal').classList.remove('active');
-  if(crateQueue.length>0){
-    setTimeout(showNextReveal,200);
-  }else{
-    crateOpening=false;
-    updateCrateCoins();
-  }
-}
-window.closeReveal=closeReveal;
-
-// =====================================================
-// ===== 3D ARENA GAME ENGINE =====
-// =====================================================
-let renderer,scene,camera,clock;
-let player={pos:new THREE.Vector3(0,1.6,0),vel:new THREE.Vector3(),hp:100,maxHp:100,yaw:0,pitch:0};
-let mobs=[];
-let projectiles=[];
-let particles=[];
-let wave=1,kills=0,waveTimer=0,waveMobs=0,waveSpawned=0,spawnTimer=0;
-let gameActive=false,gamePaused=false;
-let superCooldown=0,shieldCooldown=0,shadowCooldown=0;
-let shieldActive=false,shieldTimer=0;
-let shadowForm=false,shadowTimer=0;
-let attackCooldown=0;
-let arenaFloor,arenaBorder;
-let currentChar=null;
-let keys={};
-let mouseDown=false;
-let coinsEarned=0;
-
-function startGame(charId){
-  currentChar=CHARACTERS.find(c=>c.id===charId);
-  if(!currentChar)return;
-
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('game-screen').classList.add('active');
-  document.getElementById('game-over').classList.remove('active');
-  document.getElementById('pause-menu').classList.remove('active');
-
-  const dupes=state.duplicates[currentChar.id]||0;
-  const mul=RARITIES[currentChar.rarity].statMul;
-  player.maxHp=Math.floor(currentChar.hp*(1+dupes*0.05));
-  player.hp=player.maxHp;
-  player.pos.set(0,1.6,0);
-  player.vel.set(0,0,0);
-  player.yaw=0;player.pitch=0;
-
-  mobs=[];projectiles=[];particles=[];
-  wave=1;kills=0;waveTimer=0;waveMobs=5;waveSpawned=0;spawnTimer=0;
-  superCooldown=0;shieldCooldown=0;shadowCooldown=0;
-  shieldActive=false;shieldTimer=0;shadowForm=false;shadowTimer=0;
-  attackCooldown=0;coinsEarned=0;
-  gameActive=true;gamePaused=false;
-
-  document.getElementById('super-icon').textContent=currentChar.emoji;
-  updateHUD();
-
-  if(!renderer)initRenderer();
-  buildArena();
-  document.getElementById('game-canvas').requestPointerLock();
-  clock=new THREE.Clock();
-  gameLoop();
+function startGame(){
+const c=charById(state.selectedId);
+buildArena();
+const style=getActiveStyle(c);
+const hpUp=1+state.upgrades.hp*0.08,dmgUp=1+state.upgrades.dmg*0.06;
+let hp=c.hp*hpUp,dmg=c.dmg*dmgUp,spd=c.speed,atkType=c.atkType;
+if(style){hp*=style.hpMod;dmg*=style.dmgMod;spd*=style.speedMod;atkType=style.atkType}
+player={char:c,hp,maxHp:hp,baseDmg:dmg,dmg,speed:spd,atkType,baseAtkType:atkType,shieldDur:c.shieldDur+state.upgrades.shield*0.5,isGhost:false,shieldMesh:null};
+camera.position.set(0,1.6,0);yaw=0;pitch=0;
+mobs=[];projectiles=[];shadowMinions=[];boss=null;arenaSlash=null;arenaRings=[];
+wave=0;kills=0;sessionCoins=0;waveActive=false;betweenWaves=true;betweenTimer=1.5;
+abilityCD={super:0,shield:0,shadow:0};shieldActive=0;shadowFormActive=0;smSuperActive=0;screenShake=0;fovPunch=0;
+gameRunning=true;gamePaused=false;
+document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+document.getElementById('hud').classList.add('active');
+document.getElementById('vignette').classList.add('active');
+document.getElementById('shadowOverlay').style.opacity=0;
+document.getElementById('gameOver').classList.remove('active');
+document.getElementById('pauseMenu').classList.remove('active');
+document.getElementById('bossBar').classList.remove('active');
+spawnShadowMinions();
+updateHUD();
+requestPointerLock();
 }
 window.startGame=startGame;
-
-function initRenderer(){
-  const canvas=document.getElementById('game-canvas');
-  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
-  renderer.setSize(window.innerWidth,window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-  renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-
-  scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x080812);
-  scene.fog=new THREE.FogExp2(0x080812,0.015);
-
-  camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,200);
-
-  const ambLight=new THREE.AmbientLight(0x222244,0.5);
-  scene.add(ambLight);
-  const dirLight=new THREE.DirectionalLight(0x6644aa,0.8);
-  dirLight.position.set(20,40,20);
-  dirLight.castShadow=true;
-  dirLight.shadow.mapSize.set(1024,1024);
-  dirLight.shadow.camera.left=-40;dirLight.shadow.camera.right=40;
-  dirLight.shadow.camera.top=40;dirLight.shadow.camera.bottom=-40;
-  scene.add(dirLight);
-
-  const ptLight=new THREE.PointLight(0xb44aff,1,50);
-  ptLight.position.set(0,10,0);
-  scene.add(ptLight);
-
-  window.addEventListener('resize',()=>{
-    if(!renderer)return;
-    renderer.setSize(window.innerWidth,window.innerHeight);
-    camera.aspect=window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-  });
-}
-
-function buildArena(){
-  while(scene.children.length>3)scene.remove(scene.children[3]);
-
-  const floorGeo=new THREE.CircleGeometry(35,64);
-  const floorMat=new THREE.MeshStandardMaterial({color:0x1a1a2e,roughness:0.8});
-  arenaFloor=new THREE.Mesh(floorGeo,floorMat);
-  arenaFloor.rotation.x=-Math.PI/2;
-  arenaFloor.receiveShadow=true;
-  scene.add(arenaFloor);
-
-  const ringGeo=new THREE.TorusGeometry(35,0.5,8,64);
-  const ringMat=new THREE.MeshStandardMaterial({color:0x6a0dad,emissive:0x3a0070,emissiveIntensity:0.5});
-  const ring=new THREE.Mesh(ringGeo,ringMat);
-  ring.rotation.x=Math.PI/2;ring.position.y=0.5;
-  scene.add(ring);
-
-  for(let i=0;i<12;i++){
-    const angle=(i/12)*Math.PI*2;
-    const pillarGeo=new THREE.CylinderGeometry(0.5,0.7,6,8);
-    const pillarMat=new THREE.MeshStandardMaterial({color:0x2a1a4a,emissive:0x1a0a3a,emissiveIntensity:0.3});
-    const pillar=new THREE.Mesh(pillarGeo,pillarMat);
-    pillar.position.set(Math.cos(angle)*33,3,Math.sin(angle)*33);
-    pillar.castShadow=true;
-    scene.add(pillar);
-
-    const orbGeo=new THREE.SphereGeometry(0.4,16,16);
-    const orbMat=new THREE.MeshStandardMaterial({color:0xb44aff,emissive:0xb44aff,emissiveIntensity:1});
-    const orb=new THREE.Mesh(orbGeo,orbMat);
-    orb.position.set(Math.cos(angle)*33,6.5,Math.sin(angle)*33);
-    scene.add(orb);
-  }
-
-  const runeGeo=new THREE.RingGeometry(8,10,6);
-  const runeMat=new THREE.MeshStandardMaterial({color:0x6a0dad,emissive:0x4a0090,emissiveIntensity:0.8,side:THREE.DoubleSide,transparent:true,opacity:0.3});
-  const rune=new THREE.Mesh(runeGeo,runeMat);
-  rune.rotation.x=-Math.PI/2;rune.position.y=0.05;
-  scene.add(rune);
-
-  const innerRune=new THREE.RingGeometry(3,5,8);
-  const innerMat=new THREE.MeshStandardMaterial({color:0xff4a8a,emissive:0xff2060,emissiveIntensity:0.6,side:THREE.DoubleSide,transparent:true,opacity:0.2});
-  const inner=new THREE.Mesh(innerRune,innerMat);
-  inner.rotation.x=-Math.PI/2;inner.position.y=0.06;
-  scene.add(inner);
-}
-
-// ===== MOB SYSTEM =====
-const MOB_TYPES=[
-  {name:'Zombie',hp:40,dmg:8,speed:2.5,color:0x446644,size:1,emoji:'🧟'},
-  {name:'Szkielet',hp:30,dmg:12,speed:3.5,color:0xccccaa,size:0.9,emoji:'💀'},
-  {name:'Demon',hp:60,dmg:15,speed:3,color:0x882222,size:1.2,emoji:'👹'},
-  {name:'Golem',hp:120,dmg:10,speed:1.5,color:0x666688,size:1.5,emoji:'🗿'},
-  {name:'Widmo',hp:50,dmg:18,speed:4,color:0x8888ff,size:1,emoji:'👻'},
-  {name:'Smok',hp:200,dmg:25,speed:2,color:0x884400,size:2,emoji:'🐉'},
-];
-
-function spawnMob(){
-  const angle=Math.random()*Math.PI*2;
-  const dist=32+Math.random()*3;
-  const typeIdx=Math.min(Math.floor(Math.random()*(1+wave*0.3)),MOB_TYPES.length-1);
-  const type=MOB_TYPES[typeIdx];
-  const waveScale=1+wave*0.1;
-
-  const bodyGeo=new THREE.CapsuleGeometry(0.4*type.size,0.8*type.size,4,8);
-  const bodyMat=new THREE.MeshStandardMaterial({color:type.color,emissive:type.color,emissiveIntensity:0.2});
-  const mesh=new THREE.Mesh(bodyGeo,bodyMat);
-  mesh.position.set(Math.cos(angle)*dist,0.8*type.size,Math.sin(angle)*dist);
-  mesh.castShadow=true;
-  scene.add(mesh);
-
-  const eyeGeo=new THREE.SphereGeometry(0.1*type.size,8,8);
-  const eyeMat=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xff0000,emissiveIntensity:2});
-  const eyeL=new THREE.Mesh(eyeGeo,eyeMat);
-  eyeL.position.set(-0.15*type.size,0.6*type.size,0.35*type.size);
-  mesh.add(eyeL);
-  const eyeR=new THREE.Mesh(eyeGeo,eyeMat);
-  eyeR.position.set(0.15*type.size,0.6*type.size,0.35*type.size);
-  mesh.add(eyeR);
-
-  const hpBarBg=new THREE.Mesh(
-    new THREE.PlaneGeometry(1,0.1),
-    new THREE.MeshBasicMaterial({color:0x333333,side:THREE.DoubleSide})
-  );
-  hpBarBg.position.y=1.2*type.size+0.5;
-  mesh.add(hpBarBg);
-  const hpBarFill=new THREE.Mesh(
-    new THREE.PlaneGeometry(1,0.1),
-    new THREE.MeshBasicMaterial({color:0xff4444,side:THREE.DoubleSide})
-  );
-  hpBarFill.position.y=1.2*type.size+0.5;
-  mesh.add(hpBarFill);
-
-  mobs.push({
-    mesh,type,hpBar:hpBarFill,hpBarBg,
-    hp:Math.floor(type.hp*waveScale),
-    maxHp:Math.floor(type.hp*waveScale),
-    dmg:Math.floor(type.dmg*waveScale),
-    speed:type.speed,
-    attackCD:0,
-    hitFlash:0,
-  });
-}
-
-function updateMobs(dt){
-  for(let i=mobs.length-1;i>=0;i--){
-    const m=mobs[i];
-    const dir=new THREE.Vector3().subVectors(player.pos,m.mesh.position);
-    dir.y=0;
-    const dist=dir.length();
-    dir.normalize();
-
-    if(dist>2){
-      m.mesh.position.x+=dir.x*m.speed*dt;
-      m.mesh.position.z+=dir.z*m.speed*dt;
-    }else if(m.attackCD<=0){
-      if(!shieldActive&&!shadowForm){
-        player.hp-=m.dmg;
-        if(player.hp<=0)player.hp=0;
-        updateHUD();
-      }
-      m.attackCD=1.5;
-    }
-
-    m.attackCD-=dt;
-    m.mesh.lookAt(player.pos.x,m.mesh.position.y,player.pos.z);
-
-    if(m.hitFlash>0){
-      m.hitFlash-=dt;
-      m.mesh.children[0].material.emissiveIntensity=m.hitFlash>0?3:1;
-      m.mesh.children[1].material.emissiveIntensity=m.hitFlash>0?3:1;
-    }
-
-    const hpPct=m.hp/m.maxHp;
-    m.hpBar.scale.x=Math.max(0,hpPct);
-    m.hpBar.position.x=(hpPct-1)*0.5;
-    m.hpBarBg.quaternion.copy(camera.quaternion);
-    m.hpBar.quaternion.copy(camera.quaternion);
-
-    if(m.hp<=0){
-      scene.remove(m.mesh);
-      m.mesh.traverse(child=>{if(child.geometry)child.geometry.dispose();if(child.material)child.material.dispose();});
-      mobs.splice(i,1);
-      kills++;
-      coinsEarned+=Math.floor(5+wave*2);
-      spawnDeathParticles(m.mesh.position,m.type.color);
-    }
-  }
-}
-
-// ===== PROJECTILES =====
-function shootProjectile(){
-  if(!currentChar||attackCooldown>0)return;
-  const dupes=state.duplicates[currentChar.id]||0;
-  const dmg=Math.floor(currentChar.dmg*(1+dupes*0.05)*RARITIES[currentChar.rarity].statMul);
-  const clan=currentChar.clan;
-  const colors={shadow:0x6a0dad,fire:0xff4400,ice:0x44aaff,lightning:0xffff00,nature:0x44ff44,void:0x4444ff,blood:0xff0044,chaos:0xff44ff,holy:0xffffaa,cosmic:0xaaaaff};
-  const color=colors[clan]||0xffffff;
-
-  const dir=new THREE.Vector3(0,0,-1);
-  dir.applyQuaternion(camera.quaternion);
-
-  if(currentChar.atkType==='melee'){
-    for(const m of mobs){
-      const d=m.mesh.position.distanceTo(player.pos);
-      if(d<4){
-        m.hp-=dmg;m.hitFlash=0.15;
-        const kb=new THREE.Vector3().subVectors(m.mesh.position,player.pos).normalize().multiplyScalar(2);
-        m.mesh.position.add(kb);
-      }
-    }
-    spawnAttackParticles(player.pos,dir,color);
-    attackCooldown=0.4;
-  }else if(currentChar.atkType==='ranged'){
-    const geo=new THREE.SphereGeometry(0.15,8,8);
-    const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:2});
-    const mesh=new THREE.Mesh(geo,mat);
-    mesh.position.copy(player.pos);
-    mesh.position.y-=0.2;
-    scene.add(mesh);
-    projectiles.push({mesh,mat,dir:dir.clone(),speed:40,dmg,life:3,color,isSuper:false});
-    attackCooldown=0.25;
-  }else{
-    for(let a=0;a<8;a++){
-      const angle=(a/8)*Math.PI*2;
-      const d=new THREE.Vector3(Math.cos(angle),0,Math.sin(angle));
-      const geo=new THREE.SphereGeometry(0.12,6,6);
-      const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:2});
-      const mesh=new THREE.Mesh(geo,mat);
-      mesh.position.copy(player.pos);mesh.position.y-=0.2;
-      scene.add(mesh);
-      projectiles.push({mesh,mat,dir:d,speed:25,dmg:Math.floor(dmg*0.5),life:2,color,isSuper:false});
-    }
-    attackCooldown=0.6;
-  }
-}
-
-function useSuper(){
-  if(superCooldown>0||!currentChar)return;
-  const dupes=state.duplicates[currentChar.id]||0;
-  const dmg=Math.floor(currentChar.dmg*3*(1+dupes*0.05)*RARITIES[currentChar.rarity].statMul);
-  const colors={shadow:0x6a0dad,fire:0xff4400,ice:0x44aaff,lightning:0xffff00,nature:0x44ff44,void:0x4444ff,blood:0xff0044,chaos:0xff44ff,holy:0xffffaa,cosmic:0xaaaaff};
-  const color=colors[currentChar.clan]||0xffffff;
-
-  for(let a=0;a<24;a++){
-    const angle=(a/24)*Math.PI*2;
-    const d=new THREE.Vector3(Math.cos(angle),0.1,Math.sin(angle));
-    const geo=new THREE.SphereGeometry(0.25,8,8);
-    const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:3});
-    const mesh=new THREE.Mesh(geo,mat);
-    mesh.position.copy(player.pos);mesh.position.y=1;
-    scene.add(mesh);
-    projectiles.push({mesh,mat,dir:d,speed:30,dmg,life:3,color,isSuper:true});
-  }
-
-  for(let i=0;i<50;i++){
-    spawnParticle(player.pos,color,2);
-  }
-
-  superCooldown=currentChar.superCD;
-}
-
-function useShield(){
-  if(shieldCooldown>0||!currentChar)return;
-  shieldActive=true;
-  shieldTimer=currentChar.shieldDur;
-  shieldCooldown=20;
-}
-
-function useShadowForm(){
-  if(shadowCooldown>0)return;
-  shadowForm=true;
-  shadowTimer=5;
-  shadowCooldown=30;
-}
-
-function updateProjectiles(dt){
-  for(let i=projectiles.length-1;i>=0;i--){
-    const p=projectiles[i];
-    p.mesh.position.addScaledVector(p.dir,p.speed*dt);
-    p.life-=dt;
-
-    let hit=false;
-    for(const m of mobs){
-      if(p.mesh.position.distanceTo(m.mesh.position)<1.5){
-        m.hp-=p.dmg;m.hitFlash=0.15;
-        const kb=p.dir.clone().multiplyScalar(1.5);
-        m.mesh.position.add(kb);
-        hit=true;
-        spawnHitParticles(p.mesh.position,p.color);
-        if(!p.isSuper)break;
-      }
-    }
-
-    if(hit&&!p.isSuper||p.life<=0||p.mesh.position.length()>45){
-      scene.remove(p.mesh);
-      if(p.mesh.geometry)p.mesh.geometry.dispose();
-      if(p.mat)p.mat.dispose();
-      projectiles.splice(i,1);
-    }
-  }
-}
-
-// ===== PARTICLES =====
-function spawnParticle(pos,color,life){
-  const geo=new THREE.SphereGeometry(0.08,4,4);
-  const mat=new THREE.MeshBasicMaterial({color});
-  const mesh=new THREE.Mesh(geo,mat);
-  mesh.position.copy(pos);
-  mesh.position.x+=(Math.random()-0.5)*2;
-  mesh.position.y+=Math.random()*2;
-  mesh.position.z+=(Math.random()-0.5)*2;
-  scene.add(mesh);
-  particles.push({mesh,mat,vel:new THREE.Vector3((Math.random()-0.5)*3,Math.random()*5,(Math.random()-0.5)*3),life,maxLife:life});
-}
-
-function spawnDeathParticles(pos,color){
-  for(let i=0;i<15;i++)spawnParticle(pos,color,1);
-}
-
-function spawnHitParticles(pos,color){
-  for(let i=0;i<5;i++)spawnParticle(pos,color,0.5);
-}
-
-function spawnAttackParticles(pos,dir,color){
-  for(let i=0;i<8;i++){
-    const p=pos.clone();
-    p.addScaledVector(dir,1+Math.random()*2);
-    p.x+=(Math.random()-0.5);p.z+=(Math.random()-0.5);
-    spawnParticle(p,color,0.3);
-  }
-}
-
-function updateParticles(dt){
-  for(let i=particles.length-1;i>=0;i--){
-    const p=particles[i];
-    p.mesh.position.addScaledVector(p.vel,dt);
-    p.vel.y-=5*dt;
-    p.life-=dt;
-    const scale=Math.max(0,p.life/p.maxLife);
-    p.mesh.scale.setScalar(scale);
-    if(p.life<=0){
-      scene.remove(p.mesh);
-      p.mesh.geometry.dispose();
-      p.mat.dispose();
-      particles.splice(i,1);
-    }
-  }
-}
-
-// ===== WAVE SYSTEM =====
-function updateWaves(dt){
-  if(waveSpawned>=waveMobs){
-    if(mobs.length===0){
-      wave++;
-      waveMobs=Math.floor(5+wave*3);
-      waveSpawned=0;
-      spawnTimer=2;
-      state.coins+=Math.floor(20+wave*10);
-      coinsEarned+=Math.floor(20+wave*10);
-      saveState();
-    }
-    return;
-  }
-  spawnTimer-=dt;
-  if(spawnTimer<=0){
-    spawnMob();
-    waveSpawned++;
-    spawnTimer=Math.max(0.3,2-wave*0.1);
-  }
-}
-
-// ===== PLAYER MOVEMENT =====
-function updatePlayer(dt){
-  const spd=(shadowForm?12:6)*dt;
-  const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
-  const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));
-
-  player.vel.set(0,0,0);
-  if(keys['w']||keys['arrowup'])player.vel.add(forward);
-  if(keys['s']||keys['arrowdown'])player.vel.sub(forward);
-  if(keys['d']||keys['arrowright'])player.vel.add(right);
-  if(keys['a']||keys['arrowleft'])player.vel.sub(right);
-  if(player.vel.length()>0)player.vel.normalize().multiplyScalar(spd);
-
-  player.pos.add(player.vel);
-  const dist2d=Math.sqrt(player.pos.x*player.pos.x+player.pos.z*player.pos.z);
-  if(dist2d>34){
-    const scale=34/dist2d;
-    player.pos.x*=scale;player.pos.z*=scale;
-  }
-  player.pos.y=1.6;
-
-  camera.position.copy(player.pos);
-  camera.rotation.order='YXZ';
-  camera.rotation.y=player.yaw;
-  camera.rotation.x=player.pitch;
-
-  attackCooldown-=dt;
-  if(superCooldown>0)superCooldown-=dt;
-  if(shieldCooldown>0)shieldCooldown-=dt;
-  if(shadowCooldown>0)shadowCooldown-=dt;
-
-  if(shieldActive){
-    shieldTimer-=dt;
-    if(shieldTimer<=0)shieldActive=false;
-  }
-  if(shadowForm){
-    shadowTimer-=dt;
-    if(shadowTimer<=0)shadowForm=false;
-  }
-
-  if(mouseDown)shootProjectile();
-}
-
-// ===== HUD =====
-function updateHUD(){
-  document.getElementById('hud-wave').textContent=`Fala ${wave}`;
-  document.getElementById('hud-coins').textContent=`🪙 ${state.coins+coinsEarned}`;
-  document.getElementById('hud-kills').textContent=`☠️ ${kills}`;
-  const pct=Math.max(0,player.hp/player.maxHp)*100;
-  document.getElementById('hud-hp-fill').style.width=pct+'%';
-  document.getElementById('hud-hp-text').textContent=`${Math.max(0,Math.floor(player.hp))} / ${player.maxHp}`;
-
-  const superEl=document.getElementById('super-cd');
-  if(superCooldown>0){superEl.classList.remove('hidden');superEl.textContent=Math.ceil(superCooldown);}
-  else superEl.classList.add('hidden');
-
-  const shieldEl=document.getElementById('shield-cd');
-  if(shieldCooldown>0){shieldEl.classList.remove('hidden');shieldEl.textContent=Math.ceil(shieldCooldown);}
-  else shieldEl.classList.add('hidden');
-
-  const shadowEl=document.getElementById('shadow-cd');
-  if(shadowCooldown>0){shadowEl.classList.remove('hidden');shadowEl.textContent=Math.ceil(shadowCooldown);}
-  else shadowEl.classList.add('hidden');
-}
-
-// ===== GAME LOOP =====
-function gameLoop(){
-  if(!gameActive)return;
-  requestAnimationFrame(gameLoop);
-  if(gamePaused)return;
-
-  const dt=Math.min(clock.getDelta(),0.05);
-
-  updatePlayer(dt);
-  updateMobs(dt);
-  updateProjectiles(dt);
-  updateParticles(dt);
-  updateWaves(dt);
-  updateHUD();
-
-  if(player.hp<=0){
-    gameOver();
-    return;
-  }
-
-  renderer.render(scene,camera);
-}
-
-function gameOver(){
-  gameActive=false;
-  document.exitPointerLock();
-  state.coins+=coinsEarned;
-  state.totalKills+=kills;
-  if(wave>state.highWave)state.highWave=wave;
-  saveState();
-
-  document.getElementById('go-stats').innerHTML=`
-    Fala: ${wave} | Zabójstwa: ${kills} | Zarobione: ${coinsEarned} 🪙<br>
-    Rekord fali: ${state.highWave} | Łącznie zabójstw: ${state.totalKills}
-  `;
-  document.getElementById('game-over').classList.add('active');
-}
-
-function exitGame(){
-  gameActive=false;
-  gamePaused=false;
-  document.exitPointerLock();
-  document.getElementById('game-screen').classList.remove('active');
-  document.getElementById('game-over').classList.remove('active');
-  document.getElementById('pause-menu').classList.remove('active');
-  showScreen('screen-menu');
-}
-window.exitGame=exitGame;
-
-function resumeGame(){
-  gamePaused=false;
-  document.getElementById('pause-menu').classList.remove('active');
-  document.getElementById('game-canvas').requestPointerLock();
-}
-window.resumeGame=resumeGame;
-
-// ===== INPUT =====
-document.addEventListener('keydown',e=>{
-  const k=e.key.toLowerCase();
-  keys[k]=true;
-  if(k==='q')useSuper();
-  if(k==='e')useShield();
-  if(k==='r')useShadowForm();
-  if(k==='escape'&&gameActive){
-    if(gamePaused){resumeGame();}
-    else{gamePaused=true;document.exitPointerLock();document.getElementById('pause-menu').classList.add('active');}
-  }
-});
-document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
-
-document.addEventListener('mousedown',e=>{
-  if(e.button===0)mouseDown=true;
-});
-document.addEventListener('mouseup',e=>{
-  if(e.button===0)mouseDown=false;
-});
-
-document.addEventListener('mousemove',e=>{
-  if(document.pointerLockElement!==document.getElementById('game-canvas'))return;
-  const sens=state.sensitivity*0.002;
-  player.yaw-=e.movementX*sens;
-  player.pitch-=e.movementY*sens;
-  player.pitch=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,player.pitch));
-});
-
-document.addEventListener('pointerlockchange',()=>{
-  if(!document.pointerLockElement&&gameActive&&!gamePaused){
-    gamePaused=true;
-    document.getElementById('pause-menu').classList.add('active');
-  }
-});
-
-// ===== INIT =====
-updateMenuInfo();
+function requestPointerLock(){try{canvas.requestPointerLock&&canvas.requestPointerLock()}catch(e){}}
+
+function spawnShadowMinions(){const c=player.char;if(!c.canSummonShadows)return;const sel=state.selectedShadows[c.id]||[];if(!sel.length)return;
+const shUp=1+state.upgrades.shadow*0.10;
+sel.forEach(sid=>{const sd=SHADOWS.find(s=>s.id===sid);if(sd)createShadowMinion(sd,shUp)})}
+function createShadowMinion(sd,shUp){const g=new THREE.Group();
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.25,0.7,4,8),new THREE.MeshStandardMaterial({color:0x4a2a7a,emissive:0x3a1a6a,emissiveIntensity:0.5,transparent:true,opacity:0.85}));body.position.y=0.6;g.add(body);
+const a=Math.random()*Math.PI*2;g.position.set(Math.cos(a)*3,0,Math.sin(a)*3);
+scene.add(g);
+shadowMinions.push({group:g,data:sd,hp:sd.hp*shUp,maxHp:sd.hp*shUp,dmg:sd.dmg*shUp,speed:sd.speed,atkCD:0,dead:false,respawn:0})}
+
+function availableMobTypes(){return MOB_TYPES.filter(m=>wave>=m.minWave)}
+function spawnMob(){const types=availableMobTypes();const mt=types[Math.floor(Math.random()*types.length)];
+const g=new THREE.Group();const waveMul=1+wave*0.12;
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.4*mt.scale,1.0*mt.scale,4,8),new THREE.MeshStandardMaterial({color:mt.color,emissive:mt.color,emissiveIntensity:0.2,roughness:0.6}));body.position.y=0.8*mt.scale;g.add(body);
+const eyeM=new THREE.MeshBasicMaterial({color:0xff2020});
+[-0.15,0.15].forEach(dx=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.08*mt.scale,6,6),eyeM);e.position.set(dx,1.3*mt.scale,0.35*mt.scale);g.add(e)});
+const a=Math.random()*Math.PI*2,r=28+Math.random()*5;g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+const hpbg=new THREE.Mesh(new THREE.PlaneGeometry(1.0,0.12),new THREE.MeshBasicMaterial({color:0x000000}));hpbg.position.y=1.9*mt.scale;g.add(hpbg);
+const hpfill=new THREE.Mesh(new THREE.PlaneGeometry(0.96,0.08),new THREE.MeshBasicMaterial({color:0xff3030}));hpfill.position.set(0,1.9*mt.scale,0.01);g.add(hpfill);
+scene.add(g);
+mobs.push({group:g,type:mt,hp:mt.hp*waveMul,maxHp:mt.hp*waveMul,dmg:mt.dmg*(1+wave*0.06),speed:mt.speed,atkCD:0,hpfill,scale:mt.scale,dead:false})}
+
+function spawnBoss(){const idx=Math.min(Math.floor((wave-5)/5),BOSS_TYPES.length-1);const bt=BOSS_TYPES[idx];
+const cyc=Math.floor((wave-5)/(BOSS_TYPES.length*5));const mul=1+cyc*0.8+wave*0.05;
+const g=new THREE.Group();
+const body=new THREE.Mesh(new THREE.CapsuleGeometry(0.5*bt.scale,1.2*bt.scale,6,12),new THREE.MeshStandardMaterial({color:bt.color,emissive:bt.color,emissiveIntensity:0.5,metalness:0.4,roughness:0.4}));body.position.y=bt.scale;g.add(body);
+const eyeM=new THREE.MeshBasicMaterial({color:0xffff00});
+[-0.25,0.25].forEach(dx=>{const e=new THREE.Mesh(new THREE.SphereGeometry(0.14*bt.scale,8,8),eyeM);e.position.set(dx*bt.scale,1.6*bt.scale,0.5*bt.scale);g.add(e)});
+const a=Math.random()*Math.PI*2;g.position.set(Math.cos(a)*25,0,Math.sin(a)*25);
+const bl=new THREE.PointLight(bt.color,2,15);bl.position.y=2*bt.scale;g.add(bl);
+scene.add(g);
+boss={group:g,type:bt,hp:bt.hp*mul,maxHp:bt.hp*mul,dmg:bt.dmg*mul,speed:bt.speed,atkCD:0,scale:bt.scale,special:0,telegraph:null};
+document.getElementById('bossBar').classList.add('active');document.getElementById('bossName').textContent=bt.emoji+' '+bt.name;
+announceBoss(bt.name);doScreenShake(1.2);doFlash('#ff0000',0.4);
+spawnSuperParticles(g.position.clone().setY(2),new THREE.Color(bt.color))}
+
+function startWave(){wave++;state.highWave=Math.max(state.highWave,wave);
+const isBoss=wave%5===0;
+announceWave(wave);
+if(isBoss){spawnBoss();waveMobsToSpawn=Math.floor(wave*0.7);waveSpawnTimer=2}
+else{waveMobsToSpawn=5+wave*3;waveSpawnTimer=0}
+waveActive=true;betweenWaves=false;updateHUD()}
+function checkWaveEnd(){if(!waveActive)return;if(waveMobsToSpawn<=0&&mobs.length===0&&!boss)endWave()}
+function endWave(){waveActive=false;betweenWaves=true;betweenTimer=2.5;
+const reward=20+wave*10;sessionCoins+=reward;
+toast('Fala '+wave+' ukończona! +'+reward+'💰');updateHUD()}
+
+addEventListener('keydown',e=>{keys[e.code]=true;if(!gameRunning)return;
+if(e.code==='KeyQ')useSuper();if(e.code==='KeyE')useShield();if(e.code==='KeyR')useShadowForm();
+if(e.code==='Escape'){if(gamePaused)resumeGame();else pauseGame()}});
+addEventListener('keyup',e=>{keys[e.code]=false});
+document.addEventListener('mousemove',e=>{if(!gameRunning||gamePaused||document.pointerLockElement!==canvas)return;
+const sens=state.sensitivity*0.0006;yaw-=e.movementX*sens;pitch-=e.movementY*sens;pitch=Math.max(-1.4,Math.min(1.4,pitch))});
+canvas.addEventListener('mousedown',e=>{if(!gameRunning||gamePaused)return;if(document.pointerLockElement!==canvas){requestPointerLock();return}if(e.button===0)attackHeld=true});
+addEventListener('mouseup',e=>{if(e.button===0)attackHeld=false});
+document.addEventListener('pointerlockchange',()=>{if(gameRunning&&!gamePaused&&document.pointerLockElement!==canvas)pauseGame()});
+
+function pauseGame(){if(!gameRunning)return;gamePaused=true;attackHeld=false;document.getElementById('pauseMenu').classList.add('active');if(document.pointerLockElement)document.exitPointerLock()}
+function resumeGame(){gamePaused=false;document.getElementById('pauseMenu').classList.remove('active');requestPointerLock()}
+function quitGame(){gameRunning=false;gamePaused=false;
+document.getElementById('hud').classList.remove('active');document.getElementById('vignette').classList.remove('active');
+document.getElementById('shadowOverlay').style.opacity=0;
+document.getElementById('pauseMenu').classList.remove('active');document.getElementById('gameOver').classList.remove('active');
+document.getElementById('bossBar').classList.remove('active');
+if(document.pointerLockElement)document.exitPointerLock();
+state.coins+=sessionCoins;state.totalKills+=kills;sessionCoins=0;kills=0;saveState();checkMilestones();
+showScreen('menu')}
+window.pauseGame=pauseGame;window.resumeGame=resumeGame;window.quitGame=quitGame;
+
+function useSuper(){if(abilityCD.super>0)return;const c=player.char;abilityCD.super=c.superCD;
+if(c.ghostMechanic&&c.id===60){doShadowMasterSuper();return}
+const origin=camera.position.clone();
+for(let i=0;i<24;i++){const a=(i/24)*Math.PI*2;createProjectile(origin,new THREE.Vector3(Math.cos(a),0,Math.sin(a)),player.dmg*2.5,0xff4adf,'super')}
+spawnSuperParticles(origin,new THREE.Color(0xff4adf));
+addTempLight(origin,0xff4adf,4,30,0.6);
+doScreenShake(1.0);doFlash('#ff00ff',0.35);fovPunch=10;updateHUD()}
+function doShadowMasterSuper(){smSuperActive=5;document.getElementById('shadowOverlay').style.opacity=0.7;doScreenShake(0.8);doFlash('#000000',0.5);addTempLight(camera.position.clone(),0xff00ff,3,25,1.0)}
+function useShield(){if(abilityCD.shield>0)return;abilityCD.shield=20;shieldActive=player.shieldDur;
+if(!player.shieldMesh){const m=new THREE.Mesh(new THREE.SphereGeometry(1.5,20,20),new THREE.MeshBasicMaterial({color:0x4adaff,transparent:true,opacity:0.25,side:THREE.DoubleSide}));scene.add(m);player.shieldMesh=m}
+player.shieldMesh.visible=true;updateHUD()}
+function useShadowForm(){if(abilityCD.shadow>0)return;abilityCD.shadow=30;shadowFormActive=5;document.getElementById('shadowOverlay').style.opacity=0.5;
+if(scene.fog)scene.fog.color.set(0x2a0a4a);updateHUD()}
+
+function getForward(){return new THREE.Vector3(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),Math.cos(yaw)*Math.cos(pitch)).multiplyScalar(-1).normalize()}
+function clanColor(c){return new THREE.Color(CLANS[c.clan].baseColor).getHex()}
+function doAttack(){const c=player.char;const fwd=getForward();const origin=camera.position.clone();
+if(player.atkType==='melee')meleeAttack(origin,fwd);
+else if(player.atkType==='ranged'){createProjectile(origin,fwd,player.dmg,clanColor(c),'normal');spawnAttackParticles(origin,clanColor(c),fwd)}
+else aoeAttack(origin,fwd)}
+function meleeAttack(origin,fwd){
+const slash=new THREE.Mesh(new THREE.TorusGeometry(1.3,0.15,8,16,Math.PI),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.8}));
+slash.position.copy(origin).addScaledVector(fwd,1.5);slash.rotateZ(Math.atan2(fwd.x,fwd.z));scene.add(slash);
+arenaSlash={mesh:slash,life:0.25};
+addTempLight(slash.position.clone(),clanColor(player.char),2,8,0.2);
+const range=3.0;[...mobs,...(boss?[boss]:[])].forEach(m=>{if(m.dead||m._dissolve!==undefined)return;const d=m.group.position.distanceTo(origin);if(d<range){const toM=m.group.position.clone().sub(origin).normalize();if(toM.dot(fwd)>0.3)damageMob(m,player.dmg)}})}
+function aoeAttack(origin,fwd){const c=player.char;
+for(let i=0;i<8;i++){const a=(i/8)*Math.PI*2;createProjectile(origin,new THREE.Vector3(Math.cos(a),0,Math.sin(a)),player.dmg*0.7,clanColor(c),'normal')}
+const ring=new THREE.Mesh(new THREE.RingGeometry(0.5,0.8,32),new THREE.MeshBasicMaterial({color:clanColor(c),transparent:true,opacity:0.7,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.copy(origin).setY(0.1);scene.add(ring);
+arenaRings.push({mesh:ring,life:0.5,maxLife:0.5});
+addTempLight(origin,clanColor(c),2,10,0.3)}
+function createProjectile(origin,dir,dmg,color,kind){
+const m=new THREE.Mesh(new THREE.SphereGeometry(0.18,8,8),new THREE.MeshBasicMaterial({color}));
+m.add(new THREE.Mesh(new THREE.SphereGeometry(0.35,8,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.3})));
+m.position.copy(origin).addScaledVector(dir,1);scene.add(m);
+m.add(new THREE.PointLight(color,1,5));
+projectiles.push({mesh:m,vel:dir.clone().multiplyScalar(kind==='super'?28:22),dmg,life:2.5,color,kind})}
+
+function damageMob(m,dmg){if(m.dead)return;m.hp-=dmg;
+spawnHitParticles(m.group.position.clone().setY(1),m===boss?0xffff00:0xffaa00);
+floatDmg(m.group.position.clone().setY(2),Math.round(dmg),m===boss?'#ffff00':'#ffaa00');
+if(m===boss){if(m.hp<=0)killBoss();else updateBossBar()}
+else{if(m.hpfill)m.hpfill.scale.x=Math.max(0,m.hp/m.maxHp);if(m.hp<=0)killMob(m)}}
+function killMob(m){if(m.dead)return;m.dead=true;
+spawnDeathParticles(m.group.position.clone().setY(1),m.type.color);
+addTempLight(m.group.position.clone().setY(1),m.type.color,2,6,0.3);
+m._dissolve=0.4;m._dissolveT=0.4;
+kills++;
+const coinUp=1+state.upgrades.magnet*0.15;sessionCoins+=Math.round((5+wave*2)*coinUp);
+updateHUD()}
+function killBoss(){if(!boss)return;const bp=boss.group.position.clone();
+spawnSuperParticles(bp.clone().setY(2),new THREE.Color(boss.type.color));
+addTempLight(bp.clone().setY(1),boss.type.color,5,30,1.0);doScreenShake(1.5);doFlash('#ffaa00',0.5);
+const coinUp=1+state.upgrades.magnet*0.15;const cg=Math.round((200+wave*30)*coinUp);sessionCoins+=cg;state.gems+=2;
+for(let i=0;i<20;i++)spawnParticle(bp.clone().setY(1),0xffcc44,new THREE.Vector3((Math.random()-0.5)*8,Math.random()*8+2,(Math.random()-0.5)*8),1.5);
+kills++;
+toast('BOSS POKONANY! +'+cg+'💰 +2💎');
+if(player.isGhost&&player.char.ghostMechanic&&Math.random()<0.5)revivePlayer();
+scene.remove(boss.group);if(boss.telegraph)scene.remove(boss.telegraph);boss=null;
+document.getElementById('bossBar').classList.remove('active');updateHUD()}
+function damagePlayer(dmg){if(player.isGhost)return;if(shieldActive>0||shadowFormActive>0||smSuperActive>0)return;
+player.hp-=dmg;doHitIndicator();doScreenShake(0.4);
+if(player.hp<=0)playerDeath();updateHUD()}
+function playerDeath(){const c=player.char;
+if(c.ghostMechanic&&!player.isGhost&&Math.random()<0.5){player.isGhost=true;player.hp=player.maxHp*0.5;player.atkType='melee';player.dmg=c.dmg*0.6;toast('FORMA DUCHA! Zabij bossa aby się odrodzić.');document.getElementById('shadowOverlay').style.opacity=0.6;return}
+doGameOver()}
+function revivePlayer(){player.isGhost=false;player.hp=player.maxHp;player.atkType=player.baseAtkType;player.dmg=player.baseDmg;toast('ODRODZONY! Mistrz Cieni powstaje!');document.getElementById('shadowOverlay').style.opacity=0;doFlash('#ff00ff',0.4)}
+function doGameOver(){gameRunning=false;
+state.coins+=sessionCoins;state.totalKills+=kills;saveState();checkMilestones();
+if(document.pointerLockElement)document.exitPointerLock();
+document.getElementById('goStats').innerHTML=`Fala: <b>${wave}</b><br>Zabójstwa: <b>${kills}</b><br>Zdobyte monety: <b>${sessionCoins}💰</b>`;
+document.getElementById('gameOver').classList.add('active');sessionCoins=0;kills=0}
+
+function doScreenShake(amt){screenShake=Math.max(screenShake,amt)}
+function doFlash(color,op){const f=document.getElementById('flash');f.style.transition='';f.style.background=color;f.style.opacity=op;requestAnimationFrame(()=>{f.style.transition='opacity .5s';f.style.opacity=0})}
+function doHitIndicator(){const h=document.getElementById('hitInd');h.style.transition='';h.style.opacity=0.8;requestAnimationFrame(()=>{h.style.transition='opacity .4s';h.style.opacity=0})}
+function floatDmg(worldPos,val,color){const v=worldPos.clone().project(camera);if(v.z>1)return;const x=(v.x*0.5+0.5)*innerWidth,y=(-v.y*0.5+0.5)*innerHeight;
+const el=document.createElement('div');el.className='dmgnum';el.textContent=val;el.style.color=color;el.style.left=x+'px';el.style.top=y+'px';document.getElementById('app').appendChild(el);setTimeout(()=>el.remove(),1000)}
+function announceWave(n){const e=document.getElementById('waveAnno');e.textContent='FALA '+n;e.classList.remove('show');void e.offsetWidth;e.classList.add('show')}
+function announceBoss(name){const e=document.getElementById('bossAnno');e.textContent='BOSS: '+name;e.classList.remove('show');void e.offsetWidth;e.classList.add('show')}
+
+function updateHUD(){if(!player)return;
+document.getElementById('hudWave').textContent='FALA '+(wave||1);
+document.getElementById('hudCoin').textContent='💰 '+sessionCoins;
+document.getElementById('hudKillN').textContent='☠ '+kills;
+document.getElementById('hpFill').style.width=Math.max(0,player.hp/player.maxHp*100)+'%';
+document.getElementById('hpText').textContent=Math.ceil(player.hp)+' / '+Math.ceil(player.maxHp)+(player.isGhost?' 👻':'');
+updateAbilityCD('abQ',abilityCD.super);updateAbilityCD('abE',abilityCD.shield);updateAbilityCD('abR',abilityCD.shadow)}
+function updateAbilityCD(id,cd){const cdEl=document.getElementById(id).querySelector('.cd');if(cd>0){cdEl.style.display='flex';cdEl.textContent=Math.ceil(cd)}else cdEl.style.display='none'}
+function updateBossBar(){if(!boss)return;document.getElementById('bossBarFill').style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%'}
+
+function updateGame(dt){
+let spd=player.speed*(keys['ShiftLeft']||keys['ShiftRight']?1.6:1.0)*(shadowFormActive>0?1.6:1.0)*(player.isGhost?1.1:1.0);
+const fwd2=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)).multiplyScalar(-1);
+const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+const move=new THREE.Vector3();
+if(keys['KeyW'])move.add(fwd2);if(keys['KeyS'])move.sub(fwd2);if(keys['KeyA'])move.sub(right);if(keys['KeyD'])move.add(right);
+if(move.lengthSq()>0){move.normalize().multiplyScalar(spd*dt);const nx=camera.position.x+move.x,nz=camera.position.z+move.z;if(Math.hypot(nx,nz)<34){camera.position.x=nx;camera.position.z=nz}}
+const baseY=smSuperActive>0?0.3:1.6;
+camera.position.y+=(baseY-camera.position.y)*Math.min(1,dt*8);
+camera.lookAt(camera.position.clone().add(getForward()));
+if(fovPunch>0){fovPunch-=dt*40;camera.fov=75+Math.max(0,fovPunch);camera.updateProjectionMatrix()}else if(Math.abs(camera.fov-75)>0.3){camera.fov+=(75-camera.fov)*Math.min(1,dt*5);camera.updateProjectionMatrix()}
+if(attackCD>0)attackCD-=dt;
+if(attackHeld&&attackCD<=0){doAttack();attackCD=player.atkType==='melee'?0.4:0.35}
+if(smSuperActive>0){smSuperActive-=dt;if(Math.random()<dt*8)[...mobs,...(boss?[boss]:[])].forEach(m=>{if(!m.dead&&m._dissolve===undefined&&m.group.position.distanceTo(camera.position)<10)damageMob(m,player.dmg*0.5)});if(smSuperActive<=0)document.getElementById('shadowOverlay').style.opacity=shadowFormActive>0?0.5:0}
+for(const k in abilityCD)if(abilityCD[k]>0)abilityCD[k]=Math.max(0,abilityCD[k]-dt);
+if(shieldActive>0){shieldActive-=dt;if(player.shieldMesh){player.shieldMesh.position.copy(camera.position);player.shieldMesh.scale.setScalar(1+Math.sin(performance.now()*0.01)*0.05)}if(shieldActive<=0&&player.shieldMesh)player.shieldMesh.visible=false}
+if(shadowFormActive>0){shadowFormActive-=dt;if(Math.random()<dt*10)spawnParticle(camera.position.clone().setY(0.5+Math.random()),0x9a4aff,new THREE.Vector3((Math.random()-0.5),Math.random()*2,(Math.random()-0.5)),0.6);if(shadowFormActive<=0){document.getElementById('shadowOverlay').style.opacity=smSuperActive>0?0.7:(player.isGhost?0.6:0);if(scene.fog)scene.fog.color.set(0x080812)}}
+if(betweenWaves){betweenTimer-=dt;if(betweenTimer<=0)startWave()}
+if(waveActive&&waveMobsToSpawn>0){waveSpawnTimer-=dt;if(waveSpawnTimer<=0){spawnMob();waveMobsToSpawn--;waveSpawnTimer=Math.max(0.4,1.2-wave*0.03)}}
+checkWaveEnd();
+updateMobs(dt);
+if(boss)updateBoss(dt);
+updateShadowMinions(dt);
+updateProjectiles(dt);
+updateParticles(dt);
+updateTempLights(dt);
+updateArenaFX(dt);
+if(arenaSlash){arenaSlash.life-=dt;arenaSlash.mesh.material.opacity=arenaSlash.life*3;arenaSlash.mesh.scale.setScalar(1+(0.25-arenaSlash.life)*2);if(arenaSlash.life<=0){scene.remove(arenaSlash.mesh);arenaSlash=null}}
+arenaRings=arenaRings.filter(r=>{r.life-=dt;const t=1-r.life/r.maxLife;r.mesh.scale.setScalar(1+t*12);r.mesh.material.opacity=r.life/r.maxLife*0.7;if(r.life<=0){scene.remove(r.mesh);return false}return true});
+if(screenShake>0){screenShake=Math.max(0,screenShake-dt*2);const s=screenShake*0.3;camera.position.x+=(Math.random()-0.5)*s;camera.position.z+=(Math.random()-0.5)*s}
+updateHUD()}
+function updateMobs(dt){for(let i=mobs.length-1;i>=0;i--){const m=mobs[i];
+if(m._dissolve!==undefined){m._dissolve-=dt;m.group.scale.setScalar(Math.max(0.01,m._dissolve/m._dissolveT));if(m._dissolve<=0){scene.remove(m.group);mobs.splice(i,1)}continue}
+const toP=camera.position.clone().setY(0).sub(m.group.position.clone().setY(0));const d=toP.length();toP.normalize();
+m.group.position.addScaledVector(toP,m.speed*dt*(shadowFormActive>0?0.7:1));
+m.group.lookAt(camera.position.x,m.group.position.y,camera.position.z);
+if(m.hpfill)m.hpfill.lookAt(camera.position);
+if(m.atkCD>0)m.atkCD-=dt;
+if(d<1.8&&m.atkCD<=0){m.atkCD=1.2;damagePlayer(m.dmg)}}}
+function updateBoss(dt){const m=boss;const toP=camera.position.clone().setY(0).sub(m.group.position.clone().setY(0));const d=toP.length();toP.normalize();
+m.group.position.addScaledVector(toP,m.speed*dt);
+m.group.lookAt(camera.position.x,m.group.position.y,camera.position.z);
+if(m.atkCD>0)m.atkCD-=dt;
+if(d<3.5&&m.atkCD<=0){m.atkCD=2.0;damagePlayer(m.dmg)}
+m.special+=dt;
+if(m.special>5&&!m.telegraph){const tg=new THREE.Mesh(new THREE.RingGeometry(3,4,32),new THREE.MeshBasicMaterial({color:0xff3030,transparent:true,opacity:0.5,side:THREE.DoubleSide}));tg.rotation.x=-Math.PI/2;tg.position.copy(camera.position).setY(0.1);scene.add(tg);m.telegraph=tg;m._tgT=1.2}
+if(m.telegraph){m._tgT-=dt;m.telegraph.material.opacity=0.3+Math.abs(Math.sin(m._tgT*10))*0.4;if(m._tgT<=0){const ep=m.telegraph.position.clone();if(camera.position.distanceTo(ep)<4.5)damagePlayer(m.dmg*1.5);spawnSuperParticles(ep.clone().setY(1),new THREE.Color(0xff3030));addTempLight(ep.clone().setY(1),0xff3030,3,12,0.4);scene.remove(m.telegraph);m.telegraph=null;m.special=0}}
+updateBossBar()}
+function updateShadowMinions(dt){for(const sm of shadowMinions){
+if(sm.dead){sm.respawn-=dt;if(sm.respawn<=0){sm.dead=false;sm.hp=sm.maxHp;sm.group.visible=true;const a=Math.random()*Math.PI*2;sm.group.position.set(camera.position.x+Math.cos(a)*3,0,camera.position.z+Math.sin(a)*3)}continue}
+let tgt=null,bd=999;[...mobs.filter(m=>!m.dead&&m._dissolve===undefined),...(boss?[boss]:[])].forEach(m=>{const d=m.group.position.distanceTo(sm.group.position);if(d<bd){bd=d;tgt=m}});
+if(tgt){const toT=tgt.group.position.clone().setY(0).sub(sm.group.position.clone().setY(0));const d=toT.length();toT.normalize();
+if(d>1.5)sm.group.position.addScaledVector(toT,sm.speed*dt);
+sm.group.lookAt(tgt.group.position.x,sm.group.position.y,tgt.group.position.z);
+if(sm.atkCD>0)sm.atkCD-=dt;
+if(d<2.0&&sm.atkCD<=0){sm.atkCD=1.0;damageMob(tgt,sm.dmg)}}
+else{const toP=camera.position.clone().setY(0).sub(sm.group.position.clone().setY(0));if(toP.length()>4)sm.group.position.addScaledVector(toP.normalize(),sm.speed*dt)}
+sm.group.position.y=Math.sin(performance.now()*0.003+sm.data.id)*0.1}}
+function updateProjectiles(dt){for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.life-=dt;
+p.mesh.position.addScaledVector(p.vel,dt);
+if(Math.random()<0.5)spawnParticle(p.mesh.position.clone(),p.color,new THREE.Vector3((Math.random()-0.5),(Math.random()-0.5),(Math.random()-0.5)),0.3,false);
+let hit=false;
+for(const m of [...mobs.filter(m=>!m.dead&&m._dissolve===undefined),...(boss?[boss]:[])]){if(m.group.position.distanceTo(p.mesh.position)<1.2*(m.scale||1)){damageMob(m,p.dmg);hit=true;break}}
+if(hit||p.life<=0||Math.hypot(p.mesh.position.x,p.mesh.position.z)>40){scene.remove(p.mesh);projectiles.splice(i,1)}}}
+function updateArenaFX(dt){const t=performance.now()*0.001;
+arenaOrbs.forEach((o,i)=>{o.material.emissiveIntensity=1.2+Math.sin(t*2+i)*0.6});
+arenaRunes.forEach((r,i)=>{r.material.opacity=0.3+Math.sin(t*1.5+i)*0.2});
+if(atmosParticles){const pos=atmosParticles.geometry.attributes.position;for(let i=0;i<pos.count;i++){let y=pos.getY(i)+dt*0.5;if(y>15)y=0;pos.setY(i,y)}pos.needsUpdate=true}}
+
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);
+if(crateActive){updateCrateAnim(dt);renderer.render(crateScene,crateCam);return}
+if(scene&&gameRunning){if(!gamePaused)updateGame(dt);renderer.render(scene,camera)}}
+animate();
+
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}if(crateCam){crateCam.aspect=innerWidth/innerHeight;crateCam.updateProjectionMatrix()}});
+
+updateCurrency();
 </script>
 </body>
 </html>
