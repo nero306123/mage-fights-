@@ -201,8 +201,14 @@ canvas{display:block}
 <button class="btn" onclick="showScreen('collection');renderCollection()">📜 KOLEKCJA</button>
 <button class="btn gold" onclick="showScreen('shop');renderShop()">🛒 SKLEP</button>
 <button class="btn" onclick="showScreen('talents');renderTalents()">🌟 TALENTY <span id="tpBadge"></span></button>
+<button class="btn" onclick="showScreen('tasks');renderTasks()">📋 ZADANIA <span id="dailyBadge"></span></button>
 <button class="btn" onclick="openSettings()">⚙️ USTAWIENIA</button>
 </div>
+</div>
+<div id="tasks" class="screen">
+<div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Zadania</h2>
+<div class="curr"><span class="pill coin" id="tasksCoin">0</span><span class="pill gem" id="tasksGem">0</span></div></div>
+<div id="tasksContent" style="padding-bottom:30px"></div>
 </div>
 <div id="talents" class="screen">
 <div class="hdr"><span class="back" onclick="showScreen('menu')">←</span><h2 class="title-font">Talenty</h2>
@@ -264,6 +270,7 @@ canvas{display:block}
 <div id="charModal" class="modal"><div class="mbox" id="charModalBox"></div></div>
 <div id="shadowModal" class="modal"><div class="mbox" id="shadowModalBox"></div></div>
 <div id="settingsModal" class="modal"><div class="mbox" id="settingsBox"></div></div>
+<div id="tutorialModal" class="modal"><div class="mbox" id="tutorialBox"></div></div>
 <div class="toast" id="toast"></div>
 </div>
 
@@ -511,6 +518,16 @@ const MUTATORS=[
 {id:'swarm',name:'Rój',emoji:'🐝',desc:'Szybszy spawn wrogów',color:'#aaff4a'}
 ];
 let currentMutator=null;
+// ===== ARENA THEMES =====
+const ARENA_THEMES=[
+{id:'shadow',name:'Otchłań Cieni',bg:0x080812,fog:0x080812,floor:0x12122a,ring:0x6a3a9a,ringE:0x4a2a7a,wall:0x1a1a3a,orb:0xb44aff,rune:0x6a3aaa,atmos:0x9a5aff,amb:0x303048,dir:0x9a7aff},
+{id:'inferno',name:'Piekielna Arena',bg:0x180806,fog:0x200a06,floor:0x2a1410,ring:0xff5a2a,ringE:0x8a2a0a,wall:0x3a1410,orb:0xff7a2a,rune:0xff4a1a,atmos:0xff7a4a,amb:0x402820,dir:0xff8a5a},
+{id:'frost',name:'Lodowa Pustynia',bg:0x081420,fog:0x0a1828,floor:0x10202e,ring:0x4adaff,ringE:0x1a6a8a,wall:0x142838,orb:0x6aeaff,rune:0x4adfff,atmos:0xaae0ff,amb:0x284048,dir:0x8acaff},
+{id:'void',name:'Wymiar Pustki',bg:0x06040c,fog:0x0a0614,floor:0x100a1c,ring:0x7a3aff,ringE:0x3a1a6a,wall:0x140a24,orb:0x9a5aff,rune:0x6a2aff,atmos:0x7a4aff,amb:0x201838,dir:0x6a4aaa},
+{id:'blood',name:'Krwawe Pole',bg:0x140608,fog:0x1a080a,floor:0x24100e,ring:0xcc2a3a,ringE:0x6a0a14,wall:0x2a1012,orb:0xff4a5a,rune:0xcc2a3a,atmos:0xff6a7a,amb:0x381820,dir:0xca5a6a},
+{id:'cosmic',name:'Pole Gwiezdne',bg:0x060818,fog:0x080a20,floor:0x0e1228,ring:0x7a4aff,ringE:0x3a2a8a,wall:0x121838,orb:0x9a7aff,rune:0x6a8aff,atmos:0xaac0ff,amb:0x202848,dir:0x8a9aff}
+];
+let currentTheme=ARENA_THEMES[0];
 // ===== AUDIO ENGINE (WebAudio synth) =====
 const Audio2={ctx:null,master:null,musicGain:null,sfxGain:null,muted:false,
 init(){if(this.ctx)return;try{this.ctx=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ctx.createGain();this.master.gain.value=0.5;this.master.connect(this.ctx.destination);
@@ -550,7 +567,8 @@ stopMusic(){if(this.musicTimer){clearTimeout(this.musicTimer);this.musicTimer=nu
 const SAVE_KEY='arenaCieni_v2';
 let state={coins:500,gems:0,unlockedIds:new Set([1]),selectedId:1,duplicates:{},totalKills:0,highWave:0,sensitivity:5,upgrades:{hp:0,dmg:0,magnet:0,shadow:0,shield:0},completedMilestones:[],selectedShadows:{},fightStyles:{},
 level:1,xp:0,talentPoints:0,talents:{crit:0,dmg:0,hp:0,lifesteal:0,coin:0,xp:0,haste:0,thorns:0},ascension:{},
-stats:{bestCombo:0,powerupsGrabbed:0,bossesKilled:0,gamesPlayed:0,critsLanded:0,timePlayed:0},
+lastDailyReward:'',dailyStreak:0,daily:{date:'',quests:[]},achievements:[],tutorialSeen:false,
+stats:{bestCombo:0,powerupsGrabbed:0,bossesKilled:0,gamesPlayed:0,critsLanded:0,timePlayed:0,cratesOpened:0},
 modeRecords:{survival:0,endless:0,bossrush:0,timeattack:0},
 settings:{reducedParticles:false,musicVol:5,sfxVol:6,fov:75}};
 function saveState(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({...state,unlockedIds:[...state.unlockedIds]}))}catch(e){}}
@@ -578,7 +596,7 @@ let gameMode='survival';
 const charById=id=>CHARS.find(c=>c.id===id);
 
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));const e=document.getElementById(id);if(e)e.classList.add('active');updateCurrency();if(id==='menu')renderMenuLevel()}
-function updateCurrency(){['colCoin','shopCoin'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.coins});['colGem','shopGem'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.gems})}
+function updateCurrency(){['colCoin','shopCoin','tasksCoin'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.coins});['colGem','shopGem','tasksGem'].forEach(i=>{const e=document.getElementById(i);if(e)e.textContent=state.gems})}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
 window.showScreen=showScreen;
 
@@ -661,7 +679,7 @@ c.innerHTML=h}}
 window.renderShop=renderShop;
 function buyUpgrade(id){const u=UPGRADES.find(x=>x.id===id);const lvl=state.upgrades[id];if(lvl>=u.max){return}const cost=Math.floor(u.baseCost*(1+lvl*0.6));if(state.coins<cost){toast('Za mało monet!');return}state.coins-=cost;state.upgrades[id]++;saveState();toast('Ulepszono!');renderShop()}
 window.buyUpgrade=buyUpgrade;
-function checkMilestones(){MILESTONES.forEach(m=>{if(!state.completedMilestones.includes(m.id)&&m.check(state)){state.completedMilestones.push(m.id);if(m.reward.coins)state.coins+=m.reward.coins;if(m.reward.gems)state.gems+=m.reward.gems;toast('Kamień Milowy: '+m.name+'!');saveState()}})}
+function checkMilestones(){MILESTONES.forEach(m=>{if(!state.completedMilestones.includes(m.id)&&m.check(state)){state.completedMilestones.push(m.id);if(m.reward.coins)state.coins+=m.reward.coins;if(m.reward.gems)state.gems+=m.reward.gems;toast('Kamień Milowy: '+m.name+'!');saveState()}});if(typeof checkAchievements==='function')checkAchievements()}
 
 function rollRarity(crateType){const ct=CRATE_TYPES.find(c=>c.id===crateType);const mod=ct.mod||{};let total=0;const weights={};
 Object.keys(RARITIES).forEach(r=>{const w=RARITIES[r].dropRate*(mod[r]||1);weights[r]=w;total+=w});
@@ -674,7 +692,7 @@ state[ct.curr]-=ct.cost;const ch={...rollCharacter(crateType)};applyCharResult(c
 function openCrate10(crateType){const ct=CRATE_TYPES.find(c=>c.id===crateType);const total=ct.cost*10;if(state[ct.curr]<total){toast('Za mało!');return}
 state[ct.curr]-=total;crateQueue=[];for(let i=0;i<10;i++){const ch={...rollCharacter(crateType)};applyCharResult(ch);crateQueue.push(ch)}origQ=10;saveState();startCrateAnim()}
 window.openCrate=openCrate;window.openCrate10=openCrate10;
-function applyCharResult(ch){if(state.unlockedIds.has(ch.id)){state.duplicates[ch.id]=(state.duplicates[ch.id]||0)+1;ch._new=false}else{state.unlockedIds.add(ch.id);state.duplicates[ch.id]=1;ch._new=true}}
+function applyCharResult(ch){state.stats.cratesOpened=(state.stats.cratesOpened||0)+1;questProgress('crate',1);if(state.unlockedIds.has(ch.id)){state.duplicates[ch.id]=(state.duplicates[ch.id]||0)+1;ch._new=false}else{state.unlockedIds.add(ch.id);state.duplicates[ch.id]=1;ch._new=true}}
 
 let crateScene,crateCam,crateObj,crateParts=[],crateBeam=null,cratePhase='',cratePhaseT=0;
 function initCrateScene(){crateScene=new THREE.Scene();crateScene.background=new THREE.Color(0x050510);crateCam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,100);crateCam.position.set(0,1,5);crateCam.lookAt(0,0.5,0);
@@ -719,8 +737,10 @@ h+=`<div class="setrow"><span>🔊 Efekty</span><input class="slider" type="rang
 h+=`<div class="setrow"><span>👁️ Pole widzenia</span><input class="slider" type="range" min="60" max="95" value="${state.settings.fov}" oninput="setVol('fov',this.value)"><span id="fovV">${state.settings.fov}</span></div>`;
 h+=`<div class="setrow"><span>Mniej cząsteczek</span><input type="checkbox" ${state.settings.reducedParticles?'checked':''} onchange="toggleParticles(this.checked)"></div>`;
 h+=`<div class="minfo" style="text-align:center"><b>📊 Statystyki</b><br>Rozegrane gry: ${state.stats.gamesPlayed} · Najlepsze combo: x${state.stats.bestCombo}<br>Bossowie: ${state.stats.bossesKilled} · Krytyki: ${state.stats.critsLanded}<br>Power-upy: ${state.stats.powerupsGrabbed} · Czas: ${Math.floor(state.stats.timePlayed/60)}min</div>`;
-h+=`<div class="mbtns"><button class="btn red" onclick="resetProgress()">⚠️ Reset Postępu</button></div>`;
+h+=`<div class="mbtns"><button class="btn" onclick="closeModal('settingsModal');showTutorial2()">❓ Jak Grać</button><button class="btn red" onclick="resetProgress()">⚠️ Reset Postępu</button></div>`;
 document.getElementById('settingsBox').innerHTML=h;document.getElementById('settingsModal').classList.add('active')}
+function showTutorial2(){const seen=state.tutorialSeen;state.tutorialSeen=true;showTutorial();const b=document.getElementById('tutorialBox');b.querySelector('.btn').setAttribute('onclick',"document.getElementById('tutorialModal').classList.remove('active')");b.querySelector('.btn').textContent='Zamknij';state.tutorialSeen=seen||true}
+window.showTutorial2=showTutorial2;
 window.openSettings=openSettings;
 function setSens(v){state.sensitivity=+v;document.getElementById('sensV').textContent=v;saveState()}
 window.setSens=setSens;
@@ -732,8 +752,17 @@ window.toggleParticles=toggleParticles;
 function resetProgress(){if(confirm('Na pewno zresetować cały postęp?')){localStorage.removeItem(SAVE_KEY);location.reload()}}
 window.resetProgress=resetProgress;
 
-function goPlay(){Audio2.init();applyAudio();Audio2.resume();renderModeSelect();showScreen('modeSelect')}
+function goPlay(){Audio2.init();applyAudio();Audio2.resume();if(!state.tutorialSeen){showTutorial();return}renderModeSelect();showScreen('modeSelect')}
 window.goPlay=goPlay;
+function showTutorial(){const m=isMobile;
+let h=`<div class="mname">Jak Grać</div><div class="minfo" style="line-height:1.7">`;
+if(m){h+=`📱 <b>Lewy joystick</b> — ruch<br>📱 <b>Prawy joystick</b> — rozglądanie<br>⚔️ <b>Czerwony przycisk</b> — atak<br>💥 <b>Q</b> — super atak (silny, długi cooldown)<br>🛡️ <b>E</b> — tarcza (blokuje obrażenia)<br>👤 <b>R</b> — forma cienia (nietykalność + szybkość)`}
+else{h+=`⌨️ <b>WASD</b> — ruch · <b>Shift</b> — bieg<br>🖱️ <b>Mysz</b> — rozglądanie · <b>LPM</b> — atak<br>💥 <b>Q</b> — super atak (silny, długi cooldown)<br>🛡️ <b>E</b> — tarcza (blokuje obrażenia)<br>👤 <b>R</b> — forma cienia (nietykalność + szybkość)<br><b>ESC</b> — pauza`}
+h+=`</div><div class="minfo" style="line-height:1.6">⭐ Buduj <b>combo</b> zabijając szybko — więcej monet!<br>💗 Zbieraj <b>power-upy</b> wypadające z wrogów<br>👹 Pokonuj <b>bossów</b> co 5 fal<br>🌟 Zdobywaj poziomy i wydawaj punkty na <b>talenty</b><br>📦 Otwieraj skrzynki by zebrać 60 bohaterów</div>`;
+h+=`<div class="mbtns"><button class="btn green" onclick="finishTutorial()">Zaczynamy!</button></div>`;
+document.getElementById('tutorialBox').innerHTML=h;document.getElementById('tutorialModal').classList.add('active')}
+function finishTutorial(){state.tutorialSeen=true;saveState();document.getElementById('tutorialModal').classList.remove('active');renderModeSelect();showScreen('modeSelect')}
+window.finishTutorial=finishTutorial;window.showTutorial=showTutorial;
 function renderModeSelect(){const g=document.getElementById('modeGrid');let h='';
 GAME_MODES.forEach(m=>{const unlocked=state.highWave>=m.unlock;const rec=state.modeRecords[m.id]||0;
 h+=`<div class="modecard ${unlocked?'':'locked'}" onclick="${unlocked?`pickMode('${m.id}')`:`toast('Odblokuj na fali ${m.unlock} w Przetrwaniu!')`}"><div class="me">${m.emoji}</div><h3>${m.name}</h3><p>${m.desc}</p>${unlocked?`<div style="color:#ffcc44;font-size:12px;margin-top:8px">Rekord: ${rec}</div>`:`<div style="color:#ff6a6a;font-size:12px;margin-top:8px">🔒 Fala ${m.unlock}</div>`}</div>`});
@@ -743,7 +772,8 @@ function pickMode(id){gameMode=id;Audio2.sfx('click');renderCharSelect();showScr
 window.pickMode=pickMode;
 function renderMenuLevel(){const el=document.getElementById('menuLevel');if(!el)return;const need=xpForLevel(state.level);const pct=Math.min(100,state.xp/need*100);
 el.innerHTML=`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="color:#c44aff;font-weight:700">⭐ Poziom ${state.level}</span><span style="color:#888">${state.xp}/${need} XP</span></div><div style="height:8px;background:#0006;border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#b44aff,#ff4a8a)"></div></div><div style="margin-top:6px;font-size:12px;color:#888"><span class="pill coin">💰 ${state.coins}</span> <span class="pill gem">💎 ${state.gems}</span></div>`;
-const tb=document.getElementById('tpBadge');if(tb)tb.textContent=state.talentPoints>0?'('+state.talentPoints+')':''}
+const tb=document.getElementById('tpBadge');if(tb)tb.textContent=state.talentPoints>0?'('+state.talentPoints+')':'';
+checkDaily();const db=document.getElementById('dailyBadge');if(db){const avail=state.lastDailyReward!==todayStr()||state.daily.quests.some(q=>q.done&&!q.claimed);db.textContent=avail?'🔴':''}}
 function renderTalents(){document.getElementById('talPts').textContent=state.talentPoints+' PKT';
 document.getElementById('talentInfo').textContent='Zdobywaj poziomy w arenie aby otrzymać punkty talentów. Każdy poziom = +1 punkt.';
 const g=document.getElementById('talentGrid');let h='';
@@ -753,6 +783,59 @@ g.innerHTML=h}
 window.renderTalents=renderTalents;
 function buyTalent(id){const t=TALENTS.find(x=>x.id===id);if(state.talentPoints<=0||state.talents[id]>=t.max)return;state.talentPoints--;state.talents[id]++;Audio2.sfx('powerup');saveState();renderTalents()}
 window.buyTalent=buyTalent;
+
+// ===== DAILY REWARDS / QUESTS / ACHIEVEMENTS =====
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+const DAILY_REWARDS=[{c:200},{c:300},{c:400,g:2},{c:500},{c:600,g:3},{c:800},{c:1000,g:8}];
+const QUEST_POOL=[
+{type:'kills',mk:()=>({desc:'Zabij {t} wrogów',t:40+Math.floor(Math.random()*8)*10,r:{coins:250}})},
+{type:'wave',mk:()=>({desc:'Osiągnij falę {t}',t:8+Math.floor(Math.random()*6),r:{coins:300}})},
+{type:'boss',mk:()=>({desc:'Pokonaj {t} bossów',t:1+Math.floor(Math.random()*2),r:{coins:300,gems:2}})},
+{type:'crate',mk:()=>({desc:'Otwórz {t} skrzynek',t:3+Math.floor(Math.random()*5),r:{coins:200}})},
+{type:'powerup',mk:()=>({desc:'Zbierz {t} power-upów',t:5+Math.floor(Math.random()*6),r:{coins:250}})},
+{type:'crit',mk:()=>({desc:'Zadaj {t} trafień krytycznych',t:20+Math.floor(Math.random()*4)*10,r:{coins:300}})}
+];
+function genDailyQuests(){const pool=[...QUEST_POOL].sort(()=>Math.random()-0.5).slice(0,3);
+return pool.map(p=>{const q=p.mk();return{type:p.type,desc:q.desc.replace('{t}',q.t),target:q.t,progress:0,reward:q.r,done:false,claimed:false}})}
+function checkDaily(){const t=todayStr();if(state.daily.date!==t){state.daily={date:t,quests:genDailyQuests()};saveState()}}
+function questProgress(type,amt){if(!state.daily.quests)return;let changed=false;
+state.daily.quests.forEach(q=>{if(q.type===type&&!q.done){q.progress=Math.min(q.target,q.progress+amt);if(q.progress>=q.target){q.done=true;changed=true}}});
+if(changed)saveState()}
+function questSetMax(type,val){if(!state.daily.quests)return;state.daily.quests.forEach(q=>{if(q.type===type&&!q.done&&val>=q.target){q.progress=q.target;q.done=true;saveState()}else if(q.type===type&&val>q.progress){q.progress=Math.min(q.target,val)}})}
+const ACHIEVEMENTS=[
+{id:'first',name:'Pierwsza Krew',emoji:'🩸',desc:'Zabij pierwszego wroga',check:s=>s.totalKills>=1,r:{coins:100}},
+{id:'combo20',name:'Mistrz Combo',emoji:'🔥',desc:'Osiągnij combo x20',check:s=>s.stats.bestCombo>=20,r:{gems:5}},
+{id:'combo50',name:'Legenda Combo',emoji:'💥',desc:'Osiągnij combo x50',check:s=>s.stats.bestCombo>=50,r:{gems:15}},
+{id:'boss10',name:'Pogromca Bossów',emoji:'👹',desc:'Pokonaj 10 bossów',check:s=>s.stats.bossesKilled>=10,r:{gems:10}},
+{id:'boss50',name:'Zabójca Tytanów',emoji:'☠️',desc:'Pokonaj 50 bossów',check:s=>s.stats.bossesKilled>=50,r:{gems:30}},
+{id:'coll30',name:'Kolekcjoner',emoji:'📚',desc:'Odblokuj 30 bohaterów',check:s=>s.unlockedIds.size>=30,r:{gems:10}},
+{id:'collall',name:'Kompletny Zbiór',emoji:'🏆',desc:'Odblokuj wszystkich 60 bohaterów',check:s=>s.unlockedIds.size>=60,r:{gems:100}},
+{id:'asc1',name:'Wzniesienie',emoji:'⭐',desc:'Wznieś bohatera',check:s=>Object.keys(s.ascension).length>=1,r:{gems:8}},
+{id:'lvl20',name:'Weteran',emoji:'🎖️',desc:'Osiągnij poziom 20',check:s=>s.level>=20,r:{gems:15}},
+{id:'crit500',name:'Snajper',emoji:'🎯',desc:'Zadaj 500 trafień krytycznych',check:s=>s.stats.critsLanded>=500,r:{gems:12}},
+{id:'crate50',name:'Hazardzista',emoji:'🎰',desc:'Otwórz 50 skrzynek',check:s=>s.stats.cratesOpened>=50,r:{gems:15}},
+{id:'pu100',name:'Zbieracz',emoji:'🧲',desc:'Zbierz 100 power-upów',check:s=>s.stats.powerupsGrabbed>=100,r:{gems:12}}
+];
+function checkAchievements(){let any=false;ACHIEVEMENTS.forEach(a=>{if(!state.achievements.includes(a.id)&&a.check(state)){state.achievements.push(a.id);if(a.r.coins)state.coins+=a.r.coins;if(a.r.gems)state.gems+=a.r.gems;Audio2.sfx('levelup');toast('🏆 Osiągnięcie: '+a.name+'!');any=true}});if(any)saveState()}
+function claimDailyReward(){const t=todayStr();if(state.lastDailyReward===t){toast('Już odebrano dzisiaj!');return}
+const yest=new Date(Date.now()-86400000);const ys=yest.getFullYear()+'-'+(yest.getMonth()+1)+'-'+yest.getDate();
+state.dailyStreak=(state.lastDailyReward===ys)?(state.dailyStreak+1):1;state.lastDailyReward=t;
+const rw=DAILY_REWARDS[Math.min(state.dailyStreak-1,DAILY_REWARDS.length-1)];
+state.coins+=rw.c;if(rw.g)state.gems+=rw.g;Audio2.sfx('reveal');toast('🎁 Dzień '+state.dailyStreak+': +'+rw.c+'💰'+(rw.g?' +'+rw.g+'💎':''));saveState();renderTasks()}
+window.claimDailyReward=claimDailyReward;
+function claimQuest(i){const q=state.daily.quests[i];if(!q||!q.done||q.claimed)return;q.claimed=true;if(q.reward.coins)state.coins+=q.reward.coins;if(q.reward.gems)state.gems+=q.reward.gems;Audio2.sfx('powerup');toast('✅ Nagroda odebrana!');saveState();renderTasks()}
+window.claimQuest=claimQuest;
+function renderTasks(){checkDaily();checkAchievements();const t=todayStr();const claimed=state.lastDailyReward===t;
+const nextDay=Math.min(state.dailyStreak+(claimed?0:1),DAILY_REWARDS.length);const rw=DAILY_REWARDS[Math.min((claimed?state.dailyStreak:state.dailyStreak)-(claimed?1:0),DAILY_REWARDS.length-1)]||DAILY_REWARDS[0];
+let h=`<div class="minfo" style="margin:12px 18px;text-align:center"><b>🎁 Codzienna Nagroda</b><br><span style="color:#888;font-size:12px">Seria: ${state.dailyStreak} dni</span><br><button class="btn ${claimed?'':'green'}" style="margin-top:8px" ${claimed?'disabled':''} onclick="claimDailyReward()">${claimed?'Odebrano dzisiaj ✓':'Odbierz nagrodę'}</button></div>`;
+h+=`<h3 style="margin:16px 18px 6px;font-family:Cinzel;color:#c44aff">📋 Dzienne Wyzwania</h3>`;
+state.daily.quests.forEach((q,i)=>{const pct=Math.min(100,q.progress/q.target*100);const rw=[];if(q.reward.coins)rw.push(q.reward.coins+'💰');if(q.reward.gems)rw.push(q.reward.gems+'💎');
+h+=`<div class="mscard ${q.done?'done':''}" style="display:block"><div style="display:flex;align-items:center;gap:10px"><div class="msinfo"><b>${q.desc}</b><p>${q.progress}/${q.target} · Nagroda: ${rw.join(' ')}</p></div>${q.done?(q.claimed?'<span style="color:#3a9a5a">✅</span>':`<button class="btn small green" onclick="claimQuest(${i})">Odbierz</button>`):''}</div><div style="height:5px;background:#0006;border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#b44aff,#ff4a8a)"></div></div></div>`});
+h+=`<h3 style="margin:16px 18px 6px;font-family:Cinzel;color:#c44aff">🏆 Osiągnięcia (${state.achievements.length}/${ACHIEVEMENTS.length})</h3>`;
+ACHIEVEMENTS.forEach(a=>{const done=state.achievements.includes(a.id);const rw=[];if(a.r.coins)rw.push(a.r.coins+'💰');if(a.r.gems)rw.push(a.r.gems+'💎');
+h+=`<div class="mscard ${done?'done':''}"><div class="mse">${done?a.emoji:'🔒'}</div><div class="msinfo"><b>${a.name}</b><p>${a.desc}</p></div><div class="msrew">${done?'✅':rw.join(' ')}</div></div>`});
+document.getElementById('tasksContent').innerHTML=h}
+window.renderTasks=renderTasks;
 function renderCharSelect(){const g=document.getElementById('selectGrid');let h='';
 [...state.unlockedIds].map(charById).sort((a,b)=>b.id-a.id).forEach(c=>{const r=RARITIES[c.rarity];
 h+=`<div class="card rar-${c.rarity}" style="border-color:${r.color};color:${r.color}" onclick="openCharModal(${c.id})"><div class="emoji" style="color:#e8e8ff">${c.emoji}</div><div class="cname" style="color:#e8e8ff">${c.name}</div><div class="crar" style="color:${r.color}">${r.label}</div></div>`});
@@ -764,25 +847,25 @@ renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(deviceP
 const clock=new THREE.Clock();
 let scene,camera;
 let arenaOrbs=[],arenaRunes=[],atmosParticles=null;
-function buildArena(){
-scene=new THREE.Scene();scene.background=new THREE.Color(0x080812);scene.fog=new THREE.FogExp2(0x080812,0.018);
-camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,200);camera.position.set(0,1.6,0);
-scene.add(new THREE.AmbientLight(0x303048,1.0));
-const dl=new THREE.DirectionalLight(0x9a7aff,0.8);dl.position.set(10,20,10);scene.add(dl);
-const pl=new THREE.PointLight(0xb44aff,1.5,60);pl.position.set(0,12,0);scene.add(pl);
-const floor=new THREE.Mesh(new THREE.CircleGeometry(35,64),new THREE.MeshStandardMaterial({color:0x12122a,metalness:0.4,roughness:0.7}));floor.rotation.x=-Math.PI/2;scene.add(floor);
-const ring=new THREE.Mesh(new THREE.TorusGeometry(35,0.5,12,64),new THREE.MeshStandardMaterial({color:0x6a3a9a,emissive:0x4a2a7a,emissiveIntensity:0.6}));ring.rotation.x=-Math.PI/2;ring.position.y=0.2;scene.add(ring);
-const wall=new THREE.Mesh(new THREE.CylinderGeometry(36,36,12,64,1,true),new THREE.MeshStandardMaterial({color:0x1a1a3a,side:THREE.BackSide,transparent:true,opacity:0.7}));wall.position.y=6;scene.add(wall);
+function buildArena(){const th=currentTheme;
+scene=new THREE.Scene();scene.background=new THREE.Color(th.bg);scene.fog=new THREE.FogExp2(th.fog,0.018);
+camera=new THREE.PerspectiveCamera(state.settings.fov||75,innerWidth/innerHeight,0.1,200);camera.position.set(0,1.6,0);
+scene.add(new THREE.AmbientLight(th.amb,1.0));
+const dl=new THREE.DirectionalLight(th.dir,0.8);dl.position.set(10,20,10);scene.add(dl);
+const pl=new THREE.PointLight(th.orb,1.5,60);pl.position.set(0,12,0);scene.add(pl);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(35,64),new THREE.MeshStandardMaterial({color:th.floor,metalness:0.4,roughness:0.7}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(35,0.5,12,64),new THREE.MeshStandardMaterial({color:th.ring,emissive:th.ringE,emissiveIntensity:0.6}));ring.rotation.x=-Math.PI/2;ring.position.y=0.2;scene.add(ring);
+const wall=new THREE.Mesh(new THREE.CylinderGeometry(36,36,12,64,1,true),new THREE.MeshStandardMaterial({color:th.wall,side:THREE.BackSide,transparent:true,opacity:0.7}));wall.position.y=6;scene.add(wall);
 arenaOrbs=[];
 for(let i=0;i<12;i++){const a=(i/12)*Math.PI*2;const x=Math.cos(a)*30,z=Math.sin(a)*30;
 const pil=new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.0,9,12),new THREE.MeshStandardMaterial({color:0x2a2a4a,metalness:0.5,roughness:0.5}));pil.position.set(x,4.5,z);scene.add(pil);
-const orb=new THREE.Mesh(new THREE.SphereGeometry(0.6,16,16),new THREE.MeshStandardMaterial({color:0xb44aff,emissive:0xb44aff,emissiveIntensity:1.5}));orb.position.set(x,9.5,z);scene.add(orb);arenaOrbs.push(orb)}
+const orb=new THREE.Mesh(new THREE.SphereGeometry(0.6,16,16),new THREE.MeshStandardMaterial({color:th.orb,emissive:th.orb,emissiveIntensity:1.5}));orb.position.set(x,9.5,z);scene.add(orb);arenaOrbs.push(orb)}
 arenaRunes=[];
-for(let i=0;i<5;i++){const rad=8+i*5;const rune=new THREE.Mesh(new THREE.RingGeometry(rad,rad+0.3,48),new THREE.MeshBasicMaterial({color:0x6a3aaa,transparent:true,opacity:0.4,side:THREE.DoubleSide}));rune.rotation.x=-Math.PI/2;rune.position.y=0.05;scene.add(rune);arenaRunes.push(rune)}
+for(let i=0;i<5;i++){const rad=8+i*5;const rune=new THREE.Mesh(new THREE.RingGeometry(rad,rad+0.3,48),new THREE.MeshBasicMaterial({color:th.rune,transparent:true,opacity:0.4,side:THREE.DoubleSide}));rune.rotation.x=-Math.PI/2;rune.position.y=0.05;scene.add(rune);arenaRunes.push(rune)}
 const pc=state.settings.reducedParticles?120:300;const pg=new THREE.BufferGeometry();const pos=new Float32Array(pc*3);
 for(let i=0;i<pc;i++){pos[i*3]=(Math.random()-0.5)*70;pos[i*3+1]=Math.random()*15;pos[i*3+2]=(Math.random()-0.5)*70}
 pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
-atmosParticles=new THREE.Points(pg,new THREE.PointsMaterial({color:0x9a5aff,size:0.15,transparent:true,opacity:0.6}));scene.add(atmosParticles);
+atmosParticles=new THREE.Points(pg,new THREE.PointsMaterial({color:th.atmos,size:0.15,transparent:true,opacity:0.6}));scene.add(atmosParticles);
 initParticlePool()}
 
 let particlePool=[];const PARTICLE_GEO=new THREE.SphereGeometry(0.08,4,4);
@@ -825,7 +908,7 @@ if(o.life<=0){scene.remove(o.group);powerupOrbs.splice(i,1)}}
 for(const k in activePowerups){activePowerups[k]-=dt;if(activePowerups[k]<=0)delete activePowerups[k]}
 renderPuBanner()}
 function isPowerupActive(id){return activePowerups[id]>0}
-function collectPowerup(pu){Audio2.sfx('powerup');state.stats.powerupsGrabbed++;floatDmg(camera.position.clone().add(getForward().multiplyScalar(3)).setY(2),pu.name,'#'+pu.color.toString(16).padStart(6,'0'));
+function collectPowerup(pu){Audio2.sfx('powerup');state.stats.powerupsGrabbed++;questProgress('powerup',1);floatDmg(camera.position.clone().add(getForward().multiplyScalar(3)).setY(2),pu.name,'#'+pu.color.toString(16).padStart(6,'0'));
 addTempLight(camera.position.clone(),pu.color,3,15,0.5);
 if(pu.instant){
 if(pu.id==='heal'){player.hp=Math.min(player.maxHp,player.hp+player.maxHp*0.4);doFlash('#4aff8a',0.25)}
@@ -868,6 +951,7 @@ function getActiveStyle(c){if(!c.hasFightingStyles)return null;const styles=FIGH
 let modeTimer=0;
 function startGame(){
 const c=charById(state.selectedId);
+currentTheme=ARENA_THEMES[Math.floor(Math.random()*ARENA_THEMES.length)];
 buildArena();
 const style=getActiveStyle(c);
 const stars=ascensionStars(c.id);const starMul=1+stars*0.1;
@@ -894,7 +978,7 @@ const gm=GAME_MODES.find(m=>m.id===gameMode);document.getElementById('hudMode').
 document.getElementById('mobileControls').classList.toggle('active',isMobile);
 Audio2.init();applyAudio();Audio2.resume();Audio2.startMusic();
 spawnShadowMinions();
-updateHUD();
+updateHUD();toast('🏟️ '+currentTheme.name);
 if(!isMobile)requestPointerLock();
 }
 window.startGame=startGame;
@@ -954,7 +1038,7 @@ currentMutator=null;
 if(!isBoss&&wave>=3&&Math.random()<0.45){currentMutator=MUTATORS[Math.floor(Math.random()*MUTATORS.length)];setTimeout(()=>announceMutator(currentMutator),900)}
 if(isBoss){spawnBoss();waveMobsToSpawn=gameMode==='bossrush'?0:Math.floor(wave*0.7);waveSpawnTimer=2}
 else{waveMobsToSpawn=5+wave*3;if(gameMode==='endless')waveMobsToSpawn=Math.floor((5+wave*3)*1.3);if(currentMutator&&currentMutator.id==='horde')waveMobsToSpawn=Math.floor(waveMobsToSpawn*1.6);if(gameMode==='timeattack')waveMobsToSpawn=999;waveSpawnTimer=0}
-waveActive=true;betweenWaves=false;updateHUD()}
+waveActive=true;betweenWaves=false;questSetMax('wave',wave);updateHUD()}
 function announceMutator(mut){const e=document.getElementById('bossAnno');e.style.color=mut.color;e.style.textShadow='0 0 30px '+mut.color;e.textContent=mut.emoji+' '+mut.name.toUpperCase();e.classList.remove('show');void e.offsetWidth;e.classList.add('show');toast(mut.emoji+' '+mut.name+': '+mut.desc);Audio2.sfx('boss')}
 function checkWaveEnd(){if(!waveActive)return;if(gameMode==='timeattack')return;if(waveMobsToSpawn<=0&&mobs.length===0&&!boss)endWave()}
 function endWave(){waveActive=false;betweenWaves=true;betweenTimer=gameMode==='bossrush'?1.5:2.5;
@@ -1057,7 +1141,7 @@ projectiles.push({mesh:m,vel:dir.clone().multiplyScalar(kind==='super'?28:22),dm
 
 function damageMob(m,dmg,fromPlayer,statusId){if(m.dead||m._dissolve!==undefined)return;
 let crit=false;
-if(fromPlayer){if(Math.random()<critChance()){crit=true;dmg*=2.2;state.stats.critsLanded++}dmg*=statusDmgTaken(m);if(statusId)applyStatus(m,statusId)}
+if(fromPlayer){if(Math.random()<critChance()){crit=true;dmg*=2.2;state.stats.critsLanded++;questProgress('crit',1)}dmg*=statusDmgTaken(m);if(statusId)applyStatus(m,statusId)}
 m.hp-=dmg;
 if(fromPlayer&&player.lifesteal>0&&player.hp<player.maxHp){player.hp=Math.min(player.maxHp,player.hp+dmg*player.lifesteal)}
 spawnHitParticles(m.group.position.clone().setY(1),crit?0xff3a6a:(m===boss?0xffff00:0xffaa00));
@@ -1069,7 +1153,7 @@ function killMob(m,byPlayer){if(m.dead)return;m.dead=true;
 spawnDeathParticles(m.group.position.clone().setY(1),m.type.color);
 addTempLight(m.group.position.clone().setY(1),m.type.color,2,6,0.3);
 m._dissolve=0.4;m._dissolveT=0.4;
-kills++;Audio2.sfx('death');if(byPlayer)addCombo();gainXP((2+wave*0.5)*(m.elite?3:1));
+kills++;Audio2.sfx('death');if(byPlayer)addCombo();gainXP((2+wave*0.5)*(m.elite?3:1));questProgress('kills',1);
 const golden=(currentMutator&&currentMutator.id==='golden')?2:1;const eliteC=m.elite?3:1;
 const coinUp=(1+state.upgrades.magnet*0.15)*(1+state.talents.coin*0.08)*(isPowerupActive('magnet')?1.5:1)*comboMult()*(gameMode==='timeattack'?1.5:1)*golden*eliteC;
 sessionCoins+=Math.round((5+wave*2)*coinUp);
@@ -1079,7 +1163,7 @@ updateHUD()}
 function killBoss(byPlayer){if(!boss)return;const bp=boss.group.position.clone();
 spawnSuperParticles(bp.clone().setY(2),new THREE.Color(boss.type.color));
 addTempLight(bp.clone().setY(1),boss.type.color,5,30,1.0);doScreenShake(1.5);doFlash('#ffaa00',0.5);Audio2.sfx('bosskill');
-const coinUp=(1+state.upgrades.magnet*0.15)*(1+state.talents.coin*0.08)*(gameMode==='bossrush'?1.5:1);const cg=Math.round((200+wave*30)*coinUp);sessionCoins+=cg;state.gems+=2;state.stats.bossesKilled++;gainXP(50+wave*5);
+const coinUp=(1+state.upgrades.magnet*0.15)*(1+state.talents.coin*0.08)*(gameMode==='bossrush'?1.5:1);const cg=Math.round((200+wave*30)*coinUp);sessionCoins+=cg;state.gems+=2;state.stats.bossesKilled++;gainXP(50+wave*5);questProgress('boss',1);
 for(let i=0;i<20;i++)spawnParticle(bp.clone().setY(1),0xffcc44,new THREE.Vector3((Math.random()-0.5)*8,Math.random()*8+2,(Math.random()-0.5)*8),1.5);
 kills++;if(byPlayer)addCombo();spawnPowerupOrb(bp.clone());
 toast('BOSS POKONANY! +'+cg+'💰 +2💎');
@@ -1145,7 +1229,7 @@ updateCombo(dt);updatePowerups(dt);
 if(smSuperActive>0){smSuperActive-=dt;if(Math.random()<dt*8)[...mobs,...(boss?[boss]:[])].forEach(m=>{if(!m.dead&&m._dissolve===undefined&&m.group.position.distanceTo(camera.position)<10)damageMob(m,player.dmg*0.5,true,'weaken')});if(smSuperActive<=0)document.getElementById('shadowOverlay').style.opacity=shadowFormActive>0?0.5:0}
 for(const k in abilityCD)if(abilityCD[k]>0)abilityCD[k]=Math.max(0,abilityCD[k]-dt);
 if(shieldActive>0){shieldActive-=dt;if(player.shieldMesh){player.shieldMesh.position.copy(camera.position);player.shieldMesh.scale.setScalar(1+Math.sin(performance.now()*0.01)*0.05)}if(shieldActive<=0&&player.shieldMesh)player.shieldMesh.visible=false}
-if(shadowFormActive>0){shadowFormActive-=dt;if(Math.random()<dt*10)spawnParticle(camera.position.clone().setY(0.5+Math.random()),0x9a4aff,new THREE.Vector3((Math.random()-0.5),Math.random()*2,(Math.random()-0.5)),0.6);if(shadowFormActive<=0){document.getElementById('shadowOverlay').style.opacity=smSuperActive>0?0.7:(player.isGhost?0.6:0);if(scene.fog)scene.fog.color.set(0x080812)}}
+if(shadowFormActive>0){shadowFormActive-=dt;if(Math.random()<dt*10)spawnParticle(camera.position.clone().setY(0.5+Math.random()),0x9a4aff,new THREE.Vector3((Math.random()-0.5),Math.random()*2,(Math.random()-0.5)),0.6);if(shadowFormActive<=0){document.getElementById('shadowOverlay').style.opacity=smSuperActive>0?0.7:(player.isGhost?0.6:0);if(scene.fog)scene.fog.color.set(currentTheme.fog)}}
 if(betweenWaves){betweenTimer-=dt;if(betweenTimer<=0)startWave()}
 if(waveActive&&waveMobsToSpawn>0&&mobs.length<(isMobile?22:40)){waveSpawnTimer-=dt;if(waveSpawnTimer<=0){spawnMob();waveMobsToSpawn--;const swarm=(currentMutator&&currentMutator.id==='swarm')?0.5:1;waveSpawnTimer=Math.max(0.3,1.2-wave*0.03)*swarm*(gameMode==='timeattack'?0.6:1)}}
 checkWaveEnd();
