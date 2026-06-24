@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Arena Cieni — Kolekcjoner Bohaterów</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Orbitron:wght@400;700;900&display=swap');
+:root{
+  --bg:#0a0a12;--card:#13132a;--border:#2a2a4a;
+  --common:#8a8a8a;--rare:#4a9eff;--epic:#b44aff;
+  --mythic:#ff4a8a;--legendary:#ffaa00;--ultimate:#ff4444;
+  --unknown:#00ffaa;--secret:#ff00ff;
+  --text:#e0e0f0;--text2:#8888aa;
+  --glow:0 0 20px rgba(100,100,255,0.3);
+  --shadow-purple:#6a0dad;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Orbitron',sans-serif;}
+canvas{display:block;}
+
+/* ===== SCREENS ===== */
+.screen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:100;flex-direction:column;align-items:center;overflow-y:auto;}
+.screen.active{display:flex;}
+
+/* ===== MAIN MENU ===== */
+#screen-menu{
+  background:radial-gradient(ellipse at center,#1a1040 0%,#0a0a12 70%);
+  justify-content:center;gap:20px;
+}
+#screen-menu .title{
+  font-family:'Cinzel',serif;font-size:clamp(2rem,6vw,4.5rem);font-weight:900;
+  text-align:center;margin-bottom:20px;
+  background:linear-gradient(135deg,#b44aff,#6a0dad,#ff4a8a);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 0 60px rgba(106,13,173,0.5);
+  animation:titlePulse 3s ease-in-out infinite;
+}
+@keyframes titlePulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.3);}}
+#screen-menu .subtitle{font-size:clamp(0.7rem,2vw,1rem);color:var(--text2);margin-bottom:30px;text-align:center;}
+.menu-btn{
+  width:280px;padding:16px 0;border:2px solid var(--border);border-radius:12px;
+  background:linear-gradient(135deg,#1a1a3a,#13132a);color:var(--text);
+  font-family:'Orbitron',sans-serif;font-size:1rem;cursor:pointer;
+  transition:all .3s;text-transform:uppercase;letter-spacing:2px;
+}
+.menu-btn:hover{border-color:var(--epic);box-shadow:0 0 30px rgba(180,74,255,0.3);transform:scale(1.05);}
+.menu-btn.play{border-color:var(--epic);background:linear-gradient(135deg,#2a1050,#1a0830);}
+.menu-btn .coins-display{color:var(--legendary);font-size:0.8rem;margin-top:4px;}
+
+/* ===== COLLECTION ===== */
+#screen-collection{background:var(--bg);padding:20px;}
+.coll-header{
+  width:100%;display:flex;justify-content:space-between;align-items:center;
+  padding:10px 20px;flex-shrink:0;
+}
+.coll-header h2{font-family:'Cinzel',serif;font-size:1.5rem;}
+.back-btn{
+  padding:10px 20px;border:1px solid var(--border);border-radius:8px;
+  background:transparent;color:var(--text);cursor:pointer;font-family:'Orbitron',sans-serif;
+  font-size:0.8rem;
+}
+.back-btn:hover{border-color:var(--epic);}
+.coll-filters{
+  display:flex;gap:8px;padding:10px 20px;flex-wrap:wrap;flex-shrink:0;width:100%;
+}
+.filter-btn{
+  padding:6px 14px;border:1px solid var(--border);border-radius:20px;
+  background:transparent;color:var(--text2);cursor:pointer;font-size:0.7rem;
+  font-family:'Orbitron',sans-serif;transition:all .2s;
+}
+.filter-btn.active,.filter-btn:hover{color:#fff;border-color:var(--epic);background:rgba(180,74,255,0.2);}
+.filter-btn[data-r="common"].active{border-color:var(--common);background:rgba(138,138,138,0.2);}
+.filter-btn[data-r="rare"].active{border-color:var(--rare);background:rgba(74,158,255,0.2);}
+.filter-btn[data-r="epic"].active{border-color:var(--epic);background:rgba(180,74,255,0.2);}
+.filter-btn[data-r="mythic"].active{border-color:var(--mythic);background:rgba(255,74,138,0.2);}
+.filter-btn[data-r="legendary"].active{border-color:var(--legendary);background:rgba(255,170,0,0.2);}
+.filter-btn[data-r="ultimate"].active{border-color:var(--ultimate);background:rgba(255,68,68,0.2);}
+.filter-btn[data-r="unknown"].active{border-color:var(--unknown);background:rgba(0,255,170,0.2);}
+.filter-btn[data-r="secret"].active{border-color:var(--secret);background:rgba(255,0,255,0.2);}
+.coll-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;
+  padding:10px 20px 40px;width:100%;
+}
+.char-card{
+  border:2px solid var(--border);border-radius:12px;padding:12px;
+  background:var(--card);cursor:pointer;transition:all .3s;text-align:center;
+  position:relative;overflow:hidden;
+}
+.char-card:hover{transform:translateY(-4px);}
+.char-card.locked{opacity:0.4;filter:grayscale(1);}
+.char-card.locked .char-avatar{background:#222!important;}
+.char-card .char-avatar{
+  width:80px;height:80px;border-radius:50%;margin:0 auto 8px;
+  display:flex;align-items:center;justify-content:center;font-size:2rem;
+}
+.char-card .char-name{font-size:0.7rem;margin-bottom:4px;min-height:2em;}
+.char-card .char-rarity{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;}
+.char-card[data-r="common"]{border-color:rgba(138,138,138,0.3);}
+.char-card[data-r="common"] .char-rarity{color:var(--common);}
+.char-card[data-r="rare"]{border-color:rgba(74,158,255,0.3);}
+.char-card[data-r="rare"] .char-rarity{color:var(--rare);}
+.char-card[data-r="epic"]{border-color:rgba(180,74,255,0.3);}
+.char-card[data-r="epic"] .char-rarity{color:var(--epic);}
+.char-card[data-r="mythic"]{border-color:rgba(255,74,138,0.3);}
+.char-card[data-r="mythic"] .char-rarity{color:var(--mythic);}
+.char-card[data-r="legendary"]{border-color:rgba(255,170,0,0.3);}
+.char-card[data-r="legendary"] .char-rarity{color:var(--legendary);}
+.char-card[data-r="legendary"]:not(.locked){animation:legendGlow 2s ease-in-out infinite;}
+.char-card[data-r="ultimate"]{border-color:rgba(255,68,68,0.3);}
+.char-card[data-r="ultimate"] .char-rarity{color:var(--ultimate);}
+.char-card[data-r="ultimate"]:not(.locked){animation:ultGlow 1.5s ease-in-out infinite;}
+.char-card[data-r="unknown"]{border-color:rgba(0,255,170,0.3);}
+.char-card[data-r="unknown"] .char-rarity{color:var(--unknown);}
+.char-card[data-r="secret"]{border-color:rgba(255,0,255,0.3);}
+.char-card[data-r="secret"] .char-rarity{color:var(--secret);}
+.char-card[data-r="secret"]:not(.locked){animation:secretGlow 1s ease-in-out infinite;}
+@keyframes legendGlow{0%,100%{box-shadow:0 0 10px rgba(255,170,0,0.2);}50%{box-shadow:0 0 30px rgba(255,170,0,0.5);}}
+@keyframes ultGlow{0%,100%{box-shadow:0 0 10px rgba(255,68,68,0.3);}50%{box-shadow:0 0 40px rgba(255,68,68,0.6);}}
+@keyframes secretGlow{0%,100%{box-shadow:0 0 15px rgba(255,0,255,0.3);}50%{box-shadow:0 0 50px rgba(255,0,255,0.7);}}
+
+/* ===== CHARACTER DETAIL MODAL ===== */
+.modal-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);
+  display:none;z-index:200;align-items:center;justify-content:center;
+}
+.modal-overlay.active{display:flex;}
+.modal-card{
+  background:var(--card);border:2px solid var(--border);border-radius:16px;
+  padding:30px;max-width:400px;width:90%;text-align:center;position:relative;
+}
+.modal-card .close-modal{
+  position:absolute;top:10px;right:15px;background:none;border:none;
+  color:var(--text2);font-size:1.5rem;cursor:pointer;
+}
+.modal-card .detail-avatar{
+  width:120px;height:120px;border-radius:50%;margin:0 auto 15px;
+  display:flex;align-items:center;justify-content:center;font-size:3.5rem;
+}
+.modal-card h3{font-family:'Cinzel',serif;font-size:1.3rem;margin-bottom:5px;}
+.modal-card .detail-rarity{font-size:0.75rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:15px;}
+.modal-card .detail-clan{font-size:0.7rem;color:var(--text2);margin-bottom:15px;}
+.stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.stat-row .stat-label{color:var(--text2);font-size:0.75rem;}
+.stat-row .stat-val{font-size:0.75rem;}
+.detail-super{margin-top:15px;padding:12px;background:rgba(180,74,255,0.1);border-radius:8px;text-align:left;}
+.detail-super h4{font-size:0.8rem;margin-bottom:5px;color:var(--epic);}
+.detail-super p{font-size:0.7rem;color:var(--text2);line-height:1.4;}
+.btn-select{
+  margin-top:15px;padding:12px 30px;border:2px solid var(--epic);border-radius:8px;
+  background:linear-gradient(135deg,#2a1050,#1a0830);color:#fff;
+  font-family:'Orbitron',sans-serif;font-size:0.85rem;cursor:pointer;transition:all .3s;
+}
+.btn-select:hover{box-shadow:0 0 20px rgba(180,74,255,0.4);transform:scale(1.05);}
+.btn-select:disabled{opacity:0.3;cursor:not-allowed;}
+
+/* ===== CRATE SCREEN ===== */
+#screen-crates{background:radial-gradient(ellipse at center,#1a1040 0%,#0a0a12 70%);justify-content:center;gap:20px;}
+.crate-box{
+  width:200px;height:200px;border:3px solid var(--epic);border-radius:20px;
+  background:linear-gradient(135deg,#2a1060,#1a0830);
+  display:flex;align-items:center;justify-content:center;font-size:5rem;
+  cursor:pointer;transition:all .3s;position:relative;
+}
+.crate-box:hover{transform:scale(1.1) rotate(3deg);box-shadow:0 0 50px rgba(180,74,255,0.5);}
+.crate-box.opening{animation:crateShake 0.5s ease-in-out;}
+@keyframes crateShake{
+  0%,100%{transform:rotate(0);}
+  20%{transform:rotate(-10deg) scale(1.1);}
+  40%{transform:rotate(10deg) scale(1.15);}
+  60%{transform:rotate(-5deg) scale(1.2);}
+  80%{transform:rotate(5deg) scale(1.25);}
+}
+.crate-price{font-size:0.9rem;color:var(--legendary);}
+.crate-label{font-size:0.8rem;color:var(--text2);text-transform:uppercase;letter-spacing:2px;}
+
+/* ===== CRATE REVEAL ===== */
+#crate-reveal{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.95);display:none;z-index:300;
+  align-items:center;justify-content:center;flex-direction:column;
+}
+#crate-reveal.active{display:flex;}
+#crate-reveal .reveal-avatar{
+  width:160px;height:160px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:5rem;
+  animation:revealPop 0.6s cubic-bezier(0.175,0.885,0.32,1.275);
+  box-shadow:0 0 60px rgba(180,74,255,0.5);
+}
+@keyframes revealPop{0%{transform:scale(0) rotate(-180deg);opacity:0;}100%{transform:scale(1) rotate(0);opacity:1;}}
+#crate-reveal .reveal-name{font-family:'Cinzel',serif;font-size:1.8rem;margin-top:20px;animation:revealFade 0.8s ease-out 0.3s both;}
+#crate-reveal .reveal-rarity{font-size:1rem;text-transform:uppercase;letter-spacing:3px;margin-top:8px;animation:revealFade 0.8s ease-out 0.5s both;}
+#crate-reveal .reveal-new{font-size:0.8rem;color:var(--unknown);margin-top:10px;animation:revealFade 0.8s ease-out 0.7s both;}
+@keyframes revealFade{0%{opacity:0;transform:translateY(20px);}100%{opacity:1;transform:translateY(0);}}
+#crate-reveal .reveal-close{
+  margin-top:30px;padding:12px 40px;border:1px solid var(--border);border-radius:8px;
+  background:transparent;color:var(--text);cursor:pointer;font-family:'Orbitron',sans-serif;
+  animation:revealFade 0.8s ease-out 0.9s both;
+}
+.reveal-particles{position:absolute;width:100%;height:100%;pointer-events:none;overflow:hidden;}
+.reveal-particle{
+  position:absolute;width:6px;height:6px;border-radius:50%;
+  animation:particleFly 1.5s ease-out forwards;
+}
+@keyframes particleFly{
+  0%{transform:translate(0,0) scale(1);opacity:1;}
+  100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0;}
+}
+
+/* ===== CHARACTER SELECT ===== */
+#screen-select{background:var(--bg);padding:20px;}
+.select-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;
+  padding:10px 20px 40px;width:100%;
+}
+
+/* ===== GAME HUD ===== */
+#game-screen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;z-index:50;}
+#game-screen.active{display:block;}
+#game-canvas{width:100%;height:100%;}
+.hud{position:fixed;z-index:60;pointer-events:none;}
+.hud>*{pointer-events:auto;}
+#hud-top{top:10px;left:0;width:100%;display:flex;justify-content:center;gap:20px;padding:0 20px;}
+#hud-wave{
+  background:rgba(10,10,20,0.8);border:1px solid var(--epic);border-radius:8px;
+  padding:8px 20px;font-size:0.9rem;
+}
+#hud-coins{
+  background:rgba(10,10,20,0.8);border:1px solid var(--legendary);border-radius:8px;
+  padding:8px 20px;font-size:0.9rem;color:var(--legendary);
+}
+#hud-bottom{bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:15px;}
+.ability-slot{
+  width:70px;height:70px;border:2px solid var(--border);border-radius:12px;
+  background:rgba(10,10,20,0.8);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;position:relative;
+}
+.ability-slot .ability-icon{font-size:1.5rem;}
+.ability-slot .ability-key{font-size:0.6rem;color:var(--text2);margin-top:2px;}
+.ability-slot .ability-cd{
+  position:absolute;top:0;left:0;width:100%;height:100%;border-radius:10px;
+  background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;color:var(--ultimate);
+}
+.ability-slot .ability-cd.hidden{display:none;}
+#hud-hp{
+  position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:60;
+  width:300px;height:20px;background:rgba(10,10,20,0.8);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;
+}
+#hud-hp-fill{height:100%;background:linear-gradient(90deg,#ff4444,#ff6666);transition:width .3s;width:100%;}
+#hud-hp-text{
+  position:absolute;top:0;left:0;width:100%;height:100%;display:flex;
+  align-items:center;justify-content:center;font-size:0.65rem;
+}
+#hud-kills{
+  position:fixed;top:10px;right:20px;z-index:60;
+  background:rgba(10,10,20,0.8);border:1px solid var(--mythic);border-radius:8px;
+  padding:8px 15px;font-size:0.8rem;
+}
+#crosshair{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;
+  width:24px;height:24px;pointer-events:none;
+}
+#crosshair::before,#crosshair::after{
+  content:'';position:absolute;background:rgba(255,255,255,0.7);
+}
+#crosshair::before{width:2px;height:24px;left:11px;top:0;}
+#crosshair::after{width:24px;height:2px;left:0;top:11px;}
+#game-over{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:70;
+  background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:15px;
+}
+#game-over.active{display:flex;}
+#game-over h2{font-family:'Cinzel',serif;font-size:2.5rem;color:var(--ultimate);}
+#game-over .go-stats{font-size:0.9rem;color:var(--text2);}
+#pause-menu{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:65;
+  background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;
+}
+#pause-menu.active{display:flex;}
+#pause-menu h2{font-family:'Cinzel',serif;font-size:1.8rem;margin-bottom:10px;}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--epic);}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:600px){
+  .coll-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
+  .char-card .char-avatar{width:60px;height:60px;font-size:1.5rem;}
+  .ability-slot{width:55px;height:55px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== MAIN MENU ===== -->
+<div id="screen-menu" class="screen active">
+  <div class="title">Arena Cieni</div>
+  <div class="subtitle">Kolekcjoner Bohaterów</div>
+  <button class="menu-btn play" onclick="showScreen('screen-select')">⚔️ Graj</button>
+  <button class="menu-btn" onclick="showScreen('screen-collection')">📚 Kolekcja <span id="coll-count" class="coins-display"></span></button>
+  <button class="menu-btn" onclick="showScreen('screen-crates')">📦 Skrzynki <span id="menu-coins" class="coins-display"></span></button>
+  <button class="menu-btn" onclick="showSettings()">⚙️ Ustawienia</button>
+</div>
+
+<!-- ===== COLLECTION ===== -->
+<div id="screen-collection" class="screen">
+  <div class="coll-header">
+    <h2>Kolekcja</h2>
+    <button class="back-btn" onclick="showScreen('screen-menu')">← Menu</button>
+  </div>
+  <div class="coll-filters" id="coll-filters"></div>
+  <div class="coll-grid" id="coll-grid"></div>
+</div>
+
+<!-- ===== CRATES ===== -->
+<div id="screen-crates" class="screen">
+  <button class="back-btn" style="position:absolute;top:20px;left:20px;" onclick="showScreen('screen-menu')">← Menu</button>
+  <div style="font-size:0.9rem;color:var(--legendary);margin-bottom:10px;" id="crate-coins">🪙 0</div>
+  <div class="crate-label">Skrzynka Cieni</div>
+  <div class="crate-box" id="crate-box" onclick="openCrate()">📦</div>
+  <div class="crate-price">Koszt: 100 🪙</div>
+  <div style="margin-top:20px;display:flex;gap:10px;">
+    <button class="menu-btn" style="width:auto;padding:10px 20px;font-size:0.7rem;" onclick="openCrate10()">Otwórz x10 (900 🪙)</button>
+  </div>
+  <div style="margin-top:30px;font-size:0.65rem;color:var(--text2);max-width:400px;text-align:center;line-height:1.6;">
+    Szanse: Common 40% · Rare 25% · Epic 15% · Mythic 10% · Legendary 5% · Ultimate 3% · Unknown 1.5% · Secret 0.5%
+  </div>
+</div>
+
+<!-- ===== CRATE REVEAL ===== -->
+<div id="crate-reveal">
+  <div class="reveal-particles" id="reveal-particles"></div>
+  <div class="reveal-avatar" id="reveal-avatar"></div>
+  <div class="reveal-name" id="reveal-name"></div>
+  <div class="reveal-rarity" id="reveal-rarity"></div>
+  <div class="reveal-new" id="reveal-new"></div>
+  <button class="reveal-close" onclick="closeReveal()">OK</button>
+</div>
+
+<!-- ===== CHARACTER SELECT ===== -->
+<div id="screen-select" class="screen">
+  <div class="coll-header">
+    <h2>Wybierz Bohatera</h2>
+    <button class="back-btn" onclick="showScreen('screen-menu')">← Menu</button>
+  </div>
+  <div class="select-grid" id="select-grid"></div>
+</div>
+
+<!-- ===== CHARACTER DETAIL MODAL ===== -->
+<div class="modal-overlay" id="char-modal">
+  <div class="modal-card" id="modal-content"></div>
+</div>
+
+<!-- ===== GAME ===== -->
+<div id="game-screen">
+  <canvas id="game-canvas"></canvas>
+  <div id="crosshair"></div>
+  <div class="hud" id="hud-top">
+    <div id="hud-wave">Fala 1</div>
+    <div id="hud-coins">🪙 0</div>
+  </div>
+  <div id="hud-kills">☠️ 0</div>
+  <div id="hud-hp"><div id="hud-hp-fill"></div><div id="hud-hp-text">100/100</div></div>
+  <div class="hud" id="hud-bottom">
+    <div class="ability-slot" id="slot-attack"><div class="ability-icon">⚔️</div><div class="ability-key">LPM</div></div>
+    <div class="ability-slot" id="slot-super"><div class="ability-icon" id="super-icon">💥</div><div class="ability-key">Q</div><div class="ability-cd hidden" id="super-cd">60</div></div>
+    <div class="ability-slot" id="slot-shield"><div class="ability-icon">🛡️</div><div class="ability-key">E</div><div class="ability-cd hidden" id="shield-cd">0</div></div>
+    <div class="ability-slot" id="slot-shadow"><div class="ability-icon">👻</div><div class="ability-key">R</div><div class="ability-cd hidden" id="shadow-cd">0</div></div>
+  </div>
+</div>
+<div id="game-over">
+  <h2>KONIEC</h2>
+  <div class="go-stats" id="go-stats"></div>
+  <button class="menu-btn" onclick="exitGame()">Menu</button>
+</div>
+<div id="pause-menu">
+  <h2>PAUZA</h2>
+  <button class="menu-btn" onclick="resumeGame()">Kontynuuj</button>
+  <button class="menu-btn" onclick="exitGame()">Wyjdź</button>
+</div>
+
+<!-- ===== SETTINGS MODAL ===== -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-card">
+    <button class="close-modal" onclick="document.getElementById('settings-modal').classList.remove('active')">&times;</button>
+    <h3 style="margin-bottom:15px;">Ustawienia</h3>
+    <div class="stat-row"><span class="stat-label">Czułość myszy</span><input type="range" min="1" max="20" value="5" id="sens-slider" style="width:120px;"></div>
+    <div class="stat-row"><span class="stat-label">Muzyka</span><input type="range" min="0" max="100" value="50" id="music-vol" style="width:120px;"></div>
+    <div class="stat-row"><span class="stat-label">Efekty</span><input type="range" min="0" max="100" value="80" id="sfx-vol" style="width:120px;"></div>
+    <button class="menu-btn" style="margin-top:15px;width:200px;" onclick="resetProgress()">🗑️ Reset Postępu</button>
+  </div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+
+// =====================================================
+// ===== RARITY CONFIG =====
+// =====================================================
+const RARITIES={
+  common:   {label:'Common',   color:'#8a8a8a', glow:'rgba(138,138,138,0.4)', dropRate:0.40, statMul:1.0},
+  rare:     {label:'Rare',     color:'#4a9eff', glow:'rgba(74,158,255,0.4)',  dropRate:0.25, statMul:1.3},
+  epic:     {label:'Epic',     color:'#b44aff', glow:'rgba(180,74,255,0.4)',  dropRate:0.15, statMul:1.6},
+  mythic:   {label:'Mythic',   color:'#ff4a8a', glow:'rgba(255,74,138,0.4)', dropRate:0.10, statMul:2.0},
+  legendary:{label:'Legendary',color:'#ffaa00', glow:'rgba(255,170,0,0.4)',   dropRate:0.05, statMul:2.5},
+  ultimate: {label:'Ultimate', color:'#ff4444', glow:'rgba(255,68,68,0.5)',   dropRate:0.03, statMul:3.2},
+  unknown:  {label:'Unknown',  color:'#00ffaa', glow:'rgba(0,255,170,0.5)',   dropRate:0.015,statMul:4.0},
+  secret:   {label:'Secret',   color:'#ff00ff', glow:'rgba(255,0,255,0.6)',   dropRate:0.005,statMul:5.0},
+};
+
+const CLANS={
+  shadow: {name:'Klan Cieni',    icon:'🌑', baseColor:0x3a1a6a},
+  fire:   {name:'Klan Ognia',    icon:'🔥', baseColor:0x8a2a0a},
+  ice:    {name:'Klan Lodu',     icon:'❄️', baseColor:0x1a4a8a},
+  lightning:{name:'Klan Piorunów',icon:'⚡', baseColor:0x6a6a1a},
+  nature: {name:'Klan Natury',   icon:'🌿', baseColor:0x1a5a2a},
+  void:   {name:'Klan Pustki',   icon:'🕳️', baseColor:0x1a1a3a},
+  blood:  {name:'Klan Krwi',     icon:'🩸', baseColor:0x5a0a0a},
+  chaos:  {name:'Klan Chaosu',   icon:'💀', baseColor:0x4a1a1a},
+  holy:   {name:'Klan Światła',  icon:'✨', baseColor:0x6a6a3a},
+  cosmic: {name:'Klan Kosmosu',  icon:'🌌', baseColor:0x2a1a5a},
+};
+
+// =====================================================
+// ===== 100 CHARACTER DEFINITIONS =====
+// =====================================================
+const CHARACTERS=[
+  // ---- SHADOW CLAN (14) ----
+  {id:1,name:'Mrocznik',clan:'shadow',rarity:'common',hp:100,dmg:12,speed:5,emoji:'🗡️',atkType:'melee',
+   superName:'Cienisty Cios',superDesc:'Potężne uderzenie cieniem zadające 3x obrażenia',superCD:60,
+   shieldName:'Tarcza Cienia',shieldDur:3},
+  {id:2,name:'Cień Nocy',clan:'shadow',rarity:'common',hp:90,dmg:14,speed:6,emoji:'🌙',atkType:'ranged',
+   superName:'Nocna Salwa',superDesc:'Strzela 8 pociskami cienia naraz',superCD:55,
+   shieldName:'Mgła Nocy',shieldDur:3},
+  {id:3,name:'Szeptacz',clan:'shadow',rarity:'common',hp:85,dmg:15,speed:7,emoji:'👁️',atkType:'ranged',
+   superName:'Szept Śmierci',superDesc:'Osłabia wszystkich wrogów w zasięgu o 50%',superCD:65,
+   shieldName:'Cichy Krok',shieldDur:2},
+  {id:4,name:'Nocny Łowca',clan:'shadow',rarity:'rare',hp:120,dmg:18,speed:6,emoji:'🏹',atkType:'ranged',
+   superName:'Strzała Mroku',superDesc:'Przeszywająca strzała cienia trafiająca wszystko na drodze',superCD:50,
+   shieldName:'Kamuflarz',shieldDur:4},
+  {id:5,name:'Władca Mroku',clan:'shadow',rarity:'rare',hp:140,dmg:16,speed:5,emoji:'🦇',atkType:'aoe',
+   superName:'Mroczna Fala',superDesc:'Fala cieni zadająca obrażenia w 360°',superCD:55,
+   shieldName:'Bariera Ciemności',shieldDur:4},
+  {id:6,name:'Phantom',clan:'shadow',rarity:'epic',hp:160,dmg:22,speed:7,emoji:'👻',atkType:'ranged',
+   superName:'Przejście Fazowe',superDesc:'Teleportacja + eksplozja cienia w miejscu lądowania',superCD:45,
+   shieldName:'Forma Widmowa',shieldDur:3},
+  {id:7,name:'Cienisty Żniwiarz',clan:'shadow',rarity:'epic',hp:170,dmg:25,speed:5,emoji:'💀',atkType:'melee',
+   superName:'Żniwa Cienia',superDesc:'Kosa cienia uderzająca wszystkich w zasięgu 10m',superCD:50,
+   shieldName:'Płaszcz Śmierci',shieldDur:4},
+  {id:8,name:'Widmo Otchłani',clan:'shadow',rarity:'mythic',hp:220,dmg:30,speed:6,emoji:'🌀',atkType:'aoe',
+   superName:'Otchłań',superDesc:'Tworzy czarną dziurę wciągającą wrogów i zadającą ogromne obrażenia',superCD:60,
+   shieldName:'Nietykalność',shieldDur:5},
+  {id:9,name:'Lord Cieni',clan:'shadow',rarity:'legendary',hp:300,dmg:35,speed:7,emoji:'👑',atkType:'aoe',
+   superName:'Władza Absolutna',superDesc:'Kontroluje cienie wszystkich wrogów - ogromne obrażenia AoE',superCD:60,
+   shieldName:'Wieczna Ciemność',shieldDur:6},
+  {id:10,name:'Cienisty Skrytobójca',clan:'shadow',rarity:'rare',hp:100,dmg:22,speed:8,emoji:'🗡️',atkType:'melee',
+   superName:'Cios z Cienia',superDesc:'Teleportacja za cel i krytyczny cios',superCD:40,
+   shieldName:'Ukrycie',shieldDur:2},
+  {id:11,name:'Mroczny Strzelec',clan:'shadow',rarity:'common',hp:80,dmg:16,speed:6,emoji:'🎯',atkType:'ranged',
+   superName:'Deszcz Cieni',superDesc:'Grad pocisków cienia z nieba',superCD:55,
+   shieldName:'Cienista Unikacja',shieldDur:2},
+  {id:12,name:'Nocna Wiedźma',clan:'shadow',rarity:'epic',hp:150,dmg:28,speed:5,emoji:'🧙‍♀️',atkType:'ranged',
+   superName:'Klątwa Cienia',superDesc:'Przeklina wrogów - otrzymują podwójne obrażenia',superCD:50,
+   shieldName:'Iluzja',shieldDur:4},
+  {id:13,name:'Umbra',clan:'shadow',rarity:'mythic',hp:200,dmg:32,speed:7,emoji:'⬛',atkType:'melee',
+   superName:'Pożeracz',superDesc:'Pochłania wrogów w czysty cień - natychmiastowa eliminacja słabszych',superCD:65,
+   shieldName:'Absorpcja Cienia',shieldDur:5},
+  {id:14,name:'Nyx',clan:'shadow',rarity:'ultimate',hp:350,dmg:45,speed:8,emoji:'🌑',atkType:'aoe',
+   superName:'Wieczna Noc',superDesc:'Cały świat tonie w ciemnościach - olbrzymie obrażenia + leczenie',superCD:60,
+   shieldName:'Absolutna Ciemność',shieldDur:7},
+
+  // ---- FIRE CLAN (13) ----
+  {id:15,name:'Płomyk',clan:'fire',rarity:'common',hp:95,dmg:14,speed:5,emoji:'🕯️',atkType:'ranged',
+   superName:'Ognista Kula',superDesc:'Wielka kula ognia z eksplozją AoE',superCD:55,
+   shieldName:'Żarowa Tarcza',shieldDur:3},
+  {id:16,name:'Iskra',clan:'fire',rarity:'common',hp:85,dmg:16,speed:7,emoji:'✨',atkType:'ranged',
+   superName:'Iskrowy Łańcuch',superDesc:'Iskra przeskakuje między 5 wrogami',superCD:50,
+   shieldName:'Ognista Bariera',shieldDur:2},
+  {id:17,name:'Żar',clan:'fire',rarity:'common',hp:110,dmg:13,speed:4,emoji:'🔶',atkType:'aoe',
+   superName:'Erupcja',superDesc:'Eksplozja lawy w okół gracza',superCD:60,
+   shieldName:'Skóra z Lawy',shieldDur:4},
+  {id:18,name:'Płomienny Mag',clan:'fire',rarity:'rare',hp:130,dmg:20,speed:5,emoji:'🔥',atkType:'ranged',
+   superName:'Kolumna Ognia',superDesc:'Potężna kolumna ognia przed graczem',superCD:50,
+   shieldName:'Ognisty Mur',shieldDur:4},
+  {id:19,name:'Ogniomistrz',clan:'fire',rarity:'rare',hp:125,dmg:22,speed:6,emoji:'🌋',atkType:'aoe',
+   superName:'Deszcz Ognia',superDesc:'Meteoryty spadają z nieba na wrogów',superCD:55,
+   shieldName:'Magmowa Bariera',shieldDur:3},
+  {id:20,name:'Feniks',clan:'fire',rarity:'epic',hp:180,dmg:24,speed:7,emoji:'🦅',atkType:'ranged',
+   superName:'Odrodzenie',superDesc:'Eksplozja ognia + regeneracja 50% HP',superCD:60,
+   shieldName:'Skrzydła Feniksa',shieldDur:4},
+  {id:21,name:'Spalacz',clan:'fire',rarity:'epic',hp:160,dmg:28,speed:5,emoji:'💥',atkType:'aoe',
+   superName:'Nova',superDesc:'Masywna eksplozja ognia w okręgu 15m',superCD:55,
+   shieldName:'Ogień Ochronny',shieldDur:3},
+  {id:22,name:'Władca Ognia',clan:'fire',rarity:'mythic',hp:240,dmg:33,speed:6,emoji:'👹',atkType:'aoe',
+   superName:'Piekielna Burza',superDesc:'Deszcz ognia + lawa na podłodze',superCD:60,
+   shieldName:'Nieśmiertelny Płomień',shieldDur:5},
+  {id:23,name:'Inferno',clan:'fire',rarity:'legendary',hp:310,dmg:38,speed:6,emoji:'😈',atkType:'aoe',
+   superName:'Apokalipsa',superDesc:'Olbrzymi deszcz meteorytów niszczący wszystko',superCD:60,
+   shieldName:'Tarcza Słońca',shieldDur:6},
+  {id:24,name:'Ognisty Berserker',clan:'fire',rarity:'rare',hp:150,dmg:20,speed:7,emoji:'🪓',atkType:'melee',
+   superName:'Szał Ognia',superDesc:'Szybkie ciosy ognistym toporem x5',superCD:45,
+   shieldName:'Płonąca Zbroja',shieldDur:3},
+  {id:25,name:'Pyromanta',clan:'fire',rarity:'common',hp:80,dmg:17,speed:6,emoji:'🎆',atkType:'ranged',
+   superName:'Ognisty Wir',superDesc:'Wirujący pierścień ognia wokół gracza',superCD:50,
+   shieldName:'Termiczna Aura',shieldDur:2},
+  {id:26,name:'Hellfire',clan:'fire',rarity:'mythic',hp:230,dmg:35,speed:5,emoji:'🔱',atkType:'aoe',
+   superName:'Piekielne Wrota',superDesc:'Otwiera portal piekła - fala ognia',superCD:65,
+   shieldName:'Demoniczna Zbroja',shieldDur:5},
+  {id:27,name:'Sol',clan:'fire',rarity:'ultimate',hp:360,dmg:48,speed:7,emoji:'☀️',atkType:'aoe',
+   superName:'Supernova',superDesc:'Eksplozja słoneczna - olbrzymie obrażenia + oślepienie',superCD:60,
+   shieldName:'Korona Słoneczna',shieldDur:7},
+
+  // ---- ICE CLAN (12) ----
+  {id:28,name:'Mrozik',clan:'ice',rarity:'common',hp:100,dmg:11,speed:5,emoji:'🧊',atkType:'ranged',
+   superName:'Lodowa Strzała',superDesc:'Zamrażający pocisk - spowalnia na 3s',superCD:50,
+   shieldName:'Lodowy Pancerz',shieldDur:4},
+  {id:29,name:'Śnieżka',clan:'ice',rarity:'common',hp:85,dmg:13,speed:6,emoji:'⛄',atkType:'ranged',
+   superName:'Zamieć',superDesc:'Burza śnieżna spowalnia i rani wrogów',superCD:55,
+   shieldName:'Śnieżna Kula',shieldDur:3},
+  {id:30,name:'Lodowiec',clan:'ice',rarity:'common',hp:130,dmg:10,speed:3,emoji:'🏔️',atkType:'aoe',
+   superName:'Trzęsienie Lodu',superDesc:'Lodowe kolce wyrastają z ziemi',superCD:60,
+   shieldName:'Góra Lodowa',shieldDur:5},
+  {id:31,name:'Lodowy Strażnik',clan:'ice',rarity:'rare',hp:145,dmg:17,speed:5,emoji:'🛡️',atkType:'melee',
+   superName:'Lodowy Mur',superDesc:'Tworzy mur lodu blokujący i raniący',superCD:50,
+   shieldName:'Permafrost',shieldDur:5},
+  {id:32,name:'Mroźny Snajper',clan:'ice',rarity:'rare',hp:100,dmg:24,speed:6,emoji:'🎯',atkType:'ranged',
+   superName:'Lodowa Iglica',superDesc:'Precyzyjny strzał - 4x dmg + zamrożenie',superCD:45,
+   shieldName:'Lodowa Mgiełka',shieldDur:3},
+  {id:33,name:'Blizzard',clan:'ice',rarity:'epic',hp:175,dmg:22,speed:5,emoji:'🌨️',atkType:'aoe',
+   superName:'Absolutne Zero',superDesc:'Zamraża WSZYSTKICH wrogów na 4s',superCD:60,
+   shieldName:'Lodowa Zbroja',shieldDur:4},
+  {id:34,name:'Zamrażacz',clan:'ice',rarity:'epic',hp:155,dmg:26,speed:6,emoji:'💎',atkType:'ranged',
+   superName:'Kryształ Lodu',superDesc:'Gigantyczny kryształ spada na wrogów',superCD:55,
+   shieldName:'Diamentowy Lód',shieldDur:4},
+  {id:35,name:'Królowa Lodu',clan:'ice',rarity:'mythic',hp:230,dmg:30,speed:6,emoji:'👸',atkType:'aoe',
+   superName:'Wieczna Zima',superDesc:'Cała arena zamraża się - ogromne AoE',superCD:60,
+   shieldName:'Korona Mrozu',shieldDur:6},
+  {id:36,name:'Glacjusz',clan:'ice',rarity:'legendary',hp:290,dmg:35,speed:5,emoji:'🐉',atkType:'aoe',
+   superName:'Lodowy Oddech',superDesc:'Smok lodu zieje zamrażającym oddechem',superCD:60,
+   shieldName:'Smoczy Lód',shieldDur:6},
+  {id:37,name:'Frostbite',clan:'ice',rarity:'rare',hp:110,dmg:20,speed:7,emoji:'❄️',atkType:'melee',
+   superName:'Lodowe Ostrza',superDesc:'Szybkie cięcia lodowymi ostrzami x6',superCD:40,
+   shieldName:'Mrozowa Aura',shieldDur:3},
+  {id:38,name:'Cryo',clan:'ice',rarity:'common',hp:95,dmg:12,speed:5,emoji:'🌡️',atkType:'ranged',
+   superName:'Kriogenika',superDesc:'Zamraża teren - wrogowie ślizgają się',superCD:55,
+   shieldName:'Lodowa Powłoka',shieldDur:3},
+  {id:39,name:'Polaris',clan:'ice',rarity:'ultimate',hp:340,dmg:42,speed:7,emoji:'⭐',atkType:'aoe',
+   superName:'Gwiazda Północy',superDesc:'Lodowa gwiazda eksploduje - zamraża i niszczy',superCD:60,
+   shieldName:'Aurora Borealis',shieldDur:8},
+
+  // ---- LIGHTNING CLAN (12) ----
+  {id:40,name:'Iskrowiec',clan:'lightning',rarity:'common',hp:90,dmg:15,speed:7,emoji:'⚡',atkType:'ranged',
+   superName:'Łańcuch Piorunów',superDesc:'Piorun przeskakuje między 4 wrogami',superCD:50,
+   shieldName:'Elektro-Pole',shieldDur:2},
+  {id:41,name:'Piorunek',clan:'lightning',rarity:'common',hp:85,dmg:16,speed:8,emoji:'🌩️',atkType:'ranged',
+   superName:'Uderzenie Pioruna',superDesc:'Potężny piorun z nieba na cel',superCD:45,
+   shieldName:'Pole Siłowe',shieldDur:2},
+  {id:42,name:'Błyskawica',clan:'lightning',rarity:'common',hp:80,dmg:17,speed:9,emoji:'💛',atkType:'ranged',
+   superName:'Flash',superDesc:'Super szybkość na 3s + obrażenia przy kontakcie',superCD:50,
+   shieldName:'Refleks',shieldDur:1},
+  {id:43,name:'Burzowy Mag',clan:'lightning',rarity:'rare',hp:120,dmg:21,speed:7,emoji:'🌪️',atkType:'aoe',
+   superName:'Tornado',superDesc:'Elektryczne tornado wciąga i rani wrogów',superCD:55,
+   shieldName:'Burzowa Tarcza',shieldDur:4},
+  {id:44,name:'Elektryk',clan:'lightning',rarity:'rare',hp:115,dmg:23,speed:8,emoji:'🔌',atkType:'ranged',
+   superName:'Przeciążenie',superDesc:'Masywny wyładowanie elektryczne AoE',superCD:50,
+   shieldName:'Izolacja',shieldDur:3},
+  {id:45,name:'Gromowładny',clan:'lightning',rarity:'epic',hp:170,dmg:27,speed:7,emoji:'🔨',atkType:'melee',
+   superName:'Młot Gromu',superDesc:'Uderzenie młotem tworzące falę uderzeniową',superCD:50,
+   shieldName:'Tarcza Gromu',shieldDur:4},
+  {id:46,name:'Szok',clan:'lightning',rarity:'epic',hp:155,dmg:30,speed:8,emoji:'💫',atkType:'ranged',
+   superName:'Defibrylacja',superDesc:'Masywny szok paraliżuje wrogów na 3s',superCD:55,
+   shieldName:'Elektrostatyka',shieldDur:3},
+  {id:47,name:'Thor Cieni',clan:'lightning',rarity:'mythic',hp:250,dmg:34,speed:7,emoji:'⚒️',atkType:'melee',
+   superName:'Mjölnir',superDesc:'Rzuca młot - wraca po trafieniu wielu wrogów',superCD:55,
+   shieldName:'Boska Zbroja',shieldDur:5},
+  {id:48,name:'Zeus',clan:'lightning',rarity:'legendary',hp:320,dmg:40,speed:7,emoji:'🏛️',atkType:'aoe',
+   superName:'Boży Gniew',superDesc:'Deszcz piorunów z nieba na CAŁĄ arenę',superCD:60,
+   shieldName:'Olimpijska Tarcza',shieldDur:6},
+  {id:49,name:'Voltus',clan:'lightning',rarity:'rare',hp:105,dmg:19,speed:9,emoji:'🔋',atkType:'ranged',
+   superName:'Impuls EMP',superDesc:'Fala EMP spowalniająca wrogów',superCD:45,
+   shieldName:'Pole Magnetyczne',shieldDur:3},
+  {id:50,name:'Raijin',clan:'lightning',rarity:'mythic',hp:235,dmg:32,speed:8,emoji:'🥁',atkType:'aoe',
+   superName:'Bębny Gromu',superDesc:'Fale dźwiękowe z piorunami - ogromne AoE',superCD:60,
+   shieldName:'Sztorm',shieldDur:5},
+  {id:51,name:'Tempest',clan:'lightning',rarity:'ultimate',hp:370,dmg:46,speed:9,emoji:'🌀',atkType:'aoe',
+   superName:'Superbórza',superDesc:'Kontroluje pogodę - pioruny, tornado, grad',superCD:60,
+   shieldName:'Oko Cyklonu',shieldDur:7},
+
+  // ---- NATURE CLAN (11) ----
+  {id:52,name:'Drzewiec',clan:'nature',rarity:'common',hp:130,dmg:10,speed:3,emoji:'🌳',atkType:'melee',
+   superName:'Korzenie',superDesc:'Korzenie wyrastają z ziemi i chwytają wrogów',superCD:55,
+   shieldName:'Kora Ochronna',shieldDur:5},
+  {id:53,name:'Kolczak',clan:'nature',rarity:'common',hp:100,dmg:14,speed:5,emoji:'🌵',atkType:'ranged',
+   superName:'Deszcz Kolców',superDesc:'Grad trujących kolców we wszystkie strony',superCD:50,
+   shieldName:'Kolczasta Zbroja',shieldDur:3},
+  {id:54,name:'Mchowiec',clan:'nature',rarity:'common',hp:110,dmg:11,speed:4,emoji:'🍀',atkType:'aoe',
+   superName:'Trujące Spory',superDesc:'Chmura trujących zarodników',superCD:55,
+   shieldName:'Mech Leczniczy',shieldDur:4},
+  {id:55,name:'Strażnik Lasu',clan:'nature',rarity:'rare',hp:155,dmg:18,speed:5,emoji:'🦌',atkType:'melee',
+   superName:'Gaj Drzew',superDesc:'Las wyrasta wokół - drzewa biją wrogów',superCD:55,
+   shieldName:'Żywa Ściana',shieldDur:5},
+  {id:56,name:'Truciciel',clan:'nature',rarity:'rare',hp:110,dmg:20,speed:6,emoji:'🍄',atkType:'ranged',
+   superName:'Śmiertelna Trucizna',superDesc:'Trujący gaz - obrażenia w czasie',superCD:50,
+   shieldName:'Toksyczna Mgiełka',shieldDur:3},
+  {id:57,name:'Ent Wojownik',clan:'nature',rarity:'epic',hp:220,dmg:23,speed:4,emoji:'🌲',atkType:'melee',
+   superName:'Gniew Natury',superDesc:'Gigantyczne korzenie miażdżą wrogów',superCD:55,
+   shieldName:'Drewniany Bastion',shieldDur:5},
+  {id:58,name:'Jadowity',clan:'nature',rarity:'epic',hp:150,dmg:26,speed:6,emoji:'🐍',atkType:'ranged',
+   superName:'Plaga',superDesc:'Rój jadowitych stworzeń atakuje wrogów',superCD:50,
+   shieldName:'Jadowita Skóra',shieldDur:3},
+  {id:59,name:'Matka Natura',clan:'nature',rarity:'mythic',hp:260,dmg:28,speed:5,emoji:'🌸',atkType:'aoe',
+   superName:'Przebudzenie',superDesc:'Cała arena staje się dżunglą - masywne obrażenia',superCD:60,
+   shieldName:'Objęcia Ziemi',shieldDur:6},
+  {id:60,name:'Gaia',clan:'nature',rarity:'legendary',hp:300,dmg:36,speed:5,emoji:'🌍',atkType:'aoe',
+   superName:'Trzęsienie Ziemi',superDesc:'Ziemia pęka - erupcja natury',superCD:60,
+   shieldName:'Tarcza Planety',shieldDur:7},
+  {id:61,name:'Kwiecień',clan:'nature',rarity:'common',hp:90,dmg:12,speed:6,emoji:'🌺',atkType:'ranged',
+   superName:'Pyłek',superDesc:'Usypiający pyłek kwiatowy spowalnia wrogów',superCD:50,
+   shieldName:'Płatki Róży',shieldDur:2},
+  {id:62,name:'Sylvanus',clan:'nature',rarity:'ultimate',hp:380,dmg:44,speed:6,emoji:'🌟',atkType:'aoe',
+   superName:'Pierwotna Siła',superDesc:'Przyzwanie pradawnych drzew-wojowników',superCD:60,
+   shieldName:'Boski Las',shieldDur:8},
+
+  // ---- VOID CLAN (10) ----
+  {id:63,name:'Pustka',clan:'void',rarity:'rare',hp:120,dmg:20,speed:6,emoji:'⬜',atkType:'ranged',
+   superName:'Rozerwanie',superDesc:'Rozrywa przestrzeń - wrogowie tracą HP%',superCD:55,
+   shieldName:'Bańka Pustki',shieldDur:4},
+  {id:64,name:'Nicość',clan:'void',rarity:'rare',hp:115,dmg:22,speed:7,emoji:'🔳',atkType:'ranged',
+   superName:'Entropia',superDesc:'Losowe teleportacje wrogów + obrażenia',superCD:50,
+   shieldName:'Wymiar Kieszonkowy',shieldDur:3},
+  {id:65,name:'Pochłaniacz',clan:'void',rarity:'epic',hp:180,dmg:25,speed:5,emoji:'🕳️',atkType:'aoe',
+   superName:'Czarna Dziura',superDesc:'Wciąga i niszczy wrogów w promieniu',superCD:60,
+   shieldName:'Horyzont Zdarzeń',shieldDur:5},
+  {id:66,name:'Rozrywacz',clan:'void',rarity:'epic',hp:165,dmg:28,speed:6,emoji:'💠',atkType:'melee',
+   superName:'Rozdarcie Wymiaru',superDesc:'Ostrza z pustki tną wrogów',superCD:50,
+   shieldName:'Szczelina Czasowa',shieldDur:4},
+  {id:67,name:'Władca Pustki',clan:'void',rarity:'mythic',hp:240,dmg:33,speed:6,emoji:'🌐',atkType:'aoe',
+   superName:'Kolaps',superDesc:'Przestrzeń się zapada - ogromne AoE',superCD:60,
+   shieldName:'Anty-materia',shieldDur:6},
+  {id:68,name:'Anihilator',clan:'void',rarity:'legendary',hp:310,dmg:40,speed:6,emoji:'☢️',atkType:'aoe',
+   superName:'Anihilacja',superDesc:'Całkowite zniszczenie materii w zasięgu',superCD:60,
+   shieldName:'Pole Antymaterii',shieldDur:6},
+  {id:69,name:'Wszechistota',clan:'void',rarity:'ultimate',hp:400,dmg:50,speed:7,emoji:'♾️',atkType:'aoe',
+   superName:'Koniec Wszystkiego',superDesc:'Kasuje wymiar - wszystko ginie',superCD:60,
+   shieldName:'Poza Czasem',shieldDur:9},
+  {id:70,name:'Anomalia',clan:'void',rarity:'rare',hp:105,dmg:21,speed:8,emoji:'❓',atkType:'ranged',
+   superName:'Glitch',superDesc:'Losowy efekt - teleport, dmg, heal lub zamrożenie',superCD:40,
+   shieldName:'Niestabilność',shieldDur:3},
+  {id:71,name:'Singularis',clan:'void',rarity:'epic',hp:170,dmg:27,speed:5,emoji:'⚫',atkType:'aoe',
+   superName:'Singularność',superDesc:'Punkt grawitacyjny wciąga i miażdży',superCD:55,
+   shieldName:'Grawitacyjna Tarcza',shieldDur:4},
+  {id:72,name:'Quantum',clan:'void',rarity:'mythic',hp:225,dmg:31,speed:8,emoji:'🔮',atkType:'ranged',
+   superName:'Superpozycja',superDesc:'Istnieje w 3 miejscach naraz - potrójny atak',superCD:55,
+   shieldName:'Tunelowanie',shieldDur:4},
+
+  // ---- BLOOD CLAN (10) ----
+  {id:73,name:'Krwiopijca',clan:'blood',rarity:'common',hp:105,dmg:13,speed:6,emoji:'🧛',atkType:'melee',
+   superName:'Krwawy Ugryzienie',superDesc:'Gryzie wroga i kradnie HP',superCD:45,
+   shieldName:'Regeneracja',shieldDur:3},
+  {id:74,name:'Szpon',clan:'blood',rarity:'common',hp:95,dmg:15,speed:7,emoji:'🐺',atkType:'melee',
+   superName:'Szarpanie',superDesc:'Szybkie ciosy pazurami x4',superCD:40,
+   shieldName:'Wilcza Unikacja',shieldDur:2},
+  {id:75,name:'Wampir',clan:'blood',rarity:'rare',hp:140,dmg:19,speed:6,emoji:'🦇',atkType:'melee',
+   superName:'Krwawa Uczta',superDesc:'Drainuje HP z wielu wrogów naraz',superCD:50,
+   shieldName:'Mgła Wampirza',shieldDur:4},
+  {id:76,name:'Ghul',clan:'blood',rarity:'rare',hp:160,dmg:17,speed:5,emoji:'🧟',atkType:'melee',
+   superName:'Zaraza',superDesc:'Infekuje wrogów - obrażenia w czasie + spread',superCD:55,
+   shieldName:'Martwa Skóra',shieldDur:5},
+  {id:77,name:'Nosferatu',clan:'blood',rarity:'epic',hp:190,dmg:24,speed:6,emoji:'👁️',atkType:'aoe',
+   superName:'Hipnoza',superDesc:'Kontroluje umysły - wrogowie biją się nawzajem',superCD:60,
+   shieldName:'Starożytna Krew',shieldDur:5},
+  {id:78,name:'Krwawy Książę',clan:'blood',rarity:'epic',hp:185,dmg:26,speed:7,emoji:'🫀',atkType:'melee',
+   superName:'Krwawa Rzeź',superDesc:'Tornado szponów + lifesteal',superCD:50,
+   shieldName:'Szkarłatna Bariera',shieldDur:4},
+  {id:79,name:'Dracula',clan:'blood',rarity:'mythic',hp:260,dmg:32,speed:7,emoji:'🏰',atkType:'aoe',
+   superName:'Noc Walpurgii',superDesc:'Armia nietoperzy + drainowanie HP',superCD:60,
+   shieldName:'Zamek Ciemności',shieldDur:6},
+  {id:80,name:'Krwawa Bogini',clan:'blood',rarity:'legendary',hp:300,dmg:37,speed:6,emoji:'👑',atkType:'aoe',
+   superName:'Krwawa Pełnia',superDesc:'Krwawy księżyc - masywne AoE + full heal',superCD:60,
+   shieldName:'Boska Krew',shieldDur:7},
+  {id:81,name:'Hemoglobin',clan:'blood',rarity:'common',hp:100,dmg:14,speed:6,emoji:'💉',atkType:'ranged',
+   superName:'Krwawy Strzał',superDesc:'Strzela krwią - lifesteal z dystansu',superCD:45,
+   shieldName:'Krzepnięcie',shieldDur:3},
+  {id:82,name:'Sanguis',clan:'blood',rarity:'rare',hp:135,dmg:21,speed:5,emoji:'🩸',atkType:'aoe',
+   superName:'Fontanna Krwi',superDesc:'Eksplozja krwi we wszystkie strony',superCD:50,
+   shieldName:'Krwista Tarcza',shieldDur:4},
+
+  // ---- CHAOS CLAN (10) ----
+  {id:83,name:'Szaleniec',clan:'chaos',rarity:'rare',hp:90,dmg:25,speed:8,emoji:'🃏',atkType:'melee',
+   superName:'Szaleństwo',superDesc:'Losowe teleporty + ciosy we wszystkie strony',superCD:40,
+   shieldName:'Nieprzewidywalność',shieldDur:2},
+  {id:84,name:'Anarchista',clan:'chaos',rarity:'rare',hp:110,dmg:22,speed:7,emoji:'💣',atkType:'ranged',
+   superName:'Chaos Bomb',superDesc:'Eksplozja losowych efektów',superCD:45,
+   shieldName:'Entropia',shieldDur:3},
+  {id:85,name:'Destruktor',clan:'chaos',rarity:'epic',hp:165,dmg:28,speed:6,emoji:'🔨',atkType:'aoe',
+   superName:'Rozpad',superDesc:'Wszystko w zasięgu się rozpada',superCD:55,
+   shieldName:'Pole Chaosu',shieldDur:4},
+  {id:86,name:'Chaos Mag',clan:'chaos',rarity:'epic',hp:155,dmg:30,speed:7,emoji:'🎭',atkType:'ranged',
+   superName:'Losowy Żywioł',superDesc:'Losowy potężny atak: ogień/lód/piorun/cień',superCD:45,
+   shieldName:'Magiczna Niestabilność',shieldDur:3},
+  {id:87,name:'Berserk',clan:'chaos',rarity:'mythic',hp:280,dmg:35,speed:6,emoji:'👹',atkType:'melee',
+   superName:'Furia',superDesc:'2x dmg + 2x speed na 5s ale -50% HP',superCD:50,
+   shieldName:'Szał Bojowy',shieldDur:4},
+  {id:88,name:'Pan Chaosu',clan:'chaos',rarity:'legendary',hp:290,dmg:38,speed:7,emoji:'😵',atkType:'aoe',
+   superName:'Pandemonium',superDesc:'Totalna destrukcja - losowe eksplozje wszędzie',superCD:60,
+   shieldName:'Tarcza Szaleństwa',shieldDur:6},
+  {id:89,name:'Entropia',clan:'chaos',rarity:'ultimate',hp:370,dmg:47,speed:8,emoji:'🌪️',atkType:'aoe',
+   superName:'Koniec Porządku',superDesc:'Prawa fizyki przestają działać - zagłada',superCD:60,
+   shieldName:'Absolutny Chaos',shieldDur:8},
+  {id:90,name:'Trickster',clan:'chaos',rarity:'common',hp:80,dmg:18,speed:9,emoji:'🎪',atkType:'ranged',
+   superName:'Sztuczka',superDesc:'Zamienia się miejscami z wrogiem + wybuch',superCD:35,
+   shieldName:'Iluzja Klauna',shieldDur:2},
+  {id:91,name:'Glitcher',clan:'chaos',rarity:'rare',hp:100,dmg:23,speed:8,emoji:'📺',atkType:'ranged',
+   superName:'System Error',superDesc:'Wrogowie "glitchują" - tracą HP i się teleportują',superCD:45,
+   shieldName:'404 Not Found',shieldDur:3},
+  {id:92,name:'Demon Chaosu',clan:'chaos',rarity:'mythic',hp:245,dmg:33,speed:6,emoji:'👿',atkType:'aoe',
+   superName:'Piekielny Chaos',superDesc:'Demony chaosu pojawiają się i atakują',superCD:60,
+   shieldName:'Demoniczna Aura',shieldDur:5},
+
+  // ---- HOLY CLAN (5) ----
+  {id:93,name:'Paladyn',clan:'holy',rarity:'epic',hp:200,dmg:22,speed:5,emoji:'⚜️',atkType:'melee',
+   superName:'Święty Cios',superDesc:'Potężne uderzenie światłem + leczenie',superCD:50,
+   shieldName:'Boska Tarcza',shieldDur:5},
+  {id:94,name:'Anioł Stróż',clan:'holy',rarity:'epic',hp:180,dmg:24,speed:7,emoji:'👼',atkType:'ranged',
+   superName:'Boskie Światło',superDesc:'Promień światła oczyszcza wrogów',superCD:55,
+   shieldName:'Skrzydła Anielskie',shieldDur:4},
+  {id:95,name:'Archanioł',clan:'holy',rarity:'legendary',hp:330,dmg:38,speed:7,emoji:'😇',atkType:'aoe',
+   superName:'Sąd Ostateczny',superDesc:'Kolumny światła spadają na wszystkich wrogów',superCD:60,
+   shieldName:'Aureola',shieldDur:7},
+  {id:96,name:'Serafin',clan:'holy',rarity:'ultimate',hp:390,dmg:50,speed:8,emoji:'🕊️',atkType:'aoe',
+   superName:'Oczyszczenie',superDesc:'Czyste światło niszczy wszelkie zło - full arena',superCD:60,
+   shieldName:'6 Skrzydeł',shieldDur:9},
+  {id:97,name:'Mnich',clan:'holy',rarity:'rare',hp:130,dmg:18,speed:6,emoji:'🙏',atkType:'melee',
+   superName:'Wewnętrzny Pokój',superDesc:'Leczenie 40% HP + aura ochronna',superCD:50,
+   shieldName:'Medytacja',shieldDur:4},
+
+  // ---- COSMIC CLAN (3+) ----
+  {id:98,name:'Gwiezdny Strażnik',clan:'cosmic',rarity:'mythic',hp:250,dmg:34,speed:7,emoji:'💫',atkType:'ranged',
+   superName:'Gwiezdny Deszcz',superDesc:'Spadające gwiazdy niszczą wrogów',superCD:55,
+   shieldName:'Konstelacja',shieldDur:6},
+  {id:99,name:'Kosmiczny Władca',clan:'cosmic',rarity:'legendary',hp:340,dmg:42,speed:7,emoji:'🪐',atkType:'aoe',
+   superName:'Big Bang',superDesc:'Eksplozja kosmiczna - absolutna destrukcja',superCD:60,
+   shieldName:'Czaso-Przestrzeń',shieldDur:7},
+
+  // ---- UNKNOWN ----
+  {id:100,name:'???',clan:'cosmic',rarity:'unknown',hp:350,dmg:45,speed:9,emoji:'❓',atkType:'aoe',
+   superName:'???',superDesc:'Nikt nie wie co robi... ale jest potężne',superCD:50,
+   shieldName:'???',shieldDur:7},
+  {id:101,name:'Obserwator',clan:'cosmic',rarity:'unknown',hp:300,dmg:40,speed:10,emoji:'👁️‍🗨️',atkType:'ranged',
+   superName:'Wszechwiedza',superDesc:'Widzi słabości - każdy strzał to krytyczny cios',superCD:45,
+   shieldName:'Omniscjencja',shieldDur:6},
+
+  // ---- SECRET ----
+  {id:102,name:'Omega',clan:'cosmic',rarity:'secret',hp:500,dmg:60,speed:10,emoji:'Ω',atkType:'aoe',
+   superName:'Genesis',superDesc:'Tworzy i niszczy rzeczywistość - absolutna moc',superCD:60,
+   shieldName:'Omnipotencja',shieldDur:10},
+];
+
+// =====================================================
+// ===== GAME STATE =====
+// =====================================================
+let state={
+  coins:500,
+  unlockedIds:new Set([1]),
+  selectedId:1,
+  duplicates:{},
+  totalKills:0,
+  highWave:0,
+  sensitivity:5,
+};
+
+function saveState(){
+  const s={...state,unlockedIds:[...state.unlockedIds]};
+  localStorage.setItem('arenaCieni_save',JSON.stringify(s));
+}
+function loadState(){
+  const raw=localStorage.getItem('arenaCieni_save');
+  if(!raw)return;
+  try{
+    const s=JSON.parse(raw);
+    state.coins=s.coins||0;
+    state.unlockedIds=new Set(s.unlockedIds||[1]);
+    state.selectedId=s.selectedId||1;
+    state.duplicates=s.duplicates||{};
+    state.totalKills=s.totalKills||0;
+    state.highWave=s.highWave||0;
+    state.sensitivity=s.sensitivity||5;
+  }catch(e){}
+}
+loadState();
+
+// =====================================================
+// ===== SCREEN MANAGEMENT =====
+// =====================================================
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('game-screen').classList.remove('active');
+  if(id==='screen-collection')renderCollection();
+  if(id==='screen-select')renderSelect();
+  if(id==='screen-menu')updateMenuInfo();
+  if(id==='screen-crates')updateCrateCoins();
+}
+window.showScreen=showScreen;
+
+function updateMenuInfo(){
+  document.getElementById('coll-count').textContent=`${state.unlockedIds.size}/${CHARACTERS.length}`;
+  document.getElementById('menu-coins').textContent=`🪙 ${state.coins}`;
+}
+
+function updateCrateCoins(){
+  document.getElementById('crate-coins').textContent=`🪙 ${state.coins}`;
+}
+
+function showSettings(){
+  document.getElementById('settings-modal').classList.add('active');
+  document.getElementById('sens-slider').value=state.sensitivity;
+}
+window.showSettings=showSettings;
+
+function resetProgress(){
+  if(confirm('Na pewno chcesz zresetować cały postęp?')){
+    localStorage.removeItem('arenaCieni_save');
+    state={coins:500,unlockedIds:new Set([1]),selectedId:1,duplicates:{},totalKills:0,highWave:0,sensitivity:5};
+    showScreen('screen-menu');
+    document.getElementById('settings-modal').classList.remove('active');
+  }
+}
+window.resetProgress=resetProgress;
+
+document.getElementById('sens-slider').addEventListener('input',e=>{
+  state.sensitivity=parseInt(e.target.value);
+  saveState();
+});
+
+// =====================================================
+// ===== COLLECTION =====
+// =====================================================
+let collFilter='all';
+
+function renderCollection(){
+  const filtersEl=document.getElementById('coll-filters');
+  filtersEl.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='filter-btn'+(collFilter==='all'?' active':'');
+  allBtn.textContent=`Wszystkie (${CHARACTERS.length})`;
+  allBtn.onclick=()=>{collFilter='all';renderCollection();};
+  filtersEl.appendChild(allBtn);
+
+  for(const[key,r] of Object.entries(RARITIES)){
+    const count=CHARACTERS.filter(c=>c.rarity===key).length;
+    const unlocked=CHARACTERS.filter(c=>c.rarity===key&&state.unlockedIds.has(c.id)).length;
+    const btn=document.createElement('button');
+    btn.className='filter-btn'+(collFilter===key?' active':'');
+    btn.dataset.r=key;
+    btn.textContent=`${r.label} (${unlocked}/${count})`;
+    btn.onclick=()=>{collFilter=key;renderCollection();};
+    filtersEl.appendChild(btn);
+  }
+
+  const grid=document.getElementById('coll-grid');
+  grid.innerHTML='';
+  const chars=collFilter==='all'?CHARACTERS:CHARACTERS.filter(c=>c.rarity===collFilter);
+  const order=['common','rare','epic','mythic','legendary','ultimate','unknown','secret'];
+  const sorted=[...chars].sort((a,b)=>order.indexOf(a.rarity)-order.indexOf(b.rarity));
+
+  for(const c of sorted){
+    const card=document.createElement('div');
+    const unlocked=state.unlockedIds.has(c.id);
+    card.className='char-card'+(unlocked?'':' locked');
+    card.dataset.r=c.rarity;
+    const rColor=RARITIES[c.rarity].color;
+    card.innerHTML=`
+      <div class="char-avatar" style="background:${unlocked?RARITIES[c.rarity].glow:'#222'}">${unlocked?c.emoji:'🔒'}</div>
+      <div class="char-name">${unlocked?c.name:'???'}</div>
+      <div class="char-rarity">${RARITIES[c.rarity].label}</div>
+    `;
+    card.onclick=()=>showCharDetail(c.id);
+    grid.appendChild(card);
+  }
+}
+
+function showCharDetail(id){
+  const c=CHARACTERS.find(ch=>ch.id===id);
+  if(!c)return;
+  const unlocked=state.unlockedIds.has(c.id);
+  const r=RARITIES[c.rarity];
+  const mul=r.statMul;
+  const modal=document.getElementById('char-modal');
+  const content=document.getElementById('modal-content');
+  const clan=CLANS[c.clan];
+  const dupes=state.duplicates[c.id]||0;
+
+  content.innerHTML=`
+    <button class="close-modal" onclick="document.getElementById('char-modal').classList.remove('active')">&times;</button>
+    <div class="detail-avatar" style="background:${unlocked?r.glow:'#333'};box-shadow:0 0 40px ${r.glow}">${unlocked?c.emoji:'🔒'}</div>
+    <h3 style="color:${r.color}">${unlocked?c.name:'???'}</h3>
+    <div class="detail-rarity" style="color:${r.color}">${r.label}</div>
+    <div class="detail-clan">${clan.icon} ${clan.name}</div>
+    ${dupes>0?`<div style="font-size:0.7rem;color:var(--legendary);margin-bottom:10px;">Duplikaty: ${dupes} (+${dupes*5}% statystyk)</div>`:''}
+    ${unlocked?`
+      <div class="stat-row"><span class="stat-label">❤️ HP</span><span class="stat-val">${Math.floor(c.hp*(1+dupes*0.05))}</span></div>
+      <div class="stat-row"><span class="stat-label">⚔️ Obrażenia</span><span class="stat-val">${Math.floor(c.dmg*(1+dupes*0.05))}</span></div>
+      <div class="stat-row"><span class="stat-label">💨 Szybkość</span><span class="stat-val">${c.speed}</span></div>
+      <div class="stat-row"><span class="stat-label">🎯 Typ ataku</span><span class="stat-val">${c.atkType==='melee'?'Wręcz':c.atkType==='ranged'?'Dystans':'Obszarowy'}</span></div>
+      <div class="detail-super">
+        <h4>💥 ${c.superName} (${c.superCD}s CD)</h4>
+        <p>${c.superDesc}</p>
+      </div>
+      <div class="detail-super" style="background:rgba(0,150,255,0.1);margin-top:8px;">
+        <h4 style="color:var(--rare)">🛡️ ${c.shieldName} (${c.shieldDur}s)</h4>
+      </div>
+      <button class="btn-select" onclick="selectChar(${c.id})">Wybierz do walki</button>
+    `:`<p style="color:var(--text2);margin-top:20px;font-size:0.8rem;">Odblokuj ze skrzynki!</p>`}
+  `;
+  modal.classList.add('active');
+}
+window.showCharDetail=showCharDetail;
+
+function selectChar(id){
+  state.selectedId=id;
+  saveState();
+  document.getElementById('char-modal').classList.remove('active');
+  showScreen('screen-select');
+}
+window.selectChar=selectChar;
+
+// =====================================================
+// ===== CHARACTER SELECT =====
+// =====================================================
+function renderSelect(){
+  const grid=document.getElementById('select-grid');
+  grid.innerHTML='';
+  const unlocked=CHARACTERS.filter(c=>state.unlockedIds.has(c.id));
+  const order=['secret','unknown','ultimate','legendary','mythic','epic','rare','common'];
+  const sorted=[...unlocked].sort((a,b)=>order.indexOf(a.rarity)-order.indexOf(b.rarity));
+
+  for(const c of sorted){
+    const card=document.createElement('div');
+    card.className='char-card';
+    card.dataset.r=c.rarity;
+    if(c.id===state.selectedId)card.style.border=`3px solid ${RARITIES[c.rarity].color}`;
+    card.innerHTML=`
+      <div class="char-avatar" style="background:${RARITIES[c.rarity].glow}">${c.emoji}</div>
+      <div class="char-name" style="font-size:0.65rem;">${c.name}</div>
+      <div class="char-rarity">${RARITIES[c.rarity].label}</div>
+    `;
+    card.onclick=()=>{
+      state.selectedId=c.id;
+      saveState();
+      startGame(c.id);
+    };
+    grid.appendChild(card);
+  }
+}
+
+// =====================================================
+// ===== CRATE SYSTEM =====
+// =====================================================
+let crateQueue=[];
+let crateOpening=false;
+
+function rollRarity(){
+  const r=Math.random();
+  let cumulative=0;
+  for(const[key,val] of Object.entries(RARITIES)){
+    cumulative+=val.dropRate;
+    if(r<=cumulative)return key;
+  }
+  return 'common';
+}
+
+function rollCharacter(){
+  const rarity=rollRarity();
+  const pool=CHARACTERS.filter(c=>c.rarity===rarity);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function openCrate(){
+  if(state.coins<100){alert('Za mało monet! Graj w arenie, żeby zdobyć więcej.');return;}
+  if(crateOpening)return;
+  state.coins-=100;
+  saveState();
+  updateCrateCoins();
+  crateOpening=true;
+
+  const box=document.getElementById('crate-box');
+  box.classList.add('opening');
+
+  setTimeout(()=>{
+    box.classList.remove('opening');
+    const char=rollCharacter();
+    const isNew=!state.unlockedIds.has(char.id);
+    state.unlockedIds.add(char.id);
+    if(!isNew){
+      state.duplicates[char.id]=(state.duplicates[char.id]||0)+1;
+      state.coins+=20;
+    }
+    saveState();
+    showReveal(char,isNew);
+  },600);
+}
+window.openCrate=openCrate;
+
+function openCrate10(){
+  if(state.coins<900){alert('Za mało monet! Potrzebujesz 900.');return;}
+  if(crateOpening)return;
+  state.coins-=900;
+  saveState();
+  updateCrateCoins();
+  crateQueue=[];
+  for(let i=0;i<10;i++){
+    const char=rollCharacter();
+    const isNew=!state.unlockedIds.has(char.id);
+    state.unlockedIds.add(char.id);
+    if(!isNew){
+      state.duplicates[char.id]=(state.duplicates[char.id]||0)+1;
+      state.coins+=20;
+    }
+    crateQueue.push({char,isNew});
+  }
+  saveState();
+  showNextReveal();
+}
+window.openCrate10=openCrate10;
+
+function showNextReveal(){
+  if(crateQueue.length===0){crateOpening=false;updateCrateCoins();return;}
+  const next=crateQueue.shift();
+  showReveal(next.char,next.isNew);
+}
+
+function showReveal(char,isNew){
+  const reveal=document.getElementById('crate-reveal');
+  const r=RARITIES[char.rarity];
+  document.getElementById('reveal-avatar').textContent=char.emoji;
+  document.getElementById('reveal-avatar').style.background=r.glow;
+  document.getElementById('reveal-avatar').style.boxShadow=`0 0 80px ${r.glow}`;
+  document.getElementById('reveal-name').textContent=char.name;
+  document.getElementById('reveal-name').style.color=r.color;
+  document.getElementById('reveal-rarity').textContent=r.label;
+  document.getElementById('reveal-rarity').style.color=r.color;
+  document.getElementById('reveal-new').textContent=isNew?'🆕 NOWY!':'Duplikat (+20🪙 +5% statystyk)';
+  document.getElementById('reveal-new').style.color=isNew?'var(--unknown)':'var(--text2)';
+
+  const particles=document.getElementById('reveal-particles');
+  particles.innerHTML='';
+  for(let i=0;i<30;i++){
+    const p=document.createElement('div');
+    p.className='reveal-particle';
+    p.style.left='50%';p.style.top='50%';
+    p.style.background=r.color;
+    p.style.setProperty('--dx',(Math.random()-0.5)*600+'px');
+    p.style.setProperty('--dy',(Math.random()-0.5)*600+'px');
+    p.style.animationDelay=Math.random()*0.5+'s';
+    particles.appendChild(p);
+  }
+  reveal.classList.add('active');
+}
+
+function closeReveal(){
+  document.getElementById('crate-reveal').classList.remove('active');
+  if(crateQueue.length>0){
+    setTimeout(showNextReveal,200);
+  }else{
+    crateOpening=false;
+    updateCrateCoins();
+  }
+}
+window.closeReveal=closeReveal;
+
+// =====================================================
+// ===== 3D ARENA GAME ENGINE =====
+// =====================================================
+let renderer,scene,camera,clock;
+let player={pos:new THREE.Vector3(0,1.6,0),vel:new THREE.Vector3(),hp:100,maxHp:100,yaw:0,pitch:0};
+let mobs=[];
+let projectiles=[];
+let particles=[];
+let wave=1,kills=0,waveTimer=0,waveMobs=0,waveSpawned=0,spawnTimer=0;
+let gameActive=false,gamePaused=false;
+let superCooldown=0,shieldCooldown=0,shadowCooldown=0;
+let shieldActive=false,shieldTimer=0;
+let shadowForm=false,shadowTimer=0;
+let attackCooldown=0;
+let arenaFloor,arenaBorder;
+let currentChar=null;
+let keys={};
+let mouseDown=false;
+let coinsEarned=0;
+
+function startGame(charId){
+  currentChar=CHARACTERS.find(c=>c.id===charId);
+  if(!currentChar)return;
+
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('game-screen').classList.add('active');
+  document.getElementById('game-over').classList.remove('active');
+  document.getElementById('pause-menu').classList.remove('active');
+
+  const dupes=state.duplicates[currentChar.id]||0;
+  const mul=RARITIES[currentChar.rarity].statMul;
+  player.maxHp=Math.floor(currentChar.hp*(1+dupes*0.05));
+  player.hp=player.maxHp;
+  player.pos.set(0,1.6,0);
+  player.vel.set(0,0,0);
+  player.yaw=0;player.pitch=0;
+
+  mobs=[];projectiles=[];particles=[];
+  wave=1;kills=0;waveTimer=0;waveMobs=5;waveSpawned=0;spawnTimer=0;
+  superCooldown=0;shieldCooldown=0;shadowCooldown=0;
+  shieldActive=false;shieldTimer=0;shadowForm=false;shadowTimer=0;
+  attackCooldown=0;coinsEarned=0;
+  gameActive=true;gamePaused=false;
+
+  document.getElementById('super-icon').textContent=currentChar.emoji;
+  updateHUD();
+
+  if(!renderer)initRenderer();
+  buildArena();
+  document.getElementById('game-canvas').requestPointerLock();
+  clock=new THREE.Clock();
+  gameLoop();
+}
+window.startGame=startGame;
+
+function initRenderer(){
+  const canvas=document.getElementById('game-canvas');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x080812);
+  scene.fog=new THREE.FogExp2(0x080812,0.015);
+
+  camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,200);
+
+  const ambLight=new THREE.AmbientLight(0x222244,0.5);
+  scene.add(ambLight);
+  const dirLight=new THREE.DirectionalLight(0x6644aa,0.8);
+  dirLight.position.set(20,40,20);
+  dirLight.castShadow=true;
+  dirLight.shadow.mapSize.set(1024,1024);
+  dirLight.shadow.camera.left=-40;dirLight.shadow.camera.right=40;
+  dirLight.shadow.camera.top=40;dirLight.shadow.camera.bottom=-40;
+  scene.add(dirLight);
+
+  const ptLight=new THREE.PointLight(0xb44aff,1,50);
+  ptLight.position.set(0,10,0);
+  scene.add(ptLight);
+
+  window.addEventListener('resize',()=>{
+    if(!renderer)return;
+    renderer.setSize(window.innerWidth,window.innerHeight);
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+}
+
+function buildArena(){
+  while(scene.children.length>3)scene.remove(scene.children[3]);
+
+  const floorGeo=new THREE.CircleGeometry(35,64);
+  const floorMat=new THREE.MeshStandardMaterial({color:0x1a1a2e,roughness:0.8});
+  arenaFloor=new THREE.Mesh(floorGeo,floorMat);
+  arenaFloor.rotation.x=-Math.PI/2;
+  arenaFloor.receiveShadow=true;
+  scene.add(arenaFloor);
+
+  const ringGeo=new THREE.TorusGeometry(35,0.5,8,64);
+  const ringMat=new THREE.MeshStandardMaterial({color:0x6a0dad,emissive:0x3a0070,emissiveIntensity:0.5});
+  const ring=new THREE.Mesh(ringGeo,ringMat);
+  ring.rotation.x=Math.PI/2;ring.position.y=0.5;
+  scene.add(ring);
+
+  for(let i=0;i<12;i++){
+    const angle=(i/12)*Math.PI*2;
+    const pillarGeo=new THREE.CylinderGeometry(0.5,0.7,6,8);
+    const pillarMat=new THREE.MeshStandardMaterial({color:0x2a1a4a,emissive:0x1a0a3a,emissiveIntensity:0.3});
+    const pillar=new THREE.Mesh(pillarGeo,pillarMat);
+    pillar.position.set(Math.cos(angle)*33,3,Math.sin(angle)*33);
+    pillar.castShadow=true;
+    scene.add(pillar);
+
+    const orbGeo=new THREE.SphereGeometry(0.4,16,16);
+    const orbMat=new THREE.MeshStandardMaterial({color:0xb44aff,emissive:0xb44aff,emissiveIntensity:1});
+    const orb=new THREE.Mesh(orbGeo,orbMat);
+    orb.position.set(Math.cos(angle)*33,6.5,Math.sin(angle)*33);
+    scene.add(orb);
+  }
+
+  const runeGeo=new THREE.RingGeometry(8,10,6);
+  const runeMat=new THREE.MeshStandardMaterial({color:0x6a0dad,emissive:0x4a0090,emissiveIntensity:0.8,side:THREE.DoubleSide,transparent:true,opacity:0.3});
+  const rune=new THREE.Mesh(runeGeo,runeMat);
+  rune.rotation.x=-Math.PI/2;rune.position.y=0.05;
+  scene.add(rune);
+
+  const innerRune=new THREE.RingGeometry(3,5,8);
+  const innerMat=new THREE.MeshStandardMaterial({color:0xff4a8a,emissive:0xff2060,emissiveIntensity:0.6,side:THREE.DoubleSide,transparent:true,opacity:0.2});
+  const inner=new THREE.Mesh(innerRune,innerMat);
+  inner.rotation.x=-Math.PI/2;inner.position.y=0.06;
+  scene.add(inner);
+}
+
+// ===== MOB SYSTEM =====
+const MOB_TYPES=[
+  {name:'Zombie',hp:40,dmg:8,speed:2.5,color:0x446644,size:1,emoji:'🧟'},
+  {name:'Szkielet',hp:30,dmg:12,speed:3.5,color:0xccccaa,size:0.9,emoji:'💀'},
+  {name:'Demon',hp:60,dmg:15,speed:3,color:0x882222,size:1.2,emoji:'👹'},
+  {name:'Golem',hp:120,dmg:10,speed:1.5,color:0x666688,size:1.5,emoji:'🗿'},
+  {name:'Widmo',hp:50,dmg:18,speed:4,color:0x8888ff,size:1,emoji:'👻'},
+  {name:'Smok',hp:200,dmg:25,speed:2,color:0x884400,size:2,emoji:'🐉'},
+];
+
+function spawnMob(){
+  const angle=Math.random()*Math.PI*2;
+  const dist=32+Math.random()*3;
+  const typeIdx=Math.min(Math.floor(Math.random()*(1+wave*0.3)),MOB_TYPES.length-1);
+  const type=MOB_TYPES[typeIdx];
+  const waveScale=1+wave*0.1;
+
+  const bodyGeo=new THREE.CapsuleGeometry(0.4*type.size,0.8*type.size,4,8);
+  const bodyMat=new THREE.MeshStandardMaterial({color:type.color,emissive:type.color,emissiveIntensity:0.2});
+  const mesh=new THREE.Mesh(bodyGeo,bodyMat);
+  mesh.position.set(Math.cos(angle)*dist,0.8*type.size,Math.sin(angle)*dist);
+  mesh.castShadow=true;
+  scene.add(mesh);
+
+  const eyeGeo=new THREE.SphereGeometry(0.1*type.size,8,8);
+  const eyeMat=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xff0000,emissiveIntensity:2});
+  const eyeL=new THREE.Mesh(eyeGeo,eyeMat);
+  eyeL.position.set(-0.15*type.size,0.6*type.size,0.35*type.size);
+  mesh.add(eyeL);
+  const eyeR=new THREE.Mesh(eyeGeo,eyeMat);
+  eyeR.position.set(0.15*type.size,0.6*type.size,0.35*type.size);
+  mesh.add(eyeR);
+
+  const hpBarBg=new THREE.Mesh(
+    new THREE.PlaneGeometry(1,0.1),
+    new THREE.MeshBasicMaterial({color:0x333333,side:THREE.DoubleSide})
+  );
+  hpBarBg.position.y=1.2*type.size+0.5;
+  mesh.add(hpBarBg);
+  const hpBarFill=new THREE.Mesh(
+    new THREE.PlaneGeometry(1,0.1),
+    new THREE.MeshBasicMaterial({color:0xff4444,side:THREE.DoubleSide})
+  );
+  hpBarFill.position.y=1.2*type.size+0.5;
+  mesh.add(hpBarFill);
+
+  mobs.push({
+    mesh,type,hpBar:hpBarFill,hpBarBg,
+    hp:Math.floor(type.hp*waveScale),
+    maxHp:Math.floor(type.hp*waveScale),
+    dmg:Math.floor(type.dmg*waveScale),
+    speed:type.speed,
+    attackCD:0,
+    hitFlash:0,
+  });
+}
+
+function updateMobs(dt){
+  for(let i=mobs.length-1;i>=0;i--){
+    const m=mobs[i];
+    const dir=new THREE.Vector3().subVectors(player.pos,m.mesh.position);
+    dir.y=0;
+    const dist=dir.length();
+    dir.normalize();
+
+    if(dist>2){
+      m.mesh.position.x+=dir.x*m.speed*dt;
+      m.mesh.position.z+=dir.z*m.speed*dt;
+    }else if(m.attackCD<=0){
+      if(!shieldActive&&!shadowForm){
+        player.hp-=m.dmg;
+        if(player.hp<=0)player.hp=0;
+        updateHUD();
+      }
+      m.attackCD=1.5;
+    }
+
+    m.attackCD-=dt;
+    m.mesh.lookAt(player.pos.x,m.mesh.position.y,player.pos.z);
+
+    if(m.hitFlash>0){
+      m.hitFlash-=dt;
+      m.mesh.children[0].material.emissiveIntensity=m.hitFlash>0?3:1;
+      m.mesh.children[1].material.emissiveIntensity=m.hitFlash>0?3:1;
+    }
+
+    const hpPct=m.hp/m.maxHp;
+    m.hpBar.scale.x=Math.max(0,hpPct);
+    m.hpBar.position.x=(hpPct-1)*0.5;
+    m.hpBarBg.quaternion.copy(camera.quaternion);
+    m.hpBar.quaternion.copy(camera.quaternion);
+
+    if(m.hp<=0){
+      scene.remove(m.mesh);
+      m.mesh.traverse(child=>{if(child.geometry)child.geometry.dispose();if(child.material)child.material.dispose();});
+      mobs.splice(i,1);
+      kills++;
+      coinsEarned+=Math.floor(5+wave*2);
+      spawnDeathParticles(m.mesh.position,m.type.color);
+    }
+  }
+}
+
+// ===== PROJECTILES =====
+function shootProjectile(){
+  if(!currentChar||attackCooldown>0)return;
+  const dupes=state.duplicates[currentChar.id]||0;
+  const dmg=Math.floor(currentChar.dmg*(1+dupes*0.05)*RARITIES[currentChar.rarity].statMul);
+  const clan=currentChar.clan;
+  const colors={shadow:0x6a0dad,fire:0xff4400,ice:0x44aaff,lightning:0xffff00,nature:0x44ff44,void:0x4444ff,blood:0xff0044,chaos:0xff44ff,holy:0xffffaa,cosmic:0xaaaaff};
+  const color=colors[clan]||0xffffff;
+
+  const dir=new THREE.Vector3(0,0,-1);
+  dir.applyQuaternion(camera.quaternion);
+
+  if(currentChar.atkType==='melee'){
+    for(const m of mobs){
+      const d=m.mesh.position.distanceTo(player.pos);
+      if(d<4){
+        m.hp-=dmg;m.hitFlash=0.15;
+        const kb=new THREE.Vector3().subVectors(m.mesh.position,player.pos).normalize().multiplyScalar(2);
+        m.mesh.position.add(kb);
+      }
+    }
+    spawnAttackParticles(player.pos,dir,color);
+    attackCooldown=0.4;
+  }else if(currentChar.atkType==='ranged'){
+    const geo=new THREE.SphereGeometry(0.15,8,8);
+    const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:2});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.copy(player.pos);
+    mesh.position.y-=0.2;
+    scene.add(mesh);
+    projectiles.push({mesh,mat,dir:dir.clone(),speed:40,dmg,life:3,color,isSuper:false});
+    attackCooldown=0.25;
+  }else{
+    for(let a=0;a<8;a++){
+      const angle=(a/8)*Math.PI*2;
+      const d=new THREE.Vector3(Math.cos(angle),0,Math.sin(angle));
+      const geo=new THREE.SphereGeometry(0.12,6,6);
+      const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:2});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.position.copy(player.pos);mesh.position.y-=0.2;
+      scene.add(mesh);
+      projectiles.push({mesh,mat,dir:d,speed:25,dmg:Math.floor(dmg*0.5),life:2,color,isSuper:false});
+    }
+    attackCooldown=0.6;
+  }
+}
+
+function useSuper(){
+  if(superCooldown>0||!currentChar)return;
+  const dupes=state.duplicates[currentChar.id]||0;
+  const dmg=Math.floor(currentChar.dmg*3*(1+dupes*0.05)*RARITIES[currentChar.rarity].statMul);
+  const colors={shadow:0x6a0dad,fire:0xff4400,ice:0x44aaff,lightning:0xffff00,nature:0x44ff44,void:0x4444ff,blood:0xff0044,chaos:0xff44ff,holy:0xffffaa,cosmic:0xaaaaff};
+  const color=colors[currentChar.clan]||0xffffff;
+
+  for(let a=0;a<24;a++){
+    const angle=(a/24)*Math.PI*2;
+    const d=new THREE.Vector3(Math.cos(angle),0.1,Math.sin(angle));
+    const geo=new THREE.SphereGeometry(0.25,8,8);
+    const mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:3});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.copy(player.pos);mesh.position.y=1;
+    scene.add(mesh);
+    projectiles.push({mesh,mat,dir:d,speed:30,dmg,life:3,color,isSuper:true});
+  }
+
+  for(let i=0;i<50;i++){
+    spawnParticle(player.pos,color,2);
+  }
+
+  superCooldown=currentChar.superCD;
+}
+
+function useShield(){
+  if(shieldCooldown>0||!currentChar)return;
+  shieldActive=true;
+  shieldTimer=currentChar.shieldDur;
+  shieldCooldown=20;
+}
+
+function useShadowForm(){
+  if(shadowCooldown>0)return;
+  shadowForm=true;
+  shadowTimer=5;
+  shadowCooldown=30;
+}
+
+function updateProjectiles(dt){
+  for(let i=projectiles.length-1;i>=0;i--){
+    const p=projectiles[i];
+    p.mesh.position.addScaledVector(p.dir,p.speed*dt);
+    p.life-=dt;
+
+    let hit=false;
+    for(const m of mobs){
+      if(p.mesh.position.distanceTo(m.mesh.position)<1.5){
+        m.hp-=p.dmg;m.hitFlash=0.15;
+        const kb=p.dir.clone().multiplyScalar(1.5);
+        m.mesh.position.add(kb);
+        hit=true;
+        spawnHitParticles(p.mesh.position,p.color);
+        if(!p.isSuper)break;
+      }
+    }
+
+    if(hit&&!p.isSuper||p.life<=0||p.mesh.position.length()>45){
+      scene.remove(p.mesh);
+      if(p.mesh.geometry)p.mesh.geometry.dispose();
+      if(p.mat)p.mat.dispose();
+      projectiles.splice(i,1);
+    }
+  }
+}
+
+// ===== PARTICLES =====
+function spawnParticle(pos,color,life){
+  const geo=new THREE.SphereGeometry(0.08,4,4);
+  const mat=new THREE.MeshBasicMaterial({color});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.copy(pos);
+  mesh.position.x+=(Math.random()-0.5)*2;
+  mesh.position.y+=Math.random()*2;
+  mesh.position.z+=(Math.random()-0.5)*2;
+  scene.add(mesh);
+  particles.push({mesh,mat,vel:new THREE.Vector3((Math.random()-0.5)*3,Math.random()*5,(Math.random()-0.5)*3),life,maxLife:life});
+}
+
+function spawnDeathParticles(pos,color){
+  for(let i=0;i<15;i++)spawnParticle(pos,color,1);
+}
+
+function spawnHitParticles(pos,color){
+  for(let i=0;i<5;i++)spawnParticle(pos,color,0.5);
+}
+
+function spawnAttackParticles(pos,dir,color){
+  for(let i=0;i<8;i++){
+    const p=pos.clone();
+    p.addScaledVector(dir,1+Math.random()*2);
+    p.x+=(Math.random()-0.5);p.z+=(Math.random()-0.5);
+    spawnParticle(p,color,0.3);
+  }
+}
+
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.mesh.position.addScaledVector(p.vel,dt);
+    p.vel.y-=5*dt;
+    p.life-=dt;
+    const scale=Math.max(0,p.life/p.maxLife);
+    p.mesh.scale.setScalar(scale);
+    if(p.life<=0){
+      scene.remove(p.mesh);
+      p.mesh.geometry.dispose();
+      p.mat.dispose();
+      particles.splice(i,1);
+    }
+  }
+}
+
+// ===== WAVE SYSTEM =====
+function updateWaves(dt){
+  if(waveSpawned>=waveMobs){
+    if(mobs.length===0){
+      wave++;
+      waveMobs=Math.floor(5+wave*3);
+      waveSpawned=0;
+      spawnTimer=2;
+      state.coins+=Math.floor(20+wave*10);
+      coinsEarned+=Math.floor(20+wave*10);
+      saveState();
+    }
+    return;
+  }
+  spawnTimer-=dt;
+  if(spawnTimer<=0){
+    spawnMob();
+    waveSpawned++;
+    spawnTimer=Math.max(0.3,2-wave*0.1);
+  }
+}
+
+// ===== PLAYER MOVEMENT =====
+function updatePlayer(dt){
+  const spd=(shadowForm?12:6)*dt;
+  const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
+  const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));
+
+  player.vel.set(0,0,0);
+  if(keys['w']||keys['arrowup'])player.vel.add(forward);
+  if(keys['s']||keys['arrowdown'])player.vel.sub(forward);
+  if(keys['d']||keys['arrowright'])player.vel.add(right);
+  if(keys['a']||keys['arrowleft'])player.vel.sub(right);
+  if(player.vel.length()>0)player.vel.normalize().multiplyScalar(spd);
+
+  player.pos.add(player.vel);
+  const dist2d=Math.sqrt(player.pos.x*player.pos.x+player.pos.z*player.pos.z);
+  if(dist2d>34){
+    const scale=34/dist2d;
+    player.pos.x*=scale;player.pos.z*=scale;
+  }
+  player.pos.y=1.6;
+
+  camera.position.copy(player.pos);
+  camera.rotation.order='YXZ';
+  camera.rotation.y=player.yaw;
+  camera.rotation.x=player.pitch;
+
+  attackCooldown-=dt;
+  if(superCooldown>0)superCooldown-=dt;
+  if(shieldCooldown>0)shieldCooldown-=dt;
+  if(shadowCooldown>0)shadowCooldown-=dt;
+
+  if(shieldActive){
+    shieldTimer-=dt;
+    if(shieldTimer<=0)shieldActive=false;
+  }
+  if(shadowForm){
+    shadowTimer-=dt;
+    if(shadowTimer<=0)shadowForm=false;
+  }
+
+  if(mouseDown)shootProjectile();
+}
+
+// ===== HUD =====
+function updateHUD(){
+  document.getElementById('hud-wave').textContent=`Fala ${wave}`;
+  document.getElementById('hud-coins').textContent=`🪙 ${state.coins+coinsEarned}`;
+  document.getElementById('hud-kills').textContent=`☠️ ${kills}`;
+  const pct=Math.max(0,player.hp/player.maxHp)*100;
+  document.getElementById('hud-hp-fill').style.width=pct+'%';
+  document.getElementById('hud-hp-text').textContent=`${Math.max(0,Math.floor(player.hp))} / ${player.maxHp}`;
+
+  const superEl=document.getElementById('super-cd');
+  if(superCooldown>0){superEl.classList.remove('hidden');superEl.textContent=Math.ceil(superCooldown);}
+  else superEl.classList.add('hidden');
+
+  const shieldEl=document.getElementById('shield-cd');
+  if(shieldCooldown>0){shieldEl.classList.remove('hidden');shieldEl.textContent=Math.ceil(shieldCooldown);}
+  else shieldEl.classList.add('hidden');
+
+  const shadowEl=document.getElementById('shadow-cd');
+  if(shadowCooldown>0){shadowEl.classList.remove('hidden');shadowEl.textContent=Math.ceil(shadowCooldown);}
+  else shadowEl.classList.add('hidden');
+}
+
+// ===== GAME LOOP =====
+function gameLoop(){
+  if(!gameActive)return;
+  requestAnimationFrame(gameLoop);
+  if(gamePaused)return;
+
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  updatePlayer(dt);
+  updateMobs(dt);
+  updateProjectiles(dt);
+  updateParticles(dt);
+  updateWaves(dt);
+  updateHUD();
+
+  if(player.hp<=0){
+    gameOver();
+    return;
+  }
+
+  renderer.render(scene,camera);
+}
+
+function gameOver(){
+  gameActive=false;
+  document.exitPointerLock();
+  state.coins+=coinsEarned;
+  state.totalKills+=kills;
+  if(wave>state.highWave)state.highWave=wave;
+  saveState();
+
+  document.getElementById('go-stats').innerHTML=`
+    Fala: ${wave} | Zabójstwa: ${kills} | Zarobione: ${coinsEarned} 🪙<br>
+    Rekord fali: ${state.highWave} | Łącznie zabójstw: ${state.totalKills}
+  `;
+  document.getElementById('game-over').classList.add('active');
+}
+
+function exitGame(){
+  gameActive=false;
+  gamePaused=false;
+  document.exitPointerLock();
+  document.getElementById('game-screen').classList.remove('active');
+  document.getElementById('game-over').classList.remove('active');
+  document.getElementById('pause-menu').classList.remove('active');
+  showScreen('screen-menu');
+}
+window.exitGame=exitGame;
+
+function resumeGame(){
+  gamePaused=false;
+  document.getElementById('pause-menu').classList.remove('active');
+  document.getElementById('game-canvas').requestPointerLock();
+}
+window.resumeGame=resumeGame;
+
+// ===== INPUT =====
+document.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  keys[k]=true;
+  if(k==='q')useSuper();
+  if(k==='e')useShield();
+  if(k==='r')useShadowForm();
+  if(k==='escape'&&gameActive){
+    if(gamePaused){resumeGame();}
+    else{gamePaused=true;document.exitPointerLock();document.getElementById('pause-menu').classList.add('active');}
+  }
+});
+document.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+
+document.addEventListener('mousedown',e=>{
+  if(e.button===0)mouseDown=true;
+});
+document.addEventListener('mouseup',e=>{
+  if(e.button===0)mouseDown=false;
+});
+
+document.addEventListener('mousemove',e=>{
+  if(document.pointerLockElement!==document.getElementById('game-canvas'))return;
+  const sens=state.sensitivity*0.002;
+  player.yaw-=e.movementX*sens;
+  player.pitch-=e.movementY*sens;
+  player.pitch=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,player.pitch));
+});
+
+document.addEventListener('pointerlockchange',()=>{
+  if(!document.pointerLockElement&&gameActive&&!gamePaused){
+    gamePaused=true;
+    document.getElementById('pause-menu').classList.add('active');
+  }
+});
+
+// ===== INIT =====
+updateMenuInfo();
+</script>
+</body>
+</html>
