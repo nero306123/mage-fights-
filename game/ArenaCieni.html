@@ -3760,6 +3760,343 @@ function rangedImpactVFX(x,y,z,clan){
   CombatLighting.flash(x,y,z,c,2,8,.15);
 }
 
+/* ============ DYNAMIC BLOOM EFFECT ============ */
+let bloomSpheres=[];
+function createBloomSphere(x,y,z,color,radius,life){
+  const c=new THREE.Color(color);
+  const geo=new THREE.SphereGeometry(radius||1,16,12);
+  const mat=basicMat(c,{transparent:true,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:false});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.position.set(x,y,z);
+  scene.add(mesh);
+  const inner=new THREE.Mesh(new THREE.SphereGeometry((radius||1)*.3,8,6),
+    basicMat(c.clone().multiplyScalar(2),{transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false}));
+  mesh.add(inner);
+  bloomSpheres.push({mesh,life:life||.5,maxLife:life||.5,radius:radius||1});
+}
+function updateBloomSpheres(dt){
+  for(let i=bloomSpheres.length-1;i>=0;i--){
+    const b=bloomSpheres[i];
+    b.life-=dt;const frac=b.life/b.maxLife;
+    b.mesh.scale.setScalar(1+(1-frac)*2);
+    b.mesh.material.opacity=frac*.3;
+    b.mesh.children[0].material.opacity=frac*.6;
+    if(b.life<=0){scene.remove(b.mesh);bloomSpheres.splice(i,1);}
+  }
+}
+
+/* ============ ENERGY WAVE SYSTEM ============ */
+let energyWaves=[];
+function createEnergyWave(x,z,color,maxRadius,speed,height){
+  const c=new THREE.Color(color);
+  const waveMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,
+    blending:THREE.AdditiveBlending,
+    uniforms:{uColor:{value:c},uRadius:{value:0},uMaxRadius:{value:maxRadius||15}},
+    vertexShader:`varying vec2 vUv;varying vec3 vPos;void main(){vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+    fragmentShader:`uniform vec3 uColor;uniform float uRadius;uniform float uMaxRadius;varying vec3 vPos;
+      void main(){
+        float d=length(vPos.xz)/uMaxRadius;
+        float ring=smoothstep(uRadius/uMaxRadius-0.05,uRadius/uMaxRadius,d)*smoothstep(uRadius/uMaxRadius+0.08,uRadius/uMaxRadius+0.02,d);
+        float fade=1.0-uRadius/uMaxRadius;
+        gl_FragColor=vec4(uColor*1.5,ring*fade*0.6);
+      }`
+  });
+  const mesh=new THREE.Mesh(new THREE.CircleGeometry(maxRadius||15,32),waveMat);
+  mesh.rotation.x=-Math.PI/2;mesh.position.set(x,(height||.1),z);
+  scene.add(mesh);
+  const light=new THREE.PointLight(c.getHex(),2,(maxRadius||15));
+  light.position.set(x,1,z);scene.add(light);
+  energyWaves.push({mesh,mat:waveMat,light,radius:0,maxRadius:maxRadius||15,speed:speed||20,x,z});
+}
+function updateEnergyWaves(dt){
+  for(let i=energyWaves.length-1;i>=0;i--){
+    const w=energyWaves[i];
+    w.radius+=w.speed*dt;
+    w.mat.uniforms.uRadius.value=w.radius;
+    w.light.intensity=Math.max(0,2*(1-w.radius/w.maxRadius));
+    if(w.radius>=w.maxRadius){
+      scene.remove(w.mesh);scene.remove(w.light);
+      w.mesh.geometry.dispose();w.mat.dispose();
+      energyWaves.splice(i,1);
+    }
+  }
+}
+
+/* ============ FLOATING DEBRIS SYSTEM ============ */
+let floatingDebris=[];
+function createFloatingDebris(x,y,z,count,color,radius,life){
+  const c=new THREE.Color(color);
+  for(let i=0;i<(count||8);i++){
+    const size=.05+Math.random()*.15;
+    const geo=Math.random()>.5?SG.box:SG.octa;
+    const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({
+      color:c,metalness:.4,roughness:.6,emissive:c,emissiveIntensity:.2
+    }));
+    mesh.scale.setScalar(size);
+    const a=Math.random()*Math.PI*2;
+    const r=Math.random()*(radius||2);
+    mesh.position.set(x+Math.cos(a)*r,y+Math.random()*2,z+Math.sin(a)*r);
+    scene.add(mesh);
+    floatingDebris.push({
+      mesh,life:(life||3)+Math.random(),maxLife:(life||3)+Math.random(),
+      vx:(Math.random()-.5)*2,vy:1+Math.random()*2,vz:(Math.random()-.5)*2,
+      rotX:Math.random()*5,rotY:Math.random()*5,rotZ:Math.random()*5
+    });
+  }
+}
+function updateFloatingDebris(dt){
+  for(let i=floatingDebris.length-1;i>=0;i--){
+    const d=floatingDebris[i];
+    d.life-=dt;
+    d.mesh.position.x+=d.vx*dt;d.mesh.position.y+=d.vy*dt;d.mesh.position.z+=d.vz*dt;
+    d.vy-=2*dt;
+    d.mesh.rotation.x+=d.rotX*dt;d.mesh.rotation.y+=d.rotY*dt;d.mesh.rotation.z+=d.rotZ*dt;
+    if(d.life<.5)d.mesh.material.opacity=d.life/.5;
+    if(d.life<=0){scene.remove(d.mesh);floatingDebris.splice(i,1);}
+  }
+}
+
+/* ============ ABILITY CHARGE VFX ============ */
+function abilityChargeVFX(x,y,z,color,duration){
+  const c=new THREE.Color(color);
+  const orbCount=12;
+  for(let i=0;i<orbCount;i++){
+    const angle=i/orbCount*Math.PI*2;
+    const r=3;
+    const startX=x+Math.cos(angle)*r;
+    const startZ=z+Math.sin(angle)*r;
+    const delay=i*50;
+    setTimeout(()=>{
+      spawnParticle(startX,y,startZ,c,{
+        life:(duration||1)-.05*i,size:.12,shrink:.97,
+        vx:(x-startX)*2,vy:.5,vz:(z-startZ)*2,grav:0
+      });
+    },delay);
+  }
+  setTimeout(()=>{
+    burst(x,y,z,c,15,5,{up:true,life:.5,grav:2});
+    createBloomSphere(x,y,z,c,.8,.3);
+    CombatLighting.flash(x,y,z,c,3,10,.3);
+  },duration?duration*1000:1000);
+}
+
+/* ============ REFLECTIVE FLOOR ACCENTS ============ */
+function addReflectiveAccents(theme,arenaGroup){
+  const accent=new THREE.Color(theme.accent);
+  // polished floor patches (fake reflections)
+  for(let i=0;i<(MOBILE?3:6);i++){
+    const a=Math.random()*Math.PI*2,r=5+Math.random()*20;
+    const patchGeo=new THREE.CircleGeometry(1.5+Math.random()*2,8);
+    const patchMat=new THREE.MeshStandardMaterial({
+      color:accent.clone().multiplyScalar(.1),metalness:.95,roughness:.05,
+      emissive:accent,emissiveIntensity:.03,transparent:true,opacity:.4
+    });
+    const patch=new THREE.Mesh(patchGeo,patchMat);
+    patch.rotation.x=-Math.PI/2;
+    patch.position.set(Math.cos(a)*r,.02,Math.sin(a)*r);
+    arenaGroup.add(patch);
+  }
+  // metallic edge trim on outer wall
+  const trimGeo=new THREE.TorusGeometry(36,.08,4,64);
+  const trimMat=new THREE.MeshStandardMaterial({
+    color:accent,metalness:.9,roughness:.2,emissive:accent,emissiveIntensity:.1
+  });
+  const trim=new THREE.Mesh(trimGeo,trimMat);
+  trim.rotation.x=Math.PI/2;trim.position.y=.5;
+  arenaGroup.add(trim);
+  const topTrim=trim.clone();topTrim.position.y=19.5;arenaGroup.add(topTrim);
+}
+
+/* ============ ENHANCED CROSSHAIR ============ */
+let crosshairMesh=null;
+function createCrosshair(arenaGroup){
+  if(crosshairMesh){scene.remove(crosshairMesh);crosshairMesh=null;}
+  const group=new THREE.Group();
+  const lineMat=basicMat('#ffffff',{transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false});
+  // four crosshair lines
+  for(let i=0;i<4;i++){
+    const a=i/4*Math.PI*2;
+    const line=new THREE.Mesh(new THREE.BoxGeometry(.02,.002,.15),lineMat);
+    line.position.set(Math.cos(a)*.25,0,Math.sin(a)*.25);
+    line.rotation.y=a;
+    group.add(line);
+  }
+  // center dot
+  const dot=new THREE.Mesh(SG.sphere,basicMat('#ffffff',{transparent:true,opacity:.5}));
+  dot.scale.setScalar(.02);group.add(dot);
+  crosshairMesh=group;
+}
+
+/* ============ PARTICLE EMITTER RING ============ */
+function createEmitterRing(x,y,z,color,radius,count,life,speed){
+  const c=new THREE.Color(color);
+  const n=count||16;
+  for(let i=0;i<n;i++){
+    const a=i/n*Math.PI*2;
+    spawnParticle(x+Math.cos(a)*(radius||2),y,z+Math.sin(a)*(radius||2),c,{
+      life:(life||1)+Math.random()*.3,
+      vx:Math.cos(a)*(speed||3),vy:1+Math.random()*2,vz:Math.sin(a)*(speed||3),
+      grav:4,size:.08+Math.random()*.06,shrink:.95
+    });
+  }
+}
+
+/* ============ AURA PULSE GROUND EFFECT ============ */
+function auraPulseGround(x,z,color,maxR){
+  const c=new THREE.Color(color);
+  createEnergyWave(x,z,c,maxR||10,25,.06);
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    spawnParticle(x+Math.cos(a)*.5,.1,z+Math.sin(a)*.5,c,{
+      life:.6,vx:Math.cos(a)*8,vy:.3,vz:Math.sin(a)*8,grav:0,size:.08,shrink:.94
+    });
+  }
+}
+
+/* ============ ELEMENTAL EXPLOSION PRESET ============ */
+function elementalExplosion(x,y,z,element,scale){
+  const s=scale||1;
+  const colors={fire:'#ff5a2a',ice:'#4adaff',lightning:'#ffe24a',nature:'#4aff7a',void:'#6a2aaa',shadow:'#7a4aff',blood:'#cc2a3a',chaos:'#ff4a8a',holy:'#ffd24a',cosmic:'#aa8aff'};
+  const c=new THREE.Color(colors[element]||'#ffffff');
+  createDeathExplosion(x,y,z,c,s);
+  createShockwaveRing(x,z,c,8*s,.6);
+  createEnergyWave(x,z,c,12*s,20);
+  if(element==='fire')createFireTrail(x,z,c,1.5*s,2);
+  else if(element==='ice')createIceCrystalFormation(x,z,4,2*s,3);
+  else if(element==='lightning'){
+    for(let i=0;i<3;i++){
+      const a=Math.random()*Math.PI*2,r=3+Math.random()*5;
+      createLightningBolt(x,y,z,x+Math.cos(a)*r*s,y+3,z+Math.sin(a)*r*s,c.getHex(),8,.4,.05);
+    }
+  }
+  else if(element==='void')createGravityWell(x,z,c,3*s,2);
+  else if(element==='nature')createParticleFountain(x,z,c,2,1.5);
+  else if(element==='shadow')createSmoke(x,y,z,'#3a1a5a',8*s,2*s,2);
+  else if(element==='blood')createBloodSplatter(x,z,c,1.5*s);
+  else if(element==='holy')createLightPillar(x,z,c,12*s,1.5,.2,1.5,true);
+  else if(element==='cosmic')createPortal(x,y+2,z,c,2*s,2);
+  else if(element==='chaos'){
+    const randomColors=['#ff4a4a','#4adaff','#ffe24a','#4aff7a','#ff4a8a','#aa7aff'];
+    for(let i=0;i<5;i++){
+      const rc=randomColors[Math.floor(Math.random()*randomColors.length)];
+      burst(x+(Math.random()-.5)*3*s,y+Math.random()*3,z+(Math.random()-.5)*3*s,new THREE.Color(rc),8,4,{life:.6,grav:3});
+    }
+  }
+  CombatLighting.flash(x,y,z,c,4*s,15*s,.5);
+  shake(.3*s);
+}
+
+/* ============ FLOATING ISLAND DECORATION ============ */
+function addFloatingIslands(theme,arenaGroup){
+  if(MOBILE)return;
+  const accent=new THREE.Color(theme.accent);
+  for(let i=0;i<4;i++){
+    const a=(i/4+.2)*Math.PI*2;
+    const r=40+Math.random()*15;
+    const island=new THREE.Group();
+    // rock base
+    const base=new THREE.Mesh(SG.octa,
+      new THREE.MeshStandardMaterial({color:new THREE.Color(theme.floor).multiplyScalar(1.2),metalness:.3,roughness:.7}));
+    base.scale.set(2+Math.random()*2,1+Math.random(),.8+Math.random()*1.5);
+    base.rotation.set(Math.random()*.3,Math.random()*Math.PI,Math.random()*.3);
+    island.add(base);
+    // crystal on top
+    const crystal=new THREE.Mesh(SG.octa,
+      new THREE.MeshStandardMaterial({color:accent,metalness:.8,roughness:.15,emissive:accent,emissiveIntensity:.4,transparent:true,opacity:.8}));
+    crystal.scale.set(.2,.5,.2);crystal.position.y=1;
+    island.add(crystal);
+    // glow
+    const glow=new THREE.PointLight(accent.getHex(),.6,8);
+    glow.position.y=1.2;island.add(glow);
+    island.position.set(Math.cos(a)*r,12+Math.random()*8+i*3,Math.sin(a)*r);
+    island.userData.floatPhase=Math.random()*Math.PI*2;
+    island.userData.baseY=island.position.y;
+    arenaGroup.add(island);
+  }
+}
+
+/* ============ ARENA TORCH SYSTEM ============ */
+function addTorches(theme,arenaGroup){
+  const accent=new THREE.Color(theme.accent);
+  const isFireTheme=theme.weather==='embers';
+  const torchColor=isFireTheme?'#ff6a2a':'#'+accent.getHexString();
+  for(let i=0;i<8;i++){
+    const a=(i/8+.05)*Math.PI*2;
+    const r=30;
+    const torch=new THREE.Group();
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,2,6),
+      mat(theme.floor,{metalness:.5,roughness:.6}));
+    post.position.y=1;torch.add(post);
+    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.2,.12,.3,8),
+      mat(theme.floor,{metalness:.6,roughness:.4,emissive:accent,emissiveIntensity:.1}));
+    bowl.position.y=2.15;torch.add(bowl);
+    const flame=new THREE.Mesh(SG.octa,basicMat(torchColor,{transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false}));
+    flame.scale.set(.08,.2,.08);flame.position.y=2.4;torch.add(flame);
+    const flameGlow=new THREE.PointLight(new THREE.Color(torchColor).getHex(),.8,6);
+    flameGlow.position.y=2.4;torch.add(flameGlow);
+    torch.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+    arenaGroup.add(torch);
+  }
+}
+
+/* ============ GROUND RUNE PATTERNS ============ */
+function addGroundRunePatterns(theme,arenaGroup){
+  const accent=new THREE.Color(theme.accent);
+  // concentric rune circles with symbols
+  const symbolGeo=new THREE.CircleGeometry(.3,3);
+  for(let ring=0;ring<3;ring++){
+    const r=8+ring*8;
+    const count=6+ring*4;
+    for(let i=0;i<count;i++){
+      const a=i/count*Math.PI*2+ring*.3;
+      const x=Math.cos(a)*r,z=Math.sin(a)*r;
+      const sym=new THREE.Mesh(symbolGeo,basicMat(accent,{
+        transparent:true,opacity:.15,side:THREE.DoubleSide,
+        blending:THREE.AdditiveBlending,depthWrite:false
+      }));
+      sym.rotation.x=-Math.PI/2;sym.rotation.z=a;
+      sym.position.set(x,.04,z);
+      arenaGroup.add(sym);
+    }
+  }
+  // cardinal direction markers
+  for(let i=0;i<4;i++){
+    const a=i/4*Math.PI*2;
+    const x=Math.cos(a)*20,z=Math.sin(a)*20;
+    const marker=new THREE.Mesh(new THREE.ConeGeometry(.4,.8,4),
+      basicMat(accent,{transparent:true,opacity:.2,blending:THREE.AdditiveBlending,depthWrite:false}));
+    marker.rotation.x=-Math.PI/2;marker.rotation.z=a+Math.PI/4;
+    marker.position.set(x,.1,z);
+    arenaGroup.add(marker);
+  }
+}
+
+/* ============ ANIMATED CHAINS ============ */
+function addAnimatedChains(theme,arenaGroup){
+  const accent=new THREE.Color(theme.accent);
+  for(let i=0;i<6;i++){
+    const a1=(i/6)*Math.PI*2;
+    const a2=((i+1)/6)*Math.PI*2;
+    const x1=Math.cos(a1)*28,z1=Math.sin(a1)*28;
+    const x2=Math.cos(a2)*28,z2=Math.sin(a2)*28;
+    const mid=8+i*1.5;
+    const pts=[
+      new THREE.Vector3(x1,mid,z1),
+      new THREE.Vector3((x1+x2)/2,mid-3-Math.random()*2,(z1+z2)/2),
+      new THREE.Vector3(x2,mid,z2)
+    ];
+    const curve=new THREE.CatmullRomCurve3(pts);
+    const chainGeo=new THREE.TubeGeometry(curve,12,.04,4);
+    const chainMat=new THREE.MeshStandardMaterial({
+      color:accent.clone().multiplyScalar(.3),metalness:.8,roughness:.3,
+      emissive:accent,emissiveIntensity:.05
+    });
+    const chain=new THREE.Mesh(chainGeo,chainMat);
+    arenaGroup.add(chain);
+  }
+}
+
 /* ============ LIGHTNING ============ */
 let ambientLight,hemiLight,keyLight,fillLight,rimLight,playerLight;
 function setupLighting(theme){
@@ -3918,6 +4255,11 @@ function buildArena(theme){
   createGodRays(theme,arenaGroup);
   createEnhancedSky(theme,arenaGroup);
   createEnhancedWeatherParticles(theme,arenaGroup);
+  addReflectiveAccents(theme,arenaGroup);
+  addFloatingIslands(theme,arenaGroup);
+  addTorches(theme,arenaGroup);
+  addGroundRunePatterns(theme,arenaGroup);
+  addAnimatedChains(theme,arenaGroup);
 }
 function buildWeather(theme){
   const count=state.settings.reducedParticles?80:220;
@@ -4741,6 +5083,7 @@ function gameLoop(now){
     updateElementalAuras(dt,G.time); updateArenaTraps(dt,G.time);
     updateParticleFountains(dt,G.time); updateSmoke(dt);
     updateGodRays(dt,G.time); updateSkyEffects(dt,G.time); updateEnhancedWeather(dt,G.time);
+    updateBloomSpheres(dt); updateEnergyWaves(dt); updateFloatingDebris(dt);
     spawnThemeEffect(G.theme||ARENA_THEMES.shadow);
     if(G.player){const mv=getMoveInput();SpeedLines.update(mv.mag*(G.player.sprinting?1.5:1),1.5);}
     if(G.boss&&!G.boss.dying)updateBossPhaseIndicator(G.boss);
@@ -5206,6 +5549,9 @@ function cleanupGame(){
   if(window._gravWells){window._gravWells.forEach(g=>{scene.remove(g.mesh);scene.remove(g.light);});window._gravWells=[];}
   if(window._fountains)window._fountains=[];
   godRaysMesh=null;skyEffects=null;weatherParticles2=[];
+  bloomSpheres.forEach(b=>scene.remove(b.mesh));bloomSpheres=[];
+  energyWaves.forEach(w=>{scene.remove(w.mesh);scene.remove(w.light);});energyWaves=[];
+  floatingDebris.forEach(d=>scene.remove(d.mesh));floatingDebris=[];
   const bp=document.querySelector('.boss-phase');if(bp)bp.remove();
   $('boss-wrap').classList.remove('show');
   $('lowHpOverlay').style.opacity='0';
