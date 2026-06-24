@@ -10,10 +10,10 @@
 :root{--c-common:#8a8a8a;--c-rare:#4a9eff;--c-epic:#b44aff;--c-mythic:#ff4a8a;--c-legendary:#ffaa00;--c-ultimate:#ff4444;--c-unknown:#00ffaa;--c-secret:#ff00ff}
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0a12;color:#e8e8ff;font-family:'Orbitron',sans-serif;user-select:none}
 #app{position:fixed;inset:0;overflow:hidden}
-.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;z-index:5}
 .screen.active{display:flex}
 canvas{display:block}
-#gl{position:fixed;inset:0;z-index:1}
+#gl{position:fixed;inset:0;z-index:0}
 .title-font{font-family:'Cinzel',serif}
 #menu{background:linear-gradient(135deg,#0a0a18,#1a0a2a,#0a0a18);background-size:400% 400%;animation:bgshift 18s ease infinite;align-items:center;justify-content:center;text-align:center}
 @keyframes bgshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -274,9 +274,12 @@ canvas{display:block}
 <div class="toast" id="toast"></div>
 </div>
 
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js"}}</script>
-<script type="module">
-import * as THREE from 'three';
+<script>
+window.addEventListener('error',function(e){var d=document.getElementById('fatalErr');if(!d){d=document.createElement('div');d.id='fatalErr';d.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#400;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;max-height:40%;overflow:auto';document.body.appendChild(d)}d.textContent='⚠️ Błąd: '+(e.message||e.error)+'\n'+(e.filename||'')+':'+(e.lineno||'');});
+(async function(){
+let THREE;
+try{THREE=await import('https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.min.js');}
+catch(err){var d=document.createElement('div');d.style.cssText='position:fixed;inset:0;z-index:99999;background:#0a0a12;color:#e8e8ff;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;font-family:sans-serif';d.innerHTML='<div><h2 style="color:#c44aff">Błąd ładowania silnika 3D</h2><p style="margin-top:12px;color:#aaa">Gra potrzebuje połączenia z internetem przy pierwszym uruchomieniu (pobiera bibliotekę Three.js).<br>Sprawdź internet i odśwież stronę.</p></div>';document.body.appendChild(d);console.error(err);return;}
 
 const RARITIES={
 common:{label:'Pospolity',color:'#8a8a8a',glow:'#8a8a8a',dropRate:40,statMul:1.0},
@@ -1305,6 +1308,7 @@ animate();
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);if(camera){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix()}if(crateCam){crateCam.aspect=innerWidth/innerHeight;crateCam.updateProjectionMatrix()}});
 
 updateCurrency();renderMenuLevel();
+})();
 </script>
 </body>
 </html>
