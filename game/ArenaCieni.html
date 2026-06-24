@@ -925,8 +925,12 @@ function buildArena(theme){
   if(arenaGroup)scene.remove(arenaGroup);
   arenaGroup=new THREE.Group(); scene.add(arenaGroup);
   runeRings=[];pillarOrbs=[];weatherParts=[];ambientMotes=[];
-  scene.fog=new THREE.FogExp2(new THREE.Color(theme.fog),0.018);
+  scene.fog=new THREE.FogExp2(new THREE.Color(theme.fog),0.016);
   scene.background=new THREE.Color(theme.fog);
+  // sky dome — gradient hemisphere above the arena
+  const skyGeo=new THREE.SphereGeometry(120,32,16,0,Math.PI*2,0,Math.PI*.5);
+  const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,transparent:true,depthWrite:false,uniforms:{uTop:{value:new THREE.Color(theme.accent).multiplyScalar(.15)},uBot:{value:new THREE.Color(theme.fog)}},vertexShader:'varying vec3 vPos;void main(){vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'uniform vec3 uTop;uniform vec3 uBot;varying vec3 vPos;void main(){float h=clamp(vPos.y/120.,0.,1.);gl_FragColor=vec4(mix(uBot,uTop,h),1.);}'});
+  const sky=new THREE.Mesh(skyGeo,skyMat); sky.position.y=-5; arenaGroup.add(sky);
   const accent=new THREE.Color(theme.accent);
   // floor — metallic with subtle emissive sheen so it catches the glow
   const floor=new THREE.Mesh(new THREE.CircleGeometry(35,64),mat(theme.floor,{metalness:.75,roughness:.42,emissive:accent.clone().multiplyScalar(.12)})); floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; arenaGroup.add(floor);
@@ -958,6 +962,24 @@ function buildArena(theme){
   const wall=new THREE.Mesh(new THREE.CylinderGeometry(36,36,20,48,1,true),mat(theme.floor,{side:THREE.BackSide,metalness:.4,roughness:.7,transparent:true,opacity:.85})); wall.position.y=10; arenaGroup.add(wall);
   // wall light strips (additive glow)
   for(let i=0;i<24;i++){ const a=i/24*Math.PI*2; const strip=new THREE.Mesh(new THREE.BoxGeometry(.2,18,.2),basicMat(accent,{transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false})); strip.position.set(Math.cos(a)*35.5,9,Math.sin(a)*35.5); arenaGroup.add(strip); }
+  // arena props — scattered crystals and rocks
+  for(let i=0;i<18;i++){
+    const a=Math.random()*Math.PI*2,r=12+Math.random()*18;
+    const px=Math.cos(a)*r,pz=Math.sin(a)*r;
+    const isCrystal=Math.random()>.5;
+    if(isCrystal){
+      const cr=new THREE.Mesh(SG.octa,mat(accent.getHex(),{metalness:.7,roughness:.2,emissive:accent,emissiveIntensity:.5,transparent:true,opacity:.8}));
+      cr.scale.set(.15+Math.random()*.2,.4+Math.random()*.6,.15+Math.random()*.2);
+      cr.position.set(px,cr.scale.y*.5,pz); cr.rotation.y=Math.random()*Math.PI;
+      arenaGroup.add(cr);
+      const cl=new THREE.PointLight(accent.getHex(),.6,5); cl.position.set(px,.5,pz); arenaGroup.add(cl);
+    } else {
+      const rk=new THREE.Mesh(SG.box,mat(new THREE.Color(theme.floor).multiplyScalar(1.3).getHex(),{metalness:.3,roughness:.7}));
+      rk.scale.set(.3+Math.random()*.4,.2+Math.random()*.3,.3+Math.random()*.4);
+      rk.position.set(px,rk.scale.y*.5,pz); rk.rotation.set(Math.random()*.3,Math.random()*Math.PI,Math.random()*.3);
+      arenaGroup.add(rk);
+    }
+  }
   // ambient floating motes (300)
   const moteCount=state.settings.reducedParticles?120:300;
   const mg=new THREE.BufferGeometry(); const mpos=new Float32Array(moteCount*3); const mdata=[];
@@ -1179,14 +1201,17 @@ function fireProjectile(fromX,fromY,fromZ,dirX,dirZ,dmg,opts){
   let geo=SG.sphere;
   if(fx.shape==='cube')geo=SG.box; else if(fx.shape==='shard')geo=SG.octa; else if(fx.shape==='star')geo=SG.tetra; else if(fx.shape==='bolt')geo=SG.cone;
   const mesh=new THREE.Mesh(geo,basicMat(col)); mesh.scale.setScalar(fx.projSize*(opts.sizeMul||1)); mesh.position.set(fromX,fromY,fromZ); scene.add(mesh);
-  const light=new THREE.PointLight(col.getHex(),1,5); mesh.add(light);
+  // glow halo
+  const halo=new THREE.Mesh(SG.sphere,basicMat(col,{transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false})); halo.scale.setScalar(2.5); mesh.add(halo);
+  const light=new THREE.PointLight(col.getHex(),1.5,8); mesh.add(light);
   const sp=opts.speed||22;
   G.projectiles.push({mesh,x:fromX,y:fromY,z:fromZ,vx:dirX*sp,vz:dirZ*sp,dmg,life:opts.life||1.6,fromPlayer:opts.fromPlayer!==false,clan:c.clan,trailT:0,pierce:opts.pierce||0,status:opts.status,radius:opts.radius||.6});
 }
 function enemyProjectile(fromX,fromY,fromZ,tx,tz,dmg){
   const dx=tx-fromX,dz=tz-fromZ; const d=Math.hypot(dx,dz)||1;
   const mesh=new THREE.Mesh(SG.sphere,basicMat('#ff4a4a')); mesh.scale.setScalar(.3); mesh.position.set(fromX,fromY,fromZ); scene.add(mesh);
-  mesh.add(new THREE.PointLight(0xff4a4a,1,4));
+  const eh=new THREE.Mesh(SG.sphere,basicMat('#ff4a4a',{transparent:true,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:false})); eh.scale.setScalar(2.8); mesh.add(eh);
+  mesh.add(new THREE.PointLight(0xff4a4a,1.5,6));
   G.projectiles.push({mesh,x:fromX,y:fromY,z:fromZ,vx:dx/d*14,vz:dz/d*14,dmg,life:2.2,fromPlayer:false,clan:'enemy',trailT:0,radius:.5});
 }
 function playerAttack(){
@@ -1211,6 +1236,10 @@ function playerAttack(){
     G.mobs.forEach(m=>{ if(m.dying)return; const dx=m.x-px,dz=m.z-pz; const d=Math.hypot(dx,dz); if(d<3){ const ang=Math.atan2(dx,dz); let diff=Math.abs(((ang-G.player.facing+Math.PI)%(Math.PI*2))-Math.PI); if(diff<1.1){ damageMob(m,dmg,crit); if(fx.status)applyStatus(m,fx.status); } } });
     if(G.boss&&!G.boss.dying){ const dx=G.boss.x-px,dz=G.boss.z-pz; if(Math.hypot(dx,dz)<5)damageBoss(G.boss,dmg,crit); }
     burst(px+dirX*2,1.2,pz+dirZ*2,new THREE.Color(fx.slash),8,4,{life:.4,grav:2});
+    // impact light flash
+    const il=new THREE.PointLight(new THREE.Color(fx.slash).getHex(),3,10); il.position.set(px+dirX*2,1.5,pz+dirZ*2); scene.add(il); setTimeout(()=>scene.remove(il),180);
+    // ground impact ring
+    const ir=new THREE.Mesh(new THREE.RingGeometry(.3,.6,24),basicMat(fx.slash,{transparent:true,opacity:.7,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); ir.rotation.x=-Math.PI/2; ir.position.set(px+dirX*2,.1,pz+dirZ*2); scene.add(ir); G.projectiles.push({mesh:ir,isRing:true,life:.35,grow:10,x:px+dirX*2,z:pz+dirZ*2});
   } else if(c.atkType==='ranged'){
     Audio2.sfx.shoot();
     fireProjectile(px+dirX,1.4,pz+dirZ,dirX,dirZ,dmg,{status:fx.status,fromPlayer:true,sizeMul:crit?1.5:1});
@@ -1242,6 +1271,10 @@ function killMob(m){
   const coins=Math.round((2+G.wave*.5)*(m.elite?4:1)*(G.mutators.includes('golden')?2:1));
   addCoins(coins); addXP(2+G.wave);
   burst(m.x,m.y+.8,m.z,new THREE.Color(m.def.color),16,6,{up:true,life:.8,grav:5});
+  // coin sparkle fountain
+  for(let ci=0;ci<4;ci++)spawnParticle(m.x+(Math.random()-.5),m.y+1,m.z+(Math.random()-.5),new THREE.Color('#ffd24a'),{life:.7+Math.random()*.4,vy:4+Math.random()*3,vx:(Math.random()-.5)*2,vz:(Math.random()-.5)*2,grav:6,size:.14});
+  // flash at death point
+  const kl=new THREE.PointLight(new THREE.Color(m.def.color).getHex(),3,12); kl.position.set(m.x,m.y+1,m.z); scene.add(kl); setTimeout(()=>scene.remove(kl),250);
   // chance powerup
   if(Math.random()<(m.elite?.5:.04))spawnPowerup(m.x,m.z);
   if(G.waveMobsLeft>0)G.waveMobsLeft--;
@@ -1259,8 +1292,15 @@ function killBoss(b){
   b.dying=true; b.deathT=0; G.bossActive=false; $('boss-wrap').classList.remove('show');
   state.stats.bossesKilled++; G.questStats.bosses++; questProgress('bosses',1);
   addCoins(100+G.wave*15); addXP(50+G.wave*5);
-  shake(1.5); flashScreen('#ffaa00',.5);
-  burst(b.x,b.y+3,b.z,new THREE.Color(b.def.color),60,14,{up:true,life:1.8,grav:3});
+  shake(2.5); flashScreen('#ffaa00',.7);
+  burst(b.x,b.y+3,b.z,new THREE.Color(b.def.color),80,16,{up:true,life:2,grav:3,size:.35});
+  burst(b.x,b.y+1,b.z,new THREE.Color('#ffd24a'),40,10,{up:true,life:1.5,grav:5,size:.18});
+  // boss kill shockwave
+  const bsr=new THREE.Mesh(new THREE.RingGeometry(.5,2,48),basicMat(b.def.color,{transparent:true,opacity:.9,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); bsr.rotation.x=-Math.PI/2; bsr.position.set(b.x,.2,b.z); scene.add(bsr); G.projectiles.push({mesh:bsr,isRing:true,life:1.2,grow:40,x:b.x,z:b.z});
+  // pillar of light
+  const bpl=new THREE.Mesh(new THREE.CylinderGeometry(.6,2,20,16,1,true),basicMat(b.def.color,{transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); bpl.position.set(b.x,10,b.z); scene.add(bpl); setTimeout(()=>scene.remove(bpl),1800);
+  // lingering light
+  const bkl=new THREE.PointLight(new THREE.Color(b.def.color).getHex(),5,40); bkl.position.set(b.x,4,b.z); scene.add(bkl); setTimeout(()=>scene.remove(bkl),1500);
   announce('BOSS POKONANY','+'+(100+G.wave*15)+' 🪙');
   Audio2.sfx.kill();
 }
@@ -1274,9 +1314,16 @@ function useSuper(){
   const px=G.player.x,pz=G.player.z; const col=new THREE.Color(CLAN_FX[c.clan].proj);
   if(c.ghostMechanic){ shadowMasterSuper(); return; }
   // massive burst
-  burst(px,1.5,pz,col,70,12,{up:true,life:1.5,grav:2,size:.3});
+  burst(px,1.5,pz,col,80,14,{up:true,life:1.8,grav:2,size:.35});
+  burst(px,2,pz,new THREE.Color('#ffffff'),20,6,{up:true,life:1,grav:1,size:.15});
   // expanding shockwave ring
-  const ring=new THREE.Mesh(new THREE.RingGeometry(.5,1.2,40),basicMat(col,{transparent:true,opacity:.9,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(px,.2,pz); scene.add(ring); G.projectiles.push({mesh:ring,isRing:true,life:.8,grow:30,x:px,z:pz});
+  const ring=new THREE.Mesh(new THREE.RingGeometry(.5,1.2,40),basicMat(col,{transparent:true,opacity:.9,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); ring.rotation.x=-Math.PI/2; ring.position.set(px,.2,pz); scene.add(ring); G.projectiles.push({mesh:ring,isRing:true,life:1,grow:35,x:px,z:pz});
+  // second delayed shockwave
+  setTimeout(()=>{ if(!G||!G.running)return; const r2=new THREE.Mesh(new THREE.RingGeometry(.3,.8,32),basicMat(col,{transparent:true,opacity:.6,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false})); r2.rotation.x=-Math.PI/2; r2.position.set(px,.15,pz); scene.add(r2); G.projectiles.push({mesh:r2,isRing:true,life:.7,grow:25,x:px,z:pz}); },200);
+  // vertical pillar of light
+  const spl=new THREE.Mesh(new THREE.CylinderGeometry(.3,1.5,16,12,1,true),basicMat(col,{transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); spl.position.set(px,8,pz); scene.add(spl); setTimeout(()=>scene.remove(spl),1200);
+  // super flash light
+  const sfl=new THREE.PointLight(col.getHex(),6,50); sfl.position.set(px,5,pz); scene.add(sfl); setTimeout(()=>scene.remove(sfl),800);
   const dmg=G.player.dmg*4;
   G.mobs.forEach(m=>{ if(m.dying)return; if(Math.hypot(m.x-px,m.z-pz)<12){ damageMob(m,dmg); applyStatus(m,CLAN_FX[c.clan].status); } });
   if(G.boss&&!G.boss.dying&&Math.hypot(G.boss.x-px,G.boss.z-pz)<14)damageBoss(G.boss,dmg);
