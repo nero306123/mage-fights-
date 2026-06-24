@@ -1674,6 +1674,44 @@ function enhancedMobDeath(mob){
   else if(type==='reaper'){
     createGroundRune(x,z,'#3a1a4a',2,1.5,3);
     burst(x,y,z,new THREE.Color('#1a1a2a'),25,6,{up:true,life:1.2,grav:1,size:.2});
+    createSmoke(x,y,z,'#2a1a3a',5,1.5,1.5);
+  }
+  else if(type==='imp'){
+    createFireTrail(x,z,'#ff3a1a',.8,2);
+    burst(x,y,z,new THREE.Color('#ff6a2a'),12,5,{up:true,life:.6,grav:4});
+    createSmoke(x,y+.5,z,'#4a2a1a',4,1,1);
+  }
+  else if(type==='spider'){
+    createIceCrystalFormation(x,z,3,1,2);
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2;
+      spawnParticle(x+Math.cos(a)*.5,y,z+Math.sin(a)*.5,new THREE.Color('#2a6a2a'),{
+        vx:Math.cos(a)*2,vy:1,vz:Math.sin(a)*2,life:.5,size:.12,grav:4,shrink:.94});
+    }
+  }
+  else if(type==='zombie'){
+    createBloodSplatter(x,z,'#4a2a1a',.6+Math.random()*.5);
+    createSmoke(x,.5,z,'#3a3a1a',3,.8,.8);
+  }
+  // elemental death effects based on how mob was killed
+  if(G&&G.char){
+    const clan=G.char.clan;
+    if(clan==='fire'&&Math.random()<.3)createFireTrail(x,z,'#ff5a2a',1,2);
+    else if(clan==='ice'&&Math.random()<.3)createIceCrystalFormation(x,z,2,.8,2);
+    else if(clan==='blood'&&Math.random()<.25)createBloodSplatter(x,z,'#cc2a3a',.8);
+    else if(clan==='void'&&Math.random()<.2)createGravityWell(x,z,'#4a2aaa',2,1.5);
+    else if(clan==='lightning'&&Math.random()<.25){
+      const nearby=G.mobs.filter(m2=>!m2.dying&&m2!==mob&&Math.hypot(m2.x-x,m2.z-z)<6).slice(0,3);
+      if(nearby.length>0)createChainLightning([{x,y,z},...nearby],'#ffe24a');
+    }
+    else if(clan==='nature'&&Math.random()<.2)createParticleFountain(x,z,'#4aff7a',1.5,.5);
+    else if(clan==='shadow'&&Math.random()<.2)createSmoke(x,y,z,'#3a1a5a',5,1.5,1.5);
+    else if(clan==='holy'&&Math.random()<.2)createLightPillar(x,z,'#ffd24a',6,.5,.1,.8,false);
+    else if(clan==='cosmic'&&Math.random()<.15)createPortal(x,y+1,z,'#aa8aff',1,1.5);
+    else if(clan==='chaos'&&Math.random()<.2){
+      const randomColor='#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+      burst(x,y,z,new THREE.Color(randomColor),15,6,{up:true,life:.8,grav:3});
+    }
   }
   if(mob.elite){
     createOrbitRing(x,y+1,z,'#ffd24a',1.5,8,.8,6);
@@ -1701,6 +1739,20 @@ function bossEntranceCinematic(bossType,x,z){
   createVortex(x,3,z,def.color,2,8,40);
   ScreenFX.chromaticAb(.4,400);
   FloorPulse.createPulse(x,z,def.color,30,35);
+  // new enhanced effects
+  createPortal(x,3,z,def.color,3,2.5);
+  createMagicCircle(x,z,def.color,6,3,48,2);
+  triggerScreenDistort(1000);
+  createSmoke(x,0,z,def.color,10,4,2);
+  for(let j=0;j<3;j++){
+    setTimeout(()=>{
+      if(!G||!G.running)return;
+      const ja=Math.random()*Math.PI*2,jr=4+Math.random()*4;
+      createLightPillar(x+Math.cos(ja)*jr,z+Math.sin(ja)*jr,def.color,8,1,.2,.8,true);
+    },500+j*300);
+  }
+  createParticleFountain(x,z,def.color,2,2);
+  CombatLighting.flash(x,5,z,def.color,8,40,2);
 }
 
 /* --- Enhanced Super Attack VFX per Clan --- */
@@ -3907,6 +3959,18 @@ function gameLoop(now){
           EnvHazards.spawnHazard(ht,Math.cos(a)*r,Math.sin(a)*r);
           ScreenFX.envWarning('⚠️ Strefa zagrożenia!');
         }
+      }
+    }
+    // spawn arena traps on wave 12+
+    if(G.wave>=12&&arenaTraps.length<3){
+      G._trapCD=(G._trapCD||8)-dt;
+      if(G._trapCD<=0){
+        G._trapCD=15-Math.min(8,G.wave*.3);
+        const trapTypes=['spike','fire','lightning','poison'];
+        const tt=trapTypes[Math.floor(Math.random()*trapTypes.length)];
+        const ta=Math.random()*Math.PI*2,tr=5+Math.random()*18;
+        spawnArenaTrap(tt,Math.cos(ta)*tr,Math.sin(ta)*tr);
+        ScreenFX.envWarning('⚠️ Pułapka aktywowana!');
       }
     }
     // low HP overlay
