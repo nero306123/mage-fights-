@@ -2235,10 +2235,11 @@ function killMob(m){
   if(G.combo>1)showCombo(G.combo);
   Audio2.sfx.kill();
   if(G.kills%50===0)checkAchievements();
-  const coins=Math.round((2+G.wave*.5)*(m.elite?4:1)*(G.mutators.includes('golden')?2:1));
+  const coins=Math.round((2+G.wave*.5)*(m.elite?4:1)*(G.mutators.includes('golden')?2:1)*getComboMultiplier());
   addCoins(coins); addXP(2+G.wave);
   burst(m.x,m.y+.8,m.z,new THREE.Color(m.def.color),16,6,{up:true,life:.8,grav:5});
-  // coin sparkle fountain
+  // coin sparkle fountain + 3D coin meshes
+  spawnCoinVisual(m.x,m.y,m.z,m.elite?5:2);
   for(let ci=0;ci<4;ci++)spawnParticle(m.x+(Math.random()-.5),m.y+1,m.z+(Math.random()-.5),new THREE.Color('#ffd24a'),{life:.7+Math.random()*.4,vy:4+Math.random()*3,vx:(Math.random()-.5)*2,vz:(Math.random()-.5)*2,grav:6,size:.14});
   // flash at death point
   const kl=new THREE.PointLight(new THREE.Color(m.def.color).getHex(),3,12); kl.position.set(m.x,m.y+1,m.z); scene.add(kl); setTimeout(()=>scene.remove(kl),250);
@@ -2535,7 +2536,11 @@ function makeTelegraph(x,z,r,color){ const ring=new THREE.Mesh(new THREE.RingGeo
 function updateBossPattern(b,dt){
   const p=G.player;
   if(b.telegraph)b.telegraph.material.opacity=.3+Math.sin(performance.now()*.01)*.25;
-  if(b.curPattern==='slam'){ if(b.patternT<.6&&!b.slammed){ b.slammed=true; shake(1); const dd=Math.hypot(p.x-b.slamX,p.z-b.slamZ); if(dd<5.5)damagePlayer(b.dmg*1.5); burst(b.slamX,.5,b.slamZ,new THREE.Color('#ff4a4a'),30,10,{up:true,life:.8}); const ring=new THREE.Mesh(new THREE.RingGeometry(.5,1,32),basicMat('#ff6a4a',{transparent:true,opacity:.8,side:THREE.DoubleSide})); ring.rotation.x=-Math.PI/2; ring.position.set(b.slamX,.2,b.slamZ); scene.add(ring); G.projectiles.push({mesh:ring,isRing:true,life:.6,grow:18,x:b.slamX,z:b.slamZ}); } }
+  if(b.curPattern==='slam'){ if(b.patternT<.6&&!b.slammed){ b.slammed=true; shake(1); const dd=Math.hypot(p.x-b.slamX,p.z-b.slamZ); if(dd<5.5)damagePlayer(b.dmg*1.5); burst(b.slamX,.5,b.slamZ,new THREE.Color('#ff4a4a'),30,10,{up:true,life:.8});
+    createShockwaveRing(b.slamX,b.slamZ,'#ff4a4a',12,.8,.1);
+    ArenaFX.floorCrack(b.slamX,b.slamZ,'#ff4a4a');
+    ArenaFX.ceilingLight(b.slamX,b.slamZ,'#ff4a4a',4,1500);
+  } }
   else if(b.curPattern==='nova'){ if(b.patternT<.5&&!b.novaFired){ b.novaFired=true; shake(.8); const n=20; for(let i=0;i<n;i++){ const a=i/n*Math.PI*2; enemyProjectile(b.x,b.y+2,b.z,b.x+Math.sin(a)*10,b.z+Math.cos(a)*10,b.dmg*.8); } burst(b.x,2,b.z,new THREE.Color('#ff8a2a'),40,12,{up:true,life:1}); } }
   else if(b.curPattern==='volley'){ b.volleyT-=dt; if(b.volleyT<=0&&b.volleyCount<5){ b.volleyT=.3; b.volleyCount++; enemyProjectile(b.x,b.y+2,b.z,p.x,p.z,b.dmg*.7); } }
   else if(b.curPattern==='blink'){ if(!b.blinkDone&&b.patternT<.3){ b.blinkDone=true; burst(b.x,2,b.z,new THREE.Color(b.def.color),20,6,{up:true,life:.6}); const a=Math.random()*Math.PI*2; b.x=p.x+Math.cos(a)*6; b.z=p.z+Math.sin(a)*6; b.mesh.position.set(b.x,b.y,b.z); burst(b.x,2,b.z,new THREE.Color(b.def.color),20,6,{up:true,life:.6}); } }
@@ -2549,7 +2554,10 @@ function updateProjectiles(dt){
     pr.x+=pr.vx*dt; pr.z+=pr.vz*dt; pr.mesh.position.set(pr.x,pr.y||1.4,pr.z); pr.mesh.rotation.x+=dt*8; pr.mesh.rotation.y+=dt*6;
     if(pr.glowRing){pr.glowRing.rotation.z+=dt*12;pr.glowRing.material.opacity=.2+Math.sin(performance.now()*.01)*.1;}
     // trail
-    pr.trailT=(pr.trailT||0)+dt; if(pr.trailT>.04){ pr.trailT=0; const tc=pr.fromPlayer?new THREE.Color(CLAN_FX[pr.clan]?CLAN_FX[pr.clan].trail:'#fff'):new THREE.Color('#ff6a4a'); spawnParticle(pr.x,pr.y||1.4,pr.z,tc,{life:.3,size:pr.radius*.5,shrink:.9}); }
+    pr.trailT=(pr.trailT||0)+dt; if(pr.trailT>.04){ pr.trailT=0;
+      if(pr.fromPlayer&&CLAN_FX[pr.clan]){spawnEnhancedTrail(pr.x,pr.y||1.4,pr.z,pr.clan,true);}
+      else{ const tc=pr.fromPlayer?new THREE.Color(CLAN_FX[pr.clan]?CLAN_FX[pr.clan].trail:'#fff'):new THREE.Color('#ff6a4a'); spawnParticle(pr.x,pr.y||1.4,pr.z,tc,{life:.3,size:pr.radius*.5,shrink:.9}); }
+    }
     let hit=false;
     if(pr.fromPlayer){ for(const m of G.mobs){ if(m.dying)continue; if(Math.hypot(m.x-pr.x,m.z-pr.z)<(pr.radius+.6)){ damageMob(m,pr.dmg); if(pr.status)applyStatus(m,pr.status); if(pr.pierce>0){pr.pierce--;}else{hit=true;} break; } } if(!hit&&G.boss&&!G.boss.dying&&Math.hypot(G.boss.x-pr.x,G.boss.z-pr.z)<(pr.radius+2)){ damageBoss(G.boss,pr.dmg); if(pr.status)applyStatus(G.boss,pr.status); hit=true; } }
     else { if(G.player&&Math.hypot(G.player.x-pr.x,G.player.z-pr.z)<(pr.radius+.7)){ damagePlayer(pr.dmg); hit=true; } }
@@ -2581,7 +2589,7 @@ function damagePlayer(dmg){
   dmg=Math.round(dmg); G.player.hp-=dmg; hitFlash(); Audio2.sfx.hurt(); shake(.3);
   // thorns
   if(state.talents.thorns>0){ const refl=dmg*state.talents.thorns*TALENTS.thorns.per; G.mobs.forEach(m=>{ if(!m.dying&&Math.hypot(m.x-G.player.x,m.z-G.player.z)<3)damageMob(m,refl); }); }
-  if(G.player.hp<=0){ G.player.hp=0; if(G.char.ghostMechanic&&!G.usedGhost){ G.usedGhost=true; G.player.hp=G.player.maxHp*.5; G.shadowForm=true; G.shadowFormTime=2; $('shadow-overlay').style.opacity='1'; announce('GHOST','Powstajesz z cienia'); }
+  if(G.player.hp<=0){ G.player.hp=0; if(G.char.ghostMechanic&&!G.usedGhost){ G.usedGhost=true; G.player.hp=G.player.maxHp*.5; G.shadowForm=true; G.shadowFormTime=2; $('shadow-overlay').style.opacity='1'; playerRespawnEffect(G.player.x,G.player.z,'#7a4aff'); announce('GHOST','Powstajesz z cienia'); }
     else gameOver(); }
 }
 /* ============ MAIN LOOP ============ */
@@ -2855,6 +2863,188 @@ function createEnhancedShield(player,color){
   const ring2=new THREE.Mesh(new THREE.TorusGeometry(1.5,.03,8,32),basicMat(color,{transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false}));
   ring2.rotation.set(Math.PI/3,Math.PI/4,0);ring2.position.y=1.2;shieldGroup.add(ring2);
   return {group:shieldGroup,sphere:sph,ring1,ring2};
+}
+/* ============ HERO FUSION SYSTEM ============ */
+const FUSION_RECIPES=[
+  {input:[1,11],output:13,name:'Cienisty Zwiadowca'},
+  {input:[2,12],output:27,name:'Inferno Lord'},
+  {input:[3,15],output:28,name:'Lodowy Monarcha'},
+  {input:[14,24],output:37,name:'Demoniczny Generał'},
+  {input:[13,25],output:36,name:'Pan Nocy'},
+  {input:[17,30],output:null,bonus:{coins:500}},
+  {input:[21,34],output:45,name:'Serafin'},
+  {input:[9,34],output:51,name:'Boski Sędzia'},
+  {input:[22,35],output:53,name:'Władca Wymiarów'},
+];
+function checkFusion(id1,id2){
+  return FUSION_RECIPES.find(r=>
+    (r.input[0]===id1&&r.input[1]===id2)||(r.input[0]===id2&&r.input[1]===id1));
+}
+function performFusion(id1,id2){
+  const recipe=checkFusion(id1,id2);
+  if(!recipe)return false;
+  if(recipe.output&&!state.unlockedIds.has(recipe.output)){
+    state.unlockedIds.add(recipe.output);
+    Audio2.sfx.levelup();
+    flashScreen('#ffd24a',.5);
+    const c=CHARS.find(x=>x.id===recipe.output);
+    if(c)announce('FUZJA!',c.name+' odblokowany!');
+  }
+  if(recipe.bonus){
+    if(recipe.bonus.coins)addCoins(recipe.bonus.coins);
+    if(recipe.bonus.gems)state.gems+=recipe.bonus.gems;
+  }
+  saveState();
+  return true;
+}
+/* ============ ENHANCED PROJECTILE TRAIL SYSTEM ============ */
+function spawnEnhancedTrail(x,y,z,clan,fromPlayer){
+  if(!fromPlayer)return;
+  const fx=CLAN_FX[clan];
+  if(!fx)return;
+  const trailColor=new THREE.Color(fx.trail);
+  if(fx.shape==='bolt'){
+    for(let i=0;i<2;i++){
+      const a=Math.random()*Math.PI*2;
+      spawnParticle(x+Math.cos(a)*.2,y+Math.sin(a)*.2,z,trailColor,{
+        life:.2+Math.random()*.15,size:.08,shrink:.9,
+        vx:Math.cos(a)*.5,vy:Math.sin(a)*.5,vz:0
+      });
+    }
+  }
+  else if(fx.shape==='star'){
+    spawnParticle(x,y,z,trailColor,{life:.25,size:.12,shrink:.93,vy:.3});
+    if(Math.random()<.5)spawnParticle(x+(Math.random()-.5)*.3,y,z+(Math.random()-.5)*.3,trailColor,{life:.15,size:.06,shrink:.9});
+  }
+  else if(fx.shape==='shard'){
+    spawnParticle(x,y,z,trailColor,{life:.3,size:.1,shrink:.95,
+      vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,vz:(Math.random()-.5)*.3});
+  }
+  else{
+    spawnParticle(x,y,z,trailColor,{life:.3,size:fx.projSize*.5,shrink:.92});
+  }
+}
+/* ============ ARENA INTERACTION EFFECTS ============ */
+const ArenaFX={
+  pillarHitEffect(pillarIdx){
+    const p=pillarOrbs[pillarIdx];
+    if(!p)return;
+    p.light.intensity=5;
+    p.orb.scale.setScalar(1.5);
+    setTimeout(()=>{p.light.intensity=1.5;p.orb.scale.setScalar(.7);},300);
+  },
+  floorCrack(x,z,color){
+    const crackGroup=new THREE.Group();
+    const col=new THREE.Color(color||'#ff4a4a');
+    for(let i=0;i<5;i++){
+      const a=Math.random()*Math.PI*2;
+      const len=1+Math.random()*3;
+      const geo=new THREE.PlaneGeometry(.04+Math.random()*.06,len);
+      const crack=new THREE.Mesh(geo,basicMat(col,{transparent:true,opacity:.7,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+      crack.rotation.x=-Math.PI/2;
+      crack.rotation.z=a;
+      crack.position.set(x+Math.cos(a)*len*.3,.04,z+Math.sin(a)*len*.3);
+      crackGroup.add(crack);
+    }
+    scene.add(crackGroup);
+    const light=new THREE.PointLight(col.getHex(),2,6);
+    light.position.set(x,.3,z);
+    scene.add(light);
+    let t=0;
+    function fade(){
+      t+=.016;
+      crackGroup.children.forEach(c=>{c.material.opacity=Math.max(0,.7*(1-t/3));});
+      light.intensity=Math.max(0,2*(1-t/3));
+      if(t<3)requestAnimationFrame(fade);
+      else{scene.remove(crackGroup);scene.remove(light);}
+    }
+    fade();
+  },
+  altarPulse(){
+    if(!altarMesh)return;
+    const children=altarMesh.children;
+    children.forEach(c=>{
+      if(c.material&&c.material.emissiveIntensity!==undefined){
+        c.material.emissiveIntensity=1;
+        setTimeout(()=>{c.material.emissiveIntensity=.1;},500);
+      }
+    });
+  },
+  ceilingLight(x,z,color,intensity,duration){
+    const col=new THREE.Color(color);
+    const light=new THREE.SpotLight(col.getHex(),intensity||3,40,Math.PI/6,.5);
+    light.position.set(x,20,z);
+    light.target.position.set(x,0,z);
+    scene.add(light);scene.add(light.target);
+    const beam=new THREE.Mesh(new THREE.CylinderGeometry(.3,2,20,8,1,true),
+      basicMat(color,{transparent:true,opacity:.08,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    beam.position.set(x,10,z);scene.add(beam);
+    setTimeout(()=>{scene.remove(light);scene.remove(light.target);scene.remove(beam);},duration||2000);
+  }
+};
+/* ============ ADVANCED WEATHER EFFECTS ============ */
+function spawnWeatherBurst(theme,intensity){
+  const count=Math.floor(intensity*40);
+  let color=theme.accent;
+  if(theme.weather==='embers')color='#ff7a2a';
+  else if(theme.weather==='snow')color='#dfffff';
+  else if(theme.weather==='wisps')color='#9a5aff';
+  const col=new THREE.Color(color);
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2;
+    const r=Math.random()*34;
+    const x=Math.cos(a)*r,z=Math.sin(a)*r;
+    spawnParticle(x,15+Math.random()*5,z,col,{
+      vy:-(2+Math.random()*3),life:2+Math.random()*2,size:.12+Math.random()*.1,
+      vx:(Math.random()-.5)*.5,vz:(Math.random()-.5)*.5,
+      grav:theme.weather==='snow'?0:2,shrink:.99
+    });
+  }
+}
+/* ============ PLAYER RESPAWN EFFECT ============ */
+function playerRespawnEffect(x,z,color){
+  createLightPillar(x,z,color,15,2,.2,1.5,true);
+  createGroundRune(x,z,color,3,2,2);
+  createShockwaveRing(x,z,color,10,.8,.05);
+  burst(x,1,z,new THREE.Color(color),30,8,{up:true,life:1.2,grav:2,size:.2});
+  ScreenFX.chromaticAb(.3,300);
+}
+/* ============ ENHANCED COMBO SYSTEM ============ */
+function getComboMultiplier(){
+  if(!G)return 1;
+  if(G.combo>=50)return 3;
+  if(G.combo>=30)return 2.5;
+  if(G.combo>=20)return 2;
+  if(G.combo>=10)return 1.5;
+  if(G.combo>=5)return 1.25;
+  return 1;
+}
+/* ============ ENHANCED COIN VISUAL ============ */
+function spawnCoinVisual(x,y,z,count){
+  count=count||3;
+  for(let i=0;i<count;i++){
+    const coin=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.03,8),
+      mat('#ffd24a',{metalness:.9,roughness:.1,emissive:new THREE.Color('#ffaa00'),emissiveIntensity:.5}));
+    coin.position.set(x+(Math.random()-.5)*.5,y+.5,z+(Math.random()-.5)*.5);
+    coin.rotation.x=Math.PI/2;
+    scene.add(coin);
+    const vy=3+Math.random()*4;
+    const vx=(Math.random()-.5)*3;
+    const vz=(Math.random()-.5)*3;
+    let t=0;
+    function anim(){
+      t+=.016;
+      coin.position.y+=vy*.016-t*10*.016;
+      coin.position.x+=vx*.016;
+      coin.position.z+=vz*.016;
+      coin.rotation.z+=.2;
+      coin.material.opacity=Math.max(0,1-t/.8);
+      coin.material.transparent=true;
+      if(t<.8)requestAnimationFrame(anim);
+      else{scene.remove(coin);coin.geometry.dispose();coin.material.dispose();}
+    }
+    anim();
+  }
 }
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
