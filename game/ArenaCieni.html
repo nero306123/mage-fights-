@@ -5490,6 +5490,7 @@ function gameLoop(now){
     SummonCircle.update(dt);
     CharacterAura.update(dt);
     MinimapFX.update();
+    ThemeAmbient.update(G.theme,dt);
     // afterimage when sprinting or in shadow form
     if(G.playerMesh&&(G.shadowForm||(getMoveInput().mag>.8))){
       G._afterimageCD=(G._afterimageCD||0)-dt;
@@ -12586,6 +12587,606 @@ const WaveRewardEnhanced={
     setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(20px)';},2500);
   }
 };
+
+/* ============ ARENA ENVIRONMENT PRESETS (Enhanced Visuals) ============ */
+const ARENA_ENVIRONMENTS={
+  shadow_citadel:{
+    name:'Cytadela Cieni',
+    buildExtra(theme,group){
+      const accent=new THREE.Color(theme.accent);
+      for(let i=0;i<6;i++){
+        const a=i/6*Math.PI*2+Math.PI/6;
+        const r=30;
+        const tower=new THREE.Group();
+        const base=new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,12,6),
+          mat(0x1a0a2e,{metalness:.6,roughness:.5,emissive:accent,emissiveIntensity:.05}));
+        base.position.y=6;tower.add(base);
+        const top=new THREE.Mesh(new THREE.ConeGeometry(2.5,4,6),
+          mat(0x2a1a4e,{metalness:.5,roughness:.4,emissive:accent,emissiveIntensity:.1}));
+        top.position.y=14;tower.add(top);
+        const window1=new THREE.Mesh(new THREE.PlaneGeometry(.8,1.5),
+          new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+        window1.position.set(0,8,2.1);tower.add(window1);
+        const orbTop=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.7,blending:THREE.AdditiveBlending}));
+        orbTop.scale.setScalar(.4);orbTop.position.y=16.5;tower.add(orbTop);
+        const tLight=new THREE.PointLight(accent.getHex(),.8,12);tLight.position.y=16.5;tower.add(tLight);
+        tower.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+        tower.lookAt(0,6,0);
+        group.add(tower);
+      }
+      for(let i=0;i<4;i++){
+        const a=i/4*Math.PI*2;
+        const banner=new THREE.Group();
+        const pole=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,6,6),mat(0x444444,{metalness:.6}));
+        pole.position.y=3;banner.add(pole);
+        const cloth=new THREE.Mesh(new THREE.PlaneGeometry(1.5,3),
+          new THREE.MeshStandardMaterial({color:accent,side:THREE.DoubleSide,emissive:accent,emissiveIntensity:.1,transparent:true,opacity:.8}));
+        cloth.position.set(.8,4,0);banner.add(cloth);
+        banner.position.set(Math.cos(a)*22,0,Math.sin(a)*22);
+        banner.rotation.y=a;
+        group.add(banner);
+      }
+      const portalFrame=new THREE.Group();
+      const frameGeo=new THREE.TorusGeometry(3,.2,8,32);
+      const frameMesh=new THREE.Mesh(frameGeo,mat(0x2a1a4e,{metalness:.7,roughness:.3,emissive:accent,emissiveIntensity:.2}));
+      frameMesh.rotation.x=Math.PI/2;frameMesh.position.y=3;portalFrame.add(frameMesh);
+      const portalFill=new THREE.Mesh(new THREE.CircleGeometry(2.8,32),
+        new THREE.ShaderMaterial({
+          transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,
+          uniforms:{uTime:{value:0},uColor:{value:accent}},
+          vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+          fragmentShader:'uniform float uTime;uniform vec3 uColor;varying vec2 vUv;void main(){vec2 p=vUv*2.-1.;float d=length(p);float swirl=sin(atan(p.y,p.x)*3.+uTime*2.+d*5.)*.5+.5;float edge=smoothstep(1.,.5,d);gl_FragColor=vec4(uColor*swirl,edge*.4);}'
+        }));
+      portalFill.rotation.x=Math.PI/2;portalFill.position.y=3;portalFrame.add(portalFill);
+      portalFrame.position.set(0,0,-32);
+      group.add(portalFrame);
+    }
+  },
+  fire_forge:{
+    name:'Kuźnia Ognia',
+    buildExtra(theme,group){
+      for(let i=0;i<8;i++){
+        const a=i/8*Math.PI*2;
+        const r=20+Math.random()*8;
+        const anvil=new THREE.Group();
+        const base=new THREE.Mesh(new THREE.BoxGeometry(1,1.5,1),mat(0x333333,{metalness:.7,roughness:.4}));
+        base.position.y=.75;anvil.add(base);
+        const top=new THREE.Mesh(new THREE.BoxGeometry(1.5,.3,1.2),mat(0x444444,{metalness:.8,roughness:.3}));
+        top.position.y=1.65;anvil.add(top);
+        const ember=new THREE.PointLight(0xff4400,.5,5);ember.position.y=2;anvil.add(ember);
+        anvil.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+        group.add(anvil);
+      }
+      for(let i=0;i<5;i++){
+        const a=i/5*Math.PI*2;
+        const r=15;
+        const lavaPool=new THREE.Mesh(new THREE.CircleGeometry(1+Math.random(),16),
+          new THREE.ShaderMaterial({
+            transparent:true,depthWrite:false,side:THREE.DoubleSide,
+            uniforms:{uTime:{value:0}},
+            vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+            fragmentShader:'uniform float uTime;varying vec2 vUv;void main(){vec2 p=vUv*2.-1.;float d=length(p);float lava=sin(p.x*5.+uTime*2.)*sin(p.y*5.+uTime*1.5)*.5+.5;vec3 col=mix(vec3(1.,.2,0.),vec3(1.,.6,0.),lava);float edge=smoothstep(1.,.3,d);gl_FragColor=vec4(col,edge*.7);}'
+          }));
+        lavaPool.rotation.x=-Math.PI/2;
+        lavaPool.position.set(Math.cos(a)*r,.03,Math.sin(a)*r);
+        group.add(lavaPool);
+        const lavaLight=new THREE.PointLight(0xff4400,1,6);
+        lavaLight.position.set(Math.cos(a)*r,.5,Math.sin(a)*r);
+        group.add(lavaLight);
+      }
+      for(let i=0;i<12;i++){
+        const a=Math.random()*Math.PI*2;
+        const r=8+Math.random()*22;
+        const chain=new THREE.Group();
+        const links=3+Math.floor(Math.random()*5);
+        for(let j=0;j<links;j++){
+          const link=new THREE.Mesh(new THREE.TorusGeometry(.1,.03,4,8),mat(0x555555,{metalness:.8,roughness:.3}));
+          link.position.y=15-j*.6;
+          link.rotation.x=j%2?0:Math.PI/2;
+          chain.add(link);
+        }
+        chain.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+        group.add(chain);
+      }
+    }
+  },
+  ice_fortress:{
+    name:'Lodowa Forteca',
+    buildExtra(theme,group){
+      const iceColor=0x88ddff;
+      for(let i=0;i<15;i++){
+        const a=Math.random()*Math.PI*2;
+        const r=8+Math.random()*22;
+        const height=2+Math.random()*6;
+        const crystal=new THREE.Mesh(new THREE.ConeGeometry(.3+Math.random()*.5,height,5),
+          new THREE.MeshStandardMaterial({color:iceColor,transparent:true,opacity:.6,metalness:.3,roughness:.1,emissive:0x44aaff,emissiveIntensity:.15}));
+        crystal.position.set(Math.cos(a)*r,height/2,Math.sin(a)*r);
+        crystal.rotation.set((Math.random()-.5)*.3,Math.random()*Math.PI,(Math.random()-.5)*.3);
+        group.add(crystal);
+        if(Math.random()>.6){
+          const cLight=new THREE.PointLight(iceColor,.4,5);
+          cLight.position.set(Math.cos(a)*r,height,Math.sin(a)*r);
+          group.add(cLight);
+        }
+      }
+      for(let i=0;i<4;i++){
+        const a=i/4*Math.PI*2+Math.PI/4;
+        const bridge=new THREE.Mesh(new THREE.BoxGeometry(2,.2,12),
+          new THREE.MeshStandardMaterial({color:0x99ccdd,transparent:true,opacity:.4,metalness:.2,roughness:.1}));
+        bridge.position.set(Math.cos(a)*18,.1,Math.sin(a)*18);
+        bridge.rotation.y=a;
+        group.add(bridge);
+      }
+      const frozenPool=new THREE.Mesh(new THREE.CircleGeometry(5,32),
+        new THREE.MeshStandardMaterial({color:0xaaddee,transparent:true,opacity:.5,metalness:.9,roughness:.05,emissive:0x44aaff,emissiveIntensity:.05}));
+      frozenPool.rotation.x=-Math.PI/2;frozenPool.position.y=.02;
+      group.add(frozenPool);
+    }
+  },
+  storm_peak:{
+    name:'Szczyt Burzy',
+    buildExtra(theme,group){
+      for(let i=0;i<10;i++){
+        const a=Math.random()*Math.PI*2;
+        const r=10+Math.random()*20;
+        const height=3+Math.random()*8;
+        const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(1+Math.random()*1.5,0),
+          mat(0x444466,{metalness:.3,roughness:.7}));
+        rock.position.set(Math.cos(a)*r,height/2,Math.sin(a)*r);
+        rock.rotation.set(Math.random(),Math.random(),Math.random());
+        rock.scale.set(1,.5+Math.random(),1);
+        group.add(rock);
+      }
+      for(let i=0;i<3;i++){
+        const a=i/3*Math.PI*2;
+        const conductor=new THREE.Group();
+        const pole=new THREE.Mesh(new THREE.CylinderGeometry(.15,.2,10,6),mat(0x666688,{metalness:.8,roughness:.2}));
+        pole.position.y=5;conductor.add(pole);
+        const sphere=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:0xffff44,transparent:true,opacity:.6,blending:THREE.AdditiveBlending}));
+        sphere.scale.setScalar(.5);sphere.position.y=10.5;conductor.add(sphere);
+        const cLight=new THREE.PointLight(0xffff44,1.5,15);cLight.position.y=10.5;conductor.add(cLight);
+        conductor.position.set(Math.cos(a)*25,0,Math.sin(a)*25);
+        group.add(conductor);
+      }
+    }
+  },
+  nature_grove:{
+    name:'Gaj Natury',
+    buildExtra(theme,group){
+      for(let i=0;i<12;i++){
+        const a=Math.random()*Math.PI*2;
+        const r=10+Math.random()*20;
+        const tree=new THREE.Group();
+        const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.2,.4,3+Math.random()*3,6),
+          mat(0x553311,{roughness:.8}));
+        trunk.position.y=1.5;tree.add(trunk);
+        const canopy=new THREE.Mesh(SG.sphere,
+          new THREE.MeshStandardMaterial({color:0x226622,transparent:true,opacity:.7,emissive:0x114411,emissiveIntensity:.1}));
+        canopy.scale.set(1.5+Math.random(),2+Math.random(),1.5+Math.random());
+        canopy.position.y=4+Math.random()*2;tree.add(canopy);
+        if(Math.random()>.6){
+          const firefly=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:0x88ff44,transparent:true,opacity:.6,blending:THREE.AdditiveBlending}));
+          firefly.scale.setScalar(.08);
+          firefly.position.set((Math.random()-.5)*2,3+Math.random()*3,(Math.random()-.5)*2);
+          tree.add(firefly);
+        }
+        tree.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+        group.add(tree);
+      }
+      for(let i=0;i<20;i++){
+        const a=Math.random()*Math.PI*2;
+        const r=5+Math.random()*28;
+        const flower=new THREE.Mesh(new THREE.SphereGeometry(.1,6,6),
+          new THREE.MeshBasicMaterial({color:[0xff4488,0xff88cc,0xffaa44,0x44aaff,0xaa44ff][Math.floor(Math.random()*5)],transparent:true,opacity:.7}));
+        flower.position.set(Math.cos(a)*r,.1,Math.sin(a)*r);
+        group.add(flower);
+      }
+      for(let i=0;i<3;i++){
+        const a=i/3*Math.PI*2;
+        const r=15;
+        const mushroom=new THREE.Group();
+        const stem=new THREE.Mesh(new THREE.CylinderGeometry(.15,.2,1,8),mat(0xddccaa,{roughness:.7}));
+        stem.position.y=.5;mushroom.add(stem);
+        const cap=new THREE.Mesh(new THREE.SphereGeometry(.6,8,6,0,Math.PI*2,0,Math.PI*.5),
+          new THREE.MeshStandardMaterial({color:0xff4444,emissive:0xff2222,emissiveIntensity:.15}));
+        cap.position.y=1.1;mushroom.add(cap);
+        const glowLight=new THREE.PointLight(0xff4444,.4,4);glowLight.position.y=1;mushroom.add(glowLight);
+        mushroom.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+        mushroom.scale.setScalar(1+Math.random());
+        group.add(mushroom);
+      }
+    }
+  },
+  cosmic_void:{
+    name:'Kosmiczna Pustka',
+    buildExtra(theme,group){
+      for(let i=0;i<8;i++){
+        const a=Math.random()*Math.PI*2;
+        const r=12+Math.random()*18;
+        const h=5+Math.random()*10;
+        const asteroid=new THREE.Mesh(new THREE.DodecahedronGeometry(.5+Math.random()*1.5,1),
+          mat(0x333355,{metalness:.4,roughness:.6,emissive:0x2222aa,emissiveIntensity:.1}));
+        asteroid.position.set(Math.cos(a)*r,h,Math.sin(a)*r);
+        asteroid.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+        group.add(asteroid);
+      }
+      for(let i=0;i<5;i++){
+        const a=i/5*Math.PI*2;
+        const r=20;
+        const crystal=new THREE.Mesh(new THREE.OctahedronGeometry(1,0),
+          new THREE.MeshStandardMaterial({color:0x4488ff,transparent:true,opacity:.6,metalness:.8,roughness:.1,emissive:0x2244ff,emissiveIntensity:.3}));
+        crystal.position.set(Math.cos(a)*r,4+Math.random()*4,Math.sin(a)*r);
+        crystal.rotation.set(Math.random(),Math.random(),Math.random());
+        group.add(crystal);
+        const cLight=new THREE.PointLight(0x4488ff,.6,8);
+        cLight.position.copy(crystal.position);
+        group.add(cLight);
+      }
+      const nebulaGeo=new THREE.PlaneGeometry(80,80);
+      const nebulaMat=new THREE.ShaderMaterial({
+        transparent:true,depthWrite:false,side:THREE.DoubleSide,
+        uniforms:{uTime:{value:0}},
+        vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+        fragmentShader:'uniform float uTime;varying vec2 vUv;void main(){vec2 p=vUv*4.-2.;float n=sin(p.x*2.+uTime*.5)*sin(p.y*3.+uTime*.3);float n2=sin(p.x*5.+uTime)+cos(p.y*4.-uTime*.7);vec3 col=mix(vec3(.1,.05,.3),vec3(.0,.1,.4),n*.5+.5);col+=vec3(.3,.1,.5)*n2*.15;float d=length(vUv-.5);gl_FragColor=vec4(col,smoothstep(.7,.2,d)*.15);}'
+      });
+      const nebula=new THREE.Mesh(nebulaGeo,nebulaMat);
+      nebula.rotation.x=-Math.PI/2;nebula.position.y=25;
+      group.add(nebula);
+    }
+  }
+};
+
+/* ============ ENHANCED MOB SPAWN EFFECTS ============ */
+const MobSpawnFX={
+  spawn(pos,mobType,isElite){
+    const colors={zombie:0x44ff44,skeleton:0xddddaa,demon:0xff4444,golem:0x886644,ghost:0x8844ff,dragon:0xff8800};
+    const c=colors[mobType]||0xff4444;
+    if(isElite){
+      SummonCircle.create(pos,c);
+      LightShafts.create(pos,c,8,1.5,1.5);
+    } else {
+      for(let i=0;i<6;i++){
+        spawnParticle(pos.clone().add(new THREE.Vector3(0,.5,0)),c,
+          new THREE.Vector3((Math.random()-.5)*3,Math.random()*2+1,(Math.random()-.5)*3),.4);
+      }
+    }
+    const flash=new THREE.PointLight(c,2,8);
+    flash.position.copy(pos);flash.position.y=1;
+    scene.add(flash);
+    setTimeout(()=>scene.remove(flash),300);
+  }
+};
+
+/* ============ ENHANCED MOB DEATH EFFECTS ============ */
+const MobDeathFXEnhanced={
+  play(pos,mobType,isElite,isBoss){
+    const colors={zombie:0x44ff44,skeleton:0xddddaa,demon:0xff4444,golem:0x886644,ghost:0x8844ff,dragon:0xff8800};
+    const c=colors[mobType]||0xff4444;
+    if(isBoss){
+      ExplosionFX.create(pos,c,3,'big');
+      for(let i=0;i<5;i++){
+        const a=i/5*Math.PI*2;
+        LightShafts.create(pos.clone().add(new THREE.Vector3(Math.cos(a)*3,0,Math.sin(a)*3)),c,15,2,3);
+      }
+      ParticlePresetsExt.starBurst(pos,c,40);
+      RuneCasting.cast(pos,c,6,2);
+      LootBeam.create(pos,'legendary');
+      CameraFX.shake(.6,.1);
+      screenFlash(c,.2);
+    } else if(isElite){
+      ExplosionFX.create(pos,c,1.5);
+      ParticlePresetsExt.starBurst(pos,c,20);
+      LootBeam.create(pos,'epic');
+      CameraFX.shake(.2,.05);
+    } else {
+      ParticlePresetsExt.explosion(pos,c,.5);
+      DamageNumbers3D.spawn(pos,'+'+Math.floor(Math.random()*50+10),null,false);
+      DecalSystem.create(pos,c,.3+Math.random()*.3);
+    }
+    AmbientReactions.reactToKill(pos,mobType==='demon'?'fire':mobType==='ghost'?'void':'physical');
+  }
+};
+
+/* ============ DAILY CHALLENGE SYSTEM ============ */
+const DAILY_CHALLENGES=[
+  {id:'dc1',name:'Pogromca Zombie',desc:'Zabij 50 zombie',target:50,reward:{coins:200,gems:3},type:'kills',mobType:'zombie',emoji:'🧟'},
+  {id:'dc2',name:'Łowca Szkieletów',desc:'Zabij 30 szkieletów',target:30,reward:{coins:150,gems:2},type:'kills',mobType:'skeleton',emoji:'💀'},
+  {id:'dc3',name:'Kolekcjoner',desc:'Zbierz 500 monet w jednej grze',target:500,reward:{coins:300,gems:5},type:'coins',emoji:'🪙'},
+  {id:'dc4',name:'Przetrwaj Noc',desc:'Dotrzyj do fali 15',target:15,reward:{coins:250,gems:4},type:'wave',emoji:'🌙'},
+  {id:'dc5',name:'Pogromca Bossów',desc:'Pokonaj 3 bossów',target:3,reward:{coins:400,gems:8},type:'bosses',emoji:'👹'},
+  {id:'dc6',name:'Combo Master',desc:'Osiągnij combo x20',target:20,reward:{coins:300,gems:5},type:'combo',emoji:'🔥'},
+  {id:'dc7',name:'Speedrunner',desc:'Ukończ 10 fal w 5 min',target:10,reward:{coins:350,gems:6},type:'speedWaves',emoji:'⚡'},
+  {id:'dc8',name:'Pacyfista Nocy',desc:'Pokonaj falę bez obrażeń',target:1,reward:{coins:500,gems:10},type:'flawless',emoji:'🛡️'},
+  {id:'dc9',name:'Cienisty Wojownik',desc:'Spędź 60s w Shadow Form',target:60,reward:{coins:200,gems:3},type:'shadowTime',emoji:'🌑'},
+  {id:'dc10',name:'Łowca Skarbów',desc:'Zbierz 10 power-upów',target:10,reward:{coins:150,gems:2},type:'powerups',emoji:'⭐'}
+];
+function getDailyChallenge(){
+  const day=Math.floor(Date.now()/86400000);
+  const idx=day%DAILY_CHALLENGES.length;
+  return DAILY_CHALLENGES[idx];
+}
+function renderDailyChallenge(){
+  const dc=getDailyChallenge();
+  const progress=state.dailyChallengeProgress||0;
+  const completed=progress>=dc.target;
+  return`<div style="background:linear-gradient(135deg,rgba(20,10,40,.9),rgba(40,20,80,.7));border:1px solid ${completed?'rgba(100,255,100,.4)':'rgba(100,60,160,.3)'};border-radius:12px;padding:14px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:28px">${dc.emoji}</span>
+      <div><div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff">${dc.name}</div>
+        <div style="font-size:11px;color:#888">${dc.desc}</div></div>
+    </div>
+    <div style="background:rgba(0,0,0,.3);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px">
+      <div style="height:100%;width:${Math.min(100,progress/dc.target*100)}%;background:${completed?'linear-gradient(90deg,#44ff44,#88ff88)':'linear-gradient(90deg,#7a4aff,#b44aff)'};border-radius:4px;transition:width .3s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px">
+      <span style="color:${completed?'#44ff44':'#888'}">${Math.min(progress,dc.target)}/${dc.target}</span>
+      <span style="color:#ffd24a">🪙${dc.reward.coins} 💎${dc.reward.gems}</span>
+    </div>
+    ${completed&&!state.dailyChallengeCollected?`<button class="btn primary small" style="width:100%;margin-top:8px" onclick="collectDailyReward()">Odbierz nagrodę!</button>`:''}
+  </div>`;
+}
+function collectDailyReward(){
+  const dc=getDailyChallenge();
+  addCoins(dc.reward.coins);
+  state.gems=(state.gems||0)+dc.reward.gems;
+  state.dailyChallengeCollected=true;
+  saveState();
+  AchievementPopup.show('Wyzwanie Dnia Ukończone!',dc.name);
+  FloatingReward.show(`+${dc.reward.coins} 🪙`,`coins`);
+  setTimeout(()=>FloatingReward.show(`+${dc.reward.gems} 💎`,'gems'),300);
+  renderShop();
+}
+
+/* ============ SEASONAL EVENTS SYSTEM ============ */
+const SEASONAL_EVENTS={
+  halloween:{
+    name:'Noc Duchów',emoji:'🎃',duration:'31.10',
+    bonus:{coinMult:1.5,xpMult:1.3},
+    specialMobs:['pumpkin_golem','ghost_king'],
+    rewards:[{name:'Dyniowa Tarcza',type:'shield',emoji:'🎃',bonus:{dmgReduction:.15}},{name:'Duch Towarzysz',type:'shadow',emoji:'👻',bonus:{dmg:20}}]
+  },
+  winter:{
+    name:'Lodowe Święta',emoji:'🎄',duration:'25.12',
+    bonus:{coinMult:1.3,xpMult:1.5},
+    specialMobs:['frost_elf','snow_golem'],
+    rewards:[{name:'Śnieżna Kula',type:'weapon',emoji:'❄️',bonus:{slowChance:.2}},{name:'Reniferowy Dash',type:'skill',emoji:'🦌',bonus:{speed:.2}}]
+  },
+  lunar:{
+    name:'Nów Księżyca',emoji:'🌙',duration:'01.01',
+    bonus:{coinMult:2,xpMult:1.2},
+    specialMobs:['lunar_wolf','moon_spirit'],
+    rewards:[{name:'Księżycowy Miecz',type:'weapon',emoji:'🗡️',bonus:{dmg:30}},{name:'Lunarna Aura',type:'passive',emoji:'🌙',bonus:{hp:50}}]
+  },
+  shadow:{
+    name:'Festiwal Cieni',emoji:'🌑',duration:'13.06',
+    bonus:{coinMult:1.5,shadowDuration:2},
+    specialMobs:['shadow_titan','void_lurker'],
+    rewards:[{name:'Korona Cieni',type:'helmet',emoji:'👑',bonus:{shadowDmg:.25}},{name:'Cienisty Płaszcz',type:'armor',emoji:'🧥',bonus:{stealth:true}}]
+  }
+};
+function getActiveEvent(){
+  const now=new Date();
+  const day=now.getDate();
+  const month=now.getMonth()+1;
+  for(const[key,ev]of Object.entries(SEASONAL_EVENTS)){
+    const[ed,em]=ev.duration.split('.').map(Number);
+    if(month===em&&Math.abs(day-ed)<=3)return{...ev,key};
+  }
+  return null;
+}
+function renderSeasonalEvent(){
+  const ev=getActiveEvent();
+  if(!ev)return'<div style="color:#666;text-align:center;padding:20px">Brak aktywnego wydarzenia</div>';
+  return`<div style="background:linear-gradient(135deg,rgba(20,10,40,.9),rgba(60,30,100,.7));border:1px solid rgba(255,200,0,.3);border-radius:14px;padding:16px;text-align:center">
+    <div style="font-size:40px;margin-bottom:8px">${ev.emoji}</div>
+    <div style="font-family:Cinzel,serif;font-size:20px;color:#ffd24a;margin-bottom:6px">${ev.name}</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">Aktywne wydarzenie sezonowe!</div>
+    <div style="display:flex;justify-content:center;gap:16px;margin-bottom:12px">
+      <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px 12px">
+        <div style="font-size:10px;color:#888">Monety</div>
+        <div style="color:#ffd24a;font-size:14px">x${ev.bonus.coinMult}</div>
+      </div>
+      <div style="background:rgba(0,0,0,.3);border-radius:8px;padding:8px 12px">
+        <div style="font-size:10px;color:#888">XP</div>
+        <div style="color:#b44aff;font-size:14px">x${ev.bonus.xpMult||1}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#d9b8ff;margin-bottom:8px">Specjalne nagrody:</div>
+    ${ev.rewards.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:6px;background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px">
+      <span style="font-size:20px">${r.emoji}</span>
+      <span style="font-size:12px;color:#ddd">${r.name}</span>
+    </div>`).join('')}
+  </div>`;
+}
+
+/* ============ PET/COMPANION SYSTEM ============ */
+const COMPANIONS=[
+  {id:'comp_shadow_cat',name:'Cień Kota',emoji:'🐱',rarity:'rare',clan:'shadow',
+   passive:{type:'dodge',value:.05,desc:'+5% szansa na unik'},
+   attackDmg:5,attackSpeed:1.5,behavior:'aggressive'},
+  {id:'comp_fire_spirit',name:'Duch Ognia',emoji:'🔥',rarity:'epic',clan:'fire',
+   passive:{type:'dmgBoost',value:.08,desc:'+8% obrażeń ognia'},
+   attackDmg:8,attackSpeed:2,behavior:'ranged'},
+  {id:'comp_ice_fairy',name:'Lodowa Wróżka',emoji:'🧚',rarity:'epic',clan:'ice',
+   passive:{type:'slow',value:.1,desc:'Spowalnia wrogów o 10%'},
+   attackDmg:4,attackSpeed:1,behavior:'support'},
+  {id:'comp_thunder_hawk',name:'Piorunowy Jastrząb',emoji:'🦅',rarity:'mythic',clan:'lightning',
+   passive:{type:'critChance',value:.1,desc:'+10% szansa na krytyk'},
+   attackDmg:12,attackSpeed:3,behavior:'aggressive'},
+  {id:'comp_nature_sprite',name:'Duszek Natury',emoji:'🌿',rarity:'rare',clan:'nature',
+   passive:{type:'regen',value:2,desc:'+2 HP/s regeneracja'},
+   attackDmg:3,attackSpeed:1,behavior:'healer'},
+  {id:'comp_void_imp',name:'Imp Pustki',emoji:'👿',rarity:'legendary',clan:'void',
+   passive:{type:'lifesteal',value:.05,desc:'5% kradzież życia'},
+   attackDmg:15,attackSpeed:2.5,behavior:'aggressive'},
+  {id:'comp_blood_bat',name:'Krwawy Nietoperz',emoji:'🦇',rarity:'rare',clan:'blood',
+   passive:{type:'lifesteal',value:.03,desc:'3% kradzież życia'},
+   attackDmg:6,attackSpeed:2,behavior:'aggressive'},
+  {id:'comp_chaos_imp',name:'Chochlik Chaosu',emoji:'😈',rarity:'epic',clan:'chaos',
+   passive:{type:'randomBuff',value:1,desc:'Losowy buff co 30s'},
+   attackDmg:7,attackSpeed:1.5,behavior:'chaotic'},
+  {id:'comp_holy_dove',name:'Święta Gołębica',emoji:'🕊️',rarity:'mythic',clan:'holy',
+   passive:{type:'shield',value:20,desc:'Tarcza 20 HP co 20s'},
+   attackDmg:5,attackSpeed:1,behavior:'healer'},
+  {id:'comp_cosmic_owl',name:'Kosmiczna Sowa',emoji:'🦉',rarity:'legendary',clan:'cosmic',
+   passive:{type:'xpBoost',value:.15,desc:'+15% XP'},
+   attackDmg:10,attackSpeed:2,behavior:'ranged'}
+];
+function renderCompanionList(){
+  const unlocked=state.unlockedCompanions||[];
+  const selected=state.selectedCompanion||null;
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
+  COMPANIONS.forEach(c=>{
+    const owned=unlocked.includes(c.id);
+    const sel=selected===c.id;
+    const rarityColors={rare:'#4488ff',epic:'#aa44ff',mythic:'#ff4488',legendary:'#ffaa00'};
+    html+=`<div style="background:${sel?'rgba(40,80,40,.6)':'rgba(20,10,40,.8)'};border:1px solid ${sel?'rgba(100,255,100,.5)':owned?rarityColors[c.rarity]+'66':'rgba(100,60,160,.2)'};border-radius:10px;padding:10px;text-align:center;cursor:${owned?'pointer':'default'};opacity:${owned?1:.4};transition:all .2s"
+      ${owned?`onclick="selectCompanion('${c.id}')"`:''}
+      onmouseenter="this.style.transform='scale(1.03)'" onmouseleave="this.style.transform='scale(1)'"  >
+      <div style="font-size:32px;margin-bottom:6px">${c.emoji}</div>
+      <div style="font-size:12px;color:${rarityColors[c.rarity]||'#ddd'};font-family:Cinzel,serif">${c.name}</div>
+      <div style="font-size:9px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-top:2px">${c.rarity}</div>
+      ${owned?`<div style="font-size:10px;color:#aaa;margin-top:4px">${c.passive.desc}</div>`:'<div style="font-size:10px;color:#666;margin-top:4px">🔒 Nie odblokowany</div>'}
+      ${sel?'<div style="font-size:10px;color:#44ff44;margin-top:4px">✓ Wybrany</div>':''}
+    </div>`;
+  });
+  html+='</div>';
+  return html;
+}
+function selectCompanion(id){
+  state.selectedCompanion=id;
+  saveState();
+  if(typeof renderShop==='function')renderShop();
+}
+
+/* ============ TITLE SCREEN EFFECTS ============ */
+const TitleFX={
+  particles:[],
+  init(){
+    this.particles=[];
+    for(let i=0;i<30;i++){
+      this.particles.push({
+        x:Math.random()*100,y:Math.random()*100,
+        size:1+Math.random()*3,speed:.2+Math.random()*.5,
+        opacity:.1+Math.random()*.4,hue:260+Math.random()*60
+      });
+    }
+    this.render();
+  },
+  render(){
+    const container=document.querySelector('.bg-stars');
+    if(!container)return;
+    let extra='';
+    this.particles.forEach(p=>{
+      extra+=`radial-gradient(${p.size}px ${p.size}px at ${p.x}% ${p.y}%, hsla(${p.hue},60%,70%,${p.opacity}), transparent),`;
+    });
+    if(extra)container.style.background=extra.slice(0,-1);
+  },
+  update(){
+    this.particles.forEach(p=>{
+      p.y-=p.speed*.5;
+      p.x+=Math.sin(Date.now()/2000+p.y)*.1;
+      if(p.y<-5){p.y=105;p.x=Math.random()*100;}
+      p.opacity=.1+Math.sin(Date.now()/1000+p.x)*.2;
+    });
+    this.render();
+  }
+};
+
+/* ============ FULLSCREEN HANDLER ============ */
+window.ACtoggleFullscreen=function(){
+  if(document.fullscreenElement){
+    document.exitFullscreen().catch(()=>{});
+  } else {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }
+};
+
+/* ============ SETTINGS PANEL ENHANCED ============ */
+function renderSettingsPanel(){
+  const s=state.settings;
+  return`<div style="max-width:400px;width:100%">
+    <h2 style="font-family:Cinzel,serif;font-size:20px;color:#d9b8ff;text-align:center;margin-bottom:16px">⚙️ Ustawienia</h2>
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;color:#d9b8ff;margin-bottom:8px">🖱️ Czułość myszy</div>
+      <input type="range" min="1" max="20" value="${Math.round((s.sensitivity||.003)*3333)}"
+        oninput="state.settings.sensitivity=this.value/3333;saveState()" style="width:100%">
+    </div>
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;color:#d9b8ff;margin-bottom:8px">🎵 Głośność muzyki</div>
+      <input type="range" min="0" max="100" value="${Math.round((s.musicVol||.5)*100)}"
+        oninput="state.settings.musicVol=this.value/100;Audio2.setMusicVol(this.value/100);saveState()" style="width:100%">
+    </div>
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="font-size:13px;color:#d9b8ff;margin-bottom:8px">🔊 Głośność efektów</div>
+      <input type="range" min="0" max="100" value="${Math.round((s.sfxVol||.5)*100)}"
+        oninput="state.settings.sfxVol=this.value/100;Audio2.setSfxVol(this.value/100);saveState()" style="width:100%">
+    </div>
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:16px;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" ${s.reducedParticles?'checked':''} onchange="state.settings.reducedParticles=this.checked;saveState()">
+        <span style="font-size:13px;color:#d9b8ff">🎨 Zmniejszone cząsteczki</span>
+      </label>
+    </div>
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:16px;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" ${s.screenShake!==false?'checked':''} onchange="state.settings.screenShake=this.checked;saveState()">
+        <span style="font-size:13px;color:#d9b8ff">📳 Trzęsienie ekranu</span>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn primary small" style="flex:1" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
+      <button class="btn danger small" style="flex:1" onclick="if(confirm('Wyczyścić wszystkie dane?')){localStorage.removeItem('arenaCieni_v2');location.reload();}">🗑️ Reset</button>
+    </div>
+    <button class="btn ghost small" style="width:100%;margin-top:8px" onclick="ACshow('menu')">← Powrót</button>
+  </div>`;
+}
+
+/* ============ ENHANCED COLLECTION VIEW ============ */
+function renderCollectionEnhanced(){
+  const rarityOrder=['secret','unknown','ultimate','legendary','mythic','epic','rare','common'];
+  const clanFilter=state._clanFilter||'all';
+  const rarityFilter=state._rarityFilter||'all';
+  let filtered=[...CHARS];
+  if(clanFilter!=='all')filtered=filtered.filter(c=>c.clan===clanFilter);
+  if(rarityFilter!=='all')filtered=filtered.filter(c=>c.rarity===rarityFilter);
+  filtered.sort((a,b)=>rarityOrder.indexOf(a.rarity)-rarityOrder.indexOf(b.rarity));
+  const owned=state.unlockedIds||[];
+  const total=CHARS.length;
+  const ownedCount=owned.length;
+  let html=`<div style="text-align:center;margin-bottom:12px">
+    <div style="font-family:Cinzel,serif;font-size:20px;color:#d9b8ff">📖 Kolekcja</div>
+    <div style="font-size:12px;color:#888;margin-top:4px">${ownedCount}/${total} bohaterów odblokowanych</div>
+    <div style="background:rgba(0,0,0,.3);border-radius:4px;height:4px;margin-top:6px;max-width:300px;margin-left:auto;margin-right:auto">
+      <div style="height:100%;width:${ownedCount/total*100}%;background:linear-gradient(90deg,#7a4aff,#b44aff);border-radius:4px"></div>
+    </div>
+  </div>`;
+  html+=`<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
+    <button class="btn ${clanFilter==='all'?'primary':'ghost'} small" onclick="state._clanFilter='all';renderCollection()">Wszystkie</button>`;
+  Object.keys(CLANS).forEach(clan=>{
+    html+=`<button class="btn ${clanFilter===clan?'primary':'ghost'} small" onclick="state._clanFilter='${clan}';renderCollection()">${CLANS[clan].emoji} ${clan}</button>`;
+  });
+  html+=`</div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-width:800px;width:100%">`;
+  filtered.forEach(char=>{
+    const isOwned=owned.includes(char.id);
+    const rarityColors={common:'#888',rare:'#4488ff',epic:'#aa44ff',mythic:'#ff4488',legendary:'#ffaa00',ultimate:'#ff2200',unknown:'#333',secret:'#ffd700'};
+    const dupes=(state.duplicates||{})[char.id]||0;
+    html+=`<div class="card-item" style="background:linear-gradient(135deg,rgba(20,10,40,.9),rgba(40,20,80,.7));border:1px solid ${isOwned?rarityColors[char.rarity]+'66':'rgba(50,30,80,.3)'};border-radius:10px;padding:10px;text-align:center;cursor:${isOwned?'pointer':'default'};opacity:${isOwned?1:.35};transition:all .2s;position:relative"
+      ${isOwned?`onclick="showCharMenu('${char.id}')"`:''}
+      onmouseenter="this.style.transform='scale(1.05)';this.style.borderColor='${rarityColors[char.rarity]}'"
+      onmouseleave="this.style.transform='scale(1)';this.style.borderColor='${isOwned?rarityColors[char.rarity]+'66':'rgba(50,30,80,.3)'}'"  >
+      <div style="font-size:32px;margin-bottom:4px;filter:${isOwned?'none':'grayscale(1) blur(2px)'}">${char.emoji}</div>
+      <div style="font-size:11px;color:${rarityColors[char.rarity]||'#ddd'};font-family:Cinzel,serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${isOwned?char.name:'???'}</div>
+      <div style="font-size:8px;color:${rarityColors[char.rarity]};letter-spacing:1px;text-transform:uppercase;margin-top:2px">${char.rarity}</div>
+      ${dupes>0?`<div style="position:absolute;top:4px;right:4px;font-size:8px;background:rgba(180,74,255,.3);border-radius:4px;padding:1px 4px;color:#d9b8ff">x${dupes}</div>`:''}
+      ${isOwned?`<div style="font-size:8px;color:#888;margin-top:2px">${CLANS[char.clan].emoji} ${char.clan}</div>`:''}
+    </div>`;
+  });
+  html+=`</div>`;
+  html+=`<button class="btn ghost small" style="margin-top:16px" onclick="ACshow('menu')">← Menu</button>`;
+  return html;
+}
 
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
