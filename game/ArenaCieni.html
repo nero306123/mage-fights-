@@ -651,6 +651,16 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
         <button class="btn ghost small" onclick="ACshow('leaderboard')">🏅 Ranking</button>
         <button class="btn ghost small" onclick="ACshow('inventory')">🎒 Ekwipunek</button>
         <button class="btn ghost small" onclick="ACshow('crafting')">🔨 Wytwarzanie</button>
+      </div>
+      <div class="menu-row">
+        <button class="btn ghost small" onclick="ACshow('companions')">🐾 Towarzysze</button>
+        <button class="btn ghost small" onclick="ACshow('skins')">🎨 Skiny</button>
+        <button class="btn ghost small" onclick="ACshow('skilltree')">🌟 Umiejętności</button>
+        <button class="btn ghost small" onclick="ACshow('guilds')">⚔️ Gildie</button>
+      </div>
+      <div class="menu-row">
+        <button class="btn ghost small" onclick="ACshow('daily')">📅 Wyzwania Dnia</button>
+        <button class="btn ghost small" onclick="ACshow('seasonal')">🎉 Wydarzenia</button>
         <button class="btn ghost small" onclick="ACopenSettings()">⚙️ Ustawienia</button>
         <button class="btn ghost small" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
       </div>
@@ -1318,7 +1328,7 @@ const $=id=>document.getElementById(id);
 
 /* ============ UI NAV ============ */
 let curScreen='menu';
-window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); if(name==='leaderboard'){$('leaderboard-list').innerHTML=renderLeaderboard();} if(name==='inventory'){const el=$('inventory-list');if(el)el.innerHTML=renderInventory();} if(name==='crafting'){const el=$('crafting-list');if(el)el.innerHTML=renderCrafting();} };
+window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); if(name==='leaderboard'){$('leaderboard-list').innerHTML=renderLeaderboard();} if(name==='inventory'){const el=$('inventory-list');if(el)el.innerHTML=renderInventory();} if(name==='crafting'){const el=$('crafting-list');if(el)el.innerHTML=renderCrafting();} if(['companions','skins','guilds','daily','seasonal','skilltree'].includes(name)){if(typeof renderExtraScreenInto==='function')renderExtraScreenInto(name);} };
 function refreshMenu(){ $('m-coins').textContent=state.coins; $('m-gems').textContent=state.gems; $('m-collected').textContent=state.unlockedIds.size; $('m-lvl').textContent=state.level; const need=xpForLevel(state.level); $('m-xp').textContent=state.xp+'/'+need+' XP'; $('m-xpfill').style.width=Math.min(100,state.xp/need*100)+'%'; }
 window.ACcloseModal=function(n){ Audio2.sfx.click(); $('modal-'+n).classList.remove('active'); };
 function openModal(n){ $('modal-'+n).classList.add('active'); }
@@ -8350,7 +8360,47 @@ function addExtraScreens(){
       <div id="crafting-list" style="width:min(660px,94vw);padding-bottom:80px"></div>`;
     document.querySelector('#scr-inventory').after(craftScreen);
   }
+  const extraScreens=[
+    {id:'companions',title:'🐾 Towarzysze'},
+    {id:'skins',title:'🎨 Skiny'},
+    {id:'guilds',title:'⚔️ Gildie'},
+    {id:'daily',title:'📅 Wyzwania Dnia'},
+    {id:'seasonal',title:'🎉 Wydarzenia'},
+    {id:'skilltree',title:'🌟 Drzewko Umiejętności'}
+  ];
+  let prev=document.querySelector('#scr-crafting');
+  extraScreens.forEach(scr=>{
+    if(!document.getElementById('scr-'+scr.id)){
+      const el=document.createElement('div');
+      el.className='screen';el.id='scr-'+scr.id;
+      el.innerHTML=`<div class="scr-head"><div class="scr-title">${scr.title}</div><button class="btn ghost small" onclick="ACshow('menu')">← Powrót</button></div>
+        <div id="${scr.id}-list" style="width:min(660px,94vw);padding-bottom:80px;display:flex;flex-direction:column;align-items:center"></div>`;
+      if(prev)prev.after(el);
+      prev=el;
+    }
+  });
 }
+function renderExtraScreen(name){
+  const map={
+    companions:()=>renderCompanionList(),
+    skins:()=>renderSkinsShop(),
+    guilds:()=>GuildSystem.renderGuilds(),
+    daily:()=>renderDailyChallenge()+renderAdvancedStats(),
+    seasonal:()=>renderSeasonalEvent(),
+    skilltree:()=>{
+      const clan=(state.char&&state.char.clan)||'shadow';
+      const treeId=SKILL_TREES[clan]?clan:'shadow';
+      return`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">
+        ${Object.keys(SKILL_TREES).map(t=>`<button class="btn ${treeId===t?'primary':'ghost'} small" onclick="state._skillTreeView='${t}';renderExtraScreenInto('skilltree')">${SKILL_TREES[t].name}</button>`).join('')}
+      </div>`+renderSkillTree(state._skillTreeView||treeId);
+    }
+  };
+  return map[name]?map[name]():'';
+}
+window.renderExtraScreenInto=function(name){
+  const el=document.getElementById(name+'-list');
+  if(el)el.innerHTML=renderExtraScreen(name);
+};
 /* ============ DISSOLVE SHADER EFFECT ============ */
 function createDissolveEffect(mesh,color,duration){
   if(!mesh||!mesh.material)return;
