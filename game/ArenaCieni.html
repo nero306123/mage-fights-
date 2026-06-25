@@ -10156,6 +10156,501 @@ const EXTENDED_SHADOWS=[
   {id:59,name:'Cienisty Mag Lodu',type:'ranged',hp:25,dmg:12,speed:3,color:'#44ccff',
     ability:'freeze',desc:'Zamraża trafione cele'},
 ];
+/* ============ ADVANCED SHADER LIBRARY ============ */
+const ShaderLib={
+  createWaterSurface(x,z,width,depth,color){
+    const geo=new THREE.PlaneGeometry(width,depth,32,32);
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,
+      uniforms:{uTime:{value:0},uColor:{value:new THREE.Color(color||'#2244aa')}},
+      vertexShader:`uniform float uTime;varying vec2 vUv;varying float vWave;
+        void main(){
+          vUv=uv;
+          vec3 pos=position;
+          vWave=sin(pos.x*2.0+uTime*2.0)*0.15+sin(pos.y*3.0+uTime*1.5)*0.1;
+          pos.z+=vWave;
+          gl_Position=projectionMatrix*modelViewMatrix*vec4(pos,1.0);
+        }`,
+      fragmentShader:`uniform float uTime;uniform vec3 uColor;varying vec2 vUv;varying float vWave;
+        void main(){
+          float foam=step(0.12,abs(vWave))*0.3;
+          float ripple=sin(vUv.x*30.0+uTime*3.0)*sin(vUv.y*30.0+uTime*2.0)*0.1;
+          float edge=smoothstep(0.0,0.1,vUv.x)*smoothstep(1.0,0.9,vUv.x)*smoothstep(0.0,0.1,vUv.y)*smoothstep(1.0,0.9,vUv.y);
+          vec3 col=uColor*(1.0+foam+ripple*2.0);
+          gl_FragColor=vec4(col,0.4*edge);
+        }`
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.rotation.x=-Math.PI/2;
+    mesh.position.set(x,.02,z);
+    return{mesh,mat};
+  },
+  createForcefield(radius,color){
+    const geo=new THREE.SphereGeometry(radius,32,32);
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+      uniforms:{uTime:{value:0},uColor:{value:new THREE.Color(color||'#44aaff')},uHit:{value:0}},
+      vertexShader:`varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        void main(){vNormal=normal;vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+      fragmentShader:`uniform float uTime,uHit;uniform vec3 uColor;varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        float hex(vec2 p){p=abs(p);return max(dot(p,vec2(0.866,0.5)),p.y);}
+        void main(){
+          float fresnel=pow(1.0-abs(dot(vNormal,vec3(0,0,1))),2.5);
+          vec2 hexUv=vUv*vec2(20.0,10.0);
+          float h=smoothstep(0.45,0.5,hex(fract(hexUv)-0.5));
+          float scan=0.5+0.5*sin(vPos.y*10.0+uTime*3.0);
+          float hitFlash=uHit*sin(uTime*20.0)*0.5;
+          float alpha=(fresnel*0.3+h*0.1)*scan+hitFlash;
+          gl_FragColor=vec4(uColor*(1.0+hitFlash*2.0),alpha);
+        }`
+    });
+    return{mesh:new THREE.Mesh(geo,mat),mat};
+  },
+  createBlackHole(x,y,z,radius){
+    const geo=new THREE.SphereGeometry(radius,32,32);
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,
+      uniforms:{uTime:{value:0}},
+      vertexShader:`varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        void main(){vNormal=normal;vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+      fragmentShader:`uniform float uTime;varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        void main(){
+          vec2 c=vUv-0.5;
+          float dist=length(c);
+          float hole=smoothstep(0.15,0.0,dist);
+          float accretion=smoothstep(0.5,0.2,dist)*smoothstep(0.15,0.2,dist);
+          float spin=atan(c.y,c.x)+uTime*3.0;
+          float spiral=0.5+0.5*sin(spin*5.0+dist*20.0);
+          vec3 col=vec3(0.0);
+          col+=vec3(0.8,0.3,1.0)*accretion*spiral;
+          col+=vec3(1.0,0.5,0.2)*accretion*(1.0-spiral)*0.5;
+          float alpha=hole*0.8+accretion*0.5*spiral;
+          gl_FragColor=vec4(col,alpha);
+        }`
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(x,y,z);
+    return{mesh,mat};
+  },
+  createLaserBeam(start,end,color,width){
+    const dir=new THREE.Vector3().subVectors(end,start);
+    const length=dir.length();
+    const mid=new THREE.Vector3().addVectors(start,end).multiplyScalar(.5);
+    const geo=new THREE.CylinderGeometry(width||.05,width||.05,length,8);
+    const col=new THREE.Color(color||'#ff0000');
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      uniforms:{uTime:{value:0},uColor:{value:col}},
+      vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:`uniform float uTime;uniform vec3 uColor;varying vec2 vUv;
+        void main(){
+          float core=smoothstep(0.5,0.3,abs(vUv.x-0.5));
+          float pulse=0.8+0.2*sin(uTime*10.0+vUv.y*20.0);
+          float flicker=0.9+0.1*sin(uTime*30.0);
+          gl_FragColor=vec4(uColor*(1.0+core),core*pulse*flicker*0.8);
+        }`
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.copy(mid);
+    mesh.lookAt(end);
+    mesh.rotateX(Math.PI/2);
+    return{mesh,mat,length};
+  },
+  createEnergyOrb(x,y,z,color,radius){
+    const col=new THREE.Color(color||'#44aaff');
+    const geo=new THREE.SphereGeometry(radius||.5,16,16);
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      uniforms:{uTime:{value:0},uColor:{value:col}},
+      vertexShader:`varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        void main(){vNormal=normal;vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+      fragmentShader:`uniform float uTime;uniform vec3 uColor;varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        float noise(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+        void main(){
+          float n=noise(vPos*3.0+uTime)*0.5+noise(vPos*6.0-uTime*1.5)*0.3;
+          float fresnel=pow(1.0-abs(dot(vNormal,vec3(0,0,1))),2.0);
+          float core=smoothstep(0.5,0.0,length(vUv-0.5)*2.0);
+          float pulse=0.8+0.2*sin(uTime*3.0);
+          vec3 col=uColor*(1.0+n*1.5+core*2.0);
+          float alpha=(fresnel*0.3+n*0.2+core*0.5)*pulse;
+          gl_FragColor=vec4(col,alpha);
+        }`
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(x,y,z);
+    const light=new THREE.PointLight(col.getHex(),1,radius*4||2);
+    mesh.add(light);
+    return{mesh,mat,light};
+  },
+  createMagicShield(radius,color,hexSize){
+    const col=new THREE.Color(color||'#44aaff');
+    const geo=new THREE.SphereGeometry(radius,24,24);
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
+      uniforms:{uTime:{value:0},uColor:{value:col},uOpacity:{value:.3}},
+      vertexShader:`varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        void main(){vNormal=normal;vUv=uv;vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+      fragmentShader:`uniform float uTime,uOpacity;uniform vec3 uColor;varying vec3 vNormal;varying vec2 vUv;varying vec3 vPos;
+        float hex(vec2 p){p=abs(p);return max(dot(p,vec2(0.866,0.5)),p.y);}
+        void main(){
+          float fresnel=pow(1.0-abs(dot(vNormal,vec3(0,0,1))),3.0);
+          vec2 hexUv=vPos.xz*${(hexSize||5).toFixed(1)};
+          float h=step(hex(fract(hexUv)-0.5),0.45);
+          float scanV=0.5+0.5*sin(vPos.y*8.0+uTime*2.0);
+          float scanH=0.5+0.5*sin(vPos.x*6.0-uTime*3.0);
+          float alpha=(fresnel*0.4+h*0.15)*(scanV*0.5+0.5)*uOpacity;
+          vec3 finalCol=uColor*(1.0+fresnel*0.5);
+          gl_FragColor=vec4(finalCol,alpha);
+        }`
+    });
+    return{mesh:new THREE.Mesh(geo,mat),mat};
+  }
+};
+/* ============ ADVANCED CAMERA MODES ============ */
+const CameraModes={
+  current:'thirdPerson',
+  modes:{
+    thirdPerson:{offset:new THREE.Vector3(0,8,12),lookAtOffset:new THREE.Vector3(0,2,0),fov:75},
+    overhead:{offset:new THREE.Vector3(0,20,5),lookAtOffset:new THREE.Vector3(0,0,0),fov:60},
+    close:{offset:new THREE.Vector3(0,4,6),lookAtOffset:new THREE.Vector3(0,1.5,0),fov:80},
+    cinematic:{offset:new THREE.Vector3(5,6,10),lookAtOffset:new THREE.Vector3(0,2,0),fov:65},
+  },
+  setMode(mode){
+    if(!this.modes[mode])return;
+    this.current=mode;
+    const m=this.modes[mode];
+    CameraFX.fovTarget=m.fov;
+  },
+  getOffset(){
+    return this.modes[this.current]?.offset||this.modes.thirdPerson.offset;
+  },
+  getLookAt(){
+    return this.modes[this.current]?.lookAtOffset||this.modes.thirdPerson.lookAtOffset;
+  }
+};
+/* ============ ADVANCED TOOLTIP SYSTEM ============ */
+let activeTooltip=null;
+function showTooltip(element,data){
+  hideTooltip();
+  const tip=document.createElement('div');
+  tip.className='tooltip-enhanced';
+  let html='';
+  if(data.name)html+=`<div class="tt-name">${data.name}</div>`;
+  if(data.type)html+=`<div class="tt-type">${data.type}</div>`;
+  if(data.stats){
+    data.stats.forEach(s=>{
+      html+=`<div class="tt-stat"><span>${s.label}</span><span style="color:${s.color||'#d9b8ff'}">${s.value}</span></div>`;
+    });
+  }
+  if(data.desc)html+=`<div class="tt-desc">${data.desc}</div>`;
+  tip.innerHTML=html;
+  document.body.appendChild(tip);
+  const rect=element.getBoundingClientRect();
+  tip.style.left=Math.min(rect.left,window.innerWidth-290)+'px';
+  tip.style.top=(rect.top-tip.offsetHeight-8)+'px';
+  requestAnimationFrame(()=>tip.classList.add('show'));
+  activeTooltip=tip;
+}
+function hideTooltip(){
+  if(activeTooltip){activeTooltip.remove();activeTooltip=null;}
+}
+/* ============ ADVANCED SOUND EFFECTS SYNTHESIZER ============ */
+const SFXSynth={
+  explosion(pitch,duration){
+    if(!Audio2.ctx)return;
+    const ctx=Audio2.ctx;
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type='sawtooth';osc.frequency.value=pitch||100;
+    osc.frequency.exponentialRampToValueAtTime(20,ctx.currentTime+(duration||.5));
+    gain.gain.value=.3;
+    gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(duration||.5));
+    const filter=ctx.createBiquadFilter();
+    filter.type='lowpass';filter.frequency.value=2000;
+    filter.frequency.exponentialRampToValueAtTime(100,ctx.currentTime+(duration||.5));
+    osc.connect(filter);filter.connect(gain);gain.connect(Audio2.sfxGain||ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+(duration||.5));
+  },
+  laser(pitch,duration){
+    if(!Audio2.ctx)return;
+    const ctx=Audio2.ctx;
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.type='sine';osc.frequency.value=pitch||800;
+    osc.frequency.exponentialRampToValueAtTime((pitch||800)*2,ctx.currentTime+(duration||.15));
+    gain.gain.value=.2;gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(duration||.15));
+    osc.connect(gain);gain.connect(Audio2.sfxGain||ctx.destination);
+    osc.start();osc.stop(ctx.currentTime+(duration||.15));
+  },
+  powerUp(duration){
+    if(!Audio2.ctx)return;
+    const ctx=Audio2.ctx;
+    const dur=duration||.5;
+    [400,500,600,800].forEach((freq,i)=>{
+      setTimeout(()=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.type='sine';osc.frequency.value=freq;
+        gain.gain.value=.15;gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15);
+        osc.connect(gain);gain.connect(Audio2.sfxGain||ctx.destination);
+        osc.start();osc.stop(ctx.currentTime+.15);
+      },i*100);
+    });
+  },
+  impact(pitch){
+    if(!Audio2.ctx)return;
+    const ctx=Audio2.ctx;
+    const bufferSize=ctx.sampleRate*.1;
+    const buffer=ctx.createBuffer(1,bufferSize,ctx.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      data[i]=(Math.random()*2-1)*Math.pow(1-i/bufferSize,2);
+    }
+    const source=ctx.createBufferSource();
+    source.buffer=buffer;
+    const gain=ctx.createGain();
+    gain.gain.value=.3;
+    const filter=ctx.createBiquadFilter();
+    filter.type='lowpass';filter.frequency.value=pitch||500;
+    source.connect(filter);filter.connect(gain);gain.connect(Audio2.sfxGain||ctx.destination);
+    source.start();
+  },
+  magic(pitch,duration){
+    if(!Audio2.ctx)return;
+    const ctx=Audio2.ctx;
+    const osc1=ctx.createOscillator();
+    const osc2=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc1.type='sine';osc1.frequency.value=pitch||440;
+    osc2.type='triangle';osc2.frequency.value=(pitch||440)*1.5;
+    gain.gain.value=.1;gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(duration||.8));
+    const lfo=ctx.createOscillator();
+    lfo.frequency.value=6;
+    const lfoGain=ctx.createGain();
+    lfoGain.gain.value=20;
+    lfo.connect(lfoGain);lfoGain.connect(osc1.frequency);
+    osc1.connect(gain);osc2.connect(gain);gain.connect(Audio2.sfxGain||ctx.destination);
+    osc1.start();osc2.start();lfo.start();
+    osc1.stop(ctx.currentTime+(duration||.8));osc2.stop(ctx.currentTime+(duration||.8));lfo.stop(ctx.currentTime+(duration||.8));
+  }
+};
+/* ============ ADVANCED ARENA DECORATION PRESETS ============ */
+const ARENA_DECOR_PRESETS={
+  gothic:{
+    pillars:'tall_thin',pillarMaterial:'dark_stone',
+    floor:'cobblestone',floorAccent:'blood_runes',
+    walls:'iron_gates',wallAccent:'chains',
+    props:['candelabra','coffin','gargoyle','iron_maiden']},
+  temple:{
+    pillars:'wide_ornate',pillarMaterial:'marble',
+    floor:'tiles',floorAccent:'golden_inlay',
+    walls:'carved_stone',wallAccent:'tapestry',
+    props:['altar','brazier','statue','fountain']},
+  dungeon:{
+    pillars:'rough_stone',pillarMaterial:'mossy_stone',
+    floor:'dirt',floorAccent:'puddles',
+    walls:'rough_hewn',wallAccent:'torches',
+    props:['barrel','crate','skeleton','mushroom']},
+  celestial:{
+    pillars:'crystal',pillarMaterial:'glowing_crystal',
+    floor:'starfield',floorAccent:'constellation',
+    walls:'energy_barrier',wallAccent:'floating_runes',
+    props:['floating_crystal','star_shard','nebula_orb','celestial_ring']},
+  infernal:{
+    pillars:'obsidian',pillarMaterial:'lava_stone',
+    floor:'cracked_lava',floorAccent:'fire_veins',
+    walls:'bone_wall',wallAccent:'skull_lanterns',
+    props:['lava_pool','bone_throne','demon_statue','fire_pit']},
+  frozen:{
+    pillars:'ice_pillar',pillarMaterial:'clear_ice',
+    floor:'frozen_lake',floorAccent:'frost_patterns',
+    walls:'ice_wall',wallAccent:'icicle_curtain',
+    props:['ice_crystal','frozen_tree','snow_drift','ice_throne']}
+};
+/* ============ WEATHER TRANSITION SYSTEM ============ */
+const WeatherTransition={
+  current:null,target:null,blendFactor:0,
+  setWeather(type){
+    this.target=type;
+    this.blendFactor=0;
+  },
+  update(dt){
+    if(!this.target||this.target===this.current)return;
+    this.blendFactor+=dt*.5;
+    if(this.blendFactor>=1){
+      this.current=this.target;
+      this.target=null;
+      this.blendFactor=1;
+    }
+  }
+};
+/* ============ ADVANCED ACHIEVEMENT TRACKING ============ */
+const AchievementTracker={
+  sessionKills:0,sessionWaves:0,sessionDmgDealt:0,sessionDmgTaken:0,
+  sessionCoinsEarned:0,sessionItemsCollected:0,noHitWaves:0,
+  perfectRound:true,
+  reset(){
+    this.sessionKills=0;this.sessionWaves=0;this.sessionDmgDealt=0;
+    this.sessionDmgTaken=0;this.sessionCoinsEarned=0;this.sessionItemsCollected=0;
+    this.noHitWaves=0;this.perfectRound=true;
+  },
+  onKill(mob){
+    this.sessionKills++;
+    state.stats.totalKills=(state.stats.totalKills||0)+1;
+    updateQuestProgress('kill_'+mob.type,1);
+    checkKillStreak(this.sessionKills);
+    checkExtendedAchievements();
+  },
+  onWaveClear(wave){
+    this.sessionWaves++;
+    if(this.perfectRound){
+      this.noHitWaves++;
+      state.stats.perfectWaves=(state.stats.perfectWaves||0)+1;
+    }
+    this.perfectRound=true;
+    showNarrativeEvent(wave);
+    showWaveReward(wave);
+    updateQuestProgress('wave',wave);
+  },
+  onDamageTaken(amount){
+    this.sessionDmgTaken+=amount;
+    this.perfectRound=false;
+  },
+  onDamageDealt(amount){
+    this.sessionDmgDealt+=amount;
+  },
+  onCoinCollected(amount){
+    this.sessionCoinsEarned+=amount;
+  },
+  onItemCollected(){
+    this.sessionItemsCollected++;
+    updateQuestProgress('items',1);
+  }
+};
+/* ============ GAME STATISTICS DISPLAY ============ */
+function renderDetailedStats(){
+  let html='<h2 style="color:#ffd24a;text-align:center;margin-bottom:16px">📊 Statystyki</h2>';
+  const stats=[
+    {label:'Gry zagrane',value:state.stats.gamesPlayed||0,icon:'🎮'},
+    {label:'Łączne zabójstwa',value:state.stats.totalKills||0,icon:'💀'},
+    {label:'Najlepsza fala',value:state.highWave||0,icon:'🌊'},
+    {label:'Najlepsze combo',value:state.stats.bestCombo||0,icon:'🔥'},
+    {label:'Trafienia krytyczne',value:state.stats.critsLanded||0,icon:'🎯'},
+    {label:'Bossowie pokonani',value:state.stats.bossesKilled||0,icon:'👹'},
+    {label:'Użycia formy cienia',value:state.stats.shadowUses||0,icon:'🌑'},
+    {label:'Perfekcyjne fale',value:state.stats.perfectWaves||0,icon:'✨'},
+    {label:'Zebrane monety',value:state.coins||0,icon:'🪙'},
+    {label:'Zebrane klejnoty',value:state.gems||0,icon:'💎'},
+    {label:'Poziom',value:state.level||1,icon:'⭐'},
+    {label:'Odblokowanych',value:state.unlockedIds?.size||1,icon:'📚'},
+    {label:'Seria logowań',value:state.loginStreak||0,icon:'📅'},
+  ];
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px">';
+  stats.forEach(s=>{
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(180,140,255,.06);border-radius:6px">
+      <span style="font-size:18px">${s.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:10px;color:#888">${s.label}</div>
+        <div style="font-size:14px;color:#d9b8ff;font-weight:700">${typeof s.value==='number'?s.value.toLocaleString():s.value}</div>
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  const titles=PLAYER_TITLES||[];
+  const currentTitle=titles.find(t=>t.level<=state.level);
+  if(currentTitle){
+    html+=`<div style="text-align:center;margin-top:16px;font-size:14px;color:#ffd24a">
+      Tytuł: <span style="color:#b44aff">${currentTitle.name}</span>
+    </div>`;
+  }
+  return html;
+}
+/* ============ GAME TIP SYSTEM ============ */
+const GAME_TIPS=[
+  'Użyj Q aby aktywować Super Atak (60s cooldown)',
+  'Shift pozwala sprintować — szybciej uciekaj od bossów!',
+  'R aktywuje Formę Cienia — jesteś nietykalny!',
+  'E aktywuje Tarczę — blokuje obrażenia',
+  'Combo zwiększa obrażenia — nie przerywaj serii!',
+  'Bossowie pojawiają się co 5 fal',
+  'Elitarne moby mają specjalne modyfikatory',
+  'Szukaj punktów interakcji na arenie',
+  'Niszczalne obiekty mogą zawierać nagrody',
+  'Przedmioty wypadające z mobów mogą dać buffy',
+  'Otwieraj skrzynki aby zdobyć nowych bohaterów',
+  'Ulepszenia w sklepie są permanentne',
+  'Każdy klan ma unikalne efekty wizualne',
+  'Duplikaty bohaterów zwiększają ich statystyki',
+  'Runy można nakładać na wyposażenie',
+  'Sprawdzaj Bestiariusz aby poznać słabości wrogów',
+  'Shadow Master to jedyna postać Secret — super rzadka!',
+];
+function showRandomTip(){
+  const tip=GAME_TIPS[Math.floor(Math.random()*GAME_TIPS.length)];
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:15;font-size:12px;color:rgba(180,140,255,.6);text-align:center;max-width:400px;pointer-events:none;opacity:0;transition:opacity 1s';
+  el.textContent='💡 '+tip;
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>{el.style.opacity='1';});
+  setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),1000);},5000);
+}
+/* ============ COLOR UTILITIES ============ */
+const ColorUtil={
+  lerp(color1,color2,t){
+    const c1=new THREE.Color(color1),c2=new THREE.Color(color2);
+    return c1.lerp(c2,t);
+  },
+  randomHue(saturation,lightness){
+    return new THREE.Color().setHSL(Math.random(),saturation||1,lightness||.5);
+  },
+  brighten(color,amount){
+    const c=new THREE.Color(color);
+    c.r=Math.min(1,c.r+amount);c.g=Math.min(1,c.g+amount);c.b=Math.min(1,c.b+amount);
+    return c;
+  },
+  darken(color,amount){
+    const c=new THREE.Color(color);
+    c.r=Math.max(0,c.r-amount);c.g=Math.max(0,c.g-amount);c.b=Math.max(0,c.b-amount);
+    return c;
+  },
+  pulse(color,time,speed,range){
+    const c=new THREE.Color(color);
+    const v=Math.sin(time*(speed||2))*(range||.2);
+    return new THREE.Color(c.r+v,c.g+v,c.b+v);
+  }
+};
+/* ============ GAME STATE VALIDATOR ============ */
+function validateGameState(){
+  if(!state.unlockedIds||!(state.unlockedIds instanceof Set)){
+    state.unlockedIds=new Set([0]);
+  }
+  if(typeof state.coins!=='number'||isNaN(state.coins))state.coins=0;
+  if(typeof state.gems!=='number'||isNaN(state.gems))state.gems=0;
+  if(typeof state.level!=='number'||isNaN(state.level))state.level=1;
+  if(typeof state.xp!=='number'||isNaN(state.xp))state.xp=0;
+  if(!state.stats)state.stats={gamesPlayed:0,totalKills:0,bestCombo:0,critsLanded:0,bossesKilled:0,shadowUses:0,perfectWaves:0};
+  if(!state.settings)state.settings={sensitivity:5,musicVol:.18,sfxVol:.5};
+  if(!state.duplicates)state.duplicates={};
+  if(!state.modeRecords)state.modeRecords={};
+  if(!state.inventory)state.inventory=[];
+  if(!state.equipment)state.equipment={};
+  if(!state.leaderboard)state.leaderboard=[];
+  if(!state.completedAchievements)state.completedAchievements=new Set();
+  if(!state.activeQuests)state.activeQuests=[];
+}
+/* ============ PERFORMANCE MONITOR ============ */
+const PerfMonitor={
+  drawCalls:0,triangles:0,textures:0,
+  update(){
+    if(!renderer||!renderer.info)return;
+    this.drawCalls=renderer.info.render.calls;
+    this.triangles=renderer.info.render.triangles;
+    this.textures=renderer.info.memory.textures;
+  },
+  getReport(){
+    return`Draw: ${this.drawCalls} | Tri: ${(this.triangles/1000).toFixed(1)}k | Tex: ${this.textures}`;
+  }
+};
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
   Audio2.init(); Audio2.setMusicVol(state.settings.musicVol); Audio2.setSfxVol(state.settings.sfxVol);
