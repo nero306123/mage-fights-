@@ -1332,7 +1332,7 @@ function loadState(){ try{ const raw=localStorage.getItem(SAVE_KEY); if(!raw)ret
 loadState();
 function xpForLevel(l){ return 100+(l-1)*60; }
 function addXP(n){ n=Math.round(n*(1+state.talents.xp*TALENTS.xp.per)); state.xp+=n; let leveled=false; while(state.xp>=xpForLevel(state.level)){ state.xp-=xpForLevel(state.level); state.level++; state.talentPoints++; leveled=true; } if(leveled){ Audio2.sfx.levelup(); if(typeof levelUpVFX==='function')levelUpVFX(); } saveState(); }
-function addCoins(n){ n=Math.round(n*(1+state.talents.coin*TALENTS.coin.per)); state.coins+=n; saveState(); }
+function addCoins(n){ let mul=1+state.talents.coin*TALENTS.coin.per; if(typeof DifficultyScaling!=='undefined')mul*=DifficultyScaling.getMods().coinMult; n=Math.round(n*mul); state.coins+=n; saveState(); }
 function isMobile(){ return ('ontouchstart' in window)||navigator.maxTouchPoints>0||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); }
 const MOBILE=isMobile();
 const $=id=>document.getElementById(id);
@@ -4882,8 +4882,9 @@ function newGame(){
 function statMul(){ return {hp:1+state.upgrades.hp*UPGRADES.hp.effect+state.talents.hp*TALENTS.hp.per, dmg:1+state.upgrades.dmg*UPGRADES.dmg.effect+state.talents.dmg*TALENTS.dmg.per}; }
 function spawnPlayer(){
   const c=G.char; const rmul=RARITIES[c.rarity].statMul; const um=statMul(); const asc=state.ascension[c.id]||0; const ascMul=1+asc*.12;
-  const maxHp=Math.round(c.hp*rmul*um.hp*ascMul);
-  G.player={hp:maxHp,maxHp,dmg:c.dmg*rmul*um.dmg*ascMul,speed:c.speed,x:0,y:0,z:0,rot:Math.PI,atkCD:0,facing:Math.PI};
+  const prestigeMul=typeof PrestigeSystem!=='undefined'?1+PrestigeSystem.getPrestigeBonus():1;
+  const maxHp=Math.round(c.hp*rmul*um.hp*ascMul*prestigeMul);
+  G.player={hp:maxHp,maxHp,dmg:c.dmg*rmul*um.dmg*ascMul*prestigeMul,speed:c.speed,x:0,y:0,z:0,rot:Math.PI,atkCD:0,facing:Math.PI};
   G.playerMesh=buildCharacterMesh(c); scene.add(G.playerMesh);
   // glowing ground disc under the hero
   const rc=new THREE.Color(RARITIES[c.rarity].color);
@@ -4909,6 +4910,7 @@ function spawnMob(type,elite,x,z){
   if(G.mutators.includes('armored'))hp*=1.4;
   if(G.mutators.includes('frenzy'))speed*=1.3;
   if(elite){ hp*=2.5; dmg*=1.6; }
+  if(typeof DifficultyScaling!=='undefined'){const dm=DifficultyScaling.getMods();hp*=dm.hpMult;dmg*=dm.dmgMult;}
   const mesh=buildMobMesh(type,elite); mesh.position.set(x,0,z); scene.add(mesh);
   const mob={type,def,hp,maxHp:hp,dmg,speed,x,z,y:def.fly?2.5:0,mesh,elite,statuses:{},atkCD:Math.random()*1.5,hpBar:makeHpBar(mesh,1.8*def.scale),flyPhase:Math.random()*6,deathT:0,dying:false,ranged:def.ranged};
   G.mobs.push(mob);
@@ -4984,6 +4986,7 @@ function enemyProjectile(fromX,fromY,fromZ,tx,tz,dmg){
 }
 function playerAttack(){
   if(!G.player||G.player.atkCD>0)return; const c=G.char; const fx=CLAN_FX[c.clan];
+  if(typeof Tutorial!=='undefined')Tutorial.notify('attacked');
   const haste=1-state.talents.haste*TALENTS.haste.per;
   let baseCD=(c.atkType==='melee'?.42:c.atkType==='ranged'?.55:.7)*haste;
   if(G.buffs.rapid)baseCD*=.5;
@@ -5097,6 +5100,7 @@ function applyStatus(target,status){ const def=STATUS_DEFS[status]; if(!def)retu
 /* ============ ABILITIES ============ */
 function useSuper(){
   if(!G.player||G.superCD>0)return; const c=G.char;
+  if(typeof Tutorial!=='undefined')Tutorial.notify('supered');
   G.superCD=c.superCD; G.questStats.supers++; questProgress('supers',1);
   Audio2.sfx.super(); shake(.8); flashScreen(new THREE.Color(CLAN_FX[c.clan].proj).getStyle(),.4);
   fovPunch();
@@ -5134,6 +5138,7 @@ function shadowMasterSuper(){
 }
 function useShield(){
   if(!G.player||G.shieldCD>0||G.shieldActive)return; const c=G.char;
+  if(typeof Tutorial!=='undefined')Tutorial.notify('shielded');
   const dur=c.shieldDur*(1+state.upgrades.shield*UPGRADES.shield.effect);
   G.shieldActive=true; G.shieldTime=dur; G.shieldCD=c.shieldDur+8;
   Audio2.sfx.shield();
@@ -5148,6 +5153,7 @@ function useShield(){
 }
 function useSummon(){
   if(!G.player||G.summonCD>0)return; const c=G.char;
+  if(typeof Tutorial!=='undefined')Tutorial.notify('shadowed');
   if(!c.canSummonShadows){ flashMsg('Brak przyzwań'); return; }
   G.summonCD=18;
   let sel=state.selectedShadows[c.id]||[]; const slots=c.shadowSlots+state.upgrades.shadow;
@@ -5245,6 +5251,7 @@ function getMoveInput(){
 }
 function updatePlayerMovement(dt){
   const inp=getMoveInput(); const p=G.player;
+  if(typeof Tutorial!=='undefined'&&Tutorial.active){ if(inp.mag>.2)Tutorial.notify('moved'); if(Math.abs(G.camYaw-Math.PI)>.3)Tutorial.notify('looked'); }
   // camera-relative movement
   const fwdX=Math.sin(G.camYaw),fwdZ=Math.cos(G.camYaw); // camera forward on XZ
   const rightX=Math.sin(G.camYaw-Math.PI/2),rightZ=Math.cos(G.camYaw-Math.PI/2); // screen-right (fixed handedness)
@@ -14527,7 +14534,7 @@ const Tutorial={
     {id:'attack',title:'Atak',text:'Lewy przycisk myszy (lub przycisk ATAK) aby atakować wrogów.',icon:'⚔️',condition:'attacked'},
     {id:'shield',title:'Tarcza',text:'Naciśnij E aby aktywować tarczę chroniącą przed obrażeniami.',icon:'🛡️',condition:'shielded'},
     {id:'super',title:'Super Atak',text:'Naciśnij Q aby użyć potężnego super ataku (60s cooldown).',icon:'💥',condition:'supered'},
-    {id:'shadow',title:'Forma Cienia',text:'Naciśnij R aby wejść w Formę Cienia — nietykalność i prędkość.',icon:'🌑',condition:'shadowed'}
+    {id:'shadow',title:'Przyzwanie / Cień',text:'Naciśnij R aby przyzwać cienie-sługi lub aktywować zdolność cienia postaci.',icon:'🌑',condition:'shadowed'}
   ],
   currentStep:0,active:false,completed:new Set(),
   start(){
@@ -14674,6 +14681,7 @@ window.ACstartGame=function(){
   initMinimap();
   Audio2.startMusic(G.theme);
   announce('ARENA CIENI',GAME_MODES[G.mode].name);
+  if(typeof Tutorial!=='undefined'&&!state.tutorialDone)setTimeout(()=>Tutorial.start(),1500);
 };
 function cleanupGame(){
   if(!G)return;
