@@ -398,6 +398,217 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
 /* ===== PULSATING BUTTON ===== */
 .btn-pulse{animation:btnPulse 2s ease infinite}
 @keyframes btnPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,74,255,.4)}50%{box-shadow:0 0 0 10px rgba(180,74,255,0)}}
+/* ===== ENHANCED MINIMAP ===== */
+#minimap-canvas{transition:opacity .3s}
+/* ===== LOOT DROP NOTIFICATION ===== */
+.loot-notification{position:fixed;right:20px;z-index:75;
+ background:linear-gradient(135deg,rgba(20,10,40,.95),rgba(40,20,80,.9));
+ border:1px solid rgba(180,140,255,.3);border-radius:12px;padding:12px 16px;
+ font-family:'Cinzel',serif;animation:lootSlideIn .4s ease-out,lootFadeOut .4s 2.6s ease-in forwards;
+ backdrop-filter:blur(8px);max-width:260px;pointer-events:none}
+.loot-notification.epic{border-color:rgba(170,68,255,.6);box-shadow:0 0 20px rgba(170,68,255,.3)}
+.loot-notification.legendary{border-color:rgba(255,170,0,.6);box-shadow:0 0 25px rgba(255,170,0,.3);
+ background:linear-gradient(135deg,rgba(40,20,0,.95),rgba(60,30,0,.9))}
+.loot-notification.mythic{border-color:rgba(255,68,136,.6);box-shadow:0 0 25px rgba(255,68,136,.3)}
+.loot-notification .loot-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.loot-notification .loot-rarity{font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.7}
+@keyframes lootSlideIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes lootFadeOut{to{transform:translateX(50px);opacity:0}}
+/* ===== ACHIEVEMENT POPUP ===== */
+.achievement-popup{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);
+ z-index:80;background:linear-gradient(135deg,rgba(20,10,40,.95),rgba(40,20,80,.9));
+ border:1px solid rgba(255,210,74,.4);border-radius:14px;padding:16px 24px;
+ font-family:'Cinzel',serif;text-align:center;backdrop-filter:blur(8px);
+ animation:achvSlide .5s ease-out,achvFade .5s 3.5s ease-in forwards;
+ box-shadow:0 0 30px rgba(255,210,74,.2),inset 0 0 20px rgba(255,210,74,.05)}
+.achievement-popup .achv-title{font-size:11px;color:#ffd24a;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px}
+.achievement-popup .achv-name{font-size:18px;color:#fff;text-shadow:0 0 10px rgba(255,210,74,.4)}
+.achievement-popup .achv-desc{font-size:11px;color:#b8a0d8;margin-top:6px}
+@keyframes achvSlide{from{opacity:0;transform:translateX(-50%) translateY(-40px)}to{opacity:1;transform:translateX(-50%) translateY(-20px)}}
+@keyframes achvFade{to{opacity:0;transform:translateX(-50%) translateY(-40px)}}
+/* ===== DEATH SCREEN OVERLAY ===== */
+.death-overlay{position:fixed;inset:0;z-index:90;background:rgba(0,0,0,0);
+ display:flex;align-items:center;justify-content:center;pointer-events:none;
+ transition:background .8s}
+.death-overlay.active{background:rgba(10,0,0,.7);pointer-events:auto}
+.death-overlay .death-text{font-family:'Cinzel',serif;font-size:64px;color:#ff2244;
+ text-shadow:0 0 40px rgba(255,34,68,.6),0 0 80px rgba(255,34,68,.3);
+ opacity:0;transform:scale(0.5);transition:all .6s cubic-bezier(.17,.67,.3,1.33)}
+.death-overlay.active .death-text{opacity:1;transform:scale(1)}
+/* ===== LEVEL UP SCREEN ===== */
+.levelup-overlay{position:fixed;inset:0;z-index:85;pointer-events:none;
+ display:flex;align-items:center;justify-content:center;flex-direction:column}
+.levelup-glow{position:absolute;inset:0;background:radial-gradient(circle at center,
+ rgba(180,74,255,.15) 0%,transparent 70%);opacity:0;transition:opacity .5s}
+.levelup-overlay.active .levelup-glow{opacity:1}
+.levelup-text{font-family:'Cinzel',serif;font-size:52px;color:#b44aff;
+ text-shadow:0 0 30px rgba(180,74,255,.6),0 0 60px rgba(180,74,255,.3);
+ opacity:0;transform:scale(0.3) translateY(20px);transition:all .5s cubic-bezier(.17,.67,.3,1.33)}
+.levelup-overlay.active .levelup-text{opacity:1;transform:scale(1) translateY(0)}
+.levelup-sub{font-size:16px;color:#d9b8ff;margin-top:8px;opacity:0;transition:opacity .3s .3s}
+.levelup-overlay.active .levelup-sub{opacity:1}
+/* ===== DAMAGE DIRECTION INDICATOR ===== */
+.damage-indicator{position:fixed;z-index:20;pointer-events:none;width:80px;height:80px}
+.damage-indicator.top{top:20px;left:50%;transform:translateX(-50%);
+ background:linear-gradient(to bottom,rgba(255,0,0,.4),transparent)}
+.damage-indicator.bottom{bottom:20px;left:50%;transform:translateX(-50%);
+ background:linear-gradient(to top,rgba(255,0,0,.4),transparent)}
+.damage-indicator.left{top:50%;left:20px;transform:translateY(-50%);
+ background:linear-gradient(to right,rgba(255,0,0,.4),transparent)}
+.damage-indicator.right{top:50%;right:20px;transform:translateY(-50%);
+ background:linear-gradient(to left,rgba(255,0,0,.4),transparent)}
+/* ===== SKILL TREE STYLES ===== */
+.skill-tree{display:flex;flex-direction:column;align-items:center;gap:20px;padding:20px}
+.skill-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.skill-node{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;
+ justify-content:center;font-size:24px;cursor:pointer;position:relative;
+ background:rgba(20,10,40,.8);border:2px solid rgba(100,60,160,.3);
+ transition:all .3s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.skill-node:hover{transform:scale(1.1);border-color:rgba(180,74,255,.6);
+ box-shadow:0 0 15px rgba(180,74,255,.3)}
+.skill-node.unlocked{border-color:rgba(100,255,100,.5);background:rgba(20,60,20,.6);
+ box-shadow:0 0 12px rgba(100,255,100,.2)}
+.skill-node.locked{opacity:.4;cursor:not-allowed}
+.skill-node .skill-level{position:absolute;bottom:-6px;right:-6px;font-size:10px;
+ background:#1a0a2e;border:1px solid rgba(180,74,255,.3);border-radius:50%;
+ width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:#d9b8ff}
+.skill-connector{width:2px;height:16px;background:rgba(100,60,160,.3);margin:0 auto}
+.skill-connector.active{background:rgba(100,255,100,.4);box-shadow:0 0 6px rgba(100,255,100,.2)}
+/* ===== ENHANCED INVENTORY GRID ===== */
+.inventory-grid-enhanced{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+ padding:12px;background:rgba(10,5,20,.6);border-radius:12px;border:1px solid rgba(100,60,160,.2)}
+.inventory-slot{aspect-ratio:1;background:rgba(20,10,40,.8);border-radius:8px;
+ border:1px solid rgba(100,60,160,.2);display:flex;align-items:center;justify-content:center;
+ font-size:24px;cursor:pointer;position:relative;transition:all .2s}
+.inventory-slot:hover{border-color:rgba(180,74,255,.5);background:rgba(30,15,60,.8);
+ box-shadow:0 0 10px rgba(180,74,255,.15)}
+.inventory-slot.equipped{border-color:rgba(100,255,100,.4);box-shadow:0 0 8px rgba(100,255,100,.15)}
+.inventory-slot.empty{opacity:.3}
+.inventory-slot .slot-rarity{position:absolute;top:2px;right:2px;font-size:6px;
+ padding:1px 3px;border-radius:3px;letter-spacing:1px;text-transform:uppercase}
+.inventory-slot .slot-level{position:absolute;bottom:2px;left:2px;font-size:9px;color:#888}
+/* ===== CRAFTING UI ENHANCED ===== */
+.craft-recipe{display:flex;align-items:center;gap:12px;padding:12px;
+ background:rgba(20,10,40,.7);border-radius:10px;border:1px solid rgba(100,60,160,.2);
+ margin-bottom:8px;cursor:pointer;transition:all .2s}
+.craft-recipe:hover{border-color:rgba(180,74,255,.4);background:rgba(30,15,60,.7);
+ transform:translateX(4px)}
+.craft-recipe .craft-icon{font-size:28px;width:44px;height:44px;display:flex;
+ align-items:center;justify-content:center;background:rgba(40,20,80,.5);border-radius:8px}
+.craft-recipe .craft-info{flex:1}
+.craft-recipe .craft-name{font-size:13px;color:#d9b8ff;margin-bottom:3px}
+.craft-recipe .craft-cost{font-size:11px;color:#888}
+.craft-recipe .craft-arrow{font-size:20px;color:rgba(180,74,255,.4)}
+/* ===== BESTIARY ENHANCED ===== */
+.bestiary-card{background:linear-gradient(135deg,rgba(20,10,40,.9),rgba(40,20,80,.7));
+ border:1px solid rgba(100,60,160,.3);border-radius:12px;padding:14px;
+ margin-bottom:8px;transition:all .2s;cursor:pointer}
+.bestiary-card:hover{border-color:rgba(180,74,255,.5);transform:translateY(-2px);
+ box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.bestiary-card .mob-emoji{font-size:32px;float:left;margin-right:12px;
+ width:48px;height:48px;display:flex;align-items:center;justify-content:center;
+ background:rgba(40,20,80,.5);border-radius:8px}
+.bestiary-card .mob-name{font-family:'Cinzel',serif;font-size:14px;color:#d9b8ff}
+.bestiary-card .mob-type{font-size:10px;color:#888;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.bestiary-card .mob-stats{font-size:11px;color:#999;line-height:1.6}
+.bestiary-card .mob-lore{font-size:11px;color:#777;font-style:italic;margin-top:6px;
+ border-top:1px solid rgba(100,60,160,.15);padding-top:6px}
+/* ===== STATUS EFFECT ICONS ===== */
+.status-bar{display:flex;gap:4px;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+ z-index:8;pointer-events:none}
+.status-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;
+ justify-content:center;font-size:14px;position:relative;
+ background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.3)}
+.status-icon.burning{border-color:rgba(255,100,0,.5);box-shadow:0 0 6px rgba(255,100,0,.3)}
+.status-icon.frozen{border-color:rgba(100,180,255,.5);box-shadow:0 0 6px rgba(100,180,255,.3)}
+.status-icon.poisoned{border-color:rgba(0,200,0,.5);box-shadow:0 0 6px rgba(0,200,0,.3)}
+.status-icon.electrified{border-color:rgba(255,255,0,.5);box-shadow:0 0 6px rgba(255,255,0,.3)}
+.status-icon .status-timer{position:absolute;bottom:-8px;font-size:7px;color:#aaa}
+/* ===== FLOATING REWARDS ===== */
+.floating-reward{position:fixed;z-index:75;pointer-events:none;font-family:'Cinzel',serif;
+ animation:rewardFloat 1.5s ease-out forwards}
+.floating-reward.coins{color:#ffd24a;text-shadow:0 0 8px rgba(255,210,74,.4)}
+.floating-reward.xp{color:#b44aff;text-shadow:0 0 8px rgba(180,74,255,.4)}
+.floating-reward.gems{color:#44aaff;text-shadow:0 0 8px rgba(68,170,255,.4)}
+@keyframes rewardFloat{0%{opacity:1;transform:translateY(0) scale(1)}
+ 100%{opacity:0;transform:translateY(-60px) scale(1.3)}}
+/* ===== ENHANCED CROSSHAIR STYLES ===== */
+.crosshair-ring{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+ pointer-events:none;z-index:12;width:30px;height:30px;border-radius:50%;
+ border:1.5px solid rgba(255,255,255,.4);transition:all .1s}
+.crosshair-ring.hit{border-color:rgba(255,68,68,.8);transform:translate(-50%,-50%) scale(1.3)}
+.crosshair-ring.crit{border-color:rgba(255,210,74,.9);transform:translate(-50%,-50%) scale(1.5)}
+.crosshair-dot{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+ pointer-events:none;z-index:12;width:3px;height:3px;border-radius:50%;
+ background:rgba(255,255,255,.7)}
+/* ===== ARENA THEME SELECTOR ===== */
+.theme-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
+.theme-card{background:linear-gradient(135deg,rgba(20,10,40,.9),rgba(40,20,80,.7));
+ border:1px solid rgba(100,60,160,.3);border-radius:10px;padding:12px;text-align:center;
+ cursor:pointer;transition:all .2s}
+.theme-card:hover{border-color:rgba(180,74,255,.5);transform:scale(1.03)}
+.theme-card.selected{border-color:rgba(100,255,100,.5);box-shadow:0 0 15px rgba(100,255,100,.15)}
+.theme-card .theme-emoji{font-size:28px;margin-bottom:6px}
+.theme-card .theme-name{font-size:12px;color:#d9b8ff;font-family:'Cinzel',serif}
+/* ===== TOOLTIP ENHANCED ===== */
+.tooltip-enhanced{position:fixed;z-index:100;max-width:280px;padding:14px;
+ background:linear-gradient(135deg,rgba(15,8,30,.97),rgba(30,15,60,.95));
+ border:1px solid rgba(180,140,255,.3);border-radius:10px;pointer-events:none;
+ backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,.5),0 0 15px rgba(120,60,200,.15);
+ font-size:12px;line-height:1.5;opacity:0;transform:translateY(4px);
+ transition:opacity .15s,transform .15s}
+.tooltip-enhanced.show{opacity:1;transform:translateY(0)}
+.tooltip-enhanced .tt-title{font-family:'Cinzel',serif;font-size:14px;color:#d9b8ff;
+ margin-bottom:6px;border-bottom:1px solid rgba(100,60,160,.2);padding-bottom:4px}
+.tooltip-enhanced .tt-stat{display:flex;justify-content:space-between;color:#999;margin-bottom:2px}
+.tooltip-enhanced .tt-stat .tt-val{color:#d9b8ff}
+.tooltip-enhanced .tt-desc{color:#888;font-style:italic;margin-top:6px;font-size:11px}
+.tooltip-enhanced .tt-rarity{font-size:10px;letter-spacing:2px;text-transform:uppercase;
+ margin-bottom:4px;padding:2px 6px;border-radius:4px;display:inline-block}
+/* ===== LOADING SCREEN ===== */
+.loading-screen{position:fixed;inset:0;z-index:200;background:#05030a;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ transition:opacity .5s}
+.loading-screen.done{opacity:0;pointer-events:none}
+.loading-bar{width:200px;height:4px;background:rgba(100,60,160,.2);border-radius:2px;
+ overflow:hidden;margin-top:20px}
+.loading-fill{height:100%;background:linear-gradient(90deg,#7a4aff,#b44aff);
+ transition:width .3s;border-radius:2px;box-shadow:0 0 8px rgba(180,74,255,.5)}
+.loading-text{font-family:'Cinzel',serif;font-size:14px;color:#d9b8ff;margin-top:12px;
+ letter-spacing:2px;opacity:.7}
+.loading-tip{font-size:11px;color:#666;margin-top:20px;max-width:300px;text-align:center}
+/* ===== PARTICLE TRAIL (CSS) ===== */
+@keyframes particleTrail{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0)}}
+.css-particle{position:fixed;pointer-events:none;z-index:5;border-radius:50%;
+ animation:particleTrail .6s ease-out forwards}
+/* ===== KILLSTREAK BANNER ===== */
+.killstreak-banner{position:fixed;top:15%;left:50%;transform:translateX(-50%) scale(0.5);
+ z-index:73;pointer-events:none;font-family:'Cinzel',serif;text-align:center;
+ opacity:0;transition:all .4s cubic-bezier(.17,.67,.3,1.33)}
+.killstreak-banner.show{opacity:1;transform:translateX(-50%) scale(1)}
+.killstreak-title{font-size:36px;font-weight:900;letter-spacing:4px;
+ text-shadow:0 0 20px currentColor,0 0 40px currentColor}
+.killstreak-sub{font-size:13px;margin-top:4px;opacity:.7;letter-spacing:2px}
+/* ===== PULSE DANGER ANIMATION ===== */
+@keyframes pulse-danger{0%,100%{opacity:.3}50%{opacity:.7}}
+/* ===== BOSS HEALTH BAR SEGMENTS ===== */
+.boss-hp-segmented{display:flex;gap:1px;height:100%;width:100%;position:absolute;top:0;left:0}
+.boss-hp-segment{flex:1;background:rgba(255,255,255,.05);border-right:1px solid rgba(0,0,0,.3)}
+/* ===== ABILITY SLOT ENHANCED ===== */
+.ability-slot{position:relative;width:48px;height:48px;border-radius:10px;
+ background:rgba(20,10,40,.8);border:1.5px solid rgba(100,60,160,.3);
+ display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;
+ transition:all .15s}
+.ability-slot:hover{border-color:rgba(180,74,255,.6);transform:scale(1.08)}
+.ability-slot.on-cooldown{opacity:.5}
+.ability-slot .cd-overlay{position:absolute;inset:0;border-radius:10px;
+ background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;
+ font-size:14px;color:#ff4444;font-weight:bold}
+.ability-slot .ability-key{position:absolute;top:-6px;right:-4px;font-size:9px;
+ background:rgba(40,20,80,.9);border:1px solid rgba(100,60,160,.3);border-radius:4px;
+ padding:1px 3px;color:#999}
+.ability-slot.ready{animation:abilityReady 1.5s ease infinite}
+@keyframes abilityReady{0%,100%{box-shadow:0 0 0 0 rgba(100,255,100,.3)}50%{box-shadow:0 0 0 6px rgba(100,255,100,0)}}
 </style>
 </head>
 <body>
@@ -11767,6 +11978,613 @@ const CharacterAura={
     if(a){mesh.remove(a.mesh);mesh.remove(a.light);a.mat.dispose();a.mesh.geometry.dispose();this.auras.delete(mesh);}
   },
   clear(){this.auras.forEach((a,mesh)=>{mesh.remove(a.mesh);mesh.remove(a.light);a.mat.dispose();a.mesh.geometry.dispose();});this.auras.clear();}
+};
+
+/* ============ SKILL TREE SYSTEM ============ */
+const SKILL_TREES={
+  shadow:{name:'Ścieżka Cienia',nodes:[
+    {id:'s1',name:'Cień Agresji',desc:'+15% DMG w Shadow Form',emoji:'⚔️',maxLvl:3,cost:2,tier:0,effect:(l)=>({shadowDmgBonus:.15*l})},
+    {id:'s2',name:'Mroczna Wytrwałość',desc:'+20% HP max',emoji:'💜',maxLvl:3,cost:2,tier:0,effect:(l)=>({hpBonus:.2*l})},
+    {id:'s3',name:'Ciche Kroki',desc:'+10% speed',emoji:'👣',maxLvl:2,cost:3,tier:1,requires:['s1'],effect:(l)=>({speedBonus:.1*l})},
+    {id:'s4',name:'Mroczne Pochłanianie',desc:'Kill heals 5% HP',emoji:'🩸',maxLvl:2,cost:3,tier:1,requires:['s2'],effect:(l)=>({killHeal:.05*l})},
+    {id:'s5',name:'Cień Drapieżcy',desc:'Shadow Form +2s',emoji:'🌑',maxLvl:3,cost:4,tier:2,requires:['s3','s4'],effect:(l)=>({shadowDuration:2*l})},
+    {id:'s6',name:'Mistyczne Ostrze',desc:'+25% crit DMG',emoji:'🗡️',maxLvl:2,cost:5,tier:2,requires:['s3'],effect:(l)=>({critDmgBonus:.25*l})},
+    {id:'s7',name:'Władca Mroku',desc:'Super -15s CD',emoji:'👑',maxLvl:1,cost:8,tier:3,requires:['s5','s6'],effect:(l)=>({superCdReduction:15*l})}
+  ]},
+  fire:{name:'Ścieżka Ognia',nodes:[
+    {id:'f1',name:'Żar Bitwy',desc:'+10% DMG fire',emoji:'🔥',maxLvl:3,cost:2,tier:0,effect:(l)=>({fireDmgBonus:.1*l})},
+    {id:'f2',name:'Ognista Skóra',desc:'-10% incoming DMG',emoji:'🛡️',maxLvl:3,cost:2,tier:0,effect:(l)=>({dmgReduction:.1*l})},
+    {id:'f3',name:'Eksplozja',desc:'Kills explode for AoE',emoji:'💥',maxLvl:2,cost:3,tier:1,requires:['f1'],effect:(l)=>({killExplosion:true,explosionRadius:2+l})},
+    {id:'f4',name:'Feniks',desc:'Revive 1x per run',emoji:'🦅',maxLvl:1,cost:5,tier:1,requires:['f2'],effect:(l)=>({phoenixRevive:l})},
+    {id:'f5',name:'Inferno',desc:'AoE attacks +30%',emoji:'🌋',maxLvl:2,cost:4,tier:2,requires:['f3'],effect:(l)=>({aoeBonus:.3*l})},
+    {id:'f6',name:'Wulkan',desc:'Super leaves lava',emoji:'🌊',maxLvl:1,cost:6,tier:2,requires:['f3','f4'],effect:(l)=>({lavaTrail:true})},
+    {id:'f7',name:'Apokalipsa',desc:'+50% fire abilities',emoji:'☄️',maxLvl:1,cost:8,tier:3,requires:['f5','f6'],effect:(l)=>({fireApokalypse:true})}
+  ]},
+  ice:{name:'Ścieżka Lodu',nodes:[
+    {id:'i1',name:'Mrozik',desc:'Attacks slow enemies 10%',emoji:'❄️',maxLvl:3,cost:2,tier:0,effect:(l)=>({slowOnHit:.1*l})},
+    {id:'i2',name:'Lodowa Zbroja',desc:'+15% shield duration',emoji:'🧊',maxLvl:3,cost:2,tier:0,effect:(l)=>({shieldBonus:.15*l})},
+    {id:'i3',name:'Zamrożenie',desc:'5% chance freeze',emoji:'🥶',maxLvl:2,cost:3,tier:1,requires:['i1'],effect:(l)=>({freezeChance:.05*l})},
+    {id:'i4',name:'Kryształ Bariery',desc:'Shield reflects 20%',emoji:'💎',maxLvl:2,cost:3,tier:1,requires:['i2'],effect:(l)=>({shieldReflect:.2*l})},
+    {id:'i5',name:'Blizzard',desc:'Periodic AoE freeze',emoji:'🌨️',maxLvl:2,cost:4,tier:2,requires:['i3'],effect:(l)=>({blizzardFreq:15-l*3})},
+    {id:'i6',name:'Absolut Zero',desc:'Frozen enemies shatter',emoji:'💠',maxLvl:1,cost:6,tier:2,requires:['i3','i4'],effect:(l)=>({shatterDmg:true})},
+    {id:'i7',name:'Wieczna Zima',desc:'Aura slow all nearby',emoji:'🏔️',maxLvl:1,cost:8,tier:3,requires:['i5','i6'],effect:(l)=>({frostAura:true})}
+  ]},
+  lightning:{name:'Ścieżka Błyskawic',nodes:[
+    {id:'l1',name:'Szok',desc:'+10% attack speed',emoji:'⚡',maxLvl:3,cost:2,tier:0,effect:(l)=>({atkSpeedBonus:.1*l})},
+    {id:'l2',name:'Naładowanie',desc:'Super charges faster',emoji:'🔋',maxLvl:3,cost:2,tier:0,effect:(l)=>({superChargeRate:.15*l})},
+    {id:'l3',name:'Łańcuch',desc:'Attacks chain to 2 targets',emoji:'🔗',maxLvl:2,cost:3,tier:1,requires:['l1'],effect:(l)=>({chainTargets:2*l})},
+    {id:'l4',name:'Teleport',desc:'Dodge blink distance +50%',emoji:'💨',maxLvl:2,cost:3,tier:1,requires:['l2'],effect:(l)=>({blinkDist:.5*l})},
+    {id:'l5',name:'Burza',desc:'Random bolts during combat',emoji:'🌩️',maxLvl:2,cost:4,tier:2,requires:['l3'],effect:(l)=>({stormBolts:true,boltFreq:8-l*2})},
+    {id:'l6',name:'Piorun',desc:'Crit = lightning strike',emoji:'⚡',maxLvl:1,cost:6,tier:2,requires:['l3','l4'],effect:(l)=>({critLightning:true})},
+    {id:'l7',name:'Bóg Burzy',desc:'All lightning +100%',emoji:'🌪️',maxLvl:1,cost:8,tier:3,requires:['l5','l6'],effect:(l)=>({stormGod:true})}
+  ]}
+};
+const skillTreeState={points:0,allocated:{}};
+function getSkillLevel(treeId,nodeId){return(skillTreeState.allocated[treeId+'_'+nodeId])||0;}
+function canAllocateSkill(treeId,nodeId){
+  const tree=SKILL_TREES[treeId];if(!tree)return false;
+  const node=tree.nodes.find(n=>n.id===nodeId);if(!node)return false;
+  const curLvl=getSkillLevel(treeId,nodeId);
+  if(curLvl>=node.maxLvl)return false;
+  if(skillTreeState.points<node.cost)return false;
+  if(node.requires){
+    for(const req of node.requires){
+      if(getSkillLevel(treeId,req)<=0)return false;
+    }
+  }
+  return true;
+}
+function allocateSkill(treeId,nodeId){
+  if(!canAllocateSkill(treeId,nodeId))return false;
+  const tree=SKILL_TREES[treeId];
+  const node=tree.nodes.find(n=>n.id===nodeId);
+  skillTreeState.allocated[treeId+'_'+nodeId]=(getSkillLevel(treeId,nodeId))+1;
+  skillTreeState.points-=node.cost;
+  saveState();
+  return true;
+}
+function getTreeBonuses(treeId){
+  const tree=SKILL_TREES[treeId];if(!tree)return{};
+  const bonuses={};
+  tree.nodes.forEach(n=>{
+    const lvl=getSkillLevel(treeId,n.id);
+    if(lvl>0){const eff=n.effect(lvl);Object.assign(bonuses,eff);}
+  });
+  return bonuses;
+}
+function renderSkillTree(treeId){
+  const tree=SKILL_TREES[treeId];if(!tree)return'';
+  const tiers=[[],[],[],[]];
+  tree.nodes.forEach(n=>tiers[n.tier].push(n));
+  let html=`<div class="skill-tree"><div style="font-family:Cinzel,serif;font-size:18px;color:#d9b8ff;margin-bottom:8px">${tree.name}</div>
+    <div style="font-size:12px;color:#888;margin-bottom:12px">Punkty: ${skillTreeState.points} ⭐</div>`;
+  tiers.forEach((tier,ti)=>{
+    html+=`<div class="skill-row">`;
+    tier.forEach(n=>{
+      const lvl=getSkillLevel(treeId,n.id);
+      const canAlloc=canAllocateSkill(treeId,n.id);
+      const cls=lvl>=n.maxLvl?'unlocked':canAlloc?'':'locked';
+      html+=`<div class="skill-node ${cls}" onclick="allocateSkill('${treeId}','${n.id}')&&renderSkillTree('${treeId}')" title="${n.name}: ${n.desc}">
+        ${n.emoji}<span class="skill-level">${lvl}/${n.maxLvl}</span></div>`;
+    });
+    html+=`</div>`;
+    if(ti<3)html+=`<div class="skill-connector ${tiers[ti+1].some(n=>getSkillLevel(treeId,n.id)>0)?'active':''}"></div>`;
+  });
+  html+=`</div>`;
+  return html;
+}
+
+/* ============ ENHANCED BOSS MECHANICS ============ */
+const BOSS_ABILITIES={
+  guardian:[
+    {name:'Wstrząs Ziemi',type:'slam',range:8,cd:5,dmg:30,desc:'AoE shockwave',telegraph:2,
+     execute(boss){
+       BossTelegraph.show(boss.mesh.position,'circle',8,2,0xff4466);
+       CameraFX.shake(.4,.08);
+       setTimeout(()=>{
+         ExplosionFX.create(boss.mesh.position.clone(),0xff4466,2,'big');
+         if(G&&G.playerMesh){
+           const d=G.playerMesh.position.distanceTo(boss.mesh.position);
+           if(d<8)damagePlayer(30);
+         }
+       },2000);
+     }},
+    {name:'Cios Tarczy',type:'charge',range:12,cd:8,dmg:40,desc:'Rush towards player',telegraph:1,
+     execute(boss){
+       if(!G||!G.playerMesh)return;
+       BossTelegraph.show(boss.mesh.position,'line',12,1,0xff8800);
+       const dir=G.playerMesh.position.clone().sub(boss.mesh.position).normalize();
+       boss._chargeDir=dir;boss._charging=true;boss._chargeTime=0;
+     }},
+    {name:'Przyzwanie Sług',type:'summon',cd:15,desc:'Spawns 3 minions',
+     execute(boss){
+       SummonCircle.create(boss.mesh.position,0xff4466,()=>{
+         for(let i=0;i<3;i++){
+           const a=i/3*Math.PI*2;
+           const pos=boss.mesh.position.clone().add(new THREE.Vector3(Math.cos(a)*4,0,Math.sin(a)*4));
+           if(typeof spawnMobAt==='function')spawnMobAt(pos,'skeleton',boss.wave||G.wave);
+         }
+       });
+     }}
+  ],
+  titan:[
+    {name:'Kula Ognia',type:'fireball',range:20,cd:4,dmg:35,desc:'Ranged fireball',
+     execute(boss){
+       if(!G||!G.playerMesh)return;
+       const dir=G.playerMesh.position.clone().sub(boss.mesh.position).normalize();
+       const proj={mesh:new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,blending:THREE.AdditiveBlending})),
+         pos:boss.mesh.position.clone().add(new THREE.Vector3(0,2,0)),dir,speed:15,dmg:35,life:3,age:0,radius:.5,element:'fire'};
+       proj.mesh.scale.setScalar(.5);
+       proj.mesh.position.copy(proj.pos);
+       scene.add(proj.mesh);
+       if(G.projectiles)G.projectiles.push(proj);
+       const light=new THREE.PointLight(0xff4400,3,8);
+       light.position.copy(proj.pos);
+       scene.add(light);
+       setTimeout(()=>scene.remove(light),300);
+     }},
+    {name:'Ogniowa Deszcz',type:'rain',cd:12,dmg:20,desc:'Fireballs rain from sky',telegraph:2,
+     execute(boss){
+       BossTelegraph.show(boss.mesh.position,'circle',12,2,0xff6600);
+       for(let i=0;i<8;i++){
+         setTimeout(()=>{
+           const x=(Math.random()-.5)*20,z=(Math.random()-.5)*20;
+           const pos=new THREE.Vector3(x,0,z);
+           ExplosionFX.create(pos,0xff4400,.6);
+           if(G&&G.playerMesh&&G.playerMesh.position.distanceTo(pos)<3)damagePlayer(20);
+         },2000+i*200);
+       }
+     }},
+    {name:'Erupcja',type:'eruption',cd:20,dmg:50,desc:'Massive fire burst',telegraph:3,
+     execute(boss){
+       const pos=boss.mesh.position.clone();
+       BossTelegraph.show(pos,'circle',15,3,0xff2200);
+       setTimeout(()=>{
+         ExplosionFX.create(pos,0xff2200,3,'big');
+         LightningSystem.strikeSky(0xff4400);
+         CameraFX.shake(.6,.1);
+         if(G&&G.playerMesh&&G.playerMesh.position.distanceTo(pos)<15)damagePlayer(50);
+       },3000);
+     }}
+  ],
+  colossus:[
+    {name:'Mroźne Tchnienie',type:'breath',range:12,cd:6,dmg:25,desc:'Cone freeze attack',telegraph:1.5,
+     execute(boss){
+       if(!G||!G.playerMesh)return;
+       const dir=G.playerMesh.position.clone().sub(boss.mesh.position).normalize();
+       BossTelegraph.show(boss.mesh.position,'cone',12,1.5,0x44ccff);
+       setTimeout(()=>{
+         for(let i=0;i<15;i++){
+           const spread=dir.clone().applyAxisAngle(new THREE.Vector3(0,1,0),(Math.random()-.5)*.8);
+           spawnParticle(boss.mesh.position.clone().add(new THREE.Vector3(0,2,0)),0x88ddff,spread.clone().multiplyScalar(8+Math.random()*4),.6);
+         }
+         ScreenFX.frostOverlay(1500);
+         if(G&&G.playerMesh){
+           const d=G.playerMesh.position.distanceTo(boss.mesh.position);
+           if(d<12){
+             const angle=Math.atan2(G.playerMesh.position.x-boss.mesh.position.x,G.playerMesh.position.z-boss.mesh.position.z);
+             const bossAngle=Math.atan2(dir.x,dir.z);
+             if(Math.abs(angle-bossAngle)<.5)damagePlayer(25);
+           }
+         }
+       },1500);
+     }},
+    {name:'Lodowy Stomp',type:'stomp',cd:10,dmg:35,desc:'AoE ice stomp',
+     execute(boss){
+       CameraFX.shake(.5,.1);
+       RuneCasting.cast(boss.mesh.position,0x44ccff,6,2);
+       for(let i=0;i<20;i++){
+         spawnParticle(boss.mesh.position.clone().add(new THREE.Vector3(0,.5,0)),0x88ddff,
+           new THREE.Vector3((Math.random()-.5)*8,Math.random()*5,(Math.random()-.5)*8),.8);
+       }
+       if(G&&G.playerMesh&&G.playerMesh.position.distanceTo(boss.mesh.position)<6)damagePlayer(35);
+     }},
+    {name:'Lodowa Ściana',type:'wall',cd:15,desc:'Creates ice barrier',
+     execute(boss){
+       if(!G||!G.playerMesh)return;
+       const dir=G.playerMesh.position.clone().sub(boss.mesh.position).normalize();
+       const perp=new THREE.Vector3(-dir.z,0,dir.x);
+       const mid=boss.mesh.position.clone().add(dir.clone().multiplyScalar(5));
+       for(let i=-2;i<=2;i++){
+         const pos=mid.clone().add(perp.clone().multiplyScalar(i*2));
+         const wall=new THREE.Mesh(new THREE.BoxGeometry(1.5,4,.5),new THREE.MeshStandardMaterial({color:0x88ddff,transparent:true,opacity:.7,emissive:0x44aaff,emissiveIntensity:.3}));
+         wall.position.copy(pos);wall.position.y=2;
+         wall.lookAt(boss.mesh.position);
+         scene.add(wall);
+         setTimeout(()=>{scene.remove(wall);wall.geometry.dispose();wall.material.dispose();},5000);
+       }
+     }}
+  ],
+  abyssal:[
+    {name:'Teleport Atak',type:'teleport',cd:6,dmg:40,desc:'Teleport behind player',
+     execute(boss){
+       if(!G||!G.playerMesh)return;
+       DimensionalRift.open(boss.mesh.position,0x8800ff,3,1);
+       const behind=G.playerMesh.position.clone().add(
+         new THREE.Vector3(0,0,-3).applyQuaternion(G.playerMesh.quaternion)
+       );
+       setTimeout(()=>{
+         boss.mesh.position.copy(behind);
+         DimensionalRift.open(behind.clone().add(new THREE.Vector3(0,2,0)),0x8800ff,3,1);
+         CameraFX.shake(.2,.05);
+         if(G.playerMesh.position.distanceTo(behind)<4)damagePlayer(40);
+       },800);
+     }},
+    {name:'Otchłanne Macki',type:'tentacles',cd:10,dmg:25,desc:'Shadow tentacles',telegraph:1.5,
+     execute(boss){
+       for(let i=0;i<5;i++){
+         const a=i/5*Math.PI*2+Math.random()*.3;
+         const r=5+Math.random()*10;
+         const pos=new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r);
+         BossTelegraph.show(pos,'circle',2,1.5,0x660099);
+         setTimeout(()=>{
+           LightShafts.create(pos,0x8800ff,8,1.5,2);
+           if(G&&G.playerMesh&&G.playerMesh.position.distanceTo(pos)<2)damagePlayer(25);
+         },1500);
+       }
+     }},
+    {name:'Czarna Dziura',type:'blackhole',cd:20,dmg:15,desc:'Pulls everything in',telegraph:2,
+     execute(boss){
+       const pos=boss.mesh.position.clone().add(new THREE.Vector3(0,3,0));
+       RuneCasting.cast(boss.mesh.position,0x440088,8,4);
+       DimensionalRift.open(pos,0x220044,6,4);
+       let t=0;
+       const pull=setInterval(()=>{
+         t+=.05;
+         if(t>4||!G||!G.running){clearInterval(pull);return;}
+         if(G.playerMesh){
+           const dir=pos.clone().sub(G.playerMesh.position).normalize();
+           G.playerMesh.position.add(dir.clone().multiplyScalar(.15));
+           if(G.playerMesh.position.distanceTo(pos)<2)damagePlayer(15);
+         }
+       },50);
+     }}
+  ],
+  omega:[
+    {name:'Combo Atak',type:'combo',cd:8,dmg:30,desc:'3-hit combo',
+     execute(boss){
+       if(!G||!G.playerMesh)return;
+       [0,400,800].forEach((delay,i)=>{
+         setTimeout(()=>{
+           if(!G||!G.running)return;
+           const dir=G.playerMesh.position.clone().sub(boss.mesh.position).normalize();
+           boss.mesh.position.add(dir.clone().multiplyScalar(3));
+           CameraFX.shake(.15,.04);
+           for(let j=0;j<5;j++){
+             spawnParticle(boss.mesh.position.clone(),0xff4444,new THREE.Vector3((Math.random()-.5)*5,Math.random()*3,(Math.random()-.5)*5),.3);
+           }
+           if(G.playerMesh.position.distanceTo(boss.mesh.position)<4)damagePlayer(30);
+         },delay);
+       });
+     }},
+    {name:'Omega Blast',type:'omegablast',cd:15,dmg:60,desc:'Ultimate devastation',telegraph:3,
+     execute(boss){
+       BossTelegraph.show(boss.mesh.position,'circle',20,3,0xff0044);
+       WaveAnnounce.show('⚠️ OMEGA BLAST','Uciekaj!','#ff0044');
+       setTimeout(()=>{
+         ExplosionFX.create(boss.mesh.position.clone(),0xff0044,4,'big');
+         LightningSystem.strikeSky(0xff0044);
+         LightningSystem.strikeSky(0xff4400);
+         CameraFX.shake(.8,.12);
+         screenFlash(0xff0044,.3);
+         if(G&&G.playerMesh&&G.playerMesh.position.distanceTo(boss.mesh.position)<20)damagePlayer(60);
+       },3000);
+     }},
+    {name:'Przyzwanie Armii',type:'army',cd:25,desc:'Summons full wave of mobs',
+     execute(boss){
+       SummonCircle.create(boss.mesh.position,0xff4466,()=>{
+         for(let i=0;i<8;i++){
+           const a=i/8*Math.PI*2;
+           const r=6+Math.random()*4;
+           const pos=boss.mesh.position.clone().add(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r));
+           if(typeof spawnMobAt==='function')spawnMobAt(pos,MOB_TYPES[Math.floor(Math.random()*Math.min(MOB_TYPES.length,G.wave/5+2))].type,G.wave);
+         }
+       });
+     }}
+  ]
+};
+
+/* ============ ENHANCED LOOT NOTIFICATIONS ============ */
+const LootNotification={
+  queue:[],nextTop:100,
+  show(name,rarity,emoji){
+    const rarityColors={common:'#888',rare:'#4488ff',epic:'#aa44ff',mythic:'#ff4488',legendary:'#ffaa00',ultimate:'#ff2200',unknown:'#444',secret:'#ffd700'};
+    const el=document.createElement('div');
+    el.className=`loot-notification ${rarity}`;
+    el.style.top=this.nextTop+'px';
+    el.innerHTML=`<div class="loot-rarity" style="color:${rarityColors[rarity]||'#888'}">${rarity.toUpperCase()}</div>
+      <div class="loot-name" style="color:${rarityColors[rarity]||'#ddd'}">${emoji||''} ${name}</div>`;
+    document.body.appendChild(el);
+    this.nextTop+=70;
+    setTimeout(()=>{el.remove();this.nextTop=Math.max(100,this.nextTop-70);},3000);
+  }
+};
+
+/* ============ ACHIEVEMENT POPUP SYSTEM ============ */
+const AchievementPopup={
+  show(name,desc){
+    const el=document.createElement('div');
+    el.className='achievement-popup';
+    el.innerHTML=`<div class="achv-title">🏆 Osiągnięcie odblokowane</div>
+      <div class="achv-name">${name}</div>
+      ${desc?`<div class="achv-desc">${desc}</div>`:''}`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),4500);
+  }
+};
+
+/* ============ DAMAGE DIRECTION INDICATOR ============ */
+const DamageDirection={
+  show(fromPos){
+    if(!G||!G.playerMesh)return;
+    const playerPos=G.playerMesh.position;
+    const dx=fromPos.x-playerPos.x;
+    const dz=fromPos.z-playerPos.z;
+    const angle=Math.atan2(dx,dz);
+    const camAngle=camera.rotation.y;
+    const relAngle=angle-camAngle;
+    let dir='right';
+    const norm=(relAngle%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+    if(norm<Math.PI/4||norm>Math.PI*7/4)dir='top';
+    else if(norm<Math.PI*3/4)dir='right';
+    else if(norm<Math.PI*5/4)dir='bottom';
+    else dir='left';
+    const el=document.createElement('div');
+    el.className=`damage-indicator ${dir}`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),300);
+  }
+};
+
+/* ============ LOADING SCREEN ============ */
+const LoadingScreen={
+  el:null,
+  show(){
+    let el=document.getElementById('loading-screen');
+    if(!el){
+      el=document.createElement('div');el.id='loading-screen';
+      el.className='loading-screen';
+      const tip=GAME_TIPS?GAME_TIPS[Math.floor(Math.random()*GAME_TIPS.length)]||'':'';
+      el.innerHTML=`<h1 class="title" style="font-size:36px">ARENA CIENI</h1>
+        <div class="loading-bar"><div class="loading-fill" id="loading-fill" style="width:0%"></div></div>
+        <div class="loading-text" id="loading-text">Ładowanie...</div>
+        <div class="loading-tip">${tip}</div>`;
+      document.body.appendChild(el);
+    }
+    this.el=el;el.classList.remove('done');
+  },
+  setProgress(pct,text){
+    const fill=document.getElementById('loading-fill');
+    const txt=document.getElementById('loading-text');
+    if(fill)fill.style.width=pct+'%';
+    if(txt&&text)txt.textContent=text;
+  },
+  hide(){
+    if(this.el){
+      this.el.classList.add('done');
+      setTimeout(()=>{if(this.el)this.el.remove();this.el=null;},600);
+    }
+  }
+};
+
+/* ============ FLOATING REWARDS UI ============ */
+const FloatingReward={
+  show(text,type,x,y){
+    const el=document.createElement('div');
+    el.className=`floating-reward ${type||'coins'}`;
+    el.style.left=(x||window.innerWidth/2)+'px';
+    el.style.top=(y||window.innerHeight/2)+'px';
+    el.style.fontSize='18px';
+    el.textContent=text;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1500);
+  }
+};
+
+/* ============ ENHANCED CHARACTER DETAILS ============ */
+const CharacterDetails={
+  getLore(charId){
+    const lores={
+      'shadow_master':'Urodził się z czystego mroku, nie ma twarzy — jedynie cień. Nikt nie zna jego prawdziwego imienia. Mówi się, że był pierwszym wojownikiem Areny, który pokonał wszystkich bossów w pojedynkę. Jego cienie służą mu bezwarunkowo, a gdy ginie — sam staje się cieniem, walcząc dalej z nieosiągalną determinacją.',
+      'nekromanta':'Władca martwych dusz, Nekromanta czerpie moc z samej pustki. Każda pokonana istota wzmacnia jego armię cieni. Mówi się, że zawarł pakt z Otchłanią w zamian za nieśmiertelność — ale ceną było jego człowieczeństwo.',
+      'phoenix_lord':'Ostatni z rodu Płomienistych Lordów, nosi w sobie iskrę wiecznego ognia. Każda śmierć tylko wzmacnia jego moc, gdy odradzał się z popiołów silniejszy niż wcześniej. Jego płomienie palą nawet duszę.',
+      'frost_queen':'Królowa Wiecznej Zimy rządzi lodowymi pustkowiami od tysiącleci. Jej dotyk zamraża krew, a spojrzenie pokrywa szronem duszę. Podobno kiedyś była ciepłą i kochającą osobą — zanim zdradziła ją miłość.',
+      'storm_caller':'Pogromca Burz wędruje między światami, pozostawiając za sobą ślady piorunów. Urodził się podczas największej burzy w historii, a błyskawice obdarzył go niespotykaną mocą. Jego gniew wstrząsa niebem.',
+      'void_walker':'Istniejący między wymiarami, Void Walker widział wszystko i nic. Jego ciało jest częściowo materialne — przemierza pustki między światami jak ryba w wodzie. Mówi się, że kto spojrzy mu w oczy, widzi nieskończoność.'
+    };
+    return lores[charId]||'Tajemniczy wojownik Areny Cieni. Jego przeszłość owiana jest tajemnicą, a motywacje znane tylko jemu samemu.';
+  },
+  getQuote(charId){
+    const quotes={
+      'shadow_master':['Jestem cieniem, który patrzy...','Z mroku przychodzę, do mroku was zabiorę.','Nie macie szans przeciwko ciemności.'],
+      'nekromanta':['Wstańcie, moje sługi!','Śmierć to dopiero początek.','Wasze dusze będą mi służyć.'],
+      'phoenix_lord':['Spłoniesz w moim ogniu!','Feniks zawsze powstaje.','Ogień oczyszcza wszystko.'],
+      'frost_queen':['Zamarzniesz na wieki.','Zima nadchodzi.','Lód nie wybacza.'],
+      'storm_caller':['Czujecie tę burzę?','Piorun uderza dwa razy!','Niebo jest moją bronią.'],
+      'void_walker':['Pustka was pochłonie.','Widzę przez wymiary.','Nie istnieję... i nie istniejecie wy.']
+    };
+    const q=quotes[charId]||['Gotowy do walki.','Arena czeka.','Nie znasz mojej mocy.'];
+    return q[Math.floor(Math.random()*q.length)];
+  },
+  getRelations(charId){
+    const relations={
+      'shadow_master':[{with:'nekromanta',type:'ally',desc:'Razem władają cieniami'},{with:'void_walker',type:'rival',desc:'Walczą o kontrolę nad mrokiem'}],
+      'nekromanta':[{with:'shadow_master',type:'ally',desc:'Wspólna moc cieni'},{with:'phoenix_lord',type:'enemy',desc:'Ogień niszczy nieumarłych'}],
+      'phoenix_lord':[{with:'frost_queen',type:'enemy',desc:'Ogień kontra lód'},{with:'storm_caller',type:'neutral',desc:'Szacunek między żywiołami'}],
+      'frost_queen':[{with:'phoenix_lord',type:'enemy',desc:'Wieczna rywalizacja'},{with:'void_walker',type:'ally',desc:'Zimna jak pustka'}]
+    };
+    return relations[charId]||[];
+  }
+};
+
+/* ============ ENHANCED PARTICLE PRESETS EXTENDED ============ */
+const ParticlePresetsExt={
+  starBurst(pos,color,count){
+    count=count||20;
+    for(let i=0;i<count;i++){
+      const a=i/count*Math.PI*2;
+      const speed=5+Math.random()*5;
+      spawnParticle(pos.clone(),color||0xffffff,
+        new THREE.Vector3(Math.cos(a)*speed,2+Math.random()*3,Math.sin(a)*speed),
+        .5+Math.random()*.3);
+    }
+  },
+  vortex(pos,color,duration){
+    const dur=duration||2;
+    let t=0;
+    const iv=setInterval(()=>{
+      t+=.05;
+      if(t>dur){clearInterval(iv);return;}
+      for(let i=0;i<3;i++){
+        const a=t*5+i/3*Math.PI*2;
+        const r=1+t*3;
+        spawnParticle(
+          pos.clone().add(new THREE.Vector3(Math.cos(a)*r,t*3,Math.sin(a)*r)),
+          color||0xd9b8ff,
+          new THREE.Vector3(Math.cos(a+Math.PI/2)*2,1,Math.sin(a+Math.PI/2)*2),
+          .3);
+      }
+    },50);
+  },
+  rain(pos,color,count,area){
+    count=count||30;area=area||10;
+    for(let i=0;i<count;i++){
+      const x=pos.x+(Math.random()-.5)*area;
+      const z=pos.z+(Math.random()-.5)*area;
+      spawnParticle(new THREE.Vector3(x,pos.y+10+Math.random()*5,z),color||0x4488ff,
+        new THREE.Vector3(0,-10-Math.random()*5,0),.8+Math.random()*.4);
+    }
+  },
+  implosion(pos,color,count){
+    count=count||25;
+    for(let i=0;i<count;i++){
+      const a=Math.random()*Math.PI*2;
+      const r=5+Math.random()*5;
+      const start=pos.clone().add(new THREE.Vector3(Math.cos(a)*r,Math.random()*4,Math.sin(a)*r));
+      const dir=pos.clone().sub(start).normalize().multiplyScalar(8+Math.random()*4);
+      spawnParticle(start,color||0xff4444,dir,.4+Math.random()*.2);
+    }
+  },
+  helix(pos,color,height,turns){
+    height=height||8;turns=turns||3;
+    for(let i=0;i<40;i++){
+      const t=i/40;
+      const a=t*Math.PI*2*turns;
+      const r=1+Math.sin(t*Math.PI)*1.5;
+      const p=pos.clone().add(new THREE.Vector3(Math.cos(a)*r,t*height,Math.sin(a)*r));
+      spawnParticle(p,color||0x44aaff,new THREE.Vector3((Math.random()-.5)*.5,.5,(Math.random()-.5)*.5),.5+t*.3);
+    }
+  },
+  explosion(pos,color,intensity){
+    intensity=intensity||1;
+    const count=Math.floor(30*intensity);
+    for(let i=0;i<count;i++){
+      const dir=new THREE.Vector3((Math.random()-.5)*2,(Math.random()-.5)*2,(Math.random()-.5)*2).normalize();
+      dir.multiplyScalar(3+Math.random()*5*intensity);
+      spawnParticle(pos.clone(),color||0xff6600,dir,.3+Math.random()*.4);
+    }
+    ExplosionFX.create(pos,color||0xff6600,intensity,intensity>1.5?'big':undefined);
+  },
+  fountain(pos,color){
+    for(let i=0;i<15;i++){
+      const a=Math.random()*Math.PI*2;
+      const speed=2+Math.random()*3;
+      spawnParticle(pos.clone(),color||0x44ccff,
+        new THREE.Vector3(Math.cos(a)*speed*.3,speed,Math.sin(a)*speed*.3),
+        .7+Math.random()*.3);
+    }
+  },
+  shockwave(pos,color){
+    const ring=new THREE.Mesh(new THREE.RingGeometry(.1,1,32),new THREE.MeshBasicMaterial({color:color||0xffffff,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    ring.rotation.x=-Math.PI/2;ring.position.copy(pos);ring.position.y=.1;
+    scene.add(ring);
+    let t=0;
+    const anim=setInterval(()=>{
+      t+=.03;
+      if(t>1){clearInterval(anim);scene.remove(ring);ring.geometry.dispose();ring.material.dispose();return;}
+      ring.scale.setScalar(1+t*15);
+      ring.material.opacity=.8*(1-t);
+    },16);
+  }
+};
+
+/* ============ THEME-SPECIFIC AMBIENT EFFECTS ============ */
+const ThemeAmbient={
+  timers:{},
+  update(theme,dt){
+    if(!theme||!G||!G.running)return;
+    const name=theme.name||'shadow';
+    this.timers[name]=(this.timers[name]||0)+dt;
+    const t=this.timers[name];
+    if(name==='lightning'&&t>3){
+      this.timers[name]=0;
+      if(Math.random()>.6)LightningSystem.strikeSky(0x88ccff);
+    }
+    if(name==='fire'&&t>2){
+      this.timers[name]=0;
+      if(Math.random()>.7){
+        const x=(Math.random()-.5)*50,z=(Math.random()-.5)*50;
+        for(let i=0;i<3;i++){
+          spawnParticle(new THREE.Vector3(x,0,z),0xff4400,new THREE.Vector3((Math.random()-.5)*2,3+Math.random()*3,(Math.random()-.5)*2),.5);
+        }
+      }
+    }
+    if(name==='void'&&t>4){
+      this.timers[name]=0;
+      if(Math.random()>.7){
+        const x=(Math.random()-.5)*40,z=(Math.random()-.5)*40;
+        DimensionalRift.open(new THREE.Vector3(x,2+Math.random()*3,z),0x440088,2,2);
+      }
+    }
+    if(name==='ice'&&t>5){
+      this.timers[name]=0;
+      if(Math.random()>.6){
+        const x=(Math.random()-.5)*50,z=(Math.random()-.5)*50;
+        const spike=new THREE.Mesh(new THREE.ConeGeometry(.2,1+Math.random()*2,5),
+          new THREE.MeshStandardMaterial({color:0x88ddff,transparent:true,opacity:.6,emissive:0x44aaff,emissiveIntensity:.2}));
+        spike.position.set(x,.5,z);
+        scene.add(spike);
+        setTimeout(()=>{scene.remove(spike);spike.geometry.dispose();spike.material.dispose();},8000);
+      }
+    }
+    if(name==='nature'&&t>3){
+      this.timers[name]=0;
+      for(let i=0;i<2;i++){
+        const x=(Math.random()-.5)*60,z=(Math.random()-.5)*60;
+        spawnParticle(new THREE.Vector3(x,Math.random()*15,z),0x44ff44,
+          new THREE.Vector3((Math.random()-.5)*1,-.5-Math.random(),(Math.random()-.5)*1),2+Math.random()*2);
+      }
+    }
+    if(name==='cosmic'&&t>2){
+      this.timers[name]=0;
+      if(Math.random()>.5){
+        const a=Math.random()*Math.PI*2;
+        const x=Math.cos(a)*30,z=Math.sin(a)*30;
+        LightShafts.create(new THREE.Vector3(x,0,z),0x4488ff,15,1,3);
+      }
+    }
+  }
+};
+
+/* ============ WAVE REWARD ENHANCED ============ */
+const WaveRewardEnhanced={
+  show(wave,kills,coins){
+    let el=document.getElementById('wave-reward-popup');
+    if(!el){
+      el=document.createElement('div');el.id='wave-reward-popup';
+      el.style.cssText='position:fixed;bottom:20%;left:50%;transform:translateX(-50%) translateY(20px);z-index:74;pointer-events:none;text-align:center;font-family:Cinzel,serif;opacity:0;transition:all .4s;background:linear-gradient(135deg,rgba(15,8,30,.95),rgba(30,15,60,.9));border:1px solid rgba(180,140,255,.3);border-radius:14px;padding:16px 28px;backdrop-filter:blur(8px);';
+      document.body.appendChild(el);
+    }
+    el.innerHTML=`
+      <div style="font-size:12px;color:#888;letter-spacing:2px;text-transform:uppercase">Fala ${wave} ukończona</div>
+      <div style="font-size:24px;color:#d9b8ff;margin:6px 0">⚔️ ${kills} zabójstw</div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:8px">
+        <div style="color:#ffd24a">🪙 +${coins}</div>
+        <div style="color:#b44aff">⭐ +${kills*2} XP</div>
+      </div>`;
+    el.style.opacity='1';el.style.transform='translateX(-50%) translateY(0)';
+    setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(20px)';},2500);
+  }
 };
 
 /* ============ START / OVER ============ */
