@@ -4608,6 +4608,11 @@ function buildArena(theme){
   if(theme.name==='ice')ArenaWeather.createSnow(theme);
   else if(theme.name==='fire')ArenaWeather.createAsh(theme);
   else if(theme.name==='lightning')ArenaWeather.createRain(theme);
+  buildAdvancedDecor(theme,arenaGroup);
+  PostFX.init();
+  ParticleField.create(theme);
+  LightDirector.setMood('normal');
+  PlayerTrail.init(CLANS[theme.name]?CLANS[theme.name].baseColor:0x8844ff);
 }
 function buildWeather(theme){
   const count=state.settings.reducedParticles?80:220;
@@ -5492,6 +5497,9 @@ function gameLoop(now){
     MinimapFX.update();
     ThemeAmbient.update(G.theme,dt);
     TerrainInteraction.update(dt);
+    ParticleField.update(dt,G.time);
+    LightDirector.update(dt);
+    if(G.playerMesh)PlayerTrail.update(G.playerMesh.position,G.shadowForm||(getMoveInput().mag>.7),G.shadowForm?0x7a4aff:null);
     // afterimage when sprinting or in shadow form
     if(G.playerMesh&&(G.shadowForm||(getMoveInput().mag>.8))){
       G._afterimageCD=(G._afterimageCD||0)-dt;
@@ -13671,6 +13679,310 @@ function joinGuild(id){
   AchievementPopup.show('Dołączyłeś do gildii!',GuildSystem.guilds.find(g=>g.id===id)?.name);
 }
 
+/* ============ POST-PROCESSING VISUAL ENHANCEMENT ============ */
+const PostFX={
+  vignetteEl:null,chromaEl:null,scanlineEl:null,bloomEl:null,
+  init(){
+    if(!this.vignetteEl){
+      this.vignetteEl=document.createElement('div');
+      this.vignetteEl.id='postfx-vignette';
+      this.vignetteEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:13;'+
+        'background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.4) 100%);'+
+        'transition:opacity .5s;opacity:.6';
+      document.body.appendChild(this.vignetteEl);
+    }
+    if(!this.bloomEl){
+      this.bloomEl=document.createElement('div');
+      this.bloomEl.id='postfx-bloom';
+      this.bloomEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:11;'+
+        'mix-blend-mode:screen;transition:opacity .3s;opacity:0';
+      document.body.appendChild(this.bloomEl);
+    }
+    if(!this.scanlineEl){
+      this.scanlineEl=document.createElement('div');
+      this.scanlineEl.id='postfx-scanline';
+      this.scanlineEl.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:12;opacity:0;'+
+        'background:repeating-linear-gradient(0deg,rgba(0,0,0,.1) 0px,transparent 1px,transparent 2px,rgba(0,0,0,.1) 3px);'+
+        'transition:opacity .3s';
+      document.body.appendChild(this.scanlineEl);
+    }
+  },
+  setVignette(intensity){
+    if(this.vignetteEl)this.vignetteEl.style.opacity=intensity;
+  },
+  bloomFlash(color,intensity){
+    if(!this.bloomEl)return;
+    const c=new THREE.Color(color||0xffffff);
+    this.bloomEl.style.background=`radial-gradient(ellipse at center,rgba(${Math.floor(c.r*255)},${Math.floor(c.g*255)},${Math.floor(c.b*255)},${intensity||.3}) 0%,transparent 60%)`;
+    this.bloomEl.style.opacity='1';
+    setTimeout(()=>{if(this.bloomEl)this.bloomEl.style.opacity='0';},150);
+  },
+  enableScanlines(on){
+    if(this.scanlineEl)this.scanlineEl.style.opacity=on?'.3':'0';
+  },
+  clear(){
+    if(this.vignetteEl)this.vignetteEl.style.opacity='0';
+    if(this.bloomEl)this.bloomEl.style.opacity='0';
+    if(this.scanlineEl)this.scanlineEl.style.opacity='0';
+  }
+};
+
+/* ============ DYNAMIC LIGHTING DIRECTOR ============ */
+const LightDirector={
+  ambientBase:null,keyLight:null,fillLight:null,rimLight:null,
+  mood:'normal',targetIntensity:1,currentIntensity:1,
+  setMood(mood){
+    this.mood=mood;
+    const moods={
+      normal:{ambient:.4,key:1,fill:.5,fog:.016,vignette:.6},
+      tense:{ambient:.2,key:.8,fill:.3,fog:.024,vignette:.75},
+      boss:{ambient:.15,key:1.2,fill:.4,fog:.02,vignette:.8},
+      victory:{ambient:.6,key:1.5,fill:.7,fog:.01,vignette:.4},
+      danger:{ambient:.25,key:.6,fill:.2,fog:.03,vignette:.85}
+    };
+    const m=moods[mood]||moods.normal;
+    if(scene.fog)scene.fog.density=m.fog;
+    PostFX.setVignette(m.vignette);
+    this.targetIntensity=m.key;
+  },
+  update(dt){
+    this.currentIntensity+=(this.targetIntensity-this.currentIntensity)*dt*2;
+    if(G&&G.boss&&G.boss.alive&&this.mood!=='boss')this.setMood('boss');
+    else if(G&&G.hp<G.maxHp*.2&&this.mood!=='danger')this.setMood('danger');
+    else if(G&&!G.boss&&G.hp>=G.maxHp*.2&&G.wave>5&&this.mood==='normal'&&G.mobs.length>8)this.setMood('tense');
+  }
+};
+
+/* ============ PARTICLE FIELD BACKGROUND (Atmospheric) ============ */
+const ParticleField={
+  systems:[],
+  create(theme){
+    const accent=new THREE.Color(theme.accent);
+    const layers=[
+      {count:MOBILE?60:150,size:.05,opacity:.2,speed:.3,range:40,height:25},
+      {count:MOBILE?40:100,size:.1,opacity:.35,speed:.5,range:35,height:20},
+      {count:MOBILE?20:50,size:.18,opacity:.5,speed:.8,range:30,height:15}
+    ];
+    layers.forEach(layer=>{
+      const geo=new THREE.BufferGeometry();
+      const pos=new Float32Array(layer.count*3);
+      const data=[];
+      for(let i=0;i<layer.count;i++){
+        const a=Math.random()*Math.PI*2,r=Math.random()*layer.range;
+        pos[i*3]=Math.cos(a)*r;
+        pos[i*3+1]=Math.random()*layer.height;
+        pos[i*3+2]=Math.sin(a)*r;
+        data.push({sp:layer.speed*(.5+Math.random()),drift:Math.random()*Math.PI*2});
+      }
+      geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+      const mat=new THREE.PointsMaterial({color:accent,size:layer.size,transparent:true,opacity:layer.opacity,sizeAttenuation:true,blending:THREE.AdditiveBlending,depthWrite:false});
+      const points=new THREE.Points(geo,mat);
+      scene.add(points);
+      this.systems.push({points,geo,data,height:layer.height});
+    });
+  },
+  update(dt,t){
+    this.systems.forEach(sys=>{
+      const arr=sys.geo.attributes.position.array;
+      for(let i=0;i<sys.data.length;i++){
+        const d=sys.data[i];
+        arr[i*3+1]+=d.sp*dt;
+        arr[i*3]+=Math.sin(t*.5+d.drift)*dt*.3;
+        arr[i*3+2]+=Math.cos(t*.3+d.drift)*dt*.3;
+        if(arr[i*3+1]>sys.height)arr[i*3+1]=0;
+      }
+      sys.geo.attributes.position.needsUpdate=true;
+    });
+  },
+  clear(){
+    this.systems.forEach(sys=>{scene.remove(sys.points);sys.geo.dispose();sys.points.material.dispose();});
+    this.systems=[];
+  }
+};
+
+/* ============ CINEMATIC CAMERA SEQUENCES ============ */
+const CinematicCam={
+  active:false,sequence:null,t:0,savedPos:null,savedTarget:null,
+  bossIntroSequence(boss){
+    if(!boss||!boss.mesh)return;
+    this.active=true;this.t=0;
+    this.savedPos=camera.position.clone();
+    const bossPos=boss.mesh.position.clone();
+    this.sequence={
+      type:'bossIntro',duration:3,boss,
+      keyframes:[
+        {t:0,pos:bossPos.clone().add(new THREE.Vector3(0,2,8)),look:bossPos.clone().add(new THREE.Vector3(0,3,0))},
+        {t:.5,pos:bossPos.clone().add(new THREE.Vector3(6,4,6)),look:bossPos.clone().add(new THREE.Vector3(0,2,0))},
+        {t:1,pos:bossPos.clone().add(new THREE.Vector3(0,5,10)),look:bossPos.clone()}
+      ]
+    };
+    PostFX.enableScanlines(false);
+  },
+  update(dt){
+    if(!this.active||!this.sequence)return false;
+    this.t+=dt/this.sequence.duration;
+    if(this.t>=1){
+      this.active=false;this.sequence=null;
+      return false;
+    }
+    const kfs=this.sequence.keyframes;
+    let k0=kfs[0],k1=kfs[kfs.length-1];
+    for(let i=0;i<kfs.length-1;i++){
+      if(this.t>=kfs[i].t&&this.t<kfs[i+1].t){k0=kfs[i];k1=kfs[i+1];break;}
+    }
+    const localT=(this.t-k0.t)/(k1.t-k0.t||1);
+    const smooth=localT*localT*(3-2*localT);
+    camera.position.lerpVectors(k0.pos,k1.pos,smooth);
+    const look=k0.look.clone().lerp(k1.look,smooth);
+    camera.lookAt(look);
+    return true;
+  },
+  skip(){this.active=false;this.sequence=null;}
+};
+
+/* ============ ENVIRONMENTAL STORYTELLING ============ */
+const EnvStory={
+  fragments:[
+    {id:'es1',text:'Tu spoczywają ci, którzy odważyli się rzucić wyzwanie Arenie...',trigger:'wave5'},
+    {id:'es2',text:'Mrok pamięta każdego, kto tu zginął.',trigger:'wave10'},
+    {id:'es3',text:'Władca Cieni obserwuje twe poczynania z zainteresowaniem.',trigger:'wave15'},
+    {id:'es4',text:'Czujesz, jak otchłań szepcze twoje imię...',trigger:'wave20'},
+    {id:'es5',text:'Niewielu dotarło tak daleko. Jeszcze mniej przeżyło.',trigger:'wave25'},
+    {id:'es6',text:'Arena testuje nie tylko siłę, ale i ducha.',trigger:'boss1'},
+    {id:'es7',text:'Każdy pokonany boss wzmacnia legendę o tobie.',trigger:'boss3'},
+    {id:'es8',text:'Jesteś bliżej prawdy o Arenie niż ktokolwiek wcześniej.',trigger:'boss5'}
+  ],
+  shown:new Set(),
+  trigger(key){
+    if(this.shown.has(key))return;
+    const frag=this.fragments.find(f=>f.trigger===key);
+    if(!frag)return;
+    this.shown.add(key);
+    let el=document.getElementById('env-story');
+    if(!el){
+      el=document.createElement('div');el.id='env-story';
+      el.style.cssText='position:fixed;bottom:120px;left:50%;transform:translateX(-50%);z-index:30;'+
+        'max-width:500px;text-align:center;pointer-events:none;font-family:Cinzel,serif;'+
+        'font-size:16px;color:rgba(217,184,255,.8);font-style:italic;'+
+        'text-shadow:0 0 12px rgba(120,60,200,.4);opacity:0;transition:opacity 1s';
+      document.body.appendChild(el);
+    }
+    el.textContent='"'+frag.text+'"';
+    el.style.opacity='1';
+    setTimeout(()=>{el.style.opacity='0';},5000);
+  },
+  reset(){this.shown.clear();}
+};
+
+/* ============ ADVANCED PLAYER TRAIL ============ */
+const PlayerTrail={
+  segments:[],maxSegments:15,mesh:null,geo:null,mat:null,
+  init(color){
+    const positions=new Float32Array(this.maxSegments*3);
+    this.geo=new THREE.BufferGeometry();
+    this.geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+    this.mat=new THREE.LineBasicMaterial({color:color||0x8844ff,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false});
+    this.mesh=new THREE.Line(this.geo,this.mat);
+    scene.add(this.mesh);
+    this.segments=[];
+  },
+  update(playerPos,active,color){
+    if(!this.mesh)return;
+    if(active){
+      this.segments.unshift(playerPos.clone());
+      if(this.segments.length>this.maxSegments)this.segments.pop();
+      if(color)this.mat.color.set(color);
+    } else {
+      if(this.segments.length>0)this.segments.pop();
+    }
+    const arr=this.geo.attributes.position.array;
+    for(let i=0;i<this.maxSegments;i++){
+      if(i<this.segments.length){
+        arr[i*3]=this.segments[i].x;
+        arr[i*3+1]=this.segments[i].y+.5;
+        arr[i*3+2]=this.segments[i].z;
+      } else if(this.segments.length>0){
+        const last=this.segments[this.segments.length-1];
+        arr[i*3]=last.x;arr[i*3+1]=last.y+.5;arr[i*3+2]=last.z;
+      }
+    }
+    this.geo.attributes.position.needsUpdate=true;
+    this.geo.setDrawRange(0,Math.max(2,this.segments.length));
+    this.mat.opacity=active?.5:.2;
+  },
+  clear(){
+    if(this.mesh){scene.remove(this.mesh);this.geo.dispose();this.mat.dispose();this.mesh=null;}
+    this.segments=[];
+  }
+};
+
+/* ============ ELEMENTAL IMPACT VARIANTS ============ */
+const ElementalImpacts={
+  spawn(pos,element,scale){
+    scale=scale||1;
+    const configs={
+      fire:{color:0xff4400,particles:15,explosion:true,decal:0xff2200,light:0xff6600},
+      ice:{color:0x44ccff,particles:10,shards:true,decal:0x88ddff,light:0x44aaff},
+      lightning:{color:0xffff44,particles:8,bolts:true,light:0xffff88},
+      poison:{color:0x44ff44,particles:12,cloud:true,decal:0x22aa22,light:0x44ff44},
+      void:{color:0x8800ff,particles:10,rift:true,light:0x6600cc},
+      holy:{color:0xffffaa,particles:14,beam:true,light:0xffff88},
+      blood:{color:0xff0044,particles:16,splatter:true,decal:0xaa0022,light:0xff0044},
+      arcane:{color:0xaa44ff,particles:12,runes:true,light:0x8844ff}
+    };
+    const cfg=configs[element]||configs.fire;
+    for(let i=0;i<cfg.particles*scale;i++){
+      const dir=new THREE.Vector3((Math.random()-.5)*2,Math.random()*2,(Math.random()-.5)*2).normalize();
+      spawnParticle(pos.clone(),cfg.color,dir.multiplyScalar(3+Math.random()*4*scale),.4+Math.random()*.3);
+    }
+    if(cfg.explosion)ExplosionFX.create(pos,cfg.color,.6*scale);
+    if(cfg.decal)DecalSystem.create(pos,cfg.decal,.4*scale+Math.random()*.3);
+    if(cfg.shards){
+      for(let i=0;i<4;i++){
+        const shard=new THREE.Mesh(new THREE.ConeGeometry(.08,.4+Math.random()*.4,4),
+          new THREE.MeshBasicMaterial({color:cfg.color,transparent:true,opacity:.7,blending:THREE.AdditiveBlending,depthWrite:false}));
+        shard.position.copy(pos).add(new THREE.Vector3((Math.random()-.5),Math.random()*.5,(Math.random()-.5)));
+        shard.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+        scene.add(shard);
+        setTimeout(()=>{scene.remove(shard);shard.geometry.dispose();shard.material.dispose();},1500);
+      }
+    }
+    if(cfg.bolts){
+      for(let i=0;i<2;i++){
+        const end=pos.clone().add(new THREE.Vector3((Math.random()-.5)*5,Math.random()*3,(Math.random()-.5)*5));
+        LightningSystem.createBolt(pos.clone().add(new THREE.Vector3(0,1,0)),end,cfg.color,0);
+      }
+    }
+    if(cfg.rift)DimensionalRift.open(pos,cfg.color,2*scale,1.2);
+    if(cfg.beam)LightShafts.create(pos,cfg.color,8,1,1);
+    if(cfg.runes)RuneCasting.cast(pos,cfg.color,2*scale,1.5);
+    if(cfg.cloud){
+      for(let i=0;i<6;i++){
+        const cloud=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:cfg.color,transparent:true,opacity:.2,depthWrite:false}));
+        cloud.scale.setScalar(.5+Math.random()*.5);
+        cloud.position.copy(pos).add(new THREE.Vector3((Math.random()-.5)*2,Math.random()*1.5,(Math.random()-.5)*2));
+        scene.add(cloud);
+        const startScale=cloud.scale.x;
+        let ct=0;
+        const fade=setInterval(()=>{
+          ct+=.05;
+          cloud.scale.setScalar(startScale*(1+ct));
+          cloud.material.opacity=.2*(1-ct);
+          if(ct>=1){clearInterval(fade);scene.remove(cloud);cloud.material.dispose();}
+        },50);
+      }
+    }
+    const light=new THREE.PointLight(cfg.light,3*scale,10*scale);
+    light.position.copy(pos);light.position.y+=1;
+    scene.add(light);
+    let lt=0;
+    const lightFade=setInterval(()=>{
+      lt+=.05;light.intensity=3*scale*(1-lt);
+      if(lt>=1){clearInterval(lightFade);scene.remove(light);}
+    },30);
+  }
+};
+
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
   Audio2.init(); Audio2.setMusicVol(state.settings.musicVol); Audio2.setSfxVol(state.settings.sfxVol);
@@ -13751,7 +14063,8 @@ function cleanupGame(){
   DecalSystem.clear();EnchantGlow.clear();DamageNumbers3D.clear();
   ChargeVFX.clear();ArenaWeather.clear();LootBeam.clear();
   SummonCircle.clear();CharacterAura.clear();ScreenFX.clear();
-  TerrainInteraction.clear();
+  TerrainInteraction.clear();ParticleField.clear();PlayerTrail.clear();
+  PostFX.clear();EnvStory.reset();LightDirector.setMood('normal');
   MinimapFX.hide();
   const ssao=document.getElementById('ssao-overlay');if(ssao)ssao.remove();
   const cgOverlay=document.getElementById('color-grade-overlay');if(cgOverlay)cgOverlay.style.opacity='0';
