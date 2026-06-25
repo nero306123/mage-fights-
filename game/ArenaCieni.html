@@ -5491,6 +5491,7 @@ function gameLoop(now){
     CharacterAura.update(dt);
     MinimapFX.update();
     ThemeAmbient.update(G.theme,dt);
+    TerrainInteraction.update(dt);
     // afterimage when sprinting or in shadow form
     if(G.playerMesh&&(G.shadowForm||(getMoveInput().mag>.8))){
       G._afterimageCD=(G._afterimageCD||0)-dt;
@@ -13188,6 +13189,488 @@ function renderCollectionEnhanced(){
   return html;
 }
 
+/* ============ ADVANCED ARENA DECORATION BUILDER ============ */
+function buildAdvancedDecor(theme,group){
+  const accent=new THREE.Color(theme.accent);
+  const envName=theme.name||'shadow';
+  const envPreset=ARENA_ENVIRONMENTS[envName+'_citadel']||ARENA_ENVIRONMENTS[envName+'_forge']||ARENA_ENVIRONMENTS[envName+'_fortress']||
+    ARENA_ENVIRONMENTS[envName+'_peak']||ARENA_ENVIRONMENTS[envName+'_grove']||ARENA_ENVIRONMENTS[envName+'_void']||null;
+  if(envPreset&&envPreset.buildExtra)envPreset.buildExtra(theme,group);
+  for(let i=0;i<6;i++){
+    const a=i/6*Math.PI*2+Math.PI/12;
+    const r=25;
+    const brazier=new THREE.Group();
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(.4,.6,.8,8),mat(0x333333,{metalness:.7,roughness:.4}));
+    base.position.y=.4;brazier.add(base);
+    const bowl=new THREE.Mesh(new THREE.CylinderGeometry(.5,.3,.4,8,1,true),mat(0x444444,{metalness:.6,roughness:.5}));
+    bowl.position.y=.9;brazier.add(bowl);
+    const flame=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.6,blending:THREE.AdditiveBlending}));
+    flame.scale.set(.3,.5,.3);flame.position.y=1.3;brazier.add(flame);
+    const fLight=new THREE.PointLight(accent.getHex(),.8,8);fLight.position.y=1.5;brazier.add(fLight);
+    brazier.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+    group.add(brazier);
+  }
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2;
+    const r=5+Math.random()*25;
+    const h=Math.random()*12+2;
+    const mote=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:false}));
+    mote.scale.setScalar(.05+Math.random()*.1);
+    mote.position.set(Math.cos(a)*r,h,Math.sin(a)*r);
+    mote.userData.floatSpeed=.5+Math.random()*1;
+    mote.userData.floatPhase=Math.random()*Math.PI*2;
+    group.add(mote);
+  }
+  if(envName==='shadow'||envName==='void'){
+    for(let i=0;i<4;i++){
+      const a=i/4*Math.PI*2+Math.PI/8;
+      const r=18;
+      const statue=new THREE.Group();
+      const body=new THREE.Mesh(new THREE.CylinderGeometry(.5,.6,3,6),mat(0x1a0a2e,{metalness:.5,roughness:.6}));
+      body.position.y=1.5;statue.add(body);
+      const head=new THREE.Mesh(SG.sphere,mat(0x1a0a2e,{metalness:.5,roughness:.6}));
+      head.scale.setScalar(.4);head.position.y=3.3;statue.add(head);
+      const eyes=new THREE.Mesh(SG.sphere,new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.5,blending:THREE.AdditiveBlending}));
+      eyes.scale.setScalar(.08);eyes.position.set(0,3.4,.35);statue.add(eyes);
+      const sLight=new THREE.PointLight(accent.getHex(),.3,4);sLight.position.y=3.4;statue.add(sLight);
+      statue.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+      statue.lookAt(0,1.5,0);
+      group.add(statue);
+    }
+  }
+  for(let i=0;i<3;i++){
+    const a=i/3*Math.PI*2;
+    const r=12;
+    const sigil=new THREE.Mesh(new THREE.RingGeometry(.8,1,32),
+      new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.2,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    sigil.rotation.x=-Math.PI/2;
+    sigil.position.set(Math.cos(a)*r,.04,Math.sin(a)*r);
+    group.add(sigil);
+    const inner=new THREE.Mesh(new THREE.CircleGeometry(.6,6),
+      new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.1,blending:THREE.AdditiveBlending,depthWrite:false}));
+    inner.rotation.x=-Math.PI/2;
+    inner.position.set(Math.cos(a)*r,.05,Math.sin(a)*r);
+    group.add(inner);
+  }
+}
+
+/* ============ EXPANDED SHADOW DATA (20 more unique shadows) ============ */
+const EXPANDED_SHADOWS=[
+  {id:'sh_assassin',name:'Cień Asasyna',type:'melee',hp:60,dmg:18,speed:3.5,emoji:'🗡️',
+   special:'Krytyczny cios: 50% szansa na podwójne obrażenia przy ataku z tyłu',rarity:'elite'},
+  {id:'sh_mage',name:'Cień Maga',type:'ranged',hp:40,dmg:22,speed:2,emoji:'🔮',
+   special:'Magiczny pocisk: ranged atak z efektem żywiołu klanu',rarity:'elite'},
+  {id:'sh_berserker',name:'Cień Berserkera',type:'melee',hp:100,dmg:15,speed:2.8,emoji:'🪓',
+   special:'Szał: poniżej 30% HP podwaja prędkość ataku',rarity:'elite'},
+  {id:'sh_sniper',name:'Cień Strzelca',type:'ranged',hp:35,dmg:30,speed:1.5,emoji:'🏹',
+   special:'Precyzja: dalekie ataki zadają +50% obrażeń',rarity:'elite'},
+  {id:'sh_paladin',name:'Cień Paladyna',type:'tank',hp:150,dmg:10,speed:1.8,emoji:'⚜️',
+   special:'Święta Tarcza: co 15s daje shield graczowi i cieniom',rarity:'elite'},
+  {id:'sh_necro',name:'Cień Nekromanty',type:'support',hp:50,dmg:12,speed:2,emoji:'💀',
+   special:'Wskrzeszenie: raz na walkę ożywia poległego cienia',rarity:'elite'},
+  {id:'sh_elementalist',name:'Cień Elementalisty',type:'ranged',hp:45,dmg:20,speed:2.2,emoji:'🌊',
+   special:'Żywioł: ataki zmieniają element co 5s (ogień→lód→piorun)',rarity:'elite'},
+  {id:'sh_monk',name:'Cień Mnicha',type:'melee',hp:70,dmg:14,speed:3.2,emoji:'👊',
+   special:'Kontratak: 30% szansa na unik + natychmiastowy kontratak',rarity:'elite'},
+  {id:'sh_vampire',name:'Cień Wampira',type:'melee',hp:80,dmg:16,speed:2.5,emoji:'🧛',
+   special:'Kradzież życia: 20% obrażeń jako leczenie',rarity:'elite'},
+  {id:'sh_golem',name:'Cień Golema',type:'tank',hp:200,dmg:8,speed:1.2,emoji:'🗿',
+   special:'Prowokacja: przyciąga uwagę wrogów w promieniu 8',rarity:'elite'},
+  {id:'sh_phoenix',name:'Cień Feniksa',type:'healer',hp:60,dmg:10,speed:2.5,emoji:'🔥',
+   special:'Odrodzenie: po śmierci wybucha lecząc pobliskich sojuszników',rarity:'legendary'},
+  {id:'sh_storm',name:'Cień Burzy',type:'ranged',hp:55,dmg:25,speed:3,emoji:'⚡',
+   special:'Łańcuch: ataki przeskakują na 2 dodatkowe cele',rarity:'legendary'},
+  {id:'sh_void',name:'Cień Pustki',type:'support',hp:45,dmg:8,speed:2.5,emoji:'🌀',
+   special:'Portal: teleportuje wroga do losowej pozycji co 10s',rarity:'legendary'},
+  {id:'sh_titan',name:'Cień Tytana',type:'tank',hp:250,dmg:20,speed:1,emoji:'🏔️',
+   special:'Niezniszczalność: przez 3s po spawnie jest nietykalny',rarity:'legendary'},
+  {id:'sh_oracle',name:'Cień Wyroczni',type:'support',hp:40,dmg:5,speed:2,emoji:'🔮',
+   special:'Przepowiednia: spowalnia wrogów o 30% w promieniu 10',rarity:'legendary'},
+  {id:'sh_blade',name:'Cień Ostrza',type:'melee',hp:55,dmg:28,speed:3.8,emoji:'⚔️',
+   special:'Wir Ostrzy: AoE atak zadający obrażenia wszystkim wokół',rarity:'legendary'},
+  {id:'sh_druid',name:'Cień Druida',type:'healer',hp:65,dmg:8,speed:2,emoji:'🌿',
+   special:'Regeneracja: leczy najbliższego sojusznika o 5HP/s',rarity:'elite'},
+  {id:'sh_warlock',name:'Cień Czarnoksiężnika',type:'ranged',hp:50,dmg:20,speed:2,emoji:'🌑',
+   special:'Klątwa: trafiony wróg otrzymuje +30% obrażeń przez 5s',rarity:'elite'},
+  {id:'sh_knight',name:'Cień Rycerza',type:'melee',hp:120,dmg:14,speed:2.2,emoji:'🛡️',
+   special:'Obrona: blokuje 40% obrażeń dla siebie i pobliskich sojuszników',rarity:'elite'},
+  {id:'sh_archer',name:'Cień Łucznika',type:'ranged',hp:45,dmg:18,speed:2.8,emoji:'🏹',
+   special:'Szybki strzał: podwaja prędkość ataku przez 3s co 10s',rarity:'elite'}
+];
+
+/* ============ EXPANDED MOB DETAILS AND LORE ============ */
+const MOB_LORE={
+  zombie:{
+    name:'Zombie',fullName:'Ożywieniec Areny',emoji:'🧟',
+    desc:'Niegdyś wojownicy areny, teraz bezmyślne marionetki mrocznej magii. Powolne, ale wytrwałe — nie znają strachu ani bólu.',
+    weakness:'Ogień, Święty',resistance:'Trucizna',
+    variants:['Zombie Wojownik','Zombie Mag','Zombie Elitarny','Zombie Gigant'],
+    drops:['Zgnite Mięso','Magiczny Pył','Kość Wojownika']
+  },
+  skeleton:{
+    name:'Szkielet',fullName:'Kościany Strażnik',emoji:'💀',
+    desc:'Prastare szkielety ożywione nekromancją. Szybsze i sprytniejsze od zombie, potrafią używać broni z życia przed śmiercią.',
+    weakness:'Miażdżenie, Święty',resistance:'Przeszycie',
+    variants:['Szkielet Łucznik','Szkielet Rycerz','Szkielet Mag','Szkielet Kapitan'],
+    drops:['Pradawna Kość','Złamany Miecz','Duch Runa']
+  },
+  demon:{
+    name:'Demon',fullName:'Piekielny Pożeracz',emoji:'👹',
+    desc:'Istoty z głębin Otchłani, przyciągnięte mroczną energią areny. Ich ogniste ataki palą zarówno ciało, jak i duszę.',
+    weakness:'Lód, Święty',resistance:'Ogień',
+    variants:['Demon Szpon','Demon Berserker','Demon Kuszyciel','Demon Lord'],
+    drops:['Diabelski Róg','Piekielna Esencja','Siarkowy Kryształ']
+  },
+  golem:{
+    name:'Golem',fullName:'Kamienny Kolos',emoji:'🗿',
+    desc:'Starożytne konstrukty stworzone przez dawnych mistrzów areny. Niemal niezniszczalne, ale powolne i przewidywalne.',
+    weakness:'Błyskawica, Chaos',resistance:'Fizyczne, Lód',
+    variants:['Golem Skalny','Golem Kryształowy','Golem Żelazny','Golem Ruinowy'],
+    drops:['Pradawny Kamień','Żywica Magiczna','Serce Golema']
+  },
+  ghost:{
+    name:'Widmo',fullName:'Eteryczny Zjadacz',emoji:'👻',
+    desc:'Duchy dawnych mistrzów areny, uwięzione między światami. Częściowo niematerialne, trudne do trafienia bronią fizyczną.',
+    weakness:'Święty, Ogień',resistance:'Fizyczne',
+    variants:['Zjawa','Poltergeist','Wraith','Banshee'],
+    drops:['Ektoplazma','Widmowy Klejnot','Krzyk Duszy']
+  },
+  dragon:{
+    name:'Smok',fullName:'Drakoniczny Władca',emoji:'🐉',
+    desc:'Pradawne bestie o potędze dorównującej bogom. Ich oddech sieje zniszczenie, a łuski odpierają większość ataków.',
+    weakness:'Lód, Void',resistance:'Ogień, Fizyczne',
+    variants:['Smoczy Młody','Smok Ognisty','Smok Lodowy','Smok Pradawny'],
+    drops:['Smocza Łuska','Drakoniczne Serce','Smoczy Kieł']
+  }
+};
+
+/* ============ EXPANDED CHARACTER ABILITY DESCRIPTIONS ============ */
+const ABILITY_DETAILS={
+  melee:{
+    basic:{name:'Cięcie',desc:'Szybki atak wręcz zadający bazowe obrażenia',cd:0,type:'basic'},
+    special:{name:'Wir Ostrzy',desc:'Obrotowy atak AoE trafiający wszystkich w zasięgu',cd:1.5,type:'aoe'},
+  },
+  ranged:{
+    basic:{name:'Strzał',desc:'Magiczny pocisk lecący w kierunku celownika',cd:0,type:'basic'},
+    special:{name:'Salwa',desc:'3 pociski w szybkiej sekwencji',cd:2,type:'burst'},
+  },
+  aoe:{
+    basic:{name:'Fala Uderzeniowa',desc:'Pierścień energii rozchodzący się od gracza',cd:.5,type:'basic'},
+    special:{name:'Apokalipsa',desc:'Masywna eksplozja AoE z obrażeniami żywiołowymi',cd:3,type:'ultimate'},
+  }
+};
+
+/* ============ TERRAIN INTERACTION SYSTEM ============ */
+const TerrainInteraction={
+  zones:[],
+  createZone(pos,radius,type,effect){
+    const colors={healing:0x44ff44,damage:0xff4444,slow:0x4488ff,speed:0xffff44,stealth:0x8844ff};
+    const c=colors[type]||0xffffff;
+    const geo=new THREE.RingGeometry(0,radius,32);
+    const zoneMat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,
+      uniforms:{uColor:{value:new THREE.Color(c)},uTime:{value:0},uRadius:{value:radius}},
+      vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader:`uniform vec3 uColor;uniform float uTime;uniform float uRadius;varying vec2 vUv;
+        void main(){
+          vec2 p=vUv*2.-1.;float d=length(p);
+          float edge=smoothstep(1.,.8,d)*smoothstep(0.,.1,d);
+          float pulse=.5+.5*sin(uTime*2.+d*5.);
+          float pattern=sin(d*20.-uTime*3.)*.3+.7;
+          gl_FragColor=vec4(uColor*pulse*pattern,edge*.2);
+        }`
+    });
+    const mesh=new THREE.Mesh(geo,zoneMat);
+    mesh.rotation.x=-Math.PI/2;
+    mesh.position.set(pos.x,.04,pos.z);
+    scene.add(mesh);
+    const light=new THREE.PointLight(c,.5,radius*1.5);
+    light.position.set(pos.x,.5,pos.z);
+    scene.add(light);
+    this.zones.push({mesh,mat:zoneMat,light,pos,radius,type,effect,active:true});
+  },
+  update(dt){
+    this.zones.forEach(z=>{
+      if(!z.active)return;
+      z.mat.uniforms.uTime.value+=dt;
+      if(G&&G.playerMesh){
+        const d=Math.sqrt((G.playerMesh.position.x-z.pos.x)**2+(G.playerMesh.position.z-z.pos.z)**2);
+        if(d<z.radius){
+          switch(z.type){
+            case 'healing':G.hp=Math.min(G.maxHp,G.hp+z.effect*dt);break;
+            case 'speed':G.player.speed=G.char.speed*1.5;break;
+            case 'stealth':G.player.stealthed=true;break;
+          }
+        } else {
+          if(z.type==='speed'&&G.player)G.player.speed=G.char.speed;
+          if(z.type==='stealth'&&G.player)G.player.stealthed=false;
+        }
+      }
+    });
+  },
+  clear(){
+    this.zones.forEach(z=>{scene.remove(z.mesh);scene.remove(z.light);z.mat.dispose();z.mesh.geometry.dispose();});
+    this.zones=[];
+  }
+};
+
+/* ============ ENHANCED MUSIC SYSTEM ============ */
+const MusicManager={
+  tracks:{
+    menu:{bpm:80,pattern:[0,4,7,12,7,4],scale:'minor',intensity:.3},
+    combat:{bpm:140,pattern:[0,3,7,10,12,15],scale:'minor',intensity:.7},
+    boss:{bpm:160,pattern:[0,3,5,7,10,12,15,17],scale:'minor',intensity:1},
+    victory:{bpm:120,pattern:[0,4,7,12,16,19],scale:'major',intensity:.5},
+    gameover:{bpm:60,pattern:[12,7,3,0],scale:'minor',intensity:.2}
+  },
+  currentTrack:null,
+  setTrack(name){
+    this.currentTrack=name;
+  },
+  getIntensity(){
+    if(!this.currentTrack||!this.tracks[this.currentTrack])return .5;
+    return this.tracks[this.currentTrack].intensity;
+  }
+};
+
+/* ============ EXTENDED CLAN BONUSES ============ */
+const CLAN_BONUSES={
+  shadow:{passive:'Niewidzialność: +5% unik',active:'Shadow Step: teleportacja 5m',ultimate:'Oblicze Mroku: +50% DMG na 10s'},
+  fire:{passive:'Ognioodporność: -15% DMG od ognia',active:'Wybuch Ognia: AoE 200% DMG',ultimate:'Feniks: odrodzenie po śmierci'},
+  ice:{passive:'Mroźny Dotyk: ataki spowalniają',active:'Lodowa Ściana: blokuje pociski',ultimate:'Absolutne Zero: zamraża wszystkich'},
+  lightning:{passive:'Elektrostatyka: +10% AS',active:'Piorun: 300% DMG do 1 celu',ultimate:'Burza: AoE chain lightning'},
+  nature:{passive:'Regeneracja: +3 HP/s',active:'Korzenie: immobilizacja 3s',ultimate:'Gaj: masywne leczenie AoE'},
+  void:{passive:'Pustka: -10% wrogiego DMG',active:'Portal: teleport wroga',ultimate:'Singularność: czarna dziura AoE'},
+  blood:{passive:'Wampiryzm: 5% lifesteal',active:'Krwawa Furia: +30% DMG, -10% HP',ultimate:'Krwawa Pożoga: masowe DoT'},
+  chaos:{passive:'Losowość: zmienne bonusy',active:'Chaos Bolt: losowe efekty',ultimate:'Entropia: randomizuje bitwy'},
+  holy:{passive:'Aura Światła: +10% HP sojusznikom',active:'Święty Promień: pure DMG',ultimate:'Boska Interwencja: pełne leczenie'},
+  cosmic:{passive:'Gwiezdny Pył: +5% wszystko',active:'Meteor: masywne AoE',ultimate:'Supernova: najsilniejszy AoE'}
+};
+
+/* ============ EXPANDED RUNE SYSTEM ============ */
+const RUNE_TYPES=[
+  {id:'rune_power',name:'Runa Mocy',emoji:'🔴',stat:'dmg',value:5,desc:'+5 obrażeń',maxLevel:10},
+  {id:'rune_vita',name:'Runa Witalności',emoji:'🟢',stat:'hp',value:20,desc:'+20 HP',maxLevel:10},
+  {id:'rune_speed',name:'Runa Prędkości',emoji:'🟡',stat:'speed',value:.2,desc:'+0.2 prędkości',maxLevel:5},
+  {id:'rune_crit',name:'Runa Krytyku',emoji:'🟠',stat:'critChance',value:.03,desc:'+3% szansa na krytyk',maxLevel:5},
+  {id:'rune_vampiric',name:'Runa Wampiryzmu',emoji:'🟣',stat:'lifesteal',value:.02,desc:'+2% kradzież życia',maxLevel:3},
+  {id:'rune_shield',name:'Runa Tarczy',emoji:'🔵',stat:'shieldDur',value:1,desc:'+1s czas tarczy',maxLevel:5},
+  {id:'rune_shadow',name:'Runa Cienia',emoji:'⚫',stat:'shadowDur',value:1,desc:'+1s czas shadow form',maxLevel:3},
+  {id:'rune_fortune',name:'Runa Fortuny',emoji:'🟤',stat:'coinBonus',value:.1,desc:'+10% monet',maxLevel:5},
+  {id:'rune_elemental',name:'Runa Żywiołu',emoji:'💠',stat:'elemDmg',value:.05,desc:'+5% obrażeń żywiołowych',maxLevel:5},
+  {id:'rune_thorns',name:'Runa Cierni',emoji:'🌹',stat:'thorns',value:3,desc:'3 obrażeń przy trafieniu',maxLevel:5},
+  {id:'rune_dodge',name:'Runa Uniku',emoji:'💨',stat:'dodgeChance',value:.03,desc:'+3% szansa na unik',maxLevel:3},
+  {id:'rune_rage',name:'Runa Wściekłości',emoji:'😡',stat:'rageBonus',value:.05,desc:'+5% DMG poniżej 50% HP',maxLevel:5}
+];
+function renderRuneSystem(){
+  const equipped=state.equippedRunes||{};
+  const inventory=state.runeInventory||[];
+  let html=`<div style="max-width:500px;width:100%">
+    <h2 style="font-family:Cinzel,serif;font-size:20px;color:#d9b8ff;text-align:center;margin-bottom:16px">🔮 System Run</h2>
+    <div style="font-size:12px;color:#888;text-align:center;margin-bottom:12px">Wyposażaj runy aby wzmocnić postać</div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-bottom:16px;flex-wrap:wrap">`;
+  for(let i=0;i<6;i++){
+    const rune=equipped[i]?RUNE_TYPES.find(r=>r.id===equipped[i]):null;
+    html+=`<div style="width:52px;height:52px;border-radius:10px;background:rgba(20,10,40,.8);border:1px solid ${rune?'rgba(180,140,255,.4)':'rgba(50,30,80,.2)'};display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;position:relative"
+      onclick="cycleRune(${i})">
+      ${rune?rune.emoji:'<span style="font-size:12px;color:#444">+</span>'}
+      <span style="position:absolute;bottom:-8px;font-size:8px;color:#888">Slot ${i+1}</span>
+    </div>`;
+  }
+  html+=`</div><div style="font-size:13px;color:#d9b8ff;margin-bottom:8px">Dostępne runy:</div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px">`;
+  RUNE_TYPES.forEach(r=>{
+    const count=(inventory.filter(ri=>ri===r.id)||[]).length;
+    html+=`<div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;opacity:${count>0?1:.4}">
+      <span style="font-size:20px">${r.emoji}</span>
+      <div><div style="font-size:11px;color:#d9b8ff">${r.name}</div>
+        <div style="font-size:9px;color:#888">${r.desc}</div>
+        <div style="font-size:9px;color:#666">Ilość: ${count}</div>
+      </div>
+    </div>`;
+  });
+  html+=`</div>
+    <button class="btn ghost small" style="width:100%;margin-top:16px" onclick="ACshow('menu')">← Menu</button>
+  </div>`;
+  return html;
+}
+function cycleRune(slot){
+  const inv=state.runeInventory||[];
+  const equipped=state.equippedRunes||{};
+  if(equipped[slot]){
+    inv.push(equipped[slot]);
+    delete equipped[slot];
+  } else if(inv.length>0){
+    equipped[slot]=inv.pop();
+  }
+  state.equippedRunes=equipped;
+  state.runeInventory=inv;
+  saveState();
+  if(typeof renderRunes==='function')renderRunes();
+}
+function getRuneBonuses(){
+  const equipped=state.equippedRunes||{};
+  const bonuses={};
+  Object.values(equipped).forEach(rid=>{
+    const rune=RUNE_TYPES.find(r=>r.id===rid);
+    if(rune){bonuses[rune.stat]=(bonuses[rune.stat]||0)+rune.value;}
+  });
+  return bonuses;
+}
+
+/* ============ ADVANCED STATISTICS DISPLAY ============ */
+function renderAdvancedStats(){
+  const s=state;
+  const playtime=Math.floor((s.stats?.totalPlaytime||0)/60);
+  const favChar=s.unlockedIds&&s.unlockedIds.length>0?
+    CHARS.find(c=>c.id===s.unlockedIds[0]):null;
+  return`<div style="max-width:500px;width:100%">
+    <h2 style="font-family:Cinzel,serif;font-size:20px;color:#d9b8ff;text-align:center;margin-bottom:16px">📊 Statystyki</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">NAJWYŻSZA FALA</div>
+        <div style="font-size:28px;color:#d9b8ff;font-family:Cinzel,serif">${s.highWave||0}</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">ŁĄCZNE ZABÓJSTWA</div>
+        <div style="font-size:28px;color:#ff4444;font-family:Cinzel,serif">${s.totalKills||0}</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">ROZEGRANE GRY</div>
+        <div style="font-size:28px;color:#44aaff;font-family:Cinzel,serif">${s.stats?.gamesPlayed||0}</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">POKONANI BOSSOWIE</div>
+        <div style="font-size:28px;color:#ff4488;font-family:Cinzel,serif">${s.stats?.bossesKilled||0}</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">CZAS GRY</div>
+        <div style="font-size:24px;color:#44ff44;font-family:Cinzel,serif">${playtime}min</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">BOHATEROWIE</div>
+        <div style="font-size:24px;color:#b44aff;font-family:Cinzel,serif">${(s.unlockedIds||[]).length}/${CHARS.length}</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">NAJLEPSZE COMBO</div>
+        <div style="font-size:28px;color:#ffd24a;font-family:Cinzel,serif">${s.stats?.bestCombo||0}</div>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#888;letter-spacing:1px">CIENIE ODBLOKOWANE</div>
+        <div style="font-size:24px;color:#8844ff;font-family:Cinzel,serif">${(s.unlockedShadows||[]).length}</div>
+      </div>
+    </div>
+    ${favChar?`<div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:14px;margin-top:8px;text-align:center">
+      <div style="font-size:10px;color:#888;letter-spacing:1px;margin-bottom:6px">PIERWSZY BOHATER</div>
+      <div style="font-size:28px">${favChar.emoji}</div>
+      <div style="font-size:14px;color:#d9b8ff;font-family:Cinzel,serif">${favChar.name}</div>
+    </div>`:''}
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:10px;padding:14px;margin-top:8px">
+      <div style="font-size:10px;color:#888;letter-spacing:1px;margin-bottom:8px">REKORDY TRYBÓW</div>
+      ${Object.entries(s.modeRecords||{}).map(([mode,kills])=>
+        `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(100,60,160,.1)">
+          <span style="font-size:12px;color:#d9b8ff">${mode}</span>
+          <span style="font-size:12px;color:#ffd24a">${kills} zabójstw</span>
+        </div>`
+      ).join('')}
+    </div>
+    <button class="btn ghost small" style="width:100%;margin-top:16px" onclick="ACshow('menu')">← Menu</button>
+  </div>`;
+}
+
+/* ============ COSMETIC SKINS SYSTEM ============ */
+const SKINS={
+  default:{name:'Domyślny',emoji:'👤',desc:'Standardowy wygląd postaci',price:0},
+  golden:{name:'Złoty',emoji:'✨',desc:'Złota aura i efekty',price:500,color:0xffd700},
+  shadow:{name:'Cienisty',emoji:'🌑',desc:'Ciemna sylwetka z fioletowymi akcentami',price:300,color:0x8800ff},
+  flame:{name:'Płomienny',emoji:'🔥',desc:'Ogniste cząsteczki i poświata',price:400,color:0xff4400},
+  ice:{name:'Lodowy',emoji:'❄️',desc:'Kryształowe odbicia i mroźna aura',price:400,color:0x44ccff},
+  electric:{name:'Elektryczny',emoji:'⚡',desc:'Iskry i pioruny wokół postaci',price:450,color:0xffff44},
+  void:{name:'Pustkowy',emoji:'🌀',desc:'Ciemna materia i riffty',price:600,color:0x440088},
+  celestial:{name:'Niebiański',emoji:'🌟',desc:'Świetlisty nimb i skrzydła',price:800,color:0xffffaa},
+  blood:{name:'Krwawy',emoji:'🩸',desc:'Czerwone cząsteczki i aura',price:350,color:0xff0044},
+  neon:{name:'Neonowy',emoji:'💜',desc:'Świecące kontury i ślady',price:500,color:0xff00ff},
+  cosmic:{name:'Kosmiczny',emoji:'🌌',desc:'Gwiezdny pył i nebula',price:700,color:0x4488ff},
+  ghost:{name:'Widmowy',emoji:'👻',desc:'Półprzezroczysty z ektoplazmatyczną aurą',price:400,color:0x88ff88}
+};
+function renderSkinsShop(){
+  const owned=state.ownedSkins||['default'];
+  const selected=state.selectedSkin||'default';
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-width:600px">';
+  Object.entries(SKINS).forEach(([id,skin])=>{
+    const isOwned=owned.includes(id);
+    const isSel=selected===id;
+    html+=`<div style="background:${isSel?'rgba(40,80,40,.6)':'rgba(20,10,40,.8)'};border:1px solid ${isSel?'rgba(100,255,100,.5)':isOwned?'rgba(180,140,255,.3)':'rgba(50,30,80,.2)'};border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .2s"
+      onclick="${isOwned?`selectSkin('${id}')`:`buySkin('${id}')`}"
+      onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'"  >
+      <div style="font-size:28px;margin-bottom:4px">${skin.emoji}</div>
+      <div style="font-size:11px;color:#d9b8ff;font-family:Cinzel,serif">${skin.name}</div>
+      <div style="font-size:9px;color:#888;margin-top:2px">${skin.desc}</div>
+      ${isSel?'<div style="font-size:9px;color:#44ff44;margin-top:4px">✓ Wybrany</div>':
+        isOwned?'<div style="font-size:9px;color:#888;margin-top:4px">Posiadany</div>':
+        `<div style="font-size:10px;color:#ffd24a;margin-top:4px">🪙 ${skin.price}</div>`}
+    </div>`;
+  });
+  html+='</div>';
+  return html;
+}
+function buySkin(id){
+  const skin=SKINS[id];if(!skin)return;
+  if(state.coins<skin.price){announce('Za mało monet!');return;}
+  state.coins-=skin.price;
+  if(!state.ownedSkins)state.ownedSkins=['default'];
+  state.ownedSkins.push(id);
+  state.selectedSkin=id;
+  saveState();
+  AchievementPopup.show('Nowy skin!',skin.name);
+  renderShop();
+}
+function selectSkin(id){
+  state.selectedSkin=id;
+  saveState();
+  renderShop();
+}
+
+/* ============ GUILD/CLAN SYSTEM (Placeholder for future multiplayer) ============ */
+const GuildSystem={
+  guilds:[
+    {id:'guild_shadow',name:'Zakon Cieni',emoji:'🌑',members:127,level:15,desc:'Najstarszy zakon areny, mistrze mroku i podstępu'},
+    {id:'guild_fire',name:'Legion Płomienia',emoji:'🔥',members:98,level:12,desc:'Agresywni wojownicy ognistego żywiołu'},
+    {id:'guild_ice',name:'Lodowa Straż',emoji:'❄️',members:85,level:11,desc:'Nieugięci strażnicy wiecznych lodów'},
+    {id:'guild_storm',name:'Piorunowa Armia',emoji:'⚡',members:76,level:10,desc:'Szybcy jak błyskawica, potężni jak burza'},
+    {id:'guild_void',name:'Pustynni Wędrowcy',emoji:'🌀',members:43,level:8,desc:'Tajemniczy adepci mrocznych sztuk'},
+    {id:'guild_holy',name:'Świetlista Bractwo',emoji:'✨',members:112,level:14,desc:'Obrońcy światła i sprawiedliwości'}
+  ],
+  renderGuilds(){
+    let html=`<div style="max-width:500px;width:100%">
+      <h2 style="font-family:Cinzel,serif;font-size:20px;color:#d9b8ff;text-align:center;margin-bottom:16px">⚔️ Gildie</h2>
+      <div style="font-size:12px;color:#888;text-align:center;margin-bottom:16px">Dołącz do gildii i walcz ramię w ramię!</div>`;
+    this.guilds.forEach(g=>{
+      const isMember=state.guild===g.id;
+      html+=`<div style="background:${isMember?'rgba(40,80,40,.6)':'rgba(20,10,40,.8)'};border:1px solid ${isMember?'rgba(100,255,100,.4)':'rgba(100,60,160,.2)'};border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px"
+        onclick="${isMember?'':`joinGuild('${g.id}')`}"
+        onmouseenter="this.style.borderColor='rgba(180,74,255,.4)'" onmouseleave="this.style.borderColor='${isMember?'rgba(100,255,100,.4)':'rgba(100,60,160,.2)'}'"  >
+        <div style="font-size:32px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:rgba(40,20,80,.5);border-radius:10px">${g.emoji}</div>
+        <div style="flex:1">
+          <div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff">${g.name}</div>
+          <div style="font-size:10px;color:#888;margin-top:2px">${g.desc}</div>
+          <div style="display:flex;gap:12px;margin-top:4px;font-size:10px">
+            <span style="color:#44aaff">👥 ${g.members}</span>
+            <span style="color:#ffd24a">⭐ Lv.${g.level}</span>
+          </div>
+        </div>
+        ${isMember?'<div style="color:#44ff44;font-size:12px">✓ Członek</div>':''}
+      </div>`;
+    });
+    html+=`<button class="btn ghost small" style="width:100%;margin-top:12px" onclick="ACshow('menu')">← Menu</button></div>`;
+    return html;
+  }
+};
+function joinGuild(id){
+  state.guild=id;saveState();
+  AchievementPopup.show('Dołączyłeś do gildii!',GuildSystem.guilds.find(g=>g.id===id)?.name);
+}
+
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
   Audio2.init(); Audio2.setMusicVol(state.settings.musicVol); Audio2.setSfxVol(state.settings.sfxVol);
@@ -13268,6 +13751,7 @@ function cleanupGame(){
   DecalSystem.clear();EnchantGlow.clear();DamageNumbers3D.clear();
   ChargeVFX.clear();ArenaWeather.clear();LootBeam.clear();
   SummonCircle.clear();CharacterAura.clear();ScreenFX.clear();
+  TerrainInteraction.clear();
   MinimapFX.hide();
   const ssao=document.getElementById('ssao-overlay');if(ssao)ssao.remove();
   const cgOverlay=document.getElementById('color-grade-overlay');if(cgOverlay)cgOverlay.style.opacity='0';
