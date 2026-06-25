@@ -5253,6 +5253,8 @@ function gameLoop(now){
     UltimateAbility.update(dt);
     CoinMagnet.update(dt);
     MusicReactive.update();MusicReactive.applyToScene();
+    ComboMoves.update(dt);
+    spawnThemeAmbient(G.theme,dt);
     if(G.playerMesh)PlayerAnim.update(dt,G.playerMesh,getMoveInput().mag>.1,G.player.attacking);
     if(G.boss&&!G.boss.dying)enhancedBossAI(G.boss,dt);
     if(G.player){const mv=getMoveInput();SpeedLines.update(mv.mag*(G.player.sprinting?1.5:1),1.5);}
@@ -9804,6 +9806,356 @@ function showWaveReward(wave){
   }
   saveState();
 }
+/* ============ ADVANCED ARENA THEMES DATA ============ */
+const THEME_AMBIENT_SOUNDS={
+  shadow:{type:'whisper',interval:8,variants:3},
+  fire:{type:'crackle',interval:3,variants:5},
+  ice:{type:'wind',interval:5,variants:4},
+  lightning:{type:'thunder',interval:10,variants:3},
+  nature:{type:'birds',interval:6,variants:4},
+  void:{type:'hum',interval:4,variants:2}
+};
+const THEME_MUSIC_MOODS={
+  shadow:{tempo:100,scale:'minor',instruments:['pad','bass','strings']},
+  fire:{tempo:140,scale:'phrygian',instruments:['drums','brass','guitar']},
+  ice:{tempo:80,scale:'lydian',instruments:['bells','pad','harp']},
+  lightning:{tempo:160,scale:'harmonic_minor',instruments:['synth','drums','bass']},
+  nature:{tempo:90,scale:'major',instruments:['flute','harp','pad']},
+  void:{tempo:70,scale:'locrian',instruments:['drone','pad','bells']}
+};
+/* ============ ADVANCED MOB BEHAVIORS ============ */
+const MOB_BEHAVIORS={
+  aggressive:{
+    name:'Agresywny',
+    update(mob,dt,playerPos){
+      if(!mob||mob.hp<=0)return;
+      const dir=new THREE.Vector3().subVectors(playerPos,mob.mesh.position).normalize();
+      mob.mesh.position.addScaledVector(dir,mob.speed*dt*1.3);
+      mob.mesh.lookAt(playerPos.x,mob.mesh.position.y,playerPos.z);
+    }
+  },
+  flanking:{
+    name:'Flanker',
+    update(mob,dt,playerPos){
+      if(!mob||mob.hp<=0)return;
+      const dir=new THREE.Vector3().subVectors(playerPos,mob.mesh.position);
+      const angle=Math.atan2(dir.x,dir.z)+Math.PI/4;
+      const flankDir=new THREE.Vector3(Math.sin(angle),0,Math.cos(angle));
+      const dist=dir.length();
+      if(dist>3){
+        mob.mesh.position.addScaledVector(flankDir,mob.speed*dt);
+      }else{
+        const attackDir=dir.normalize();
+        mob.mesh.position.addScaledVector(attackDir,mob.speed*dt*.8);
+      }
+      mob.mesh.lookAt(playerPos.x,mob.mesh.position.y,playerPos.z);
+    }
+  },
+  ranged:{
+    name:'Strzelec',
+    update(mob,dt,playerPos){
+      if(!mob||mob.hp<=0||!G)return;
+      const dir=new THREE.Vector3().subVectors(playerPos,mob.mesh.position);
+      const dist=dir.length();
+      if(dist>8){
+        mob.mesh.position.addScaledVector(dir.normalize(),mob.speed*dt);
+      }else if(dist<4){
+        mob.mesh.position.addScaledVector(dir.normalize(),-mob.speed*dt*.5);
+      }
+      mob.mesh.lookAt(playerPos.x,mob.mesh.position.y,playerPos.z);
+      mob._shootCD=(mob._shootCD||2)-dt;
+      if(mob._shootCD<=0&&dist<12){
+        mob._shootCD=2+Math.random();
+        const fireDir=dir.normalize();
+        const proj={mesh:new THREE.Mesh(new THREE.SphereGeometry(.1,6,6),
+          basicMat(mob.color||'#ff4444',{transparent:true,opacity:.7,blending:THREE.AdditiveBlending})),
+          dir:fireDir,speed:10,dmg:mob.dmg*.5,life:3,fromPlayer:false};
+        proj.mesh.position.copy(mob.mesh.position);proj.mesh.position.y=1;
+        scene.add(proj.mesh);
+        G.projectiles.push(proj);
+      }
+    }
+  },
+  swarm:{
+    name:'Rój',
+    update(mob,dt,playerPos){
+      if(!mob||mob.hp<=0)return;
+      const dir=new THREE.Vector3().subVectors(playerPos,mob.mesh.position).normalize();
+      mob.mesh.position.addScaledVector(dir,mob.speed*dt*1.1);
+      const wobble=Math.sin(mob._swarmT=(mob._swarmT||0)+dt*5)*1.5;
+      mob.mesh.position.x+=Math.sin(wobble)*.03;
+      mob.mesh.position.z+=Math.cos(wobble)*.03;
+      mob.mesh.lookAt(playerPos.x,mob.mesh.position.y,playerPos.z);
+    }
+  },
+  tank:{
+    name:'Tank',
+    update(mob,dt,playerPos){
+      if(!mob||mob.hp<=0)return;
+      const dir=new THREE.Vector3().subVectors(playerPos,mob.mesh.position).normalize();
+      mob.mesh.position.addScaledVector(dir,mob.speed*dt*.6);
+      mob.mesh.lookAt(playerPos.x,mob.mesh.position.y,playerPos.z);
+    }
+  },
+  teleporter:{
+    name:'Teleporter',
+    update(mob,dt,playerPos){
+      if(!mob||mob.hp<=0)return;
+      const dir=new THREE.Vector3().subVectors(playerPos,mob.mesh.position).normalize();
+      mob.mesh.position.addScaledVector(dir,mob.speed*dt);
+      mob._teleCD=(mob._teleCD||5)-dt;
+      if(mob._teleCD<=0){
+        mob._teleCD=5+Math.random()*3;
+        const a=Math.random()*Math.PI*2;
+        const r=3+Math.random()*5;
+        const newX=playerPos.x+Math.cos(a)*r;
+        const newZ=playerPos.z+Math.sin(a)*r;
+        teleportEffect(mob.mesh.position.x,mob.mesh.position.z,mob.color||'#aa4444');
+        mob.mesh.position.set(newX,mob.mesh.position.y,newZ);
+        teleportEffect(newX,newZ,mob.color||'#aa4444');
+      }
+      mob.mesh.lookAt(playerPos.x,mob.mesh.position.y,playerPos.z);
+    }
+  }
+};
+/* ============ ELITE MOB MODIFIERS ============ */
+const ELITE_MODIFIERS=[
+  {name:'Ogień',emoji:'🔥',color:'#ff4400',
+    onHit(mob,target){applyDoT(target,'fire',3,4,1);},
+    onDeath(pos){spawnHazardZone(pos.x,pos.z,3,'fire',5);}},
+  {name:'Lód',emoji:'❄️',color:'#44ccff',
+    onHit(mob,target){if(target&&target.speedMul)target.speedMul*=.7;setTimeout(()=>{if(target)target.speedMul=(target.speedMul||1)/0.7;},3000);},
+    onDeath(pos){createIceCrystalFormation(pos.x,pos.z,'#44ccff',3);}},
+  {name:'Piorun',emoji:'⚡',color:'#ffdd44',
+    onHit(mob,target){createChainLightning(mob.mesh.position,new THREE.Vector3(target.x||0,1,target.z||0),3,'#ffdd44');},
+    onDeath(pos){for(let i=0;i<5;i++){createChainLightning(pos,new THREE.Vector3(pos.x+(Math.random()-.5)*6,0,pos.z+(Math.random()-.5)*6),3,'#ffdd44');}}},
+  {name:'Trucizna',emoji:'☠️',color:'#44aa22',
+    onHit(mob,target){applyDoT(target,'poison',2,6,.5);},
+    onDeath(pos){spawnHazardZone(pos.x,pos.z,4,'poison',6);}},
+  {name:'Wzmocniony',emoji:'💪',color:'#ff8844',
+    onSpawn(mob){mob.hp*=1.5;mob.dmg*=1.3;mob.mesh.scale.multiplyScalar(1.2);}},
+  {name:'Szybki',emoji:'💨',color:'#88ccff',
+    onSpawn(mob){mob.speed*=1.8;mob.mesh.scale.y*=.8;mob.mesh.scale.x*=1.2;}},
+  {name:'Regeneracja',emoji:'💚',color:'#44ff44',
+    onUpdate(mob,dt){mob.hp=Math.min(mob.maxHp,mob.hp+dt*3);}},
+  {name:'Tarcza',emoji:'🛡️',color:'#ffd24a',
+    onSpawn(mob){mob.shield=mob.maxHp*.3;}}
+];
+/* ============ EXPANDED LORE ENTRIES ============ */
+const EXPANDED_LORE=[
+  {id:'arena_origin',title:'Początki Areny',text:'Arena Cieni powstała tysiące lat temu, gdy starożytni magowie otworli portal do Królestwa Cieni. Energia ciemności przesiąkła kamień i krew poległych wojowników, tworząc miejsce, gdzie granica między światami jest najcieńsza.'},
+  {id:'shadow_master_lore',title:'Legenda Shadow Mastera',text:'Mówi się, że Shadow Master był kiedyś najpotężniejszym magiem, który dobrowolnie zlał się z cieniami. Stracił swoją twarz — zastąpił ją cień. W zamian zyskał moc kontroli nad cieniami i zdolność powrotu ze śmierci.'},
+  {id:'clans_war',title:'Wojna Klanów',text:'Dziesięć klanów walczyło od wieków o dominację. Klan Cieni kontrolował Arenę, Klan Ognia niszczył wszystko na swojej drodze, a Klan Lodu zamrażał całe regiony. Dopiero pojawienie się Kosmicznego Klanu zakończyło wojnę — ale nie pokój.'},
+  {id:'void_realm',title:'Królestwo Pustki',text:'Pustka to nie brak — to nadmiar. Wymiar pełen nicości tak gęstej, że pochłania światło, dźwięk i myśl. Ci, którzy tam zaglądają, wracają zmienieni. Albo wcale nie wracają.'},
+  {id:'boss_origins',title:'Geneza Bossów',text:'Pięciu Strażników Areny to upadli bohaterowie, skażeni mocą ciemności. Cienisty Strażnik był kiedyś szlachetnym rycerzem. Płomienny Tytan — kowalom bogów. Lodowy Kolos — strażnikiem polarnych lodowców. Każdy z nich płaci cenę za swoją moc.'},
+  {id:'rune_magic',title:'Magia Run',text:'Runy to skondensowana esencja żywiołów. Każda runa przechowuje fragment pierwotnej siły stworzenia. Łączenie run ze sprzętem wzmacnia ich moc, ale zbyt wiele run w jednym przedmiocie może doprowadzić do eksplozji magicznej energii.'},
+  {id:'crystal_shards',title:'Odłamki Kryształów',text:'Kryształy rozsiane po Arenie to pozostałości po potężnym artefakcie — Krysztale Wieczności. Gdy został zniszczony, jego odłamki rozproszyły się po wymiarach, tworząc naturalne źródła magii.'},
+  {id:'blood_pact',title:'Pakt Krwi',text:'Klan Krwi zawarł pakt z demonami podziemi. W zamian za swoją krew zyskali zdolność kontrolowania krwi innych. Ich wojownicy są przerażający — ale za każde użycie mocy płacą kawałkiem własnej duszy.'},
+  {id:'chaos_theory',title:'Teoria Chaosu',text:'Klan Chaosu nie wierzy w porządek. Ich magia jest nieprzewidywalna — nawet dla nich samych. Każde zaklęcie to los: może zniszczyć wroga, a może zniszczyć rzucającego. Ta niepewność jest ich największą siłą.'},
+  {id:'holy_order',title:'Zakon Światła',text:'Klan Święty to ostatni bastion porządku w chaotycznym świecie. Ich moce pochodzą z wiary i czystości. Leczą rany, oczyszczają skalenie, i chronią niewinnych. Ale ich fanatyzm sprawia, że nie widzą szarości — tylko biel i czerń.'},
+  {id:'cosmic_awakening',title:'Kosmiczne Przebudzenie',text:'Klan Kosmiczny nie pochodzi z tego świata. Przybyli z gwiazd, niosąc wiedzę o wymiarach i czasoprzestrzeni. Ich moce wykraczają poza pojmowanie — manipulują grawitacją, tworzą czarne dziury i podróżują między wymiarami.'},
+  {id:'necromancer',title:'Nekromanta — Władca Martwych',text:'Nekromanta jest jedynym, który naprawdę rozumie śmierć. Nie boi się jej — kontroluje ją. Jego armia cieni to dusze poległych wojowników, uwięzione między światami. Każdy zabity wróg może stać się jego sługą.'},
+];
+/* ============ EXPANDED MOB DATA ============ */
+const EXPANDED_MOB_DETAILS={
+  zombie:{variants:['Walker','Runner','Brute','Spitter'],
+    descriptions:['Powolny ale wytrzymały','Szybki ale słaby','Masywny z dużym HP','Pluje kwasem'],
+    abilities:[null,'charge',null,'rangedSpit']},
+  skeleton:{variants:['Warrior','Archer','Mage','Knight'],
+    descriptions:['Walczy mieczem','Strzela z łuku','Rzuca zaklęcia','Ciężko opancerzony'],
+    abilities:['shieldBlock','multishot','fireball','taunt']},
+  demon:{variants:['Imp','Hellhound','Succubus','Pit Lord'],
+    descriptions:['Mały i szybki','Podpala wrogów','Kradnie życie','Masywny i potężny'],
+    abilities:['blink','fireTrail','lifeDrain','groundSlam']},
+  golem:{variants:['Stone','Crystal','Iron','Obsidian'],
+    descriptions:['Standardowy','Odbija zaklęcia','Niezniszczalny prawie','Eksploduje przy śmierci'],
+    abilities:['fortify','reflect','ironSkin','deathExplosion']},
+  wraith:{variants:['Shade','Specter','Banshee','Phantom'],
+    descriptions:['Przenika przez ataki','Kradnie manę','Krzykiem ogłusza','Niewidzialny'],
+    abilities:['phaseShift','manaDrain','fearScream','invisibility']},
+  dragon:{variants:['Drake','Wyrm','Wyvern','Elder Dragon'],
+    descriptions:['Młody smok','Zieje ogniem','Lata i atakuje z góry','Starożytny i potężny'],
+    abilities:['fireBreath','tailSwipe','diveBomb','elementalStorm']}
+};
+/* ============ PROCEDURAL NAME GENERATOR ============ */
+const NameGenerator={
+  prefixes:['Cień','Ogień','Mróz','Grom','Mgła','Krew','Chaos','Świt','Zmierzch','Pustka',
+    'Ciemność','Blask','Burza','Lodowy','Piekielny','Wieczny','Złamany','Dziki','Czarny','Biały'],
+  suffixes:['łowca','pogromca','niszczyciel','strażnik','władca','mistrz','mściciel','zbójca',
+    'obrońca','zdobywca','kat','mędrzec','prorok','wojownik','mag','rycerz','szaman','druid','berserker','paladyn'],
+  titles:['Nietykalny','Nieśmiertelny','Potępiony','Przeklęty','Błogosławiony','Wybrany',
+    'Zapomniany','Upadły','Odrodzony','Triumfujący'],
+  generate(){
+    const prefix=this.prefixes[Math.floor(Math.random()*this.prefixes.length)];
+    const suffix=this.suffixes[Math.floor(Math.random()*this.suffixes.length)];
+    return prefix+' '+suffix;
+  },
+  generateWithTitle(){
+    const name=this.generate();
+    const title=this.titles[Math.floor(Math.random()*this.titles.length)];
+    return name+' '+title;
+  }
+};
+/* ============ COMBO MOVE SYSTEM ============ */
+const ComboMoves={
+  sequence:[],maxSequence:5,timer:0,timeout:2,
+  moves:{
+    'LLL':{name:'Potrójne Cięcie',dmgMul:2,effect:'triple_slash'},
+    'LLR':{name:'Szarża Cieni',dmgMul:2.5,effect:'shadow_charge'},
+    'LRL':{name:'Wirujące Ostrze',dmgMul:3,effect:'spinning_blade'},
+    'RRL':{name:'Burza Mocy',dmgMul:3.5,effect:'power_storm'},
+    'RRR':{name:'Zmasowany Ostrzał',dmgMul:2,effect:'barrage'},
+    'LLLR':{name:'Finisher',dmgMul:4,effect:'finisher'},
+    'RLRL':{name:'Taniec Cieni',dmgMul:4.5,effect:'shadow_dance'},
+  },
+  addInput(type){
+    this.sequence.push(type);
+    this.timer=this.timeout;
+    if(this.sequence.length>this.maxSequence)this.sequence.shift();
+    const key=this.sequence.join('');
+    const move=this.moves[key];
+    if(move){
+      this.execute(move);
+      this.sequence=[];
+    }
+  },
+  execute(move){
+    if(!G||!G.playerMesh)return;
+    const pos=G.playerMesh.position;
+    announce('COMBO',move.name);
+    CameraFX.fovPunch(10,.4);
+    CameraFX.shake(.2,.3);
+    Audio2.sfx.levelup();
+    if(move.effect==='triple_slash'){
+      for(let i=0;i<3;i++){
+        setTimeout(()=>{
+          meleeImpactVFX(pos.x+Math.cos(i)*2,1,pos.z+Math.sin(i)*2,new THREE.Color('#ff4444'));
+        },i*100);
+      }
+    }else if(move.effect==='shadow_charge'){
+      createDashEffect(pos.x,pos.z,G.playerMesh.rotation.y,'#9955ff');
+      CameraFX.slowMo(.3,.3);
+    }else if(move.effect==='spinning_blade'){
+      createShockwaveRing(pos.x,pos.z,'#ff8844',6,.4,.04);
+      burst(pos.x,1,pos.z,new THREE.Color('#ff8844'),20,6);
+    }else if(move.effect==='power_storm'){
+      for(let i=0;i<6;i++){
+        const a=i/6*Math.PI*2;
+        createChainLightning(pos,new THREE.Vector3(pos.x+Math.cos(a)*5,0,pos.z+Math.sin(a)*5),3,'#ffdd44');
+      }
+    }else if(move.effect==='barrage'){
+      for(let i=0;i<8;i++){
+        setTimeout(()=>{
+          if(!G)return;
+          const a=(i/8)*Math.PI*2;
+          const dir=new THREE.Vector3(Math.cos(a),0,Math.sin(a));
+          const proj={mesh:new THREE.Mesh(new THREE.SphereGeometry(.1,6,6),
+            basicMat(CLAN_FX[G.char.clan]?.trail||'#9955ff',{transparent:true,blending:THREE.AdditiveBlending})),
+            dir,speed:18,dmg:G.player.dmg*.5,life:2,fromPlayer:true};
+          proj.mesh.position.copy(pos);proj.mesh.position.y=1;
+          scene.add(proj.mesh);G.projectiles.push(proj);
+        },i*50);
+      }
+    }else if(move.effect==='finisher'){
+      createLightPillar(pos.x,pos.z,CLAN_FX[G.char.clan]?.trail||'#9955ff',12,2,.3,1.5,true);
+      burst(pos.x,2,pos.z,new THREE.Color('#ffffff'),30,10);
+      CameraFX.slowMo(.2,.5);
+    }else if(move.effect==='shadow_dance'){
+      for(let i=0;i<5;i++){
+        setTimeout(()=>{
+          if(!G||!G.playerMesh)return;
+          const a=Math.random()*Math.PI*2;
+          const r=2+Math.random()*3;
+          Afterimage.create(G.playerMesh,'#6622aa',.4);
+          burst(pos.x+Math.cos(a)*r,1,pos.z+Math.sin(a)*r,new THREE.Color('#9955ff'),8,4);
+        },i*120);
+      }
+    }
+    if(G){
+      const dmg=G.player.dmg*move.dmgMul;
+      G.mobs.forEach(m=>{
+        if(m.hp<=0)return;
+        const dist=m.mesh.position.distanceTo(pos);
+        if(dist<6)m.hp-=dmg;
+      });
+    }
+  },
+  update(dt){
+    if(this.timer>0){
+      this.timer-=dt;
+      if(this.timer<=0)this.sequence=[];
+    }
+  }
+};
+/* ============ AMBIENT EFFECTS PER THEME ============ */
+function spawnThemeAmbient(theme,dt){
+  if(!G||G.paused||Math.random()>dt*2)return;
+  const themeName=theme.name||'shadow';
+  if(themeName==='fire'){
+    const x=(Math.random()-.5)*60,z=(Math.random()-.5)*60;
+    spawnParticle(x,Math.random()*2,z,new THREE.Color('#ff6622'),
+      {life:1.5,size:.06,shrink:.97,vy:1+Math.random()*2,grav:0});
+  }else if(themeName==='ice'){
+    const x=(Math.random()-.5)*60,z=(Math.random()-.5)*60;
+    spawnParticle(x,8+Math.random()*5,z,new THREE.Color('#aaddff'),
+      {life:3,size:.05,shrink:.998,vy:-.3,vx:(Math.random()-.5)*.3,grav:0});
+  }else if(themeName==='shadow'){
+    const x=(Math.random()-.5)*40,z=(Math.random()-.5)*40;
+    spawnParticle(x,Math.random()*5,z,new THREE.Color('#6622aa'),
+      {life:2,size:.08,shrink:.98,vy:.2+Math.random()*.3,grav:0});
+  }else if(themeName==='lightning'){
+    if(Math.random()<.01){
+      const x=(Math.random()-.5)*50,z=(Math.random()-.5)*50;
+      createChainLightning(new THREE.Vector3(x,15,z),new THREE.Vector3(x,0,z),3,'#ffdd44');
+      CombatLighting.flash(x,8,z,new THREE.Color('#ffdd44'),2,15,.3);
+    }
+  }else if(themeName==='nature'){
+    const x=(Math.random()-.5)*50,z=(Math.random()-.5)*50;
+    spawnParticle(x,Math.random()*3,z,new THREE.Color('#88ff44'),
+      {life:2,size:.04,shrink:.99,vy:.5,vx:(Math.random()-.5)*.2,grav:0});
+  }else if(themeName==='void'){
+    const x=(Math.random()-.5)*30,z=(Math.random()-.5)*30;
+    spawnParticle(x,Math.random()*8,z,new THREE.Color('#4400aa'),
+      {life:1,size:.1,shrink:.95,vy:-.5,grav:0});
+  }
+}
+/* ============ ENHANCED COLLECTION CARDS ============ */
+function getCardBorderClass(rarity){
+  return'rarity-'+rarity;
+}
+function getCardGlow(rarity){
+  const glows={
+    common:'none',rare:'0 0 10px rgba(68,170,255,.2)',
+    epic:'0 0 14px rgba(180,74,255,.25)',mythic:'0 0 18px rgba(255,68,136,.3)',
+    legendary:'0 0 22px rgba(255,210,74,.35)',ultimate:'0 0 28px rgba(255,100,0,.4)',
+    unknown:'0 0 32px rgba(255,0,255,.3),0 0 64px rgba(0,255,255,.2)',
+    secret:'0 0 40px rgba(0,0,0,.8),inset 0 0 20px rgba(102,34,170,.4)'
+  };
+  return glows[rarity]||'none';
+}
+/* ============ EXTENDED SHADOW TYPES ============ */
+const EXTENDED_SHADOWS=[
+  {id:50,name:'Cienisty Berserker',type:'melee',hp:50,dmg:12,speed:5,color:'#9922ff',
+    ability:'frenzy',desc:'Wpada w szał przy niskim HP'},
+  {id:51,name:'Cienisty Mędrzec',type:'support',hp:30,dmg:5,speed:3,color:'#44aaff',
+    ability:'wisdom',desc:'Zwiększa DMG pobliskich sojuszników'},
+  {id:52,name:'Cienisty Golem',type:'tank',hp:80,dmg:6,speed:2,color:'#666688',
+    ability:'fortify',desc:'Nie może być odrzucony'},
+  {id:53,name:'Cienisty Łucznik',type:'ranged',hp:25,dmg:14,speed:4,color:'#44ff88',
+    ability:'multishot',desc:'Strzela 3 pociski na raz'},
+  {id:54,name:'Cienisty Uzdrowiciel',type:'healer',hp:35,dmg:8,speed:3,color:'#44ff44',
+    ability:'aoeHeal',desc:'Leczy wszystkich w pobliżu'},
+  {id:55,name:'Cienisty Rycerz',type:'melee',hp:60,dmg:10,speed:4,color:'#ffd24a',
+    ability:'shield',desc:'Blokuje ataki tarczą'},
+  {id:56,name:'Cienisty Nekromanta',type:'support',hp:30,dmg:8,speed:3,color:'#6622aa',
+    ability:'summon',desc:'Przywołuje dodatkowe cienie'},
+  {id:57,name:'Cienisty Zabójca',type:'melee',hp:20,dmg:18,speed:7,color:'#ff2244',
+    ability:'backstab',desc:'Podwójne obrażenia od tyłu'},
+  {id:58,name:'Cienisty Mag Ognia',type:'ranged',hp:25,dmg:15,speed:3,color:'#ff6600',
+    ability:'fireball',desc:'Eksplodujące kule ognia'},
+  {id:59,name:'Cienisty Mag Lodu',type:'ranged',hp:25,dmg:12,speed:3,color:'#44ccff',
+    ability:'freeze',desc:'Zamraża trafione cele'},
+];
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
   Audio2.init(); Audio2.setMusicVol(state.settings.musicVol); Audio2.setSfxVol(state.settings.sfxVol);
