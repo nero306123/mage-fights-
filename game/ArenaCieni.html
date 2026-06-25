@@ -609,6 +609,8 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
  padding:1px 3px;color:#999}
 .ability-slot.ready{animation:abilityReady 1.5s ease infinite}
 @keyframes abilityReady{0%,100%{box-shadow:0 0 0 0 rgba(100,255,100,.3)}50%{box-shadow:0 0 0 6px rgba(100,255,100,0)}}
+/* ===== TUTORIAL PULSE ===== */
+@keyframes tutorialPulse{0%,100%{border-color:rgba(180,140,255,.4)}50%{border-color:rgba(180,140,255,.8)}}
 </style>
 </head>
 <body>
@@ -665,7 +667,11 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
         <button class="btn ghost small" onclick="ACshow('achievements')">🏆 Osiągnięcia</button>
       </div>
       <div class="menu-row">
+        <button class="btn ghost small" onclick="ACshow('difficulty')">⚖️ Trudność</button>
+        <button class="btn ghost small" onclick="ACshow('prestige')">✨ Prestiż</button>
         <button class="btn ghost small" onclick="ACshow('credits')">ℹ️ O grze</button>
+      </div>
+      <div class="menu-row">
         <button class="btn ghost small" onclick="ACopenSettings()">⚙️ Ustawienia</button>
         <button class="btn ghost small" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
       </div>
@@ -1333,7 +1339,7 @@ const $=id=>document.getElementById(id);
 
 /* ============ UI NAV ============ */
 let curScreen='menu';
-window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); if(name==='leaderboard'){$('leaderboard-list').innerHTML=renderLeaderboard();} if(name==='inventory'){const el=$('inventory-list');if(el)el.innerHTML=renderInventory();} if(name==='crafting'){const el=$('crafting-list');if(el)el.innerHTML=renderCrafting();} if(['companions','skins','guilds','daily','seasonal','skilltree','codex','achievements','credits'].includes(name)){if(typeof renderExtraScreenInto==='function')renderExtraScreenInto(name);} };
+window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); if(name==='leaderboard'){$('leaderboard-list').innerHTML=renderLeaderboard();} if(name==='inventory'){const el=$('inventory-list');if(el)el.innerHTML=renderInventory();} if(name==='crafting'){const el=$('crafting-list');if(el)el.innerHTML=renderCrafting();} if(['companions','skins','guilds','daily','seasonal','skilltree','codex','achievements','difficulty','prestige','credits'].includes(name)){if(typeof renderExtraScreenInto==='function')renderExtraScreenInto(name);} };
 function refreshMenu(){ $('m-coins').textContent=state.coins; $('m-gems').textContent=state.gems; $('m-collected').textContent=state.unlockedIds.size; $('m-lvl').textContent=state.level; const need=xpForLevel(state.level); $('m-xp').textContent=state.xp+'/'+need+' XP'; $('m-xpfill').style.width=Math.min(100,state.xp/need*100)+'%'; }
 window.ACcloseModal=function(n){ Audio2.sfx.click(); $('modal-'+n).classList.remove('active'); };
 function openModal(n){ $('modal-'+n).classList.add('active'); }
@@ -5048,6 +5054,7 @@ function killMob(m){
   // kill streak visual effects
   if(G.combo%5===0&&G.combo>=5)ScreenFX.killStreakShow(G.combo);
   if(G.combo===10||G.combo===20||G.combo===30||G.combo===50)comboMilestoneVFX(G.combo);
+  if(G.combo>=10&&G.combo%10===0&&typeof comboFinisher!=='undefined')comboFinisher(new THREE.Vector3(m.x,m.y+1,m.z),G.combo);
   if(G.combo===10)ScreenFX.chromaticAb(.2,150);
   if(G.combo===20){ScreenFX.chromaticAb(.3,200);FloorPulse.createPulse(m.x,m.z,'#ffd24a',20,15);}
   if(G.combo>=30&&G.combo%10===0){createShockwaveRing(G.player.x,G.player.z,'#ffd24a',12,.8);ScreenFX.chromaticAb(.4,250);}
@@ -5135,6 +5142,7 @@ function useShield(){
   G.playerMesh.add(shield.group);
   G.shieldMesh=shield.group;
   G.shieldData=shield;
+  if(G.playerMesh&&typeof EnergyShield!=='undefined')G.energyShield=EnergyShield.create(G.playerMesh,RARITIES[c.rarity].color,dur);
   createOrbitRing(G.player.x,1.2,G.player.z,RARITIES[c.rarity].color,2,8,.6,5);
   announce(c.shieldName,'');
 }
@@ -8388,6 +8396,8 @@ function addExtraScreens(){
     {id:'skilltree',title:'🌟 Drzewko Umiejętności'},
     {id:'codex',title:'📚 Kodeks'},
     {id:'achievements',title:'🏆 Osiągnięcia'},
+    {id:'difficulty',title:'⚖️ Poziom Trudności'},
+    {id:'prestige',title:'✨ Wniebowstąpienie'},
     {id:'credits',title:'ℹ️ O grze'}
   ];
   let prev=document.querySelector('#scr-crafting');
@@ -8418,6 +8428,8 @@ function renderExtraScreen(name){
     },
     codex:()=>CODEX.render(),
     achievements:()=>renderAchievementsGallery(),
+    difficulty:()=>DifficultyScaling.render(),
+    prestige:()=>PrestigeSystem.render(),
     credits:()=>renderCredits()
   };
   return map[name]?map[name]():'';
@@ -14506,6 +14518,139 @@ function renderCredits(){
     <button class="btn ghost small" onclick="ACshow('menu')">← Menu</button>
   </div>`;
 }
+
+/* ============ INTERACTIVE TUTORIAL SYSTEM ============ */
+const Tutorial={
+  steps:[
+    {id:'move',title:'Poruszanie',text:'Użyj WASD (lub joysticka na mobile) aby się poruszać po arenie.',icon:'🕹️',condition:'moved'},
+    {id:'camera',title:'Kamera',text:'Poruszaj myszką aby obracać kamerę i celować. Na mobile przeciągnij palcem.',icon:'👀',condition:'looked'},
+    {id:'attack',title:'Atak',text:'Lewy przycisk myszy (lub przycisk ATAK) aby atakować wrogów.',icon:'⚔️',condition:'attacked'},
+    {id:'shield',title:'Tarcza',text:'Naciśnij E aby aktywować tarczę chroniącą przed obrażeniami.',icon:'🛡️',condition:'shielded'},
+    {id:'super',title:'Super Atak',text:'Naciśnij Q aby użyć potężnego super ataku (60s cooldown).',icon:'💥',condition:'supered'},
+    {id:'shadow',title:'Forma Cienia',text:'Naciśnij R aby wejść w Formę Cienia — nietykalność i prędkość.',icon:'🌑',condition:'shadowed'}
+  ],
+  currentStep:0,active:false,completed:new Set(),
+  start(){
+    if(state.tutorialDone)return;
+    this.active=true;this.currentStep=0;this.completed.clear();
+    this.showStep();
+  },
+  showStep(){
+    if(this.currentStep>=this.steps.length){this.finish();return;}
+    const step=this.steps[this.currentStep];
+    let el=document.getElementById('tutorial-box');
+    if(!el){
+      el=document.createElement('div');el.id='tutorial-box';
+      el.style.cssText='position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:40;'+
+        'background:linear-gradient(135deg,rgba(15,8,30,.97),rgba(40,20,80,.95));'+
+        'border:1px solid rgba(180,140,255,.4);border-radius:14px;padding:16px 20px;'+
+        'max-width:340px;text-align:center;backdrop-filter:blur(10px);'+
+        'box-shadow:0 4px 24px rgba(0,0,0,.5),0 0 20px rgba(120,60,200,.2);'+
+        'animation:tutorialPulse 2s ease infinite';
+      document.body.appendChild(el);
+    }
+    el.innerHTML=`
+      <div style="font-size:32px;margin-bottom:8px">${step.icon}</div>
+      <div style="font-family:Cinzel,serif;font-size:16px;color:#d9b8ff;margin-bottom:6px">${step.title}</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.5">${step.text}</div>
+      <div style="font-size:10px;color:#666;margin-top:8px">Krok ${this.currentStep+1}/${this.steps.length}</div>
+      <button class="btn ghost small" style="margin-top:8px;font-size:10px" onclick="Tutorial.skip()">Pomiń samouczek</button>`;
+    el.style.display='block';
+  },
+  notify(action){
+    if(!this.active)return;
+    const step=this.steps[this.currentStep];
+    if(step&&step.condition===action&&!this.completed.has(action)){
+      this.completed.add(action);
+      this.currentStep++;
+      setTimeout(()=>this.showStep(),500);
+    }
+  },
+  skip(){this.finish();},
+  finish(){
+    this.active=false;
+    state.tutorialDone=true;saveState();
+    const el=document.getElementById('tutorial-box');
+    if(el)el.style.display='none';
+    if(this.completed.size>=this.steps.length)AchievementPopup.show('Samouczek ukończony!','Witaj w Arenie Cieni');
+  }
+};
+
+/* ============ DIFFICULTY SCALING SYSTEM ============ */
+const DifficultyScaling={
+  modes:{
+    easy:{name:'Łatwy',emoji:'🟢',hpMult:.7,dmgMult:.7,coinMult:.8,desc:'Dla nowych graczy'},
+    normal:{name:'Normalny',emoji:'🟡',hpMult:1,dmgMult:1,coinMult:1,desc:'Zbalansowane wyzwanie'},
+    hard:{name:'Trudny',emoji:'🟠',hpMult:1.5,dmgMult:1.4,coinMult:1.4,desc:'Dla doświadczonych'},
+    nightmare:{name:'Koszmar',emoji:'🔴',hpMult:2.2,dmgMult:1.8,coinMult:2,desc:'Tylko dla najlepszych'},
+    hell:{name:'Piekło',emoji:'⚫',hpMult:3.5,dmgMult:2.5,coinMult:3,desc:'Czyste szaleństwo'}
+  },
+  current:'normal',
+  getMods(){return this.modes[state.difficulty||'normal']||this.modes.normal;},
+  render(){
+    const cur=state.difficulty||'normal';
+    let html='<div style="display:flex;flex-direction:column;gap:8px;max-width:400px">';
+    Object.entries(this.modes).forEach(([id,m])=>{
+      const sel=cur===id;
+      html+=`<div style="background:${sel?'rgba(40,80,40,.6)':'rgba(20,10,40,.8)'};border:1px solid ${sel?'rgba(100,255,100,.5)':'rgba(100,60,160,.2)'};border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .2s"
+        onclick="state.difficulty='${id}';saveState();DifficultyScaling.refresh()">
+        <span style="font-size:24px">${m.emoji}</span>
+        <div style="flex:1">
+          <div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff">${m.name}</div>
+          <div style="font-size:10px;color:#888">${m.desc}</div>
+          <div style="font-size:9px;color:#666;margin-top:2px">HP wrogów x${m.hpMult} • DMG x${m.dmgMult} • Monety x${m.coinMult}</div>
+        </div>
+        ${sel?'<span style="color:#44ff44">✓</span>':''}
+      </div>`;
+    });
+    html+='</div>';
+    return html;
+  },
+  refresh(){
+    const el=document.getElementById('difficulty-list');
+    if(el)el.innerHTML=this.render();
+  }
+};
+
+/* ============ PRESTIGE / ASCENSION SYSTEM ============ */
+const PrestigeSystem={
+  getPrestigeLevel(){return state.prestige||0;},
+  getPrestigeBonus(){return(state.prestige||0)*.05;},
+  canPrestige(){return state.highWave>=30&&(state.unlockedIds||[]).length>=20;},
+  prestige(){
+    if(!this.canPrestige())return false;
+    state.prestige=(state.prestige||0)+1;
+    state.prestigePoints=(state.prestigePoints||0)+Math.floor(state.highWave/10);
+    saveState();
+    AchievementPopup.show('Wniebowstąpienie!','Poziom prestiżu '+state.prestige);
+    return true;
+  },
+  render(){
+    const lvl=this.getPrestigeLevel();
+    const can=this.canPrestige();
+    return`<div style="max-width:400px;text-align:center">
+      <div style="font-size:48px;margin-bottom:8px">${lvl>0?'⭐'.repeat(Math.min(5,lvl)):'🌟'}</div>
+      <div style="font-family:Cinzel,serif;font-size:22px;color:#ffd24a;margin-bottom:8px">Prestiż ${lvl}</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.6;margin-bottom:16px">
+        Wniebowstąpienie resetuje Twój postęp w zamian za permanentne bonusy.<br>
+        Obecny bonus: <span style="color:#44ff44">+${(this.getPrestigeBonus()*100).toFixed(0)}% do wszystkich statystyk</span>
+      </div>
+      <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:14px;margin-bottom:12px;text-align:left">
+        <div style="font-size:12px;color:#d9b8ff;margin-bottom:8px;text-align:center">Wymagania:</div>
+        <div style="font-size:12px;color:${state.highWave>=30?'#44ff44':'#888'}">${state.highWave>=30?'✓':'✗'} Dotrzyj do fali 30 (${state.highWave||0}/30)</div>
+        <div style="font-size:12px;color:${(state.unlockedIds||[]).length>=20?'#44ff44':'#888'}">${(state.unlockedIds||[]).length>=20?'✓':'✗'} Odblokuj 20 bohaterów (${(state.unlockedIds||[]).length}/20)</div>
+      </div>
+      <button class="btn ${can?'primary btn-pulse':'ghost'} small" style="width:100%" ${can?'':'disabled'}
+        onclick="if(confirm('Czy na pewno chcesz dokonać wniebowstąpienia? Twój postęp zostanie zresetowany!')){PrestigeSystem.prestige();PrestigeSystem.refresh();}">
+        ${can?'✨ Dokonaj Wniebowstąpienia':'🔒 Niedostępne'}
+      </button>
+    </div>`;
+  },
+  refresh(){
+    const el=document.getElementById('prestige-list');
+    if(el)el.innerHTML=this.render();
+  }
+};
 
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
