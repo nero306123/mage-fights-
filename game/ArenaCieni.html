@@ -611,6 +611,11 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
 @keyframes abilityReady{0%,100%{box-shadow:0 0 0 0 rgba(100,255,100,.3)}50%{box-shadow:0 0 0 6px rgba(100,255,100,0)}}
 /* ===== TUTORIAL PULSE ===== */
 @keyframes tutorialPulse{0%,100%{border-color:rgba(180,140,255,.4)}50%{border-color:rgba(180,140,255,.8)}}
+/* ===== VICTORY FLOAT ===== */
+@keyframes victoryFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.08)}}
+/* ===== KILL FEED ===== */
+@keyframes killFeedIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+#kill-feed>div{transition:opacity .3s}
 </style>
 </head>
 <body>
@@ -4636,6 +4641,7 @@ function buildArena(theme){
   PlayerTrail.init(CLANS[theme.name]?CLANS[theme.name].baseColor:0x8844ff);
   FloatingDebrisField.create(theme);
   AuroraSky.create(theme);
+  LowHPPulse.init();
 }
 function buildWeather(theme){
   const count=state.settings.reducedParticles?80:220;
@@ -5058,6 +5064,7 @@ function killMob(m){
   if(G.combo%5===0&&G.combo>=5)ScreenFX.killStreakShow(G.combo);
   if(G.combo===10||G.combo===20||G.combo===30||G.combo===50)comboMilestoneVFX(G.combo);
   if(G.combo>=10&&G.combo%10===0&&typeof comboFinisher!=='undefined')comboFinisher(new THREE.Vector3(m.x,m.y+1,m.z),G.combo);
+  if(typeof KillFeed!=='undefined')KillFeed.add(m.def.name,m.def.emoji);
   if(G.combo===10)ScreenFX.chromaticAb(.2,150);
   if(G.combo===20){ScreenFX.chromaticAb(.3,200);FloorPulse.createPulse(m.x,m.z,'#ffd24a',20,15);}
   if(G.combo>=30&&G.combo%10===0){createShockwaveRing(G.player.x,G.player.z,'#ffd24a',12,.8);ScreenFX.chromaticAb(.4,250);}
@@ -5326,7 +5333,7 @@ function updateMobs(dt,t){
 }
 function updateBoss(dt,t){
   const b=G.boss; if(!b)return; const p=G.player;
-  if(b.dying){ b.deathT+=dt; const k=b.deathT/1.5; b.mesh.scale.setScalar(b.def.scale*.5*(1-k*.8)); b.mesh.rotation.y+=dt*4; if(b.mesh.userData.body)b.mesh.userData.body.material.emissiveIntensity=k*3; if(Math.random()<dt*20)burst(b.x+(Math.random()-.5)*4,Math.random()*5,b.z+(Math.random()-.5)*4,new THREE.Color(b.def.color),6,5,{up:true,life:1}); if(b.deathT>=1.5){ scene.remove(b.mesh); G.boss=null; } return; }
+  if(b.dying){ b.deathT+=dt; const k=b.deathT/1.5; b.mesh.scale.setScalar(b.def.scale*.5*(1-k*.8)); b.mesh.rotation.y+=dt*4; if(b.mesh.userData.body)b.mesh.userData.body.material.emissiveIntensity=k*3; if(Math.random()<dt*20)burst(b.x+(Math.random()-.5)*4,Math.random()*5,b.z+(Math.random()-.5)*4,new THREE.Color(b.def.color),6,5,{up:true,life:1}); if(b.deathT>=1.5){ if(typeof BossAura!=='undefined')BossAura.detach(); if(typeof LightDirector!=='undefined')LightDirector.setMood('normal'); if(typeof EliteVisuals!=='undefined'&&typeof MobDeathFXEnhanced!=='undefined')MobDeathFXEnhanced.play(new THREE.Vector3(b.x,b.y,b.z),b.type,false,true); scene.remove(b.mesh); G.boss=null; } return; }
   if(b.entranceT<1){ b.entranceT+=dt*.5; b.mesh.scale.setScalar(b.def.scale*.5*Math.min(1,b.entranceT)); }
   // statuses
   for(const sk in b.statuses){ const s=b.statuses[sk]; s.t-=dt; if(s.def.dot&&Math.random()<dt*2)damageBoss(b,s.def.dot); if(s.t<=0)delete b.statuses[sk]; }
@@ -5543,6 +5550,9 @@ function gameLoop(now){
     GroundCracks.update(dt);
     FloatingDebrisField.update(dt,G.time);
     AuroraSky.update(dt);
+    CombatFlow.update(dt);
+    SoundtrackLayers.update(dt);
+    LowHPPulse.update();
     if(G.playerMesh)PlayerTrail.update(G.playerMesh.position,G.shadowForm||(getMoveInput().mag>.7),G.shadowForm?0x7a4aff:null);
     // afterimage when sprinting or in shadow form
     if(G.playerMesh&&(G.shadowForm||(getMoveInput().mag>.8))){
@@ -14659,6 +14669,199 @@ const PrestigeSystem={
   }
 };
 
+/* ============ ENHANCED VICTORY/DEATH SEQUENCE ============ */
+const EndSequence={
+  victory(stats){
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;z-index:95;pointer-events:none;'+
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;'+
+      'background:radial-gradient(circle at center,rgba(255,210,74,.1),rgba(0,0,0,.6));opacity:0;transition:opacity 1s';
+    overlay.innerHTML=`
+      <div style="font-size:64px;margin-bottom:12px;animation:victoryFloat 2s ease infinite">🏆</div>
+      <div style="font-family:Cinzel,serif;font-size:48px;color:#ffd24a;text-shadow:0 0 40px rgba(255,210,74,.6)">ZWYCIĘSTWO!</div>`;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(()=>overlay.style.opacity='1');
+    for(let i=0;i<5;i++){
+      setTimeout(()=>{
+        if(typeof ParticlePresetsExt!=='undefined'&&G&&G.playerMesh){
+          ParticlePresetsExt.starBurst(G.playerMesh.position.clone().add(new THREE.Vector3((Math.random()-.5)*6,2,(Math.random()-.5)*6)),0xffd24a,15);
+        }
+      },i*300);
+    }
+    setTimeout(()=>overlay.remove(),3000);
+  },
+  death(){
+    const overlay=document.createElement('div');
+    overlay.className='death-overlay active';
+    overlay.innerHTML=`<div class="death-text">POKONANY</div>`;
+    document.body.appendChild(overlay);
+    if(typeof PostFX!=='undefined')PostFX.setVignette(.9);
+    setTimeout(()=>overlay.remove(),2500);
+  }
+};
+
+/* ============ DYNAMIC SOUNDTRACK LAYERS ============ */
+const SoundtrackLayers={
+  intensity:0,targetIntensity:0,
+  update(dt){
+    if(!G||!G.running)return;
+    let target=.3;
+    if(G.boss&&G.boss.alive!==false)target=1;
+    else if(G.mobs.length>10)target=.7;
+    else if(G.mobs.length>5)target=.5;
+    if(G.hp<G.maxHp*.25)target=Math.max(target,.85);
+    this.targetIntensity=target;
+    this.intensity+=(this.targetIntensity-this.intensity)*dt*1.5;
+  }
+};
+
+/* ============ ENVIRONMENTAL HAZARD VARIETY ============ */
+const HazardVariety={
+  spawnRandom(theme){
+    if(!G||!G.running)return;
+    const types=['lavaPool','iceSpike','voidZone','electricField','poisonCloud'];
+    const type=types[Math.floor(Math.random()*types.length)];
+    const a=Math.random()*Math.PI*2,r=8+Math.random()*18;
+    const pos=new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r);
+    switch(type){
+      case 'lavaPool':
+        if(typeof TerrainInteraction!=='undefined')TerrainInteraction.createZone(pos,2.5,'damage',8);
+        if(typeof GroundCracks!=='undefined')GroundCracks.create(pos,0xff4400,2.5);
+        break;
+      case 'iceSpike':
+        if(typeof TerrainInteraction!=='undefined')TerrainInteraction.createZone(pos,2,'slow',0);
+        for(let i=0;i<5;i++){
+          const sp=new THREE.Mesh(new THREE.ConeGeometry(.2,1.5,5),
+            new THREE.MeshStandardMaterial({color:0x88ddff,transparent:true,opacity:.6,emissive:0x44aaff,emissiveIntensity:.2}));
+          sp.position.copy(pos).add(new THREE.Vector3((Math.random()-.5)*3,.75,(Math.random()-.5)*3));
+          scene.add(sp);
+          setTimeout(()=>{scene.remove(sp);sp.geometry.dispose();sp.material.dispose();},10000);
+        }
+        break;
+      case 'voidZone':
+        if(typeof DimensionalRift!=='undefined')DimensionalRift.open(pos.clone().add(new THREE.Vector3(0,1,0)),0x8800ff,3,8);
+        if(typeof TerrainInteraction!=='undefined')TerrainInteraction.createZone(pos,2.5,'damage',5);
+        break;
+      case 'electricField':
+        if(typeof TerrainInteraction!=='undefined')TerrainInteraction.createZone(pos,2.5,'damage',6);
+        if(typeof LightningSystem!=='undefined'){
+          let strikes=0;
+          const iv=setInterval(()=>{
+            strikes++;
+            if(strikes>5||!G||!G.running){clearInterval(iv);return;}
+            LightningSystem.createBolt(pos.clone().add(new THREE.Vector3(0,8,0)),pos.clone(),0xffff44,1);
+          },800);
+        }
+        break;
+      case 'poisonCloud':
+        if(typeof TerrainInteraction!=='undefined')TerrainInteraction.createZone(pos,3,'damage',4);
+        if(typeof ElementalImpacts!=='undefined')ElementalImpacts.spawn(pos.clone().add(new THREE.Vector3(0,1,0)),'poison',1.5);
+        break;
+    }
+  }
+};
+
+/* ============ MOB ELITE VISUAL VARIANTS ============ */
+const EliteVisuals={
+  apply(mob,modifier){
+    if(!mob||!mob.mesh)return;
+    const mods={
+      armored:{color:0x888888,scale:1.3,aura:false},
+      swift:{color:0x44ffff,scale:.9,aura:true},
+      explosive:{color:0xff4400,scale:1.1,aura:true},
+      regenerating:{color:0x44ff44,scale:1.1,aura:true},
+      shielded:{color:0x4488ff,scale:1.1,aura:true},
+      vampiric:{color:0xff0044,scale:1.1,aura:true},
+      frost:{color:0x88ddff,scale:1.1,aura:true},
+      cursed:{color:0x8800ff,scale:1.15,aura:true}
+    };
+    const m=mods[modifier]||mods.armored;
+    mob.mesh.scale.multiplyScalar(m.scale);
+    if(m.aura&&typeof CharacterAura!=='undefined'){
+      const auraGeo=new THREE.SphereGeometry(1,12,12);
+      const auraMat=new THREE.MeshBasicMaterial({color:m.color,transparent:true,opacity:.2,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide});
+      const aura=new THREE.Mesh(auraGeo,auraMat);
+      aura.scale.setScalar(1.5);
+      mob.mesh.add(aura);
+      mob._eliteAura=aura;
+    }
+    const light=new THREE.PointLight(m.color,1,5);
+    light.position.y=1;
+    mob.mesh.add(light);
+    mob._eliteLight=light;
+  }
+};
+
+/* ============ COMBAT FLOW DIRECTOR ============ */
+const CombatFlow={
+  tensionTimer:0,lastEventTime:0,
+  update(dt){
+    if(!G||!G.running)return;
+    this.tensionTimer+=dt;
+    if(this.tensionTimer>20&&G.wave>=8){
+      this.tensionTimer=0;
+      if(Math.random()>.5&&typeof HazardVariety!=='undefined'){
+        HazardVariety.spawnRandom(G.theme);
+      }
+    }
+    if(typeof EnvStory!=='undefined'){
+      if(G.wave===5)EnvStory.trigger('wave5');
+      else if(G.wave===10)EnvStory.trigger('wave10');
+      else if(G.wave===15)EnvStory.trigger('wave15');
+      else if(G.wave===20)EnvStory.trigger('wave20');
+      else if(G.wave===25)EnvStory.trigger('wave25');
+    }
+  }
+};
+
+/* ============ LOW HP SCREEN PULSE ============ */
+const LowHPPulse={
+  el:null,active:false,
+  init(){
+    if(!this.el){
+      this.el=document.createElement('div');
+      this.el.id='lowhp-pulse';
+      this.el.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:14;opacity:0;'+
+        'box-shadow:inset 0 0 120px rgba(255,0,0,.5);transition:opacity .3s';
+      document.body.appendChild(this.el);
+    }
+  },
+  update(){
+    if(!G||!G.running||!this.el)return;
+    const frac=G.player?G.player.hp/G.player.maxHp:1;
+    if(frac<.25){
+      this.el.style.opacity=(.3+Math.sin(Date.now()/200)*.3).toString();
+    } else if(this.el.style.opacity!=='0'){
+      this.el.style.opacity='0';
+    }
+  },
+  clear(){if(this.el)this.el.style.opacity='0';}
+};
+
+/* ============ KILL FEED ============ */
+const KillFeed={
+  feed:[],maxItems:5,
+  add(mobName,emoji){
+    let container=document.getElementById('kill-feed');
+    if(!container){
+      container=document.createElement('div');
+      container.id='kill-feed';
+      container.style.cssText='position:fixed;top:80px;right:12px;z-index:16;'+
+        'display:flex;flex-direction:column;gap:4px;pointer-events:none;align-items:flex-end';
+      document.body.appendChild(container);
+    }
+    const item=document.createElement('div');
+    item.style.cssText='background:rgba(15,8,30,.8);border:1px solid rgba(180,74,255,.2);'+
+      'border-radius:6px;padding:4px 8px;font-size:11px;color:#d9b8ff;'+
+      'backdrop-filter:blur(4px);animation:killFeedIn .3s ease-out';
+    item.innerHTML=`💀 ${emoji||''} ${mobName||'Wróg'}`;
+    container.appendChild(item);
+    while(container.children.length>this.maxItems)container.removeChild(container.firstChild);
+    setTimeout(()=>{if(item.parentNode)item.style.opacity='0';setTimeout(()=>item.remove(),300);},3000);
+  },
+  clear(){const c=document.getElementById('kill-feed');if(c)c.innerHTML='';}
+};
+
 /* ============ START / OVER ============ */
 window.ACstartGame=function(){
   Audio2.init(); Audio2.setMusicVol(state.settings.musicVol); Audio2.setSfxVol(state.settings.sfxVol);
@@ -14744,6 +14947,7 @@ function cleanupGame(){
   PostFX.clear();EnvStory.reset();LightDirector.setMood('normal');
   HitSparks.clear();BossAura.clear();SwingTrail.clear();
   EnergyShield.clear();GroundCracks.clear();FloatingDebrisField.clear();AuroraSky.clear();
+  LowHPPulse.clear();KillFeed.clear();
   MinimapFX.hide();
   const ssao=document.getElementById('ssao-overlay');if(ssao)ssao.remove();
   const cgOverlay=document.getElementById('color-grade-overlay');if(cgOverlay)cgOverlay.style.opacity='0';
@@ -14754,6 +14958,8 @@ function gameOver(win){
   if(G.over)return; G.over=true; G.running=false;
   Audio2.stopMusic();
   if(document.pointerLockElement)document.exitPointerLock();
+  if(typeof EndSequence!=='undefined'){ if(win)EndSequence.victory(); else EndSequence.death(); }
+  if(typeof BossAura!=='undefined')BossAura.detach();
   // record
   state.totalKills=state.totalKills; if(G.wave>state.highWave)state.highWave=G.wave;
   if(G.kills>(state.modeRecords[G.mode]||0))state.modeRecords[G.mode]=G.kills;
