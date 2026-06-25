@@ -661,6 +661,11 @@ h1.title{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,9vw,82p
       <div class="menu-row">
         <button class="btn ghost small" onclick="ACshow('daily')">📅 Wyzwania Dnia</button>
         <button class="btn ghost small" onclick="ACshow('seasonal')">🎉 Wydarzenia</button>
+        <button class="btn ghost small" onclick="ACshow('codex')">📚 Kodeks</button>
+        <button class="btn ghost small" onclick="ACshow('achievements')">🏆 Osiągnięcia</button>
+      </div>
+      <div class="menu-row">
+        <button class="btn ghost small" onclick="ACshow('credits')">ℹ️ O grze</button>
         <button class="btn ghost small" onclick="ACopenSettings()">⚙️ Ustawienia</button>
         <button class="btn ghost small" onclick="ACtoggleFullscreen()">⛶ Pełny ekran</button>
       </div>
@@ -1328,7 +1333,7 @@ const $=id=>document.getElementById(id);
 
 /* ============ UI NAV ============ */
 let curScreen='menu';
-window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); if(name==='leaderboard'){$('leaderboard-list').innerHTML=renderLeaderboard();} if(name==='inventory'){const el=$('inventory-list');if(el)el.innerHTML=renderInventory();} if(name==='crafting'){const el=$('crafting-list');if(el)el.innerHTML=renderCrafting();} if(['companions','skins','guilds','daily','seasonal','skilltree'].includes(name)){if(typeof renderExtraScreenInto==='function')renderExtraScreenInto(name);} };
+window.ACshow=function(name){ Audio2.init(); Audio2.sfx.click(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); const el=$('scr-'+name); if(el)el.classList.add('active'); curScreen=name; if(name==='menu')refreshMenu(); if(name==='collection')renderCollection(); if(name==='shop')renderShop(); if(name==='talents')renderTalents(); if(name==='tasks')renderTasks(); if(name==='modes')renderModes(); if(name==='charsel')renderCharSel(); if(name==='bestiary')renderBestiary(); if(name==='lore')renderLore(); if(name==='runes')renderRunes(); if(name==='stats')renderStats(); if(name==='challenges')renderChallenges(); if(name==='leaderboard'){$('leaderboard-list').innerHTML=renderLeaderboard();} if(name==='inventory'){const el=$('inventory-list');if(el)el.innerHTML=renderInventory();} if(name==='crafting'){const el=$('crafting-list');if(el)el.innerHTML=renderCrafting();} if(['companions','skins','guilds','daily','seasonal','skilltree','codex','achievements','credits'].includes(name)){if(typeof renderExtraScreenInto==='function')renderExtraScreenInto(name);} };
 function refreshMenu(){ $('m-coins').textContent=state.coins; $('m-gems').textContent=state.gems; $('m-collected').textContent=state.unlockedIds.size; $('m-lvl').textContent=state.level; const need=xpForLevel(state.level); $('m-xp').textContent=state.xp+'/'+need+' XP'; $('m-xpfill').style.width=Math.min(100,state.xp/need*100)+'%'; }
 window.ACcloseModal=function(n){ Audio2.sfx.click(); $('modal-'+n).classList.remove('active'); };
 function openModal(n){ $('modal-'+n).classList.add('active'); }
@@ -4942,6 +4947,10 @@ function spawnBoss(){
   Audio2.sfx.boss(); shake(1.2); flashScreen('#ff2a4a',.4);
   burst(0,3,-15,new THREE.Color(def.color),50,12,{up:true,life:1.5,grav:3});
   bossEntranceCinematic(bt,0,-15);
+  if(typeof BossAura!=='undefined')BossAura.attach(G.boss,0);
+  if(typeof WaveAnnounce!=='undefined')WaveAnnounce.bossIntro(def.name,'BOSS ARENY');
+  if(typeof LightDirector!=='undefined')LightDirector.setMood('boss');
+  if(typeof SummonCircle!=='undefined')SummonCircle.create(new THREE.Vector3(0,0,-15),def.color);
   announce(def.name,'BOSS');
 }
 /* ============ COMBAT ============ */
@@ -5008,6 +5017,7 @@ function damageMob(m,dmg,crit){
   if(m.dying)return; dmg=Math.round(dmg); m.hp-=dmg;
   spawnDamageNumber(m.x,m.y+1.6,m.z,dmg,crit?'#ffd24a':'#ffffff',crit);
   burst(m.x,m.y+1,m.z,new THREE.Color(m.def.color),crit?8:5,4,{life:.4,grav:4});
+  if(typeof HitSparks!=='undefined')HitSparks.burst(new THREE.Vector3(m.x,m.y+1,m.z),crit?0xffd24a:m.def.color,crit?10:6,crit?1.4:1);
   if(crit)critScreenFlash();
   Audio2.sfx.hit();
   if(m.mesh.userData.body){ m.mesh.userData.body.material.emissiveIntensity=.8; setTimeout(()=>{ if(m.mesh.userData.body)m.mesh.userData.body.material.emissiveIntensity=.12; },80); }
@@ -8375,7 +8385,10 @@ function addExtraScreens(){
     {id:'guilds',title:'⚔️ Gildie'},
     {id:'daily',title:'📅 Wyzwania Dnia'},
     {id:'seasonal',title:'🎉 Wydarzenia'},
-    {id:'skilltree',title:'🌟 Drzewko Umiejętności'}
+    {id:'skilltree',title:'🌟 Drzewko Umiejętności'},
+    {id:'codex',title:'📚 Kodeks'},
+    {id:'achievements',title:'🏆 Osiągnięcia'},
+    {id:'credits',title:'ℹ️ O grze'}
   ];
   let prev=document.querySelector('#scr-crafting');
   extraScreens.forEach(scr=>{
@@ -8402,7 +8415,10 @@ function renderExtraScreen(name){
       return`<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;justify-content:center">
         ${Object.keys(SKILL_TREES).map(t=>`<button class="btn ${treeId===t?'primary':'ghost'} small" onclick="state._skillTreeView='${t}';renderExtraScreenInto('skilltree')">${SKILL_TREES[t].name}</button>`).join('')}
       </div>`+renderSkillTree(state._skillTreeView||treeId);
-    }
+    },
+    codex:()=>CODEX.render(),
+    achievements:()=>renderAchievementsGallery(),
+    credits:()=>renderCredits()
   };
   return map[name]?map[name]():'';
 }
@@ -14356,6 +14372,139 @@ function comboFinisher(pos,comboCount){
   }
   CameraFX.shake(.2*intensity,.06);
   PostFX.bloomFlash(0xffd700,.3*intensity);
+}
+
+/* ============ GAME CODEX / ENCYCLOPEDIA ============ */
+const CODEX={
+  categories:[
+    {id:'mechanics',name:'Mechaniki',emoji:'⚙️',entries:[
+      {title:'Fale i Bossowie',text:'Każda fala zawiera coraz więcej wrogów. Co 5 fal pojawia się potężny boss z unikalnymi atakami. Pokonanie bossa daje cenne nagrody i postęp.'},
+      {title:'Forma Cienia',text:'Naciśnij R aby wejść w Formę Cienia — stajesz się częściowo nietykalny i zyskujesz prędkość. Idealny do unikania ataków bossów i przegrupowania.'},
+      {title:'Combo System',text:'Zabijaj wrogów szybko jeden po drugim aby budować combo. Wyższe combo oznacza więcej monet i potężniejsze efekty wizualne. Combo resetuje się po 2.5s bez zabójstwa.'},
+      {title:'Super Atak',text:'Klawisz Q wyzwala potężny super atak z 60s cooldownem. Każda postać ma unikalny super dostosowany do jej klanu i stylu walki.'},
+      {title:'Tarcza',text:'Klawisz E aktywuje tarczę blokującą obrażenia przez kilka sekund. Ulepszaj czas trwania w sklepie lub przez runy.'},
+      {title:'Unik (Dodge Roll)',text:'Podwójne naciśnięcie kierunku wykonuje unik z chwilową nietykalnością. Kluczowe przeciwko atakom obszarowym bossów.'}
+    ]},
+    {id:'clans',name:'Klany',emoji:'🏰',entries:Object.entries(CLAN_BONUSES||{}).map(([k,v])=>({
+      title:(CLANS[k]?CLANS[k].emoji+' ':'')+k.charAt(0).toUpperCase()+k.slice(1),
+      text:`Pasywna: ${v.passive}. Aktywna: ${v.active}. Ultimate: ${v.ultimate}.`
+    }))},
+    {id:'mobs',name:'Bestiariusz',emoji:'👹',entries:Object.values(MOB_LORE||{}).map(m=>({
+      title:m.emoji+' '+m.fullName,
+      text:`${m.desc} Słabość: ${m.weakness}. Odporność: ${m.resistance}. Warianty: ${m.variants.join(', ')}.`
+    }))},
+    {id:'elements',name:'Żywioły',emoji:'🔥',entries:[
+      {title:'🔥 Ogień',text:'Zadaje obrażenia w czasie (DoT) przez podpalenie. Silny przeciwko nieumarłym i naturze, słaby przeciwko ognioodpornym demonom.'},
+      {title:'❄️ Lód',text:'Spowalnia i może zamrozić wrogów. Zamrożeni wrogowie otrzymują bonusowe obrażenia. Silny przeciwko smokom.'},
+      {title:'⚡ Błyskawica',text:'Szybkie ataki które przeskakują między wrogami (chain). Silny przeciwko golemom i konstruktom.'},
+      {title:'🌀 Pustka',text:'Ignoruje część odporności wrogów. Tworzy riffty wymiarowe wciągające przeciwników. Tajemniczy i potężny.'},
+      {title:'✨ Święty',text:'Skuteczny przeciwko nieumarłym i demonom. Może leczyć sojuszników i odpierać ciemność.'},
+      {title:'🩸 Krew',text:'Kradnie życie wrogów (lifesteal). Im więcej trafień, tym więcej leczenia. Idealny do długich walk.'}
+    ]},
+    {id:'tips',name:'Porady',emoji:'💡',entries:(GAME_TIPS||['Eksperymentuj z różnymi postaciami!']).map((t,i)=>({title:`Porada ${i+1}`,text:t}))}
+  ],
+  render(){
+    const cat=state._codexCat||'mechanics';
+    const category=this.categories.find(c=>c.id===cat)||this.categories[0];
+    let html=`<div style="max-width:560px;width:100%">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:16px">`;
+    this.categories.forEach(c=>{
+      html+=`<button class="btn ${cat===c.id?'primary':'ghost'} small" onclick="state._codexCat='${c.id}';renderCodexInto()">${c.emoji} ${c.name}</button>`;
+    });
+    html+=`</div>`;
+    category.entries.forEach(e=>{
+      html+=`<div style="background:linear-gradient(135deg,rgba(20,10,40,.9),rgba(40,20,80,.6));border:1px solid rgba(100,60,160,.25);border-radius:12px;padding:14px;margin-bottom:8px">
+        <div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff;margin-bottom:6px">${e.title}</div>
+        <div style="font-size:12px;color:#aaa;line-height:1.6">${e.text}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+    return html;
+  }
+};
+window.renderCodexInto=function(){
+  const el=document.getElementById('codex-list');
+  if(el)el.innerHTML=CODEX.render();
+};
+
+/* ============ ACHIEVEMENTS GALLERY ============ */
+const ACHIEVEMENTS_GALLERY=[
+  {id:'first_blood',name:'Pierwsza Krew',emoji:'🩸',desc:'Zabij pierwszego wroga',check:s=>s.totalKills>=1},
+  {id:'slayer_100',name:'Pogromca',emoji:'⚔️',desc:'Zabij 100 wrogów',check:s=>s.totalKills>=100},
+  {id:'slayer_1000',name:'Rzeźnik',emoji:'🗡️',desc:'Zabij 1000 wrogów',check:s=>s.totalKills>=1000},
+  {id:'slayer_5000',name:'Legenda Areny',emoji:'👑',desc:'Zabij 5000 wrogów',check:s=>s.totalKills>=5000},
+  {id:'wave_10',name:'Przetrwałeś',emoji:'🌊',desc:'Dotrzyj do fali 10',check:s=>s.highWave>=10},
+  {id:'wave_25',name:'Niezłomny',emoji:'🏔️',desc:'Dotrzyj do fali 25',check:s=>s.highWave>=25},
+  {id:'wave_50',name:'Nieśmiertelny',emoji:'💫',desc:'Dotrzyj do fali 50',check:s=>s.highWave>=50},
+  {id:'boss_1',name:'Pogromca Bossów',emoji:'👹',desc:'Pokonaj pierwszego bossa',check:s=>(s.stats&&s.stats.bossesKilled>=1)},
+  {id:'boss_10',name:'Łowca Bossów',emoji:'🐉',desc:'Pokonaj 10 bossów',check:s=>(s.stats&&s.stats.bossesKilled>=10)},
+  {id:'collector_10',name:'Kolekcjoner',emoji:'📦',desc:'Odblokuj 10 bohaterów',check:s=>(s.unlockedIds||[]).length>=10},
+  {id:'collector_30',name:'Koneser',emoji:'🎴',desc:'Odblokuj 30 bohaterów',check:s=>(s.unlockedIds||[]).length>=30},
+  {id:'collector_all',name:'Mistrz Kolekcji',emoji:'🏆',desc:'Odblokuj wszystkich bohaterów',check:s=>(s.unlockedIds||[]).length>=CHARS.length},
+  {id:'combo_10',name:'Łańcuch Śmierci',emoji:'🔥',desc:'Osiągnij combo x10',check:s=>(s.stats&&s.stats.bestCombo>=10)},
+  {id:'combo_25',name:'Niepowstrzymany',emoji:'💥',desc:'Osiągnij combo x25',check:s=>(s.stats&&s.stats.bestCombo>=25)},
+  {id:'combo_50',name:'Boski Gniew',emoji:'⚡',desc:'Osiągnij combo x50',check:s=>(s.stats&&s.stats.bestCombo>=50)},
+  {id:'rich_1000',name:'Bogacz',emoji:'🪙',desc:'Zgromadź 1000 monet',check:s=>s.coins>=1000},
+  {id:'rich_10000',name:'Krezus',emoji:'💰',desc:'Zgromadź 10000 monet',check:s=>s.coins>=10000},
+  {id:'gems_50',name:'Klejnotnik',emoji:'💎',desc:'Zgromadź 50 klejnotów',check:s=>(s.gems||0)>=50},
+  {id:'secret_char',name:'Sekret Odkryty',emoji:'🌑',desc:'Odblokuj Shadow Mastera',check:s=>(s.unlockedIds||[]).includes('shadow_master')},
+  {id:'shadows_20',name:'Władca Cieni',emoji:'👤',desc:'Odblokuj 20 cieni',check:s=>(s.unlockedShadows||[]).length>=20},
+  {id:'games_50',name:'Weteran',emoji:'🎖️',desc:'Zagraj 50 gier',check:s=>(s.stats&&s.stats.gamesPlayed>=50)},
+  {id:'games_100',name:'Maniak',emoji:'🏅',desc:'Zagraj 100 gier',check:s=>(s.stats&&s.stats.gamesPlayed>=100)}
+];
+function renderAchievementsGallery(){
+  const unlocked=ACHIEVEMENTS_GALLERY.filter(a=>a.check(state)).length;
+  let html=`<div style="max-width:560px;width:100%">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;color:#888">Odblokowane: ${unlocked}/${ACHIEVEMENTS_GALLERY.length}</div>
+      <div style="background:rgba(0,0,0,.3);border-radius:4px;height:6px;margin-top:6px;max-width:300px;margin-left:auto;margin-right:auto">
+        <div style="height:100%;width:${unlocked/ACHIEVEMENTS_GALLERY.length*100}%;background:linear-gradient(90deg,#ffd24a,#ffaa00);border-radius:4px"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">`;
+  ACHIEVEMENTS_GALLERY.forEach(a=>{
+    const done=a.check(state);
+    html+=`<div style="background:${done?'rgba(40,30,10,.8)':'rgba(20,10,40,.6)'};border:1px solid ${done?'rgba(255,210,74,.4)':'rgba(50,30,80,.2)'};border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;opacity:${done?1:.5}">
+      <div style="font-size:24px;filter:${done?'none':'grayscale(1)'}">${a.emoji}</div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:${done?'#ffd24a':'#888'};font-family:Cinzel,serif">${a.name}</div>
+        <div style="font-size:9px;color:#777;margin-top:2px">${a.desc}</div>
+      </div>
+      ${done?'<div style="color:#44ff44;font-size:12px">✓</div>':'<div style="color:#555;font-size:12px">🔒</div>'}
+    </div>`;
+  });
+  html+=`</div></div>`;
+  return html;
+}
+
+/* ============ CREDITS / ABOUT SCREEN ============ */
+function renderCredits(){
+  return`<div style="max-width:480px;width:100%;text-align:center">
+    <div style="font-size:48px;margin-bottom:8px">🌑</div>
+    <h1 class="title" style="font-size:36px;margin-bottom:16px">ARENA CIENI</h1>
+    <div style="font-size:13px;color:#aaa;line-height:1.8;margin-bottom:20px">
+      Hero collector + arena survival w stylu FPS.<br>
+      Zbieraj 60+ bohaterów, dowodź armią cieni i przetrwaj nieskończone fale wrogów.
+    </div>
+    <div style="background:rgba(20,10,40,.8);border:1px solid rgba(100,60,160,.2);border-radius:12px;padding:16px;margin-bottom:12px;text-align:left">
+      <div style="font-family:Cinzel,serif;font-size:14px;color:#d9b8ff;margin-bottom:10px;text-align:center">✨ Funkcje gry</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.9">
+        🎴 60+ unikalnych bohaterów w 10 klanach<br>
+        👤 50+ cieni-sług do dowodzenia<br>
+        👹 5 epickich bossów z unikalnymi mechanikami<br>
+        🏟️ 6 tematycznych aren z dynamiczną pogodą<br>
+        🌟 Drzewka umiejętności i system run<br>
+        🐾 Towarzysze i kosmetyczne skiny<br>
+        ⚔️ Gildie i wydarzenia sezonowe<br>
+        🎨 Zaawansowane efekty wizualne i shadery
+      </div>
+    </div>
+    <div style="font-size:11px;color:#666;margin-bottom:16px">
+      Zbudowane z Three.js • WebGL • WebAudio<br>
+      Wersja 2.0 • ${CHARS.length} bohaterów • ${Object.keys(ARENA_THEMES).length} aren
+    </div>
+    <button class="btn ghost small" onclick="ACshow('menu')">← Menu</button>
+  </div>`;
 }
 
 /* ============ START / OVER ============ */
