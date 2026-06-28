@@ -2457,7 +2457,8 @@ function updateRiding(dt,camera){
     if(py<minY)py=minY;
     if(py>maxY)py=maxY;
   }else{
-    py=ground+EYE_H+(riding.type.height||1.4)*0.45;
+    // wierzchowiec ladowy: nie zanurzaj jezdzca - trzymaj sie powierzchni wody
+    py=Math.max(ground,SEA_LEVEL)+EYE_H+(riding.type.height||1.4)*0.45;
   }
   camera.position.set(px,py,pz);
   const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
@@ -11257,6 +11258,10 @@ function respawnPlayer(){
   for(let i=shadowMinions.length-1;i>=0;i--){_scene.remove(shadowMinions[i].mesh);}shadowMinions.length=0;
   const sp=buildSpawnPoint||_classSpawn||{x:0,z:0};
   _camera.position.set(sp.x,terrainHeight(sp.x,sp.z)+EYE_H,sp.z);yaw=0;pitch=0;
+  // dopasuj realm do pozycji odrodzenia (inaczej martwe niebo/moby utykaja po smierci w Swiecie Umarlych)
+  const _inDead=(sp.x-DEAD_WORLD.x)**2+(sp.z-DEAD_WORLD.z)**2<500*500;
+  worldRealm=_inDead?'dead':'overworld';
+  _lastChunkX=99999;_lastChunkZ=99999;
   for(let i=mobs.length-1;i>=0;i--){_scene.remove(mobs[i].mesh);disposeMob(mobs[i]);}
   mobs.length=0;mobSpawnTimer=5;
   if(session.difficulty==='normal'){for(let i=1;i<INV_SIZE;i++)ITEMS[i]=null;buildItembar();}
@@ -11391,6 +11396,10 @@ function setupDesktopInput(){
     }
   });
   document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='ShiftLeft')sprinting=false;if(e.code==='Space')_flyUp=false;});
+  // wyczysc wcisniete klawisze gdy okno traci fokus / wyjscie z pointer-lock (np. Esc w biegu) - bez "samobieznego" ruchu
+  const _clearKeys=()=>{for(const k in keys)keys[k]=false;sprinting=false;_flyUp=false;};
+  window.addEventListener('blur',_clearKeys);
+  document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement)_clearKeys();});
   document.addEventListener('click',()=>{if(!document.pointerLockElement)document.body.requestPointerLock();});
   document.addEventListener('mousemove',e=>{
     if(!document.pointerLockElement)return;
@@ -11637,16 +11646,16 @@ function updatePlayer(dt,camera){
   }
   const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
   camera.quaternion.copy(quat);
-  updateUnderwater();
+  updateUnderwater(dt);
 }
 let _swimming=false,_underwater=false;
 let _drownTimer=0;
-function updateUnderwater(){
+function updateUnderwater(dt){
+  dt=Math.min(dt||1/60,0.1);  // realny czas (tlen niezalezny od FPS), z limitem na spadki klatek
   const ov=document.getElementById('underwater-overlay');
   const bb=document.getElementById('breath-bar');
   const bf=document.getElementById('breath-fill');
   if(!ov)return;
-  const dt=1/60;
   if(_underwater){
     ov.classList.add('show');
     if(playerClass==='atlantyda'){
