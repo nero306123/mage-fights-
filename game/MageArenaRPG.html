@@ -5755,6 +5755,8 @@ function buildPyramid(scene,cx,cz){
   const cyanMat=new THREE.MeshStandardMaterial({color:0x22aacc,emissive:0x22aacc,emissiveIntensity:0.3,roughness:0.7});
 
   // === 1. STEPPED PYRAMID - 8 levels with decorative bands ===
+  // kolizja litej bryly (promien zostawia wejscie od frontu z=17 dostepne)
+  addPropCol(cx,cz,13.5);
   for(let i=0;i<8;i++){
     const s=32-i*3.5,h=3.2;
     addBox(grp,s,h,s,0,i*h+h/2,0,sand);
@@ -6160,6 +6162,8 @@ function buildIceTower(scene,cx,cz){
   // podstawa - lodowy fundament
   const base=new THREE.Mesh(new THREE.CylinderGeometry(8,9,2,10),iceDark);
   base.position.y=1;grp.add(base);
+  addPropCol(cx,cz,6.5); // kolizja litej wiezy
+
   // wieza z detalami
   for(let lvl=0;lvl<6;lvl++){
     const r=5.5-lvl*0.75;
