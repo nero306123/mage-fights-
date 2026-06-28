@@ -3385,7 +3385,7 @@ function useClassAbility(abilityId){
     }else if(abilityId==='war_cry'){
       if(strength<50){toast('Za malo sily');return;}
       strength-=50;
-      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12)m.dmgMul*=0.6;});
+      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<12){m.dmgMul=0.6;setTimeout(()=>{if(m)m.dmgMul=1.0;},10000);}});
       toast('Okrzyk Wojenny! Wrogowie oslabieni');classAbilityCd=now+15000;
     }else if(abilityId==='shield'){
       if(strength<40){toast('Za malo sily');return;}
@@ -3421,7 +3421,7 @@ function useClassAbility(abilityId){
       if(decay<20){toast('Za malo rozkladu (20)');return;}
       decay-=20;
       let hit=0;
-      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){m.dmgMul*=0.6;hit++;}});
+      mobs.forEach(m=>{if(m.mesh.position.distanceTo(_camera.position)<10){m.dmgMul=0.6;setTimeout(()=>{if(m)m.dmgMul=1.0;},8000);hit++;}});
       toast('Aura Strachu! -40% dmg wrogow ('+hit+' celow)');nieAbilCd[abilityId]=now+15000;
     }else if(abilityId==='plague_wave'){
       if(decay<10){toast('Za malo rozkladu');return;}
@@ -8073,7 +8073,8 @@ function getMeleeDmg(){
   if(playerClass==='nieumarly'){
     dmg+=Math.floor(decay*0.08+decayTotalGained*0.0005+xpState.level*0.6);
   }
-  return dmg;
+  dmg*=dmgBoostMul();  // buffy/debuffy obrazen tez dzialaja na walke wrecz
+  return Math.round(dmg);
 }
 function spawnSlashArc(){
   if(!_scene||!_camera)return;
@@ -8632,6 +8633,11 @@ function doAOE(pos,radius,dmg,color){
   for(let j=mobs.length-1;j>=0;j--){
     const m=mobs[j];const d=pos.distanceTo(m.mesh.position);
     if(d<radius)damageMob(j,Math.round(dmg*(1-d/radius*0.5)));
+  }
+  // AoE trafia takze bossow (wczesniej splash ich pomijal)
+  for(let j=bosses.length-1;j>=0;j--){
+    const b=bosses[j];const d=pos.distanceTo(b.mesh.position);
+    if(d<radius)damageBoss(j,Math.round(dmg*(1-d/radius*0.5)));
   }
   // visual ring
   const ring=new THREE.Mesh(new THREE.TorusGeometry(radius*0.5,0.15,6,16),
@@ -10896,7 +10902,8 @@ function updateBossProjectiles(dt,camera){
     p.mesh.position.x+=p.vel.x*dt;p.mesh.position.z+=p.vel.z*dt;
     p.life-=dt;
     const dx=camera.position.x-p.mesh.position.x,dz=camera.position.z-p.mesh.position.z;
-    if(dx*dx+dz*dz<2.5*2.5){
+    const dy=camera.position.y-p.mesh.position.y;
+    if(dx*dx+dz*dz<2.5*2.5&&Math.abs(dy)<3.5){  // uwzglednij wysokosc - latajacy gracz nie obrywa od pociskow z ziemi
       hurtPlayer(p.dmg);
       if(p.spell==='curse'){statusEffects.push({type:'dmgBoost',until:performance.now()+8000,value:0.6});toast('Klatwa Faraona! -40% dmg');}
       if(p.spell==='stun'){playerStunUntil=performance.now()+2500;toast('Ogluszenie!');}
@@ -11340,7 +11347,14 @@ function spellDmgMul(){
     if(sp&&sp.elem==='ice')mul*=1.2;
     if(_swimming)mul*=1.6;   // Atlanta zadaje duzo wiecej obrazen w wodzie
   }
+  mul*=dmgBoostMul();        // aktywne buffy/debuffy obrazen (szal, furia, klatwa...)
   return mul;
+}
+// mnoznik z aktywnych efektow dmgBoost (buffy >1, debuffy <1) - wczesniej kompletnie ignorowane
+function dmgBoostMul(){
+  const now=performance.now();let m=1;
+  for(const e of statusEffects){if(e.type==='dmgBoost'&&e.until>now)m*=e.value;}
+  return m;
 }
 
 // ═══ INPUT ══════════════════════════════════════════
@@ -11670,7 +11684,8 @@ function updateHunger(dt){
   if(adminInfMana){player.mana=player.maxMana;}
   if(godMode){hunger=100;return;}
   hunger=Math.max(0,hunger-HUNGER_RATE*dt);
-  if(hunger<=0&&!playerDead){player.hp-=dt;if(player.hp<=0){player.hp=0;playerDeath();}}
+  // glodzenie: realny drenaz (skaluje sie z max HP) - wczesniej ~1 HP/s, negowane przez regen
+  if(hunger<=0&&!playerDead){player.hp-=Math.max(4,player.maxHp*0.015)*dt;if(player.hp<=0){player.hp=0;playerDeath();}}
   _hungerWarnTimer-=dt;
   if(hunger<20&&_hungerWarnTimer<=0){toast('Jestes glodny!');_hungerWarnTimer=15;}
 }
