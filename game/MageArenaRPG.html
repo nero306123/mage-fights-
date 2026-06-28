@@ -5436,6 +5436,10 @@ function buildDragonLair(scene,cx,cz){
   for(let i=0;i<4;i++){
     addBox(grp,22-i*2,3+rng(),2+rng(),-0.5+rng(),4+i*3,-12-rng()*0.5,rock);
   }
+  // kolizja scian jaskini (boki + tyl) - wejscie od frontu (z>+6) zostaje otwarte
+  _wallBoxes.push({minX:cx-12,maxX:cx-8.5,minZ:cz-12,maxZ:cz+6}); // lewa sciana
+  _wallBoxes.push({minX:cx+8.5,maxX:cx+12,minZ:cz-12,maxZ:cz+6}); // prawa sciana
+  _wallBoxes.push({minX:cx-11,maxX:cx+11,minZ:cz-13.5,maxZ:cz-11}); // tylna sciana
   // Rock arch ceiling connecting both sides
   for(let i=0;i<7;i++){
     const span=20-i*1.2;
