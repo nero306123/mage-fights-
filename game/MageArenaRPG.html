@@ -7195,7 +7195,7 @@ function renderPointsPage(){
     // info o rozkladzie
     const dInfo=document.createElement('div');dInfo.className='cp-attr';
     dInfo.innerHTML=`<span style="font-size:18px">🧟</span>
-      <span class="cp-attr-name">Status Rozkladu<br><span class="cp-attr-desc">Rozklad: ${Math.round(decay)}/${Math.round(maxDecay)} | Calkowity: ${Math.round(decayTotalGained)} | Bonus DMG: +${Math.floor(decay*0.06+decayTotalGained*0.00004)}</span></span>
+      <span class="cp-attr-name">Status Rozkladu<br><span class="cp-attr-desc">Rozklad: ${Math.round(decay)}/${Math.round(maxDecay)} | Calkowity: ${Math.round(decayTotalGained)} | Bonus DMG: +${Math.floor(decay*0.08+decayTotalGained*0.0005+xpState.level*0.6)}</span></span>
       <span class="cp-attr-pips" style="color:#5a8a3a"></span>`;
     at.appendChild(dInfo);
   }
