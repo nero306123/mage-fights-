@@ -2404,7 +2404,7 @@ document.getElementById('comp-mode-btn').addEventListener('click',()=>{
 // ═══ JAZDA / LATANIE NA WIERZCHOWCU ════════════════════
 let riding=null, _flyUp=false;
 const FLY_MOUNTS=['moltres','eagle','dragon','dragon_common'];
-const RIDEABLE=['moltres','eagle','horse','lion','arcticwolf','wolf','bear','raptor','small_dino','tiger','dragon_common'];
+const RIDEABLE=['moltres','eagle','horse','lion','arcticwolf','wolf','bear','raptor','small_dino','saber_tiger','dragon_common'];
 function canRideComp(c){return c&&(RIDEABLE.includes(c.type.id)||FLY_MOUNTS.includes(c.type.id));}
 function isFlyMount(c){return c&&FLY_MOUNTS.includes(c.type.id);}
 function toggleRide(){
@@ -4690,9 +4690,14 @@ function buildCastle(scene,cx,cz){
     addBox(grp,wall.w,10,wall.d,wall.x,8,wall.z,dark);
     // gzyms na gorze sciany
     addBox(grp,wall.w+0.6,0.5,wall.d+0.6,wall.x,13.2,wall.z,trimM);
+    // kolizja sciany zamku
+    _wallBoxes.push({minX:cx+wall.x-wall.w/2,maxX:cx+wall.x+wall.w/2,minZ:cz+wall.z-wall.d/2,maxZ:cz+wall.z+wall.d/2});
   }
   // front z brama
   addBox(grp,14,10,2.5,-16,8,23,dark);addBox(grp,14,10,2.5,16,8,23,dark);
+  // kolizja frontu (po bokach bramy)
+  _wallBoxes.push({minX:cx-16-7,maxX:cx-16+7,minZ:cz+23-1.25,maxZ:cz+23+1.25});
+  _wallBoxes.push({minX:cx+16-7,maxX:cx+16+7,minZ:cz+23-1.25,maxZ:cz+23+1.25});
   addBox(grp,10,3.5,1.5,0,11.2,23,dark);
   // brama lukowa
   const archMat=matStone(0x3a2a2a,0.9);
@@ -4705,6 +4710,7 @@ function buildCastle(scene,cx,cz){
   // 4 wieze narozne z detalami
   const tw=[[-23,-23],[23,-23],[-23,23],[23,23]];
   for(const[tx,tz]of tw){
+    addPropCol(cx+tx,cz+tz,4.0); // kolizja wiezy narożnej
     // wieza podstawa
     const t1=new THREE.Mesh(new THREE.CylinderGeometry(4,4.5,6,8),dark);
     t1.position.set(tx,6,tz);t1.castShadow=!isMobile;grp.add(t1);
@@ -5075,6 +5081,8 @@ function buildCemetery(scene,cx,cz){
   const mW=11,mH=9,mD=11;
   // main structure
   addBox(grp,mW,mH,mD,0,mH/2,0,matStone(0x484848,0.95));
+  // kolizja mauzoleum (lity blok)
+  _wallBoxes.push({minX:cx-mW/2,maxX:cx+mW/2,minZ:cz-mD/2,maxZ:cz+mD/2});
   // stepped base
   addBox(grp,mW+2,0.5,mD+2,0,0.25,0,darkStone);
   addBox(grp,mW+1,0.5,mD+1,0,0.75,0,darkStone);
@@ -6503,8 +6511,10 @@ function buildWampirCave(scene,cx,cz){
     const h=3+Math.random()*5;const w=1.8+Math.random()*2.2;
     const wm=Math.random()>0.6?mossRock:rock;
     const wall=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),wm);
-    wall.position.set(cx+Math.cos(a)*r,baseH+h*0.5,cz+Math.sin(a)*r);
+    const wpx=cx+Math.cos(a)*r,wpz=cz+Math.sin(a)*r;
+    wall.position.set(wpx,baseH+h*0.5,wpz);
     wall.rotation.y=a+Math.random()*0.3;wall.castShadow=true;scene.add(wall);
+    addPropCol(wpx,wpz,w*0.5); // kolizja sciany jaskini
     if(Math.random()>0.5){const extra=new THREE.Mesh(new THREE.DodecahedronGeometry(w*0.5,0),rock);
       extra.position.set(cx+Math.cos(a)*(r-1),baseH+h*0.7+Math.random(),cz+Math.sin(a)*(r-1));scene.add(extra);}
   }
@@ -6576,7 +6586,7 @@ function buildWampirCave(scene,cx,cz){
     web.rotation.y=a;scene.add(web);}
   _wampirCave=new THREE.Vector3(cx,baseH+EYE_H,cz);
   LANDMARKS.wampir_cave={x:cx,z:cz,name:'Jaskinia Wampira'};
-  STRUCT_CLEARINGS.push({x:cx,z:cz,r:22});
+  // polana juz zarejestrowana statycznie w STRUCT_CLEARINGS (50,1850) - bez duplikatu
 }
 function buildLeviathanLair(scene,cx,cz){
   const grp=new THREE.Group();scene.add(grp);
@@ -6727,7 +6737,7 @@ function buildStructures(scene){
   for(let i=0;i<3;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*15;
     spawnChest(scene,vx+Math.cos(a)*r,vz+Math.sin(a)*r,0);}
   const cx=LANDMARKS.cemetery.x,cz=LANDMARKS.cemetery.z;
-  spawnChest(scene,cx+5,cz+3,1);spawnChest(scene,cx-4,cz-6,1);
+  spawnChest(scene,cx+8,cz+8,1);spawnChest(scene,cx-8,cz+8,1);
   const lx=LANDMARKS.lair.x,lz=LANDMARKS.lair.z;
   spawnChest(scene,lx+2,lz-3,2);spawnChest(scene,lx-3,lz+2,2);
   const kx=LANDMARKS.castle.x,kz=LANDMARKS.castle.z;
@@ -7541,13 +7551,13 @@ const MAX_WORLDS = 5;
 
 function serializeWorld(){
   const pos = _camera ? {x:_camera.position.x, y:_camera.position.y, z:_camera.position.z} : {x:0,y:30,z:0};
-  const yaw = _camera ? _camera.rotation.y : 0;
+  const camYaw = yaw, camPitch = pitch;
   return JSON.stringify({
     v: 2,
     time: Date.now(),
     playerClass,
     difficulty: session.difficulty||'normal',
-    pos, yaw,
+    pos, yaw:camYaw, pitch:camPitch,
     player: {hp:player.hp,maxHp:player.maxHp,mana:player.mana,maxMana:player.maxMana,
              manaRegen:player.manaRegen,gold:player.gold,wandTier:player.wandTier},
     xpState: {...xpState},
@@ -7574,7 +7584,8 @@ function deserializeWorld(json){
     playerClass = d.playerClass||'mag';
     if(_camera && d.pos){
       _camera.position.set(d.pos.x, d.pos.y, d.pos.z);
-      if(d.yaw) _camera.rotation.y = d.yaw;
+      if(d.yaw!=null) yaw = d.yaw;
+      if(d.pitch!=null) pitch = d.pitch;
     }
     Object.assign(player, d.player||{});
     if(d.xpState) Object.assign(xpState, d.xpState);
