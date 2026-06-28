@@ -6261,6 +6261,7 @@ function buildSpiderNest(scene,cx,cz){
     const a=(i/8)*Math.PI*2,r=14;
     const tx=Math.cos(a)*r,tz=Math.sin(a)*r;
     addBox(grp,0.7,8,0.7,tx,4,tz,darkWood);
+    addPropCol(cx+tx,cz+tz,0.6); // kolizja martwego drzewa
   }
   // pajeczyny - plaszczyzny
   for(let i=0;i<10;i++){
@@ -6320,6 +6321,7 @@ function buildLavaForge(scene,cx,cz){
     const a=(i/6)*Math.PI*2,r=12;
     const px=Math.cos(a)*r,pz=Math.sin(a)*r;
     addBox(grp,2,8,2,px,4,pz,obsidian);
+    addPropCol(cx+px,cz+pz,1.3); // kolizja filara kuzni
     const cap=new THREE.Mesh(new THREE.ConeGeometry(1.8,2,4),obsidian);
     cap.position.set(px,9,pz);cap.rotation.y=a;grp.add(cap);
     const ring=new THREE.Mesh(new THREE.TorusGeometry(1.2,0.15,6,8),lavaMat);
@@ -6402,6 +6404,7 @@ function buildSacredGrove(scene,cx,cz){
     const tH=10+Math.random()*4;
     const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.4,tH,7),trunkMat);
     trunk.position.set(tx,tH/2,tz);grp.add(trunk);
+    addPropCol(cx+tx,cz+tz,1.2); // kolizja pradawnego drzewa
     // naziemne korzenie
     for(let k=0;k<4;k++){
       const ka=a+k*0.5-0.75;const kl=2+Math.random()*2;
@@ -7108,12 +7111,13 @@ function useConsumable(idx){
   buildItembar();buildInvGrid();
 }
 function addToInventory(def){
+  const add=def.count||1;  // respektuj ilosc (np. lowienie daje 2 ryby, dropy x N)
   for(let i=1;i<INV_SIZE;i++){
     const it=ITEMS[i];
-    if(it&&it.id===def.id&&(it.type==='consumable'||it.type==='food'||it.type==='resource')){it.count++;buildItembar();return true;}
+    if(it&&it.id===def.id&&(it.type==='consumable'||it.type==='food'||it.type==='resource')){it.count+=add;buildItembar();return true;}
   }
   for(let i=1;i<INV_SIZE;i++){
-    if(!ITEMS[i]){ITEMS[i]={...def,count:1};buildItembar();return true;}
+    if(!ITEMS[i]){ITEMS[i]={...def,count:add};buildItembar();return true;}
   }
   toast('Ekwipunek pelny');return false;
 }
@@ -7907,8 +7911,10 @@ function renderCraftPanel(){
       const result={...r,count:1};
       if(!addToInventory(result)){toast('Plecak pelny!');return;}
       r.need.forEach(n=>{
-        for(let i=0;i<INV_SIZE;i++){const it=ITEMS[i];
-          if(it&&it.id===n.id){it.count-=n.count;if(it.count<=0)ITEMS[i]=null;break;}}
+        // zuzyj n.count materialu rozlozonego po wielu slotach (bez darmowego craftu)
+        let rem=n.count;
+        for(let i=0;i<INV_SIZE&&rem>0;i++){const it=ITEMS[i];
+          if(it&&it.id===n.id){const t=Math.min(rem,it.count);it.count-=t;rem-=t;if(it.count<=0)ITEMS[i]=null;}}
       });
       toast('Stworzono: '+r.name);
       renderCraftPanel();buildItembar();
@@ -10092,6 +10098,7 @@ function killMob(idx){
   const m=mobs[idx];
   xpState.kills++;destroyed++;
   player.gold+=m.type.gold;
+  giveXP(m.type.xp||10);  // XP za zabicie zwyklego moba (wczesniej tylko bossy dawaly XP)
   if(quest.active&&!quest.done&&m.type.id===quest.target){
     quest.have++;
     if(quest.have>=quest.need){quest.done=true;toast('Zadanie ukonczone! Wroc do zleceniodawcy');}
@@ -10899,7 +10906,7 @@ function updateBossProjectiles(dt,camera){
   }
 }
 function spawnBoss(scene,type,x,z){
-  if(bossSpawned[type.id])return;
+  if(bossSpawned[type.id]===true)return; // juz aktywny
   const h=type.water?SEA_LEVEL-2.5:terrainHeight(x,z);
   const mesh=buildBossMesh(type);mesh.position.set(x,h,z);scene.add(mesh);
   const hpBar=createMobHPBar();hpBar.group.position.y=type.height+1;mesh.add(hpBar.group);
@@ -10974,6 +10981,8 @@ function killBoss(idx){
     toast('+40 Rozklad za bossa!');
   }
   _scene.remove(b.mesh);
+  // respawn po cooldownie (2 min) gdy gracz wroci w poblize - boss nie znika na zawsze
+  bossSpawned[b.type.id]=performance.now()+120000;
   bosses.splice(idx,1);
   if(bosses.length===0)document.getElementById('boss-bar').classList.remove('show');
 }
@@ -12343,7 +12352,9 @@ function initWorld(){
     }else{ipEl.classList.remove('show');}
     // boss spawn proximity check
     for(const bt of BOSS_TYPES){
-      if(bossSpawned[bt.id])continue;
+      const bs=bossSpawned[bt.id];
+      if(bs===true)continue;                                   // aktywny
+      if(typeof bs==='number'&&performance.now()<bs)continue;  // w trakcie cooldownu
       const lm=LANDMARKS[bt.struct];if(!lm)continue;
       const dx=camera.position.x-lm.x,dz=camera.position.z-lm.z;
       if(dx*dx+dz*dz<30*30)spawnBoss(scene,bt,lm.x,lm.z);
