@@ -12170,6 +12170,19 @@ function initWorld(){
   _scene=scene;_camera=camera;_renderer=renderer;
   setLoadProgress(20,'Budowanie atmosfery...');
   setupAtmosphere(scene);setupLighting(scene);
+  // ── MAPA SRODOWISKA (delikatne odbicia na kamieniu/metalu - mniej "plaski" wyglad) ──
+  if(!isMobile){try{
+    const pmrem=new THREE.PMREMGenerator(renderer);pmrem.compileEquirectangularShader();
+    const envScene=new THREE.Scene();
+    const eg=new THREE.SphereGeometry(50,16,12);
+    const em=new THREE.ShaderMaterial({side:THREE.BackSide,
+      vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'varying vec3 vP;void main(){float h=normalize(vP).y*0.5+0.5;vec3 c=mix(vec3(0.32,0.40,0.52),vec3(0.62,0.74,0.92),h);c=mix(c,vec3(0.85,0.82,0.7),pow(h,3.0)*0.5);gl_FragColor=vec4(c,1.0);}'});
+    envScene.add(new THREE.Mesh(eg,em));
+    const envRT=pmrem.fromScene(envScene,0.04);
+    scene.environment=envRT.texture;
+    eg.dispose();em.dispose();pmrem.dispose();
+  }catch(e){}}
   setLoadProgress(30,'Budowanie wody...');
   buildWater(scene);
   setLoadProgress(40,'Budowanie roslinnosci...');
