@@ -1720,6 +1720,7 @@ const STRUCT_CLEARINGS=[
   {x:1200,z:-1600,r:42},    // gniazdo pajakow
   {x:-1400,z:1500,r:48},    // kuznia lawy
   {x:600,z:-500,r:45},      // swiety gaj
+  {x:50,z:1850,r:30},       // jaskinia wampira
 ];
 function inClearing(x,z){
   for(const c of STRUCT_CLEARINGS){const dx=x-c.x,dz=z-c.z;if(dx*dx+dz*dz<c.r*c.r)return true;}
@@ -3598,7 +3599,10 @@ function buildChunk(scene,cx,cz){
   const pos=geo.attributes.position;const colors=new Float32Array(pos.count*3);
   for(let i=0;i<pos.count;i++){
     const wx=ox+pos.getX(i),wz=oz+pos.getZ(i);const c=terrainCore(wx,wz);
-    pos.setY(i,c.h);
+    // WAZNE: uzywaj terrainHeight (z polanami i basenami) by wizualny teren = kolizja gracza/mobow
+    const realH=terrainHeight(wx,wz);
+    pos.setY(i,realH);
+    c.h=realH;
     let cr=c.r,cg=c.g,cb=c.b;
     const t=THREE.MathUtils.clamp((c.h+6)/26,0,1);
     const noise=(Math.sin(wx*0.37+wz*0.29)*0.5+Math.cos(wx*0.19-wz*0.42)*0.5)*0.04;
@@ -3646,6 +3650,24 @@ const _rockPositions=[];
 const _smallStones=[];
 const _mushPositions=[];   // grzyby z scenerii (do zbierania)
 const _boulderPositions=[]; // duze glazy (do kopania kilofem)
+const _propCols=[];        // solidne kolizje cylindryczne dla dekoracji (studnia, kramy, posagi, filary)
+function addPropCol(x,z,r){_propCols.push({x,z,r});}
+// jednolite wypchniecie z cylindrycznych kolizji (drzewa, glazy, kamienie, dekoracje)
+function resolveCylCollisions(px,pz,radius){
+  for(const t of _treePositions){if(t.destroyed)continue;
+    const dx=px-t.x,dz=pz-t.z,d=Math.sqrt(dx*dx+dz*dz),m=radius+t.r;
+    if(d<m&&d>0.0001){const p=(m-d)/d;px+=dx*p;pz+=dz*p;}}
+  for(const t of _boulderPositions){if(t.destroyed)continue;
+    const r=1.6*(t.bs||1)*0.5+0.4;const dx=px-t.x,dz=pz-t.z,d=Math.sqrt(dx*dx+dz*dz),m=radius+r;
+    if(d<m&&d>0.0001){const p=(m-d)/d;px+=dx*p;pz+=dz*p;}}
+  for(const t of _rockPositions){if(t.destroyed)continue;
+    const dx=px-t.x,dz=pz-t.z,d=Math.sqrt(dx*dx+dz*dz),m=radius+t.r*0.8;
+    if(d<m&&d>0.0001){const p=(m-d)/d;px+=dx*p;pz+=dz*p;}}
+  for(const t of _propCols){
+    const dx=px-t.x,dz=pz-t.z,d=Math.sqrt(dx*dx+dz*dz),m=radius+t.r;
+    if(d<m&&d>0.0001){const p=(m-d)/d;px+=dx*p;pz+=dz*p;}}
+  return{x:px,z:pz};
+}
 const TREE_RADIUS=0.8;
 const ROCK_RADIUS=0.5;
 let _imTrunk=null,_imLeaf=null,_imRock=null,_imJTrunk=null,_imJLeaf=null,_imMush=null,_imMushCap=null,_imBoulder=null;
@@ -4501,6 +4523,7 @@ function buildVillage(scene,cx,cz){
   addBox(well,0.2,2.0,0.2,1.0,1.5,0,matStone(0x5a4030,0.9));
   const wroof=new THREE.Mesh(new THREE.ConeGeometry(1.5,0.9,4),matStone(0x6a3020,0.8));
   wroof.position.y=2.9;wroof.rotation.y=Math.PI/4;well.add(wroof);
+  addPropCol(cx,cz,1.4); // kolizja studni
   // ognisko centralne (rynek)
   const fire=new THREE.Mesh(new THREE.ConeGeometry(0.5,0.9,6),new THREE.MeshBasicMaterial({color:0xff8822}));
   fire.position.set(5,0.5,5);grp.add(fire);
@@ -4510,6 +4533,7 @@ function buildVillage(scene,cx,cz){
   const awnCols=[0xcc4444,0x4488cc,0x44aa66];
   for(let i=0;i<3;i++){
     const lx=-6+i*4.5, lz=8;
+    addPropCol(cx+lx,cz+lz,1.5); // kolizja kramu
     // blat
     addBox(grp,2.6,0.18,1.4,lx,1.0,lz,stallWood);
     addBox(grp,2.6,0.25,0.18,lx,0.85,lz+0.6,stallLeg); // listwa przednia
@@ -4560,6 +4584,7 @@ function buildVillage(scene,cx,cz){
     const lx=cx+Math.cos(la)*22, lz=cz+Math.sin(la)*22;
     const lh=terrainHeight(lx,lz);
     addBox(grp,0.15,2.5,0.15,lx-cx,lh+1.25-baseH,lz-cz,lampPost);
+    addPropCol(lx,lz,0.35); // kolizja latarni
     addBox(grp,0.5,0.12,0.5,lx-cx,lh+2.5-baseH,lz-cz,matStone(0x5a4a3a,0.8));
     const glow=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.3,0.24),lampGlowM);
     glow.position.set(lx-cx,lh+2.7-baseH,lz-cz);grp.add(glow);
@@ -6669,7 +6694,7 @@ function _registerStruct(scene,x,z,fn,alwaysVisible){
   }
 }
 function buildStructures(scene){
-  _wallBoxes.length=0;_portals.length=0;_portal=null;_structEntries.length=0;_nightWindows.length=0;
+  _wallBoxes.length=0;_portals.length=0;_portal=null;_structEntries.length=0;_nightWindows.length=0;_propCols.length=0;
   _registerStruct(scene,LANDMARKS.village.x,LANDMARKS.village.z,
     ()=>buildVillage(scene,LANDMARKS.village.x,LANDMARKS.village.z));
   _registerStruct(scene,LANDMARKS.castle.x,LANDMARKS.castle.z,
@@ -10163,12 +10188,7 @@ function updateMobs(dt,now,camera,scene){
           else mz2=b.maxZ+MR;
         }
       }
-      for(const t of _treePositions){
-        if(t.destroyed)continue;
-        const tdx=mx2-t.x,tdz=mz2-t.z;const td=Math.sqrt(tdx*tdx+tdz*tdz);
-        const minD=MR+t.r;
-        if(td<minD&&td>0.01){const push=(minD-td)/td;mx2+=tdx*push;mz2+=tdz*push;}
-      }
+      {const r=resolveCylCollisions(mx2,mz2,MR);mx2=r.x;mz2=r.z;}
       m.mesh.position.x=mx2;m.mesh.position.z=mz2;
     }
     const gh=terrainHeight(m.mesh.position.x,m.mesh.position.z);
@@ -11500,12 +11520,8 @@ function updatePlayer(dt,camera){
   let pz=camera.position.z+(-mx*sinY+mz*cosY)*spd;
   px=THREE.MathUtils.clamp(px,-WORLD_HALF,WORLD_HALF);pz=THREE.MathUtils.clamp(pz,-WORLD_HALF,WORLD_HALF);
   const PLAYER_R=0.35;
-  for(const t of _treePositions){
-    if(t.destroyed)continue;
-    const tdx=px-t.x,tdz=pz-t.z;const td=Math.sqrt(tdx*tdx+tdz*tdz);
-    const minD=PLAYER_R+t.r;
-    if(td<minD&&td>0.01){const push=(minD-td)/td;px+=tdx*push;pz+=tdz*push;}
-  }
+  // jednolite kolizje: drzewa, glazy, kamienie, dekoracje struktur
+  {const r=resolveCylCollisions(px,pz,PLAYER_R);px=r.x;pz=r.z;}
   // kolizja ze scianami budynkow (AABB)
   for(const b of _wallBoxes){
     if(px>b.minX-PLAYER_R&&px<b.maxX+PLAYER_R&&pz>b.minZ-PLAYER_R&&pz<b.maxZ+PLAYER_R){
@@ -11571,6 +11587,11 @@ function updatePlayer(dt,camera){
       _scene.add(dp);
       shards.push({mesh:dp,mat:dm,vel:new THREE.Vector3((Math.random()-0.5)*0.5,0.3+Math.random()*0.3,(Math.random()-0.5)*0.5),life:0.4});
     }
+  }
+  // SIATKA BEZPIECZENSTWA: nigdy pod terenem (zapobiega wpadnieciu pod mape)
+  if(!riding){
+    const floorMin=terrainHeight(camera.position.x,camera.position.z)+EYE_H*0.42;
+    if(camera.position.y<floorMin){camera.position.y=floorMin;if(velY<0)velY=0;}
   }
   const quat=new THREE.Quaternion();quat.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
   camera.quaternion.copy(quat);
