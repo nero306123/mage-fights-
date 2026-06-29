@@ -2488,7 +2488,9 @@ let _breath=100;       // tlen pod woda (0-100)
 
 function classSpawn(){
   if(playerClass==='wampir'){return{x:50,z:1850};}
-  if(playerClass==='nekromanta'){return{x:DEAD_WORLD.x+15,z:DEAD_WORLD.z+15,realm:'dead'};}
+  // nekromanta startuje przy cmentarzu w normalnym swiecie (klimat + ladniejszy widok niz pusty Swiat Umarlych),
+  // poza zasiegiem bossa (30); do Swiata Umarlych wejdzie portalem
+  if(playerClass==='nekromanta'){return{x:-340,z:-340};}
   if(playerClass==='atlantyda'){return{x:-100,z:-50};}
   return{x:0,z:0};
 }
