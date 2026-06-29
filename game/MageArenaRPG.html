@@ -7588,6 +7588,7 @@ function serializeWorld(){
     equipSets: equipSets.map(s=>{const o={};for(const k in s)o[k]=s[k]?{...s[k]}:null;return o;}),
     activeSet,
     blocks: placedBlocks.map(b=>({bx:b.bx,by:b.by,bz:b.bz,blockType:b.blockType,rot:b.rot||0,storage:b.storage?b.storage.map(it=>it?{...it}:null):undefined})),
+    openedChests: chests.filter(c=>c.opened).map(c=>({x:Math.round(c.x),z:Math.round(c.z)})),
   });
 }
 
@@ -7641,6 +7642,18 @@ function deserializeWorld(json){
         if(def.bed){block.spawnPoint=true;buildSpawnPoint={x:b.bx,z:b.bz};}
         if(def.chestBlock)block.storage=b.storage||new Array(9).fill(null);
         placedBlocks.push(block);
+      }
+    }
+    // przywroc otwarte skrzynie swiata (inaczej reload = darmowy farm lootu/zlota)
+    if(d.openedChests&&chests){
+      for(const oc of d.openedChests){
+        for(const c of chests){
+          if(Math.abs(c.x-oc.x)<1.5&&Math.abs(c.z-oc.z)<1.5&&!c.opened){
+            c.opened=true;c.storage=new Array(10).fill(null);
+            if(c.mesh.children[1]){c.mesh.children[1].position.y=1.0;c.mesh.children[1].rotation.x=-0.8;}
+            break;
+          }
+        }
       }
     }
     _lastChunkX=99999;
