@@ -1949,15 +1949,16 @@ function chooseDevice(mobileCtrl){
   showScreen('screen-title');
 }
 (function initDeviceScreen(){
+  // UWAGA: wyliczamy lokalnie - 'isMobile' (const) jest deklarowany nizej, wiec uzycie go tutaj
+  // rzucaloby ReferenceError (TDZ) i zatrzymywaloby caly skrypt -> gra sie nie uruchamiala
+  const _dev='ontouchstart' in window||navigator.maxTouchPoints>0||/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const hint=document.getElementById('dev-hint');
-  if(hint)hint.textContent='Wykryto: '+(isMobile?'📱 dotyk':'🖥️ komputer')+' (możesz zmienić)';
+  if(hint)hint.textContent='Wykryto: '+(_dev?'📱 dotyk':'🖥️ komputer')+' (możesz zmienić)';
   const pc=document.getElementById('dev-pc'),ph=document.getElementById('dev-phone');
   if(pc)pc.addEventListener('click',()=>chooseDevice(false));
   if(ph)ph.addEventListener('click',()=>chooseDevice(true));
-  // podswietl wykryte urzadzenie (ale gracz wybiera sam)
-  const det=isMobile?ph:pc;if(det)det.classList.add('device-detected');
-  // ustaw sensowna domyslna klase sterowania na starcie
-  document.body.classList.add(isMobile?'ctrl-mobile':'ctrl-desktop');
+  const det=_dev?ph:pc;if(det)det.classList.add('device-detected');
+  document.body.classList.add(_dev?'ctrl-mobile':'ctrl-desktop');
 })();
 
 // ═══ WORLDS LIST (menu) ═══
