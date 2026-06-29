@@ -700,6 +700,63 @@
     #craft-btn{margin-left:120px}
     #bars{left:52%;bottom:68px}
   }
+
+  /* ════════ WYBOR URZADZENIA ════════ */
+  .device-grid{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;max-width:640px;margin:14px 0 16px}
+  .device-card{width:240px;max-width:42vw;background:linear-gradient(160deg,rgba(36,48,78,.92),rgba(15,21,37,.94));
+    border:2px solid rgba(122,160,220,.3);border-radius:18px;padding:26px 18px;cursor:pointer;
+    transition:.18s;position:relative;overflow:hidden}
+  .device-card:hover{border-color:#e8c86a;transform:translateY(-4px);
+    box-shadow:0 14px 34px rgba(0,0,0,.55),0 0 30px rgba(232,200,106,.2)}
+  .device-card:active{transform:scale(.97)}
+  .device-ic{font-size:62px;line-height:1;margin-bottom:10px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+  .device-name{font-size:21px;font-weight:700;color:#f0e6c8;letter-spacing:1px;margin-bottom:6px}
+  .device-tag{font-size:12px;color:#9aa8c4;line-height:1.4}
+  .device-detected::after{content:'✓ wykryto';position:absolute;top:10px;right:10px;font-size:10px;
+    color:#bfeac0;background:rgba(40,90,50,.55);padding:2px 8px;border-radius:10px;border:1px solid rgba(120,220,140,.4)}
+  .device-hint{font-size:12px;color:#7a89a8;margin-top:2px}
+  @media(max-width:520px){.device-card{width:44vw;padding:20px 10px}.device-ic{font-size:48px}.device-name{font-size:17px}}
+
+  /* ════════ STEROWANIE: pokaz/ukryj wg wyboru gracza ════════ */
+  body.ctrl-desktop #joystick-zone,body.ctrl-desktop #jump-btn,body.ctrl-desktop #cast-btn{display:none!important;pointer-events:none!important}
+  body.ctrl-mobile #joystick-zone{display:block!important}
+  body.ctrl-mobile #jump-btn,body.ctrl-mobile #cast-btn{display:flex!important}
+
+  /* ════════ MENU: animowane gwiezdne tlo ════════ */
+  #menu::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.55;
+    background:
+      radial-gradient(2px 2px at 20% 30%,rgba(232,200,106,.7),transparent),
+      radial-gradient(2px 2px at 70% 65%,rgba(140,180,255,.55),transparent),
+      radial-gradient(1.5px 1.5px at 42% 82%,rgba(255,255,255,.45),transparent),
+      radial-gradient(2px 2px at 85% 22%,rgba(200,140,255,.5),transparent),
+      radial-gradient(1.5px 1.5px at 55% 14%,rgba(120,220,180,.45),transparent),
+      radial-gradient(1.5px 1.5px at 12% 60%,rgba(255,230,150,.4),transparent);
+    background-repeat:repeat;background-size:100% 100%;animation:menuStars 22s linear infinite}
+  @keyframes menuStars{from{transform:translateY(0)}to{transform:translateY(-40px)}}
+
+  /* tytul - zloty gradient + lekki puls */
+  .game-title{background:linear-gradient(180deg,#fff0bd,#e8c86a 48%,#c2922f);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 0 26px rgba(232,200,106,.35));animation:titleGlow 3.6s ease-in-out infinite}
+  @keyframes titleGlow{0%,100%{filter:drop-shadow(0 0 22px rgba(232,200,106,.28))}50%{filter:drop-shadow(0 0 36px rgba(232,200,106,.5))}}
+
+  /* przyciski menu - polysk przy najechaniu */
+  .btn{position:relative;overflow:hidden}
+  .btn::after{content:'';position:absolute;top:0;left:-130%;width:55%;height:100%;
+    background:linear-gradient(110deg,transparent,rgba(255,255,255,.16),transparent);
+    transform:skewX(-20deg);transition:left .55s ease;pointer-events:none}
+  .btn:hover::after{left:140%}
+  .btn.primary{box-shadow:0 6px 20px rgba(30,74,20,.4)}
+
+  /* ════════ ITEMY: ladniejsze sloty hotbara ════════ */
+  #hotbar .slot{background:linear-gradient(160deg,rgba(44,55,82,.9),rgba(18,24,40,.92))!important;
+    border:2px solid rgba(150,170,210,.28);border-radius:11px;
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.07),inset 0 -3px 6px rgba(0,0,0,.35),0 2px 5px rgba(0,0,0,.3);
+    position:relative;transition:transform .12s,border-color .12s,box-shadow .12s}
+  #hotbar .slot>*{filter:drop-shadow(0 2px 3px rgba(0,0,0,.55))}
+  #hotbar .slot:hover{border-color:rgba(232,200,106,.6);transform:translateY(-2px)}
+  #hotbar .slot.active{border-color:#e8c86a;
+    box-shadow:0 0 16px rgba(232,200,106,.45),inset 0 0 10px rgba(232,200,106,.18),0 2px 6px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
@@ -708,7 +765,25 @@
 <div id="menu">
   <button id="fs-menu" title="Pelny ekran">⛶</button>
 
-  <div class="menu-screen active" id="screen-title">
+  <div class="menu-screen active" id="screen-device">
+    <div class="game-title">ARENA RPG</div>
+    <div class="game-sub">Wybierz urządzenie</div>
+    <div class="device-grid">
+      <div class="device-card" id="dev-pc">
+        <div class="device-ic">🖥️</div>
+        <div class="device-name">Komputer</div>
+        <div class="device-tag">Mysz + klawiatura (WASD, mysz = celowanie)</div>
+      </div>
+      <div class="device-card" id="dev-phone">
+        <div class="device-ic">📱</div>
+        <div class="device-name">Telefon / Tablet</div>
+        <div class="device-tag">Dotyk: joystick + przyciski na ekranie</div>
+      </div>
+    </div>
+    <div class="device-hint" id="dev-hint">Wykryto: …</div>
+  </div>
+
+  <div class="menu-screen" id="screen-title">
     <div class="game-title">KRONIKI ŻYWIOŁÓW</div>
     <div class="game-sub">Otwarty Świat RPG</div>
     <button class="btn primary" data-go="screen-class">Nowa Gra</button>
@@ -1862,6 +1937,26 @@ document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=
 }));
 document.getElementById('fs-menu').addEventListener('click',toggleFullscreen);
 document.getElementById('fs-game').addEventListener('click',toggleFullscreen);
+
+// ── EKRAN WYBORU URZADZENIA (telefon / komputer) ──
+function chooseDevice(mobileCtrl){
+  _ctrlMobile=mobileCtrl;
+  document.body.classList.remove('ctrl-mobile','ctrl-desktop');
+  document.body.classList.add(mobileCtrl?'ctrl-mobile':'ctrl-desktop');
+  try{localStorage.setItem('arena_ctrl',mobileCtrl?'m':'d');}catch(e){}
+  showScreen('screen-title');
+}
+(function initDeviceScreen(){
+  const hint=document.getElementById('dev-hint');
+  if(hint)hint.textContent='Wykryto: '+(isMobile?'📱 dotyk':'🖥️ komputer')+' (możesz zmienić)';
+  const pc=document.getElementById('dev-pc'),ph=document.getElementById('dev-phone');
+  if(pc)pc.addEventListener('click',()=>chooseDevice(false));
+  if(ph)ph.addEventListener('click',()=>chooseDevice(true));
+  // podswietl wykryte urzadzenie (ale gracz wybiera sam)
+  const det=isMobile?ph:pc;if(det)det.classList.add('device-detected');
+  // ustaw sensowna domyslna klase sterowania na starcie
+  document.body.classList.add(isMobile?'ctrl-mobile':'ctrl-desktop');
+})();
 
 // ═══ WORLDS LIST (menu) ═══
 let _selectedWorldIdx = -1;
@@ -3509,6 +3604,8 @@ const EYE_H=1.75, WALK_SPD=6, SPRINT_MUL=1.6;
 const GRAVITY=20, JUMP_VEL=8, MOUSE_SENS=0.002, TOUCH_SENS=0.004;
 const SEA_LEVEL=0.5;
 const isMobile='ontouchstart' in window || navigator.maxTouchPoints>0 || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// gracz moze sam wybrac sterowanie na ekranie startowym (telefon/komputer); domyslnie auto-detekcja
+let _ctrlMobile=isMobile;
 const MAX_MOBS=isMobile?12:18;
 const WORLD_SEED=20260617;
 const WORLD_HALF=2800;
@@ -12328,7 +12425,7 @@ function initWorld(){
   buildTargets(scene);
   setLoadProgress(95,'Inicjalizacja sterowania...');
   selectSpell(0);selectItem(0);
-  if(isMobile)setupMobileInput();else setupDesktopInput();
+  if(_ctrlMobile)setupMobileInput();else setupDesktopInput();
   window.addEventListener('resize',()=>{
     camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth,window.innerHeight);
