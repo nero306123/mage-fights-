@@ -750,6 +750,17 @@
   .btn:hover::after{left:140%}
   .btn.primary{box-shadow:0 6px 20px rgba(30,74,20,.4)}
 
+  /* ════════ REKLAMY ════════ */
+  #ad-overlay{position:fixed;inset:0;z-index:99998;background:rgba(2,4,8,.95);
+    display:none;align-items:center;justify-content:center}
+  .ad-box{text-align:center;padding:20px}
+  .ad-tag{color:#e8c86a;font-size:11px;letter-spacing:3px;border:1px solid rgba(232,200,106,.4);
+    border-radius:20px;padding:4px 16px;display:inline-block;margin-bottom:20px}
+  #ad-timer{color:#fff;font-size:28px;font-weight:700;letter-spacing:1px}
+  .ad-note{color:#8a98b8;font-size:13px;margin-top:16px}
+  .btn-reward{background:linear-gradient(180deg,#a86a1e,#7a4a12)!important;
+    border-color:rgba(255,200,100,.6)!important;color:#fff2d8!important}
+
   /* ════════ WYMUSZENIE POZIOMU (mobile) ════════ */
   #rotate-overlay{position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at center,#141d30,#070a12);
     display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
@@ -986,6 +997,14 @@
   <div class="rot-sub">Gra działa w trybie poziomym 🔄</div>
 </div>
 
+<div id="ad-overlay">
+  <div class="ad-box">
+    <div class="ad-tag">REKLAMA</div>
+    <div id="ad-timer">Reklama… 5</div>
+    <div class="ad-note">Dziękujemy za wsparcie 💛</div>
+  </div>
+</div>
+
 <!-- ═══════════════ GAME ═══════════════ -->
 <div id="loading-screen">
   <div class="load-title">Kroniki Żywiołów</div>
@@ -1152,7 +1171,8 @@
     <div class="death-title" id="death-title">SMIERC</div>
     <div class="death-msg" id="death-msg"></div>
     <div class="death-stats" id="death-stats"></div>
-    <button class="btn primary" id="death-respawn">Odrodzenie</button>
+    <button class="btn btn-reward" id="death-revive-ad">📺 Wskrześ się tutaj (reklama)</button>
+    <button class="btn primary" id="death-respawn" style="margin-top:6px">Odrodzenie</button>
     <button class="btn ghost" id="death-menu" style="margin-top:6px">Menu Glowne</button>
   </div>
 </div>
@@ -1925,6 +1945,51 @@ function toast(msg){
   t.textContent=msg;t.classList.add('show');
   clearTimeout(t._timer);t._timer=setTimeout(()=>t.classList.remove('show'),2200);
 }
+// ═══ REKLAMY (gotowe pod portale HTML5 - CrazyGames / GameDistribution / Poki) ═══
+// Po publikacji wystarczy podlaczyc SDK portalu; bez SDK dziala symulacja (lokalnie).
+const AdManager={
+  provider:'none',_busy:false,
+  init(){
+    try{
+      if(window.CrazyGames&&window.CrazyGames.SDK)this.provider='crazygames';
+      else if(window.gdsdk||window.GD_OPTIONS)this.provider='gd';
+      else if(window.PokiSDK)this.provider='poki';
+    }catch(e){}
+  },
+  // reklama pelnoekranowa (interstitial) - przy naturalnej przerwie
+  interstitial(){
+    return new Promise(res=>{
+      if(this._busy)return res();
+      try{
+        if(this.provider==='crazygames'){window.CrazyGames.SDK.ad.requestAd('midgame',{adFinished:res,adError:res,adStarted(){}});return;}
+        if(this.provider==='gd'){window.gdsdk.showAd('interstitial').then(res).catch(res);return;}
+        if(this.provider==='poki'){window.PokiSDK.commercialBreak().then(res).catch(res);return;}
+      }catch(e){}
+      this._sim('Reklama',4,res);
+    });
+  },
+  // reklama z nagroda - bonus za obejrzenie
+  rewarded(onReward){
+    if(this._busy)return;
+    const grant=()=>{try{onReward&&onReward();}catch(e){}};
+    const fail=()=>toast('Reklama niedostępna – spróbuj później');
+    try{
+      if(this.provider==='crazygames'){window.CrazyGames.SDK.ad.requestAd('rewarded',{adFinished:grant,adError:fail,adStarted(){}});return;}
+      if(this.provider==='gd'){window.gdsdk.showAd('rewarded').then(grant).catch(fail);return;}
+      if(this.provider==='poki'){window.PokiSDK.rewardedBreak().then(ok=>ok?grant():fail());return;}
+    }catch(e){}
+    this._sim('Reklama (nagroda)',5,grant);
+  },
+  _sim(label,secs,done){
+    this._busy=true;
+    const ov=document.getElementById('ad-overlay'),t=document.getElementById('ad-timer');
+    if(!ov){this._busy=false;return done&&done();}
+    ov.style.display='flex';let s=secs;t.textContent=label+'… '+s;
+    const iv=setInterval(()=>{s--;t.textContent=label+'… '+Math.max(0,s);
+      if(s<=0){clearInterval(iv);ov.style.display='none';this._busy=false;done&&done();}},1000);
+  }
+};
+AdManager.init();
 function lockLandscape(){
   // proba zablokowania orientacji na pozioma (dziala glownie w pelnym ekranie na Androidzie)
   try{
@@ -11500,8 +11565,26 @@ function respawnPlayer(){
   if(session.difficulty==='normal'){for(let i=1;i<INV_SIZE;i++)ITEMS[i]=null;buildItembar();}
   document.getElementById('death-overlay').style.display='none';
 }
-document.getElementById('death-respawn').addEventListener('click',respawnPlayer);
-document.getElementById('death-menu').addEventListener('click',()=>{location.reload();});
+// wskrzeszenie w miejscu smierci za obejrzenie reklamy (nagroda) - zachowuje ekwipunek i pozycje
+function reviveInPlace(){
+  if(!playerDead)return;
+  playerDead=false;player.hp=player.maxHp;player.mana=player.maxMana;hunger=Math.max(hunger,60);
+  _breath=100;player.lastCast=0;statusEffects.length=0;shieldHP=Math.max(shieldHP,120);
+  for(let i=mobs.length-1;i>=0;i--){if(mobs[i].mesh.position.distanceTo(_camera.position)<11){_scene.remove(mobs[i].mesh);disposeMob(mobs[i]);mobs.splice(i,1);}}
+  document.getElementById('death-overlay').style.display='none';
+  if(typeof _screenShake!=='undefined')_screenShake=0.2;
+  toast('Wskrzeszony! 💛');
+}
+let _deathCount=0;
+function doRespawn(){
+  _deathCount++;
+  // reklama pelnoekranowa co druga smierc (naturalna przerwa)
+  if(_deathCount%2===0)AdManager.interstitial().then(respawnPlayer);
+  else respawnPlayer();
+}
+document.getElementById('death-revive-ad').addEventListener('click',()=>AdManager.rewarded(reviveInPlace));
+document.getElementById('death-respawn').addEventListener('click',doRespawn);
+document.getElementById('death-menu').addEventListener('click',()=>{AdManager.interstitial().then(()=>location.reload());});
 
 function spawnLevelUpEffect(){
   if(!_scene||!_camera)return;
