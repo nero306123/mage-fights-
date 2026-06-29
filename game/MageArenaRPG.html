@@ -8634,6 +8634,17 @@ function castUtil(sp){
     const vx=LANDMARKS.village.x,vz=LANDMARKS.village.z;
     _camera.position.set(vx,terrainHeight(vx,vz)+EYE_H,vz);toast('Portal Krwi - wioska!');
   }else if(sp.id==='przebudzenie'){hasRevive=true;toast('Przebudzenie aktywne!');}
+  // ── Mag: zaklecia ktore wczesniej tylko zuzywaly mane (brak efektu) ──
+  else if(sp.id==='odbicie'){statusEffects.push({type:'reflect',until:now+5000});toast('Odbicie aktywne (5s)!');}
+  else if(sp.id==='lustro_magii'){statusEffects.push({type:'reflect',until:now+4000});toast('Lustro Magii (4s)!');}
+  else if(sp.id==='niewidzialna_tarcza'){shieldHP=Math.max(shieldHP,SHIELD_CAP);statusEffects.push({type:'regen',until:now+3000,value:30});toast('Niewidzialna Tarcza!');}
+  else if(sp.id==='ksiega_wiedzy'){_xpBoostUntil=now+300000;toast('Ksiega Wiedzy: +50% XP na 5 min!');}
+  else if(sp.id==='zaglada'){
+    let killed=0;
+    for(let j=mobs.length-1;j>=0;j--){if(mobs[j].mesh.position.distanceTo(_camera.position)<20){damageMob(j,999999);killed++;}}
+    for(let j=bosses.length-1;j>=0;j--){if(bosses[j].mesh.position.distanceTo(_camera.position)<20)damageBoss(j,4000);}
+    _screenShake=0.4;toast('ZAGLADA! Zniszczono '+killed+' wrogow');
+  }
   else toast(sp.name+': '+(sp.fx||'efekt wkrotce'));
 }
 function removeProjectile(i){
@@ -11328,7 +11339,9 @@ function spawnLevelUpEffect(){
   setTimeout(()=>{flash.style.opacity='0';
     flash.style.background='radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(180,20,20,.4))';},300);
 }
+let _xpBoostUntil=0;
 function giveXP(amount){
+  if(performance.now()<_xpBoostUntil)amount=Math.round(amount*1.5);  // Ksiega Wiedzy +50% XP
   xpState.xp+=amount;
   while(xpState.xp>=xpState.xpNext){
     xpState.xp-=xpState.xpNext;xpState.level++;
