@@ -2362,35 +2362,38 @@ function updateCompanion(dt,camera,scene){
     _scene.add(companionMesh);
   }
   if(riding){updateCompanionHUD();return;}  // jazda obsluguje pozycje wierzchowca
-  const target=camera.position.clone();
-  target.x-=Math.sin(yaw)*3;target.z-=Math.cos(yaw)*3;
-  target.y=terrainHeight(target.x,target.z);
   const cpos=companionMesh.position;
+  // w trybie ataku szukaj najblizszego wroga w poblizu i ruszaj na niego (wczesniej tylko czekal)
+  let tgtIdx=-1,tgtMob=null,tgtD=1e9;
+  if(companionMode==='attack'){
+    for(let i=mobs.length-1;i>=0;i--){const m=mobs[i];if(m.type.passive)continue;
+      const md=m.mesh.position.distanceTo(cpos);
+      // walcz tylko o wrogow w poblizu gracza (nie odbiegaj w nieskonczonosc)
+      if(md<18&&m.mesh.position.distanceTo(camera.position)<26&&md<tgtD){tgtD=md;tgtIdx=i;tgtMob=m;}}
+  }
+  let target;
+  if(tgtMob){target={x:tgtMob.mesh.position.x,z:tgtMob.mesh.position.z};}
+  else{target={x:camera.position.x-Math.sin(yaw)*3,z:camera.position.z-Math.cos(yaw)*3};}
   const dx=target.x-cpos.x,dz=target.z-cpos.z;
   const dist=Math.sqrt(dx*dx+dz*dz);
-  if(dist>2){
+  const stopAt=tgtMob?(companion.type.atkRange+0.5):2;
+  if(dist>stopAt){
     const spd=Math.min(companion.speed*dt,dist);
     cpos.x+=dx/dist*spd;cpos.z+=dz/dist*spd;
   }
   cpos.y=terrainHeight(cpos.x,cpos.z);
-  companionMesh.lookAt(camera.position.x,cpos.y,camera.position.z);
+  const lookAt=tgtMob?tgtMob.mesh.position:camera.position;
+  companionMesh.lookAt(lookAt.x,cpos.y,lookAt.z);
   const nowMs=performance.now();
-  if(companionMode==='attack'&&nowMs-(companion.lastAtk||0)>=(companion.type.atkCd||1.2)*1000){
-    for(let i=mobs.length-1;i>=0;i--){
-      const m=mobs[i];
-      const md=m.mesh.position.distanceTo(cpos);
-      if(md<companion.type.atkRange+1&&!m.type.passive){
-        companion.lastAtk=nowMs;
-        damageMob(i,companion.dmg);
-        companion.xp+=5;
-        if(companion.xp>=companion.xpNext){
-          companion.level++;companion.xp=0;companion.xpNext=Math.round(companion.xpNext*1.5);
-          companion.maxHp=Math.round(companion.maxHp*1.15);companion.hp=companion.maxHp;
-          companion.dmg=Math.round(companion.dmg*1.1);
-          toast(companion.name+' awansowal na poz. '+companion.level+'!');
-        }
-        break;
-      }
+  if(tgtMob&&tgtD<companion.type.atkRange+1.2&&nowMs-(companion.lastAtk||0)>=(companion.type.atkCd||1.2)*1000){
+    companion.lastAtk=nowMs;
+    damageMob(tgtIdx,companion.dmg);
+    companion.xp+=5;
+    if(companion.xp>=companion.xpNext){
+      companion.level++;companion.xp=0;companion.xpNext=Math.round(companion.xpNext*1.5);
+      companion.maxHp=Math.round(companion.maxHp*1.15);companion.hp=companion.maxHp;
+      companion.dmg=Math.round(companion.dmg*1.1);
+      toast(companion.name+' awansowal na poz. '+companion.level+'!');
     }
   }
   updateCompanionHUD();
