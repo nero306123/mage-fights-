@@ -10133,17 +10133,32 @@ function killMob(idx){
   if(playerClass==='czlowiek'){strength=Math.min(maxStrength,strength+10);}
   if(playerClass==='nieumarly'){decay=Math.min(maxDecay,decay+8);}
   // (oswajanie teraz tylko przez przycisk 🤝, nie przypadkowo przy zabiciu)
-  // death particles
-  const pos=m.mesh.position.clone();
-  for(let j=0;j<8;j++){
-    const g=new THREE.OctahedronGeometry(0.14,0);
-    const mt=new THREE.MeshBasicMaterial({color:0x888888,transparent:true,opacity:1});
+  // death particles - kolor zalezny od typu moba (nieumarli/konstrukty szaro, zywe krwawo)
+  const pos=m.mesh.position.clone();const cy=pos.y+m.type.height*0.5;
+  const undeadish=/skelet|zombie|ghost|wieszcz|mummy|golem|widmo|szkiel/i.test(m.type.id+m.type.name);
+  const pcol=undeadish?0xbfc6cc:(m.type.water?0x4a93b8:0xb83a2a);
+  const nP=isMobile?8:14;
+  for(let j=0;j<nP;j++){
+    const g=new THREE.OctahedronGeometry(0.10+Math.random()*0.08,0);
+    const mt=new THREE.MeshBasicMaterial({color:pcol,transparent:true,opacity:1});
     const sh=new THREE.Mesh(g,mt);sh.position.copy(pos);sh.position.y+=0.8;
-    const v=new THREE.Vector3((Math.random()-0.5)*5,Math.random()*4+2,(Math.random()-0.5)*5);
-    _scene.add(sh);shards.push({mesh:sh,mat:mt,vel:v,life:1.0});
+    const v=new THREE.Vector3((Math.random()-0.5)*6,Math.random()*5+2,(Math.random()-0.5)*6);
+    _scene.add(sh);shards.push({mesh:sh,mat:mt,vel:v,life:0.9+Math.random()*0.4});
   }
+  // blysk smierci
+  const flashG=new THREE.SphereGeometry(0.5,8,6);
+  const flashM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.85});
+  const flash=new THREE.Mesh(flashG,flashM);flash.position.copy(pos);flash.position.y=cy;
+  _scene.add(flash);impacts.push({mesh:flash,mat:flashM,t:0,isFlash:true});
+  // pierscien na ziemi
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.08,5,14),
+    new THREE.MeshBasicMaterial({color:pcol,transparent:true,opacity:0.7}));
+  ring.position.set(pos.x,terrainHeight(pos.x,pos.z)+0.1,pos.z);ring.rotation.x=Math.PI/2;
+  _scene.add(ring);impacts.push({mesh:ring,mat:ring.material,t:0,isRing:true,maxR:2.2});
   const gp=pos.clone();gp.y+=m.type.height+0.5;
   floatNumber(gp,'+'+m.type.gold+'🪙','#f0d070');
+  const xp=m.type.xp||10;const xpp=pos.clone();xpp.y+=m.type.height+1.0;
+  floatNumber(xpp,'+'+xp+' XP','#8affd0');
   _scene.remove(m.mesh);disposeMob(m);mobs.splice(idx,1);
 }
 function updateMobs(dt,now,camera,scene){
