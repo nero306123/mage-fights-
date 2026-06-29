@@ -7,8 +7,8 @@
 <title>Kroniki Żywiołów</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{width:100%;height:100%;overflow:hidden;background:#0a0d14;
-    touch-action:none;user-select:none;-webkit-user-select:none;
+  html,body{width:100%;height:100vh;height:100dvh;overflow:hidden;background:#0a0d14;
+    touch-action:none;user-select:none;-webkit-user-select:none;position:fixed;inset:0;
     font-family:'Segoe UI',system-ui,sans-serif}
   canvas{display:block;width:100%;height:100%}
 
@@ -509,14 +509,16 @@
   #inv-trash.armed{border-color:#ff6a6a;color:#ffd0d0;background:rgba(200,50,50,.4);border-style:solid;
     box-shadow:0 0 12px rgba(255,80,80,.3);font-size:14px}
   .inv-slot{width:100%;aspect-ratio:1;
-    background:radial-gradient(circle at 50% 35%,rgba(60,70,98,.5),rgba(10,14,24,.6));
-    border:2px solid rgba(255,255,255,.12);border-radius:9px;
-    display:flex;align-items:center;justify-content:center;font-size:24px;
-    cursor:pointer;position:relative;transition:transform .1s}
+    background:linear-gradient(160deg,rgba(56,68,98,.55),rgba(12,16,28,.7));
+    border:2px solid rgba(255,255,255,.12);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;font-size:26px;
+    cursor:pointer;position:relative;transition:transform .12s,border-color .12s,box-shadow .12s;
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.06),inset 0 -3px 6px rgba(0,0,0,.3)}
+  .inv-slot:hover{transform:translateY(-2px);border-color:rgba(232,200,106,.5)}
   .inv-slot.hotbar-slot{border-color:rgba(232,200,106,.3)}
   .inv-slot.inv-dragging{border-color:#ff6633;box-shadow:0 0 12px rgba(255,100,50,.6);transform:scale(.9)}
   .inv-slot:active{transform:scale(.95)}
-  .inv-ic{line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+  .inv-ic{line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.7))}
   #item-tooltip{position:fixed;z-index:55;background:rgba(10,14,24,.96);
     border:2px solid rgba(120,160,220,.5);border-radius:10px;padding:10px 14px;
     color:#c8d0e0;font-size:12px;max-width:220px;pointer-events:none;display:none;
@@ -2241,6 +2243,8 @@ function buildItembar(){
     let inner=`<span class="slot-key">${i+1}</span>`+(it?it.icon:'');
     if(it&&(it.type==='consumable'||it.type==='food')&&it.count>1)inner+=`<span class="slot-count">${it.count}</span>`;
     slot.innerHTML=inner;
+    // delikatne podswietlenie rzadkosci na slocie (zloty obrys aktywnego ma pierwszenstwo)
+    if(it&&it.rarity&&RARITY[it.rarity]&&i!==player.heldItem){slot.style.borderColor=RARITY[it.rarity].col;}
     slot.addEventListener('click',()=>selectItem(i));
     hb.appendChild(slot);
   }
@@ -12426,10 +12430,20 @@ function initWorld(){
   setLoadProgress(95,'Inicjalizacja sterowania...');
   selectSpell(0);selectItem(0);
   if(_ctrlMobile)setupMobileInput();else setupDesktopInput();
-  window.addEventListener('resize',()=>{
-    camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
-  });
+  // dopasowanie do ekranu - dziala na resize, obrocie ekranu i zmianie paska adresu (mobile)
+  let _resizeRAF=0;
+  function fitToScreen(){
+    if(_resizeRAF)cancelAnimationFrame(_resizeRAF);
+    _resizeRAF=requestAnimationFrame(()=>{
+      const w=window.innerWidth,h=window.innerHeight;
+      camera.aspect=w/h;camera.updateProjectionMatrix();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio,isMobile?1:2));
+      renderer.setSize(w,h,true);
+    });
+  }
+  window.addEventListener('resize',fitToScreen);
+  window.addEventListener('orientationchange',()=>setTimeout(fitToScreen,200));
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',fitToScreen);
   setLoadProgress(100,'Gotowe!');
   setTimeout(()=>{
     document.getElementById('loading-screen').classList.remove('active');
