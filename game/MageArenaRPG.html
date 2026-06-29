@@ -3,7 +3,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Kroniki Żywiołów</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
@@ -750,6 +750,19 @@
   .btn:hover::after{left:140%}
   .btn.primary{box-shadow:0 6px 20px rgba(30,74,20,.4)}
 
+  /* ════════ BEZPIECZNE STREFY (notch/zaokraglone rogi telefonu) ════════ */
+  @supports(padding:max(0px)){
+    #save-btn,#settings-btn{left:max(10px,env(safe-area-inset-left))}
+    #joystick-zone{left:env(safe-area-inset-left)}
+    #fs-game{right:max(10px,env(safe-area-inset-right));top:max(10px,env(safe-area-inset-top))}
+    #minimap{right:max(10px,env(safe-area-inset-right))}
+    #map-btn{right:max(98px,calc(88px + env(safe-area-inset-right)));top:max(10px,env(safe-area-inset-top))}
+    #cast-btn{right:max(18px,calc(8px + env(safe-area-inset-right)))}
+    #jump-btn{right:max(96px,calc(86px + env(safe-area-inset-right)))}
+    #topbar{top:max(8px,env(safe-area-inset-top))}
+    #hotbar{bottom:max(14px,calc(4px + env(safe-area-inset-bottom)))}
+  }
+
   /* ════════ REKLAMY ════════ */
   #ad-overlay{position:fixed;inset:0;z-index:99998;background:rgba(2,4,8,.95);
     display:none;align-items:center;justify-content:center}
@@ -831,7 +844,7 @@
   </div>
 
   <div class="menu-screen active" id="screen-device">
-    <div class="game-title">ARENA RPG</div>
+    <div class="game-title">ELDERFALL</div>
     <div class="game-sub">Wybierz urządzenie</div>
     <div class="device-grid">
       <div class="device-card" id="dev-pc">
@@ -849,8 +862,8 @@
   </div>
 
   <div class="menu-screen" id="screen-title">
-    <div class="game-title">KRONIKI ŻYWIOŁÓW</div>
-    <div class="game-sub">Otwarty Świat RPG</div>
+    <div class="game-title">ELDERFALL</div>
+    <div class="game-sub">Otwarty Świat RPG • Open World RPG</div>
     <button class="btn primary" data-go="screen-class">Nowa Gra</button>
     <button class="btn" data-go="screen-worlds" id="menu-worlds-btn">Moje Swiaty</button>
     <button class="btn" data-go="screen-multi" id="menu-multi-btn">Multiplayer</button>
@@ -11697,8 +11710,8 @@ function dmgBoostMul(){
 function setupDesktopInput(){
   document.addEventListener('keydown',e=>{
     keys[e.code]=true;
-    // Escape: wycofaj sie z otwartego panelu/dialogu zanim otworzysz Ustawienia
-    if(e.code==='Escape'){
+    // Pauza/cofanie: P (zalecane przez CrazyGames - ESC wychodzi z pelnego ekranu) lub ESC jako zapas
+    if(e.code==='Escape'||(e.code==='KeyP'&&!hotseatActive)){
       if(dialogOpen){closeDialog();return;}
       if(chestOpen){closeChestUI();return;}
       if(charOpen){closeCharPanel();return;}
@@ -12616,7 +12629,7 @@ function initWorld(){
     setTimeout(()=>{
       const hint=_ctrlMobile
         ?(gameLang==='en'?'Left joystick: move | Right area: look | tap ⚔ to attack':'Lewy joystick: ruch | Prawy obszar: rozglądanie | ⚔ atak')
-        :(gameLang==='en'?'WASD: move | Mouse: aim | Click: attack | E: interact | Tab: inventory':'WASD: ruch | Mysz: celowanie | LPM: atak | E: interakcja | Tab: ekwipunek');
+        :(gameLang==='en'?'WASD: move | Mouse: aim | Click: attack | E: interact | Tab: inventory | P: pause':'WASD: ruch | Mysz: celowanie | LPM: atak | E: interakcja | Tab: ekwipunek | P: pauza');
       toast(hint);
     },1500);
     const tips=[
