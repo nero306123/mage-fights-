@@ -12598,7 +12598,12 @@ function initWorld(){
   setTimeout(()=>{
     document.getElementById('loading-screen').classList.remove('active');
     document.getElementById('game-ui').classList.add('active');
-    setTimeout(()=>toast(gameLang==='en'?'Left joystick: move | Right area: look':'Lewy joystick: ruch | Prawy obszar: rozgladanie'),1500);
+    setTimeout(()=>{
+      const hint=_ctrlMobile
+        ?(gameLang==='en'?'Left joystick: move | Right area: look | tap ⚔ to attack':'Lewy joystick: ruch | Prawy obszar: rozglądanie | ⚔ atak')
+        :(gameLang==='en'?'WASD: move | Mouse: aim | Click: attack | E: interact | Tab: inventory':'WASD: ruch | Mysz: celowanie | LPM: atak | E: interakcja | Tab: ekwipunek');
+      toast(hint);
+    },1500);
     const tips=[
       'Tip: Press ESC for settings','Tip: Explore different biomes','Tip: Craft better gear',
       'Tip: Find secret scrolls','Tip: Defeat bosses for loot','Tip: Save often!',
