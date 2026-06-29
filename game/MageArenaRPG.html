@@ -11429,6 +11429,21 @@ function dmgBoostMul(){
 function setupDesktopInput(){
   document.addEventListener('keydown',e=>{
     keys[e.code]=true;
+    // Escape: wycofaj sie z otwartego panelu/dialogu zanim otworzysz Ustawienia
+    if(e.code==='Escape'){
+      if(dialogOpen){closeDialog();return;}
+      if(chestOpen){closeChestUI();return;}
+      if(charOpen){closeCharPanel();return;}
+      if(craftOpen){craftOpen=false;document.getElementById('craft-panel').classList.remove('open');return;}
+      if(fullmapOpen){toggleFullMap();return;}
+      if(settingsOpen){settingsOpen=false;document.getElementById('settings-panel').classList.remove('show');return;}
+      settingsOpen=true;document.getElementById('settings-panel').classList.add('show');return;
+    }
+    // modalny dialog/skrzynia: blokuj klawisze akcji (poza E do zamkniecia) - bez nakladania paneli
+    if(dialogOpen||chestOpen){
+      if(e.code==='KeyE'&&dialogOpen)closeDialog();
+      return;
+    }
     if(e.code==='ShiftLeft')sprinting=true;
     if(e.code==='Space'&&_camera){e.preventDefault();doJump(_camera);}
     if(e.code>='Digit1'&&e.code<='Digit9')selectSpellByPos(parseInt(e.code.replace('Digit',''))-1);
@@ -11448,10 +11463,6 @@ function setupDesktopInput(){
     if(e.code==='KeyB'){e.preventDefault();toggleBuildMode();}
     if(e.code==='F5'){e.preventDefault();quickSave();}
     if(e.code==='KeyP'&&hotseatActive){e.preventDefault();switchHotseatPlayer();}
-    if(e.code==='Escape'){
-      settingsOpen=!settingsOpen;
-      document.getElementById('settings-panel').classList.toggle('show',settingsOpen);
-    }
     if(buildMode&&_camera){
       if(e.code==='KeyQ'){e.preventDefault();placeBlock(_camera);}
       if(e.code==='KeyX'){e.preventDefault();removeBlockAt(_camera);}
@@ -11463,7 +11474,7 @@ function setupDesktopInput(){
   const _clearKeys=()=>{for(const k in keys)keys[k]=false;sprinting=false;_flyUp=false;};
   window.addEventListener('blur',_clearKeys);
   document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockElement)_clearKeys();});
-  document.addEventListener('click',()=>{if(!document.pointerLockElement)document.body.requestPointerLock();});
+  document.addEventListener('click',()=>{if(!document.pointerLockElement&&!dialogOpen&&!charOpen&&!craftOpen&&!fullmapOpen&&!chestOpen&&!settingsOpen)document.body.requestPointerLock();});
   document.addEventListener('mousemove',e=>{
     if(!document.pointerLockElement)return;
     yaw-=e.movementX*MOUSE_SENS;pitch-=e.movementY*MOUSE_SENS;
