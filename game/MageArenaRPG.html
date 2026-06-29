@@ -7586,7 +7586,7 @@ function serializeWorld(){
     items: ITEMS.map(it=>it?{...it}:null),
     equipSets: equipSets.map(s=>{const o={};for(const k in s)o[k]=s[k]?{...s[k]}:null;return o;}),
     activeSet,
-    blocks: placedBlocks.map(b=>({bx:b.bx,by:b.by,bz:b.bz,blockType:b.blockType})),
+    blocks: placedBlocks.map(b=>({bx:b.bx,by:b.by,bz:b.bz,blockType:b.blockType,rot:b.rot||0,storage:b.storage?b.storage.map(it=>it?{...it}:null):undefined})),
   });
 }
 
@@ -7625,11 +7625,21 @@ function deserializeWorld(json){
     placedBlocks.length=0;
     if(d.blocks&&_scene){
       for(const b of d.blocks){
-        const def=BLOCK_DEFS.find(bd=>bd.id===b.blockType)||BLOCK_DEFS[0];
-        const mesh=makeBlockMesh(def);
+        const def=BLOCK_DEFS[b.blockType];if(!def)continue;  // BLOCK_DEFS to obiekt, nie tablica - .find() rzucalo blad i caly load sie wywalal
+        const mesh=makeBlockMesh(b.blockType,false);if(!mesh)continue;
         mesh.position.set(b.bx, b.by, b.bz);
+        const rot=b.rot||0;mesh.rotation.y=rot*Math.PI/2;
         _scene.add(mesh);
-        placedBlocks.push({mesh,bx:b.bx,by:b.by,bz:b.bz,blockType:b.blockType});
+        const block={mesh,bx:b.bx,by:b.by,bz:b.bz,blockType:b.blockType,rot};
+        // odtworz kolizje, lozko (punkt odrodzenia) i zawartosc skrzyni
+        if(def.solid){
+          const rotated=rot%2===1;const bw=rotated?def.d:def.w,bd2=rotated?def.w:def.d;
+          block.box={minX:b.bx-bw/2,maxX:b.bx+bw/2,minZ:b.bz-bd2/2,maxZ:b.bz+bd2/2};
+          _wallBoxes.push(block.box);
+        }
+        if(def.bed){block.spawnPoint=true;buildSpawnPoint={x:b.bx,z:b.bz};}
+        if(def.chestBlock)block.storage=b.storage||new Array(9).fill(null);
+        placedBlocks.push(block);
       }
     }
     _lastChunkX=99999;
@@ -8481,7 +8491,7 @@ function castBuff(sp){
   else if(sp.id==='wielkie_leczenie'){player.hp=Math.min(player.maxHp,player.hp+100);toast('+100 HP');}
   else if(sp.id==='przyspieszenie'){buffSpeedUntil=now+8000;toast('Przyspieszenie!');}
   else if(sp.id==='tarcza_many'){shieldHP+=50;toast('Tarcza: 50 dmg');}
-  else if(sp.id==='oczyszczenie'){statusEffects.length=0;toast('Efekty oczyszczone');}
+  else if(sp.id==='oczyszczenie'){for(let i=statusEffects.length-1;i>=0;i--){const e=statusEffects[i];if((e.type==='dmgBoost'&&e.value<1)||['burn','slow','paralyze','freeze','poison'].includes(e.type))statusEffects.splice(i,1);}toast('Negatywne efekty oczyszczone');}
   else if(sp.id==='anielska_tarcza'){shieldHP+=500;statusEffects.push({type:'regen',until:now+15000,value:5});toast('Anielska Tarcza!');}
   else if(sp.id==='tarcza_zywiolu'){shieldHP+=400;toast('Tarcza Zywiolu!');}
   else if(sp.id==='zmartwychwstanie'){hasRevive=true;toast('Zmartwychwstanie aktywne');}
@@ -8552,7 +8562,7 @@ function castUtil(sp){
     _scene.add(l);setTimeout(()=>_scene.remove(l),30000);toast(sp.id==='mroczna_wizja'?'Mroczna Wizja!':'Swiatlo!');}
   else if(sp.id==='klatwa_slabosci'){
     mobs.forEach(m=>{const d=m.mesh.position.distanceTo(_camera.position);
-      if(d<15)m.dmgMul=0.7;});toast('Klatwa Slabosci!');}
+      if(d<15){m.dmgMul=0.7;setTimeout(()=>{if(m)m.dmgMul=1.0;},10000);}});toast('Klatwa Slabosci!');}
   else if(sp.id==='niewidzialnosc_n'){toast('Niewidzialnosc 5s!');}
   else if(sp.id==='odbicie_n'){statusEffects.push({type:'reflect',until:performance.now()+5000});toast('Odbicie aktywne!');}
   else if(sp.id==='klatwa_smierci_n'){
@@ -8679,7 +8689,8 @@ function updateProjectiles(dt){
         if(p.spellId==='eksplozja_dusz')player.hp=Math.min(player.maxHp,player.hp+p.dmg*0.4);
         if(p.spellId==='krwawa_ofiara')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.2));
         if(p.spellId==='klatwa_bolu'){
-          statusEffects.push({type:'dmgBoost',until:performance.now()+5000,value:1.1});
+          // klatwa OSŁABIA trafionego wroga (wczesniej bledne: buffowala gracza i stackowala sie)
+          const cm=mobs[j];if(cm){cm.dmgMul=0.7;setTimeout(()=>{cm.dmgMul=1.0;},5000);}
         }
         if(p.spellId==='dotyk_smierci')player.hp=Math.min(player.maxHp,player.hp+Math.round(mobDmg*0.3));
         if(p.spellId==='apokalipsa'){player.hp=player.maxHp;shieldHP+=500;}
@@ -11222,7 +11233,7 @@ function hurtPlayer(dmg){
   if(playerDead||godMode)return;
   if(shieldHP>0){const absorbed=Math.min(shieldHP,dmg);shieldHP-=absorbed;dmg-=absorbed;
     if(dmg<=0)return;}
-  const g=gearBonus();dmg=Math.round(dmg*(1-g.dmgRed/100));
+  const g=gearBonus();dmg=Math.round(dmg*(1-Math.min(0.85,g.dmgRed/100)));  // limit redukcji 85% (inaczej ciezki pancerz LECZYL przy trafieniu)
   if(playerClass==='atlantyda'&&_swimming)dmg=Math.round(dmg*0.5);  // pol obrazen w wodzie
   // Kolce Cieni: odbicie dmg
   const thorns=statusEffects.find(e=>e.type==='thornsCieni'&&e.until>performance.now());
