@@ -8705,6 +8705,14 @@ function updateProjectiles(dt){
         let mobDmg=p.dmg;
         if(p.spellId==='nekroza'&&!mobs[j].type.passive)mobDmg=Math.round(mobDmg*1.5);
         damageMob(j,mobDmg);spawnImpact(_scene,p.mesh.position,p.color,p.elem);
+        // efekty zywiolow: ogien = DoT (podpalenie), lod/woda = spowolnienie (wczesniej tylko "flavor text")
+        {const cm=mobs[j];const fx=String(p.fx||'');
+         const isBurn=p.elem==='fire'||/podpal|ogie|płon|plon|spalen|lawa|ognis/i.test(fx);
+         const isSlow=p.elem==='ice'||p.elem==='water'||/spowol|zamro|mroz|mróz|lód|slow/i.test(fx);
+         if(isBurn&&cm&&!cm._burning){cm._burning=true;const bd=Math.max(4,Math.round(p.dmg*0.18));let tk=0;
+           const bi=setInterval(()=>{const idx=mobs.indexOf(cm);tk++;if(idx<0||tk>4){clearInterval(bi);if(cm)cm._burning=false;return;}damageMob(idx,bd);},700);}
+         if(isSlow&&cm&&cm.type&&!cm._slowed){cm._slowed=true;cm.speed=cm.type.speed*0.5;
+           setTimeout(()=>{if(cm&&cm.type){cm.speed=cm.type.speed;cm._slowed=false;}},3000);}}
         if(p.fx&&p.fx.includes('AOE')){
           const aoeR=p.fx.includes('12m')?12:p.fx.includes('10m')?10:p.fx.includes('8m')?8:p.fx.includes('5m')?5:6;
           doAOE(p.mesh.position,aoeR,p.dmg*0.5,p.color);
