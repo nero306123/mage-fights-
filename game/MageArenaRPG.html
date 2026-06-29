@@ -6998,6 +6998,7 @@ function renderQuest(body){
     const b=document.createElement('button');b.className='dlg-btn primary';
     b.textContent='Odbierz nagrode';
     b.addEventListener('click',()=>{
+      if(quest.claimed)return;quest.claimed=true;b.disabled=true;  // zapobiega podwojnemu odbiorowi nagrody
       player.gold+=quest.rewardGold;giveXP(quest.rewardXp);
       generateQuest();
       toast('Nagroda odebrana!');closeDialog();
@@ -8160,7 +8161,7 @@ function meleeSwing(){
       mu.picked=true;
       hideInstance(_imMush,mu.stemIdx);
       hideInstance(_imMushCap,mu.capIdx);
-      addToInventory({id:'mushroom',name:'Grzyb',icon:'🍄',type:'food',count:1,heal:15,desc:'Leczy 15 HP'});
+      addToInventory({id:'mushroom',name:'Grzyb',icon:'🍄',type:'food',count:1,effect:{hp:15,hunger:8},desc:'Leczy 15 HP'});
       const wp=new THREE.Vector3(mu.x,mu.h+0.5,mu.z);
       floatNumber(wp,'+1 🍄','#cc4444');
       buildItembar();
@@ -8742,8 +8743,10 @@ function updateImpacts(dt){
     }
   }
 }
+const SHIELD_CAP=800;  // limit oslony - inaczej spamowanie tarcz dawalo nieskonczone EHP
 function updateStatusEffects(dt){
   const now=performance.now();
+  if(shieldHP>SHIELD_CAP)shieldHP=SHIELD_CAP;
   for(let i=statusEffects.length-1;i>=0;i--){
     const e=statusEffects[i];
     if(now>e.until){statusEffects.splice(i,1);continue;}
