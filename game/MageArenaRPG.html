@@ -750,6 +750,32 @@
   .btn:hover::after{left:140%}
   .btn.primary{box-shadow:0 6px 20px rgba(30,74,20,.4)}
 
+  /* ════════ MENU: zywa scena (smok, magiczne kule, latajace przedmioty) ════════ */
+  .menu-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .menu-screen{z-index:1}
+  .mfx-orb{position:absolute;border-radius:50%;filter:blur(46px);opacity:.45}
+  .mfx-orb1{width:360px;height:360px;background:radial-gradient(circle,#3a6bd8,transparent 70%);left:-70px;top:8%;animation:mfxOrb 17s ease-in-out infinite}
+  .mfx-orb2{width:320px;height:320px;background:radial-gradient(circle,#a05ad8,transparent 70%);right:-70px;bottom:6%;animation:mfxOrb 21s ease-in-out infinite reverse}
+  .mfx-orb3{width:260px;height:260px;background:radial-gradient(circle,#d8973a,transparent 70%);left:38%;top:48%;opacity:.3;animation:mfxOrb 25s ease-in-out infinite}
+  @keyframes mfxOrb{0%,100%{transform:translate(0,0)}50%{transform:translate(44px,-34px)}}
+  .mfx-dragon{position:absolute;font-size:88px;top:20%;left:-180px;opacity:.16;
+    filter:drop-shadow(0 0 22px rgba(255,150,70,.5));transform:scaleX(-1);animation:mfxDragon 28s linear infinite}
+  @keyframes mfxDragon{0%{left:-180px;top:22%}50%{top:34%}100%{left:115%;top:14%}}
+  .mfx-rune{position:absolute;font-size:30px;opacity:0;
+    filter:drop-shadow(0 0 9px rgba(232,200,106,.55));animation:mfxRune 9s ease-in-out infinite}
+  .mfx-rune.r1{left:10%;top:62%;animation-delay:0s}
+  .mfx-rune.r2{left:84%;top:30%;animation-delay:1.4s}
+  .mfx-rune.r3{left:22%;top:24%;animation-delay:2.8s}
+  .mfx-rune.r4{left:72%;top:68%;animation-delay:4.1s}
+  .mfx-rune.r5{left:46%;top:78%;animation-delay:5.3s}
+  .mfx-rune.r6{left:60%;top:18%;animation-delay:6.6s}
+  .mfx-rune.r7{left:30%;top:84%;animation-delay:3.5s}
+  .mfx-rune.r8{left:88%;top:54%;animation-delay:7.2s}
+  @keyframes mfxRune{0%{opacity:0;transform:translateY(22px) rotate(-10deg)}
+    25%{opacity:.55}50%{transform:translateY(-16px) rotate(10deg)}
+    75%{opacity:.5}100%{opacity:0;transform:translateY(22px) rotate(-10deg)}}
+  @media(max-width:560px){.mfx-orb{filter:blur(34px)}.mfx-dragon{font-size:64px}.mfx-rune{font-size:24px}}
+
   /* ════════ ITEMY: ladniejsze sloty hotbara ════════ */
   #hotbar .slot{background:linear-gradient(160deg,rgba(44,55,82,.9),rgba(18,24,40,.92))!important;
     border:2px solid rgba(150,170,210,.28);border-radius:11px;
@@ -766,6 +792,21 @@
 <!-- ═══════════════ MENU ═══════════════ -->
 <div id="menu">
   <button id="fs-menu" title="Pelny ekran">⛶</button>
+
+  <div class="menu-fx" aria-hidden="true">
+    <div class="mfx-orb mfx-orb1"></div>
+    <div class="mfx-orb mfx-orb2"></div>
+    <div class="mfx-orb mfx-orb3"></div>
+    <div class="mfx-dragon">🐉</div>
+    <div class="mfx-rune r1">⚔️</div>
+    <div class="mfx-rune r2">🔮</div>
+    <div class="mfx-rune r3">💎</div>
+    <div class="mfx-rune r4">🛡️</div>
+    <div class="mfx-rune r5">🔥</div>
+    <div class="mfx-rune r6">❄️</div>
+    <div class="mfx-rune r7">⚡</div>
+    <div class="mfx-rune r8">🗡️</div>
+  </div>
 
   <div class="menu-screen active" id="screen-device">
     <div class="game-title">ARENA RPG</div>
