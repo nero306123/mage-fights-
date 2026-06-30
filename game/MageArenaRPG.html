@@ -8370,16 +8370,26 @@ function getMeleeDmg(){
 }
 function spawnSlashArc(){
   if(!_scene||!_camera)return;
-  const arcGeo=new THREE.TorusGeometry(0.8,0.03,4,16,Math.PI*0.6);
-  const arcMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.7});
-  const arc=new THREE.Mesh(arcGeo,arcMat);
   const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
-  arc.position.copy(_camera.position).addScaledVector(dir,1.2);
-  arc.position.y-=0.3;
+  const arcGeo=new THREE.TorusGeometry(0.85,0.05,5,20,Math.PI*0.7);
+  const arcMat=new THREE.MeshBasicMaterial({color:0xdff0ff,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false});
+  const arc=new THREE.Mesh(arcGeo,arcMat);
+  arc.position.copy(_camera.position).addScaledVector(dir,1.2);arc.position.y-=0.3;
   arc.lookAt(arc.position.clone().add(dir));
-  arc.rotation.z=Math.random()*0.4-0.2;
-  _scene.add(arc);
-  impacts.push({mesh:arc,mat:arcMat,t:0,isRing:false});
+  arc.rotation.z=Math.random()*0.5-0.25;
+  _scene.add(arc);impacts.push({mesh:arc,mat:arcMat,t:0,isRing:false});
+  // iskry wzdluz ciecia (additive)
+  const right=new THREE.Vector3().crossVectors(dir,_camera.up).normalize();
+  const n=isMobile?4:7;
+  for(let i=0;i<n;i++){
+    const g=new THREE.SphereGeometry(0.03+Math.random()*0.03,4,3);
+    const m=new THREE.MeshBasicMaterial({color:0xcfeaff,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false});
+    const p=new THREE.Mesh(g,m);
+    p.position.copy(_camera.position).addScaledVector(dir,1.0+Math.random()*0.6);
+    p.position.y-=0.3+(Math.random()-0.5)*0.6;p.position.addScaledVector(right,(Math.random()-0.5)*1.2);
+    const v=right.clone().multiplyScalar((Math.random()-0.5)*4);v.y+=(Math.random()-0.5)*2;
+    _scene.add(p);shards.push({mesh:p,mat:m,vel:v,life:0.2+Math.random()*0.15});
+  }
 }
 function meleeSwing(){
   if(playerDead)return;
