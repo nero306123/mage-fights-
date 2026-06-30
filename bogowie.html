@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Panteon Bogów</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:#050309;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#efe6ff;overflow:hidden;}
+  #app{display:flex;flex-direction:column;height:100%;}
+  header{padding:10px 14px 6px;text-align:center;flex:0 0 auto;}
+  header .back{position:absolute;left:14px;top:12px;color:#b79be0;text-decoration:none;font-size:13px;}
+  h1{margin:0;font-size:20px;color:#ffd56b;letter-spacing:.5px;}
+  header .sub{margin:2px 0 0;font-size:11px;color:#8a78ad;}
+  #viewer{position:relative;flex:1 1 auto;min-height:0;}
+  #c{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#b79be0;text-align:center;padding:20px;pointer-events:none;}
+  #infoCard{position:absolute;left:10px;top:10px;right:10px;max-width:340px;background:linear-gradient(135deg,rgba(37,20,71,.78),rgba(26,15,51,.78));border:1px solid #4a335f;border-radius:12px;padding:10px 14px;backdrop-filter:blur(3px);pointer-events:none;}
+  #godName{font-size:16px;font-weight:700;color:var(--gc,#ffd56b);}
+  #godDesc{font-size:11.5px;color:#cdbdee;margin-top:3px;line-height:1.4;}
+  #godTag{display:inline-block;font-size:9.5px;color:#8a78ad;letter-spacing:.5px;text-transform:uppercase;margin-top:4px;}
+  #hint{position:absolute;right:12px;bottom:10px;font-size:10px;color:#6e5d8c;pointer-events:none;}
+  #traits{flex:0 0 auto;text-align:center;font-size:10.5px;color:#7a6798;padding:5px 10px;}
+  #selector{flex:0 0 auto;display:flex;gap:8px;overflow-x:auto;padding:8px 10px 12px;-webkit-overflow-scrolling:touch;}
+  #selector::-webkit-scrollbar{display:none;}
+  .chip{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;background:linear-gradient(135deg,#1c1132,#150c26);border:2px solid #382651;border-radius:14px;padding:7px 10px;min-width:62px;color:#cdbdee;font-size:9.5px;text-align:center;transition:transform .12s,border-color .12s;}
+  .chip .ic{font-size:19px;}
+  .chip.active{border-color:var(--ac,#ffd56b);transform:translateY(-2px);box-shadow:0 0 14px -2px var(--ac,#ffd56b);}
+  .chip:active{transform:scale(.95);}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <a class="back" href="games.html">← Gry</a>
+    <h1>🔱 Panteon Bogów</h1>
+    <p class="sub">Podgląd modeli 3D (proceduralne) · wersja robocza</p>
+  </header>
+  <div id="viewer">
+    <canvas id="c"></canvas>
+    <div id="status">Ładowanie silnika 3D…</div>
+    <div id="infoCard" style="display:none;">
+      <div id="godName"></div>
+      <div id="godDesc"></div>
+      <div id="godTag"></div>
+    </div>
+    <div id="hint">przeciągnij, aby obrócić widok</div>
+  </div>
+  <div id="traits">Nieśmiertelni · Nieugięci · Władają mocą kosmiczną · Ich motywacje są poza zrozumieniem · Strażnicy równowagi światów</div>
+  <div id="selector"></div>
+</div>
+
+<script type="module">
+const statusEl = document.getElementById('status');
+const infoCard = document.getElementById('infoCard');
+const godNameEl = document.getElementById('godName');
+const godDescEl = document.getElementById('godDesc');
+const godTagEl = document.getElementById('godTag');
+const selectorEl = document.getElementById('selector');
+
+(async () => {
+try {
+  const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js');
+  const { OrbitControls } = await import('https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/controls/OrbitControls.js');
+
+  // ---------- data ----------
+  const GODS = [
+    { id:'void-monk', name:'Pradawny Mnich Pustki', tag:'Strażnik · Pustka', icon:'🌀',
+      desc:'Pradawny strażnik Pustki, medytujący w nieskończonej ciszy poza czasem.',
+      body:0x2a3a52, accent:0x7fd6ff, type:'monk' },
+    { id:'wraith-assassin', name:'Wraith Assassin', tag:'Skrytobójca · Cień', icon:'🗡️',
+      desc:'Cichy żniwiarz cieni — uderza tam, gdzie nikt się tego nie spodziewa.',
+      body:0x140a22, accent:0x9b4dff, type:'wraith' },
+    { id:'abyssal-beast', name:'Abyssal Beast', tag:'Bestia · Otchłań', icon:'🐉',
+      desc:'Bestia z otchłani owinięta złotym ogniem starożytnej furii.',
+      body:0x241a10, accent:0xe0a13c, type:'beast' },
+    { id:'rune-devourer', name:'Rune Devourer', tag:'Pożeracz · Runy', icon:'🕳️',
+      desc:'Istota złożona z pochłoniętych run, wiecznie głodna mocy zaklęć.',
+      body:0x122024, accent:0x35e6d6, type:'golem' },
+    { id:'ashen-crusader', name:'Ashen Crusader', tag:'Krzyżowiec · Popiół', icon:'🛡️',
+      desc:'Spopielały rycerz, który nie złoży broni nawet w popiele świata.',
+      body:0x281410, accent:0xff6a2b, type:'knight' },
+    { id:'dream-thief', name:'Dream Thief', tag:'Złodziej · Sny', icon:'⚖️',
+      desc:'Kradnie sny i wspomnienia, ważąc dusze na srebrnej wadze.',
+      body:0x180e22, accent:0xc77dff, type:'thief' },
+    { id:'shadow-god', name:'Shadow God', tag:'Bóg · Cień (Dobry)', icon:'🌑',
+      desc:'Dobrotliwy władca cienia — jego mrok ma chronić, nie niszczyć.',
+      body:0x0c0614, accent:0x9b59ff, type:'shadow' },
+  ];
+
+  // ---------- renderer / scene ----------
+  const canvas = document.getElementById('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x050309);
+  scene.fog = new THREE.FogExp2(0x050309, 0.05);
+
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+  camera.position.set(0, 1.7, 5.0);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 1.15, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.minDistance = 2.4;
+  controls.maxDistance = 7.5;
+  controls.maxPolarAngle = Math.PI * 0.53;
+  controls.update();
+
+  scene.add(new THREE.HemisphereLight(0x55406f, 0x05030a, 0.7));
+  scene.add(new THREE.AmbientLight(0x201530, 0.45));
+  const key = new THREE.DirectionalLight(0xfff1d8, 0.85);
+  key.position.set(2.5, 4, 3);
+  scene.add(key);
+  const coreLight = new THREE.PointLight(0xffffff, 2.2, 9, 2);
+  coreLight.position.set(0, 1.3, 0.3);
+  scene.add(coreLight);
+
+  // ground
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(7, 48),
+    new THREE.MeshStandardMaterial({ color:0x0a0612, roughness:1, metalness:0 })
+  );
+  ground.rotation.x = -Math.PI/2;
+  scene.add(ground);
+  const grid = new THREE.GridHelper(14, 28, 0x3a2a55, 0x18102a);
+  grid.position.y = 0.005;
+  grid.material.transparent = true;
+  grid.material.opacity = 0.35;
+  scene.add(grid);
+
+  // ---------- shared textures ----------
+  function makeDotTexture(){
+    const s=64, cnv=document.createElement('canvas'); cnv.width=cnv.height=s;
+    const ctx=cnv.getContext('2d');
+    const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+    g.addColorStop(0,'rgba(255,255,255,1)');
+    g.addColorStop(0.4,'rgba(255,255,255,0.55)');
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,s,s);
+    return new THREE.CanvasTexture(cnv);
+  }
+  function makeRuneTexture(){
+    const s=512, cnv=document.createElement('canvas'); cnv.width=cnv.height=s;
+    const ctx=cnv.getContext('2d');
+    ctx.strokeStyle='#fff'; ctx.fillStyle='#fff';
+    const cx=s/2, cy=s/2, R=s*0.48;
+    [0.95,0.78,0.6].forEach((r,i)=>{
+      ctx.globalAlpha = i===1?0.95:0.5;
+      ctx.lineWidth = i===1?4:1.6;
+      ctx.beginPath(); ctx.arc(cx,cy,r*R,0,Math.PI*2); ctx.stroke();
+    });
+    for(let i=0;i<24;i++){
+      const a=(i/24)*Math.PI*2;
+      const r1=R*0.6, r2=R*0.66;
+      ctx.globalAlpha = (i%3===0)?0.9:0.32;
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*r1, cy+Math.sin(a)*r1);
+      ctx.lineTo(cx+Math.cos(a)*r2, cy+Math.sin(a)*r2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha=0.88;
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2, r=R*0.85;
+      const x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(a+Math.PI/2);
+      ctx.beginPath(); ctx.moveTo(-7,9); ctx.lineTo(0,-11); ctx.lineTo(7,9); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    return new THREE.CanvasTexture(cnv);
+  }
+  const dotTex = makeDotTexture();
+  const runeTex = makeRuneTexture();
+
+  function stdMat(color, o={}){
+    return new THREE.MeshStandardMaterial({
+      color, roughness:o.roughness??0.78, metalness:o.metalness??0.12,
+      emissive:o.emissive??0x000000, emissiveIntensity:o.emissiveIntensity??1,
+      transparent: o.opacity!=null, opacity:o.opacity??1, side: o.side??THREE.FrontSide,
+    });
+  }
+  function glowMat(color, intensity=2){
+    return new THREE.MeshStandardMaterial({ color, emissive:color, emissiveIntensity:intensity, roughness:0.3, metalness:0.1 });
+  }
+  function ringTex(color, opacity=0.7){
+    return new THREE.MeshBasicMaterial({ color, map:runeTex, transparent:true, opacity, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, depthWrite:false });
+  }
+
+  function raggedHem(geo, strength=0.1){
+    const pos = geo.attributes.position;
+    let minY = Infinity;
+    for(let i=0;i<pos.count;i++) minY = Math.min(minY, pos.getY(i));
+    for(let i=0;i<pos.count;i++){
+      const y = pos.getY(i);
+      if (y - minY < 0.03){
+        const jr = 1 + (Math.random()-0.5)*0.35;
+        const jy = Math.random()*strength*2;
+        pos.setX(i, pos.getX(i)*jr);
+        pos.setZ(i, pos.getZ(i)*jr);
+        pos.setY(i, y - Math.abs(jy));
+      }
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+  }
+
+  function robeCone(rTop, rBot, h, color, opacity, ragged=true){
+    const geo = new THREE.ConeGeometry(rBot, h, 18, 4, true);
+    if (rTop > 0.001) { /* keep simple cone (apex up) */ }
+    if (ragged) raggedHem(geo, 0.12);
+    const mat = stdMat(color, { roughness:0.88, opacity });
+    mat.side = THREE.DoubleSide;
+    return new THREE.Mesh(geo, mat);
+  }
+  function capsule(r, len, color, opt={}){
+    return new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 8), stdMat(color, opt));
+  }
+  function sphere(r, color, segs=14){ return new THREE.Mesh(new THREE.SphereGeometry(r, segs, segs), stdMat(color)); }
+  function icoHead(r, color){ return new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), stdMat(color)); }
+
+  function enclosingGlow(group, accent){
+    const box = new THREE.Box3().setFromObject(group);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const center = new THREE.Vector3(); box.getCenter(center);
+    const radius = Math.max(size.x, size.z) * 0.62 + 0.06;
+    const height = size.y * 1.12;
+    const geo = new THREE.CapsuleGeometry(radius, Math.max(height - radius*2, 0.05), 6, 14);
+    const mat = new THREE.ShaderMaterial({
+      uniforms:{ glowColor:{ value:new THREE.Color(accent) }, power:{ value:2.3 }, opacity:{ value:0.55 } },
+      vertexShader:`varying vec3 vN; varying vec3 vV;
+        void main(){
+          vN = normalize(normalMatrix*normal);
+          vec4 mv = modelViewMatrix*vec4(position,1.0);
+          vV = -mv.xyz;
+          gl_Position = projectionMatrix*mv;
+        }`,
+      fragmentShader:`uniform vec3 glowColor; uniform float power; uniform float opacity;
+        varying vec3 vN; varying vec3 vV;
+        void main(){
+          float d = pow(1.0 - clamp(dot(normalize(vN), normalize(vV)),0.0,1.0), power);
+          gl_FragColor = vec4(glowColor, d*opacity);
+        }`,
+      side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent:true, depthWrite:false,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(center.x, box.min.y + height/2 - 0.02, center.z);
+    return mesh;
+  }
+
+  function makeAura(accent, count, radius, height, yOffset){
+    const positions = new Float32Array(count*3);
+    const speeds = new Float32Array(count);
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2, r = Math.random()*radius;
+      positions[i*3]   = Math.cos(a)*r;
+      positions[i*3+1] = Math.random()*height;
+      positions[i*3+2] = Math.sin(a)*r;
+      speeds[i] = 0.15 + Math.random()*0.4;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color:accent, size:0.085, map:dotTex, transparent:true, opacity:0.85,
+      blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true,
+    });
+    const pts = new THREE.Points(geo, mat);
+    pts.position.y = yOffset;
+    pts.userData = { speeds, height };
+    return pts;
+  }
+
+  function floorRune(accent, radius){
+    const ring = new THREE.Mesh(new THREE.RingGeometry(radius*0.55, radius, 40), ringTex(accent, 0.65));
+    ring.rotation.x = -Math.PI/2;
+    ring.position.y = 0.04;
+    return ring;
+  }
+
+  function orbiter(mesh, radius, speed, height, phase){
+    mesh.userData.orbit = { radius, speed, height, phase };
+    return mesh;
+  }
+
+  // ---------- per-god builders ----------
+  function buildMonk(m){
+    const g = new THREE.Group();
+    const robe = robeCone(0.06, 0.5, 0.95, m.body, 0.92); robe.position.y = 0.18 + 0.475; g.add(robe);
+    const torso = capsule(0.26, 0.35, m.body); torso.position.y = 1.13 + 0.32; g.add(torso);
+    const head = icoHead(0.21, m.body); head.position.y = 1.13 + 0.66 + 0.22; g.add(head);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.26,0.02,8,24), glowMat(m.accent,2.4));
+    ring.position.copy(head.position); ring.rotation.x = Math.PI/2.3; g.add(ring);
+    g.userData.spins = [{ obj:ring, speed:0.6 }];
+    const armL = capsule(0.075,0.5,m.body); armL.position.set(0.3,1.13+0.18,0.08); armL.rotation.z = Math.PI/2.5; g.add(armL);
+    const armR = capsule(0.075,0.5,m.body); armR.position.set(-0.3,1.13+0.18,0.08); armR.rotation.z = -Math.PI/2.5; g.add(armR);
+    const orb = sphere(0.09, m.accent); orb.material = glowMat(m.accent,3.2); orb.position.set(0,1.13+0.22,0.32); g.add(orb);
+    g.add(floorRune(m.accent, 0.95));
+    g.userData.coreLightPos = new THREE.Vector3(0,1.4,0.3);
+    g.userData.height = 2.0;
+    return g;
+  }
+
+  function buildWraith(m){
+    const g = new THREE.Group();
+    const robe = robeCone(0.02, 0.46, 1.15, m.body, 0.88); robe.position.y = 0.05 + 0.575; g.add(robe);
+    const torso = capsule(0.22, 0.4, m.body); torso.position.y = 1.18 + 0.32; g.add(torso);
+    const hood = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.42, 12, 1, true), stdMat(m.body, { roughness:0.9, side:THREE.DoubleSide }));
+    hood.position.y = 1.18 + 0.66 + 0.18; g.add(hood);
+    const eyeL = sphere(0.025, m.accent); eyeL.material = glowMat(m.accent,4); eyeL.position.set(0.07,1.18+0.7,0.18); g.add(eyeL);
+    const eyeR = sphere(0.025, m.accent); eyeR.material = glowMat(m.accent,4); eyeR.position.set(-0.07,1.18+0.7,0.18); g.add(eyeR);
+    const armR = capsule(0.07,0.5,m.body); armR.position.set(-0.28,1.18+0.1,0.1); armR.rotation.z = -Math.PI/3.4; armR.rotation.x = -0.3; g.add(armR);
+    const armL = capsule(0.07,0.45,m.body); armL.position.set(0.28,1.18+0.18,0.05); armL.rotation.z = Math.PI/2.6; g.add(armL);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.04,0.42,0.01), glowMat(m.accent,2.4));
+    blade.position.set(-0.5,1.18-0.05,0.25); blade.rotation.z = -0.5; g.add(blade);
+    g.add(floorRune(m.accent, 0.85));
+    g.userData.height = 2.25;
+    return g;
+  }
+
+  function buildBeast(m){
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), stdMat(m.body,{roughness:0.7,metalness:0.25}));
+    body.scale.set(1,0.85,1.6); body.position.y = 0.62; g.add(body);
+    const legPositions = [[0.3,0.55,-0.18,0.32],[-0.3,0.55,-0.18,0.32],[0.26,0.55,0.32,0.32],[-0.26,0.55,0.32,0.32]];
+    legPositions.forEach(([x,len,z])=>{
+      const leg = capsule(0.09, len, m.body);
+      leg.position.set(x, len/2 + 0.02, z);
+      g.add(leg);
+    });
+    const neck = capsule(0.22,0.3,m.body); neck.position.set(0,0.95,-0.55); neck.rotation.x = 0.8; g.add(neck);
+    const head = new THREE.Mesh(new THREE.ConeGeometry(0.22,0.5,10), stdMat(m.body,{roughness:0.7}));
+    head.position.set(0,1.12,-0.92); head.rotation.x = -Math.PI/2.1; g.add(head);
+    for(let i=0;i<5;i++){
+      const a=(i-2)/2;
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.04,0.22,6), glowMat(m.accent,2));
+      horn.position.set(a*0.12, 1.32, -0.78); horn.rotation.x = -0.3; horn.rotation.z = a*0.4;
+      g.add(horn);
+    }
+    const eyeL = sphere(0.035,m.accent); eyeL.material = glowMat(m.accent,4); eyeL.position.set(0.1,1.16,-1.1); g.add(eyeL);
+    const eyeR = sphere(0.035,m.accent); eyeR.material = glowMat(m.accent,4); eyeR.position.set(-0.1,1.16,-1.1); g.add(eyeR);
+    let prev = { x:0, y:0.78, z:0.75, r:0.16 };
+    for(let i=0;i<4;i++){
+      const r = 0.16 - i*0.032;
+      const seg = sphere(r, m.body);
+      const z = prev.z + 0.22 + i*0.05, y = prev.y - i*0.05;
+      seg.position.set(0, y, z);
+      g.add(seg);
+      prev = { x:0, y, z, r };
+    }
+    g.add(floorRune(m.accent, 1.5));
+    g.userData.height = 1.7;
+    return g;
+  }
+
+  function buildGolem(m){
+    const g = new THREE.Group();
+    const robe = robeCone(0.08, 0.48, 1.05, m.body, 0.95); robe.position.y = 0.1 + 0.525; g.add(robe);
+    const torso = capsule(0.27, 0.4, m.body, { roughness:0.95, metalness:0.05 }); torso.position.y = 1.15 + 0.34; g.add(torso);
+    const voidRing = new THREE.Mesh(new THREE.TorusGeometry(0.16,0.04,10,28), glowMat(m.accent,3));
+    voidRing.position.set(0, 1.15+0.38, 0.27); g.add(voidRing);
+    const voidCore = new THREE.Mesh(new THREE.CircleGeometry(0.13,24), new THREE.MeshBasicMaterial({color:0x000000}));
+    voidCore.position.copy(voidRing.position); voidCore.position.z += 0.01; g.add(voidCore);
+    g.userData.spins = [{ obj:voidRing, speed:0.8 }];
+    const headOrb = sphere(0.16, m.accent); headOrb.material = glowMat(m.accent, 2.6); headOrb.position.y = 1.15 + 0.68 + 0.18; g.add(headOrb);
+    const armL = capsule(0.08,0.48,m.body); armL.position.set(0.32,1.15+0.16,0.05); armL.rotation.z = Math.PI/2.4; g.add(armL);
+    const armR = capsule(0.08,0.48,m.body); armR.position.set(-0.32,1.15+0.16,0.05); armR.rotation.z = -Math.PI/2.4; g.add(armR);
+    const orbiters = [];
+    for(let i=0;i<5;i++){
+      const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.07), glowMat(m.accent,2.2));
+      orbiters.push(orbiter(shard, 0.75, 0.5+i*0.07, 1.15+0.25+ (i%3)*0.18, (i/5)*Math.PI*2));
+      g.add(shard);
+    }
+    g.userData.orbiters = orbiters;
+    g.add(floorRune(m.accent, 0.9));
+    g.userData.height = 2.0;
+    return g;
+  }
+
+  function buildKnight(m){
+    const g = new THREE.Group();
+    const legL = capsule(0.1,0.55,m.body); legL.position.set(0.13,0.3,0); g.add(legL);
+    const legR = capsule(0.1,0.55,m.body); legR.position.set(-0.13,0.3,0); g.add(legR);
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.36,0.62,10), stdMat(m.body,{roughness:0.55,metalness:0.4}));
+    torso.position.y = 0.95; g.add(torso);
+    for(let i=-1;i<=1;i+=2){
+      const trim = new THREE.Mesh(new THREE.TorusGeometry(0.33,0.012,6,20), glowMat(m.accent,2));
+      trim.position.set(0, 0.95 + i*0.26, 0); trim.rotation.x = Math.PI/2; g.add(trim);
+    }
+    const shoulderL = new THREE.Mesh(new THREE.ConeGeometry(0.16,0.2,8), stdMat(m.body,{roughness:0.5,metalness:0.45}));
+    shoulderL.position.set(0.36,1.22,0); shoulderL.rotation.z = -0.3; g.add(shoulderL);
+    const shoulderR = shoulderL.clone(); shoulderR.position.x = -0.36; shoulderR.rotation.z = 0.3; g.add(shoulderR);
+    const armL = capsule(0.085,0.5,m.body); armL.position.set(0.38,0.95,0); g.add(armL);
+    const armR = capsule(0.085,0.5,m.body); armR.position.set(-0.38,0.95,0); g.add(armR);
+    const head = icoHead(0.2, m.body); head.position.y = 1.55; g.add(head);
+    [-1,1].forEach(s=>{
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.03,0.2,6), glowMat(m.accent,2.2));
+      horn.position.set(s*0.1,1.68,0); horn.rotation.z = s*0.5; g.add(horn);
+    });
+    const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.55,1.1,4,6), stdMat(0x1a0e0a,{opacity:0.92,side:THREE.DoubleSide,roughness:0.95}));
+    cape.position.set(0,0.85,-0.2); cape.rotation.x = 0.15; g.add(cape);
+    const swordBlade = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.65,0.015), stdMat(0xcfd6e0,{roughness:0.3,metalness:0.7}));
+    const swordHilt = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.04), glowMat(m.accent,2));
+    swordHilt.position.y = -0.37; const sword = new THREE.Group(); sword.add(swordBlade); sword.add(swordHilt);
+    sword.position.set(0.42,0.78,0.12); sword.rotation.z = -0.15; g.add(sword);
+    g.add(floorRune(m.accent, 1.05));
+    g.userData.height = 1.85;
+    return g;
+  }
+
+  function buildThief(m){
+    const g = new THREE.Group();
+    const robe = robeCone(0.05, 0.46, 1.0, m.body, 0.9); robe.position.y = 0.12 + 0.5; g.add(robe);
+    const torso = capsule(0.24, 0.36, m.body); torso.position.y = 1.12 + 0.3; g.add(torso);
+    const mask = new THREE.Mesh(new THREE.IcosahedronGeometry(0.2, 1), stdMat(0xd8c9ef, { roughness:0.4, emissive:m.accent, emissiveIntensity:0.25 }));
+    mask.position.y = 1.12 + 0.6 + 0.2; g.add(mask);
+    const eyeL = sphere(0.02,m.accent); eyeL.material = glowMat(m.accent,3); eyeL.position.set(0.07,mask.position.y+0.02,0.17); g.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -0.07; g.add(eyeR);
+    const handL = sphere(0.06, m.body); handL.position.set(0.42,1.0,0.1); g.add(handL);
+    const handR = sphere(0.06, m.body); handR.position.set(-0.42,1.0,0.1); g.add(handR);
+    const armL = capsule(0.07,0.42,m.body); armL.position.set(0.34,1.18,0.05); armL.rotation.z = Math.PI/3; g.add(armL);
+    const armR = capsule(0.07,0.42,m.body); armR.position.set(-0.34,1.18,0.05); armR.rotation.z = -Math.PI/3; g.add(armR);
+    [handL, handR].forEach((hand, i) => {
+      const lineMat = new THREE.LineBasicMaterial({ color:m.accent, transparent:true, opacity:0.7 });
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([hand.position.clone(), hand.position.clone().add(new THREE.Vector3(0,-0.35,0))]);
+      g.add(new THREE.Line(lineGeo, lineMat));
+      const orb = sphere(0.08, m.accent); orb.material = glowMat(m.accent, i===0?2.6:1.6);
+      orb.position.copy(hand.position).add(new THREE.Vector3(0,-0.35,0));
+      g.add(orb);
+    });
+    g.add(floorRune(m.accent, 0.95));
+    g.userData.height = 2.0;
+    return g;
+  }
+
+  function buildShadow(m){
+    const g = new THREE.Group();
+    [0,1,2].forEach(i=>{
+      const h = 1.3 - i*0.18, rb = 0.42 - i*0.06;
+      const flame = robeCone(0.01, rb, h, m.body, 0.55 - i*0.1);
+      flame.rotation.y = i*1.3; flame.position.y = 0.15 + h/2;
+      g.add(flame);
+    });
+    const core = sphere(0.14, m.accent); core.material = glowMat(m.accent, 3.6); core.position.y = 1.05; g.add(core);
+    const headWisp = new THREE.Mesh(new THREE.ConeGeometry(0.18,0.4,10,1,true), stdMat(m.body,{opacity:0.6,side:THREE.DoubleSide}));
+    headWisp.position.y = 1.55; g.add(headWisp);
+    const eyeL = sphere(0.025,m.accent); eyeL.material = glowMat(m.accent,4); eyeL.position.set(0.06,1.58,0.13); g.add(eyeL);
+    const eyeR = eyeL.clone(); eyeR.position.x = -0.06; g.add(eyeR);
+    const handL = new THREE.Mesh(new THREE.ConeGeometry(0.08,0.3,8,1,true), glowMat(m.accent,1.8));
+    handL.position.set(0.55,0.95,0); handL.rotation.z = Math.PI/2.2; g.add(handL);
+    const handR = handL.clone(); handR.position.x = -0.55; handR.rotation.z = -Math.PI/2.2; g.add(handR);
+    const orbiters = [];
+    for(let i=0;i<6;i++){
+      const glyph = new THREE.Mesh(new THREE.PlaneGeometry(0.16,0.16), ringTex(m.accent, 0.85));
+      orbiters.push(orbiter(glyph, 0.7, 0.45+i*0.05, 1.0+(i%3)*0.3, (i/6)*Math.PI*2));
+      g.add(glyph);
+    }
+    g.userData.orbiters = orbiters;
+    g.add(floorRune(m.accent, 1.1));
+    g.userData.height = 2.1;
+    return g;
+  }
+
+  const BUILDERS = { monk:buildMonk, wraith:buildWraith, beast:buildBeast, golem:buildGolem, knight:buildKnight, thief:buildThief, shadow:buildShadow };
+
+  // ---------- runtime state ----------
+  let currentGroup = null;
+  let currentIdx = -1;
+  const clock = new THREE.Clock();
+
+  function disposeGroup(g){
+    g.traverse(o=>{
+      if (o.geometry) o.geometry.dispose();
+      if (o.material){ (Array.isArray(o.material)?o.material:[o.material]).forEach(mt=>mt.dispose()); }
+    });
+  }
+
+  function selectGod(idx){
+    if (idx === currentIdx) return;
+    currentIdx = idx;
+    const m = GODS[idx];
+    if (currentGroup){ scene.remove(currentGroup); disposeGroup(currentGroup); }
+    const group = BUILDERS[m.type](m);
+    const aura = makeAura(m.accent, 220, 0.55, (group.userData.height||2)*0.85, 0.05);
+    group.add(aura);
+    group.add(enclosingGlow(group, m.accent));
+    scene.add(group);
+    currentGroup = group;
+    coreLight.color.setHex(m.accent);
+    if (group.userData.coreLightPos) coreLight.position.copy(group.userData.coreLightPos);
+    else coreLight.position.set(0, (group.userData.height||2)*0.6, 0.3);
+
+    infoCard.style.display = 'block';
+    infoCard.style.setProperty('--gc', '#'+m.accent.toString(16).padStart(6,'0'));
+    godNameEl.textContent = m.name;
+    godDescEl.textContent = m.desc;
+    godTagEl.textContent = m.tag;
+
+    [...selectorEl.children].forEach((c,i)=>{
+      c.classList.toggle('active', i===idx);
+      c.style.setProperty('--ac', '#'+GODS[i].accent.toString(16).padStart(6,'0'));
+    });
+  }
+
+  GODS.forEach((m, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.style.setProperty('--ac', '#'+m.accent.toString(16).padStart(6,'0'));
+    btn.innerHTML = `<span class="ic">${m.icon}</span><span>${m.name.split(' ')[0]}</span>`;
+    btn.addEventListener('click', ()=>selectGod(i));
+    selectorEl.appendChild(btn);
+  });
+
+  function resize(){
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  statusEl.style.display = 'none';
+  selectGod(0);
+
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    const t = clock.elapsedTime;
+    if (currentGroup){
+      currentGroup.rotation.y += dt * 0.35;
+      currentGroup.position.y = Math.sin(t*1.1)*0.05;
+      (currentGroup.userData.spins||[]).forEach(s=>{ s.obj.rotation.z += dt*s.speed; });
+      (currentGroup.userData.orbiters||[]).forEach(o=>{
+        const od = o.userData.orbit;
+        const a = t*od.speed + od.phase;
+        o.position.set(Math.cos(a)*od.radius, od.height, Math.sin(a)*od.radius);
+        o.rotation.y += dt*1.5;
+      });
+      currentGroup.children.forEach(child=>{
+        if (child.isPoints){
+          const pos = child.geometry.attributes.position;
+          const speeds = child.userData.speeds;
+          const height = child.userData.height;
+          for(let i=0;i<speeds.length;i++){
+            let y = pos.getY(i) + speeds[i]*dt;
+            if (y > height) y = 0;
+            pos.setY(i, y);
+          }
+          pos.needsUpdate = true;
+        }
+      });
+    }
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+} catch(e){
+  console.error(e);
+  statusEl.textContent = 'Nie udało się załadować silnika 3D. Sprawdź połączenie z internetem i odśwież stronę.';
+}
+})();
+</script>
+</body>
+</html>
