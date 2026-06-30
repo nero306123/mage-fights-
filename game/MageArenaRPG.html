@@ -8604,11 +8604,12 @@ function spawnProjectile(scene,camera,sp){
   const core=new THREE.Mesh(geo,mat);
   projGroup.add(core);
   const glowGeo=new THREE.SphereGeometry(sp.size*2.0,10,8);
-  const glowMat=new THREE.MeshBasicMaterial({color:sp.light,transparent:true,opacity:0.2});
+  const glowMat=new THREE.MeshBasicMaterial({color:sp.light,transparent:true,opacity:0.45,blending:THREE.AdditiveBlending,depthWrite:false});
   const glow=new THREE.Mesh(glowGeo,glowMat);projGroup.add(glow);
+  projGroup.userData._glow=glow; // do pulsowania
   if(elem==='fire'||elem==='lava'){
     const outerGeo=new THREE.SphereGeometry(sp.size*2.8,8,6);
-    const outerMat=new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,opacity:0.12});
+    const outerMat=new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending,depthWrite:false});
     projGroup.add(new THREE.Mesh(outerGeo,outerMat));
   } else if(elem==='ice'||elem==='water'){
     const ringGeo=new THREE.TorusGeometry(sp.size*1.8,0.04,6,16);
@@ -8657,13 +8658,15 @@ function spawnProjectile(scene,camera,sp){
 }
 let _screenShake=0;
 function spawnTrailParticle(pos,color,elem){
-  const count = (elem==='fire'||elem==='lightning') ? 3 : 1;
+  const count = (elem==='fire'||elem==='lightning') ? 3 : 2;
   for(let i=0;i<count;i++){
-    const sz = elem==='fire' ? 0.08+Math.random()*0.06 : 0.05+Math.random()*0.04;
+    const sz = elem==='fire' ? 0.09+Math.random()*0.07 : 0.06+Math.random()*0.05;
     const g=new THREE.SphereGeometry(sz,4,3);
     const trailCol = elem==='fire' ? [0xff4400,0xff6600,0xffaa00][i%3] :
-                     elem==='ice' ? 0x88ccff : elem==='lightning' ? 0xffffaa : color;
-    const m=new THREE.MeshBasicMaterial({color:trailCol,transparent:true,opacity:0.85});
+                     elem==='ice' ? 0x88ccff : elem==='lightning' ? 0xffffaa :
+                     elem==='dark'||elem==='shadow'||elem==='necro' ? 0xaa44ff :
+                     elem==='blood' ? 0xdd2244 : elem==='holy'||elem==='light' ? 0xffee88 : color;
+    const m=new THREE.MeshBasicMaterial({color:trailCol,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false});
     const sh=new THREE.Mesh(g,m);sh.position.copy(pos);
     sh.position.x+=(Math.random()-0.5)*0.25;sh.position.y+=(Math.random()-0.5)*0.25;sh.position.z+=(Math.random()-0.5)*0.25;
     const vy = elem==='fire' ? 0.6+Math.random()*0.4 : 0.2;
@@ -8672,10 +8675,18 @@ function spawnTrailParticle(pos,color,elem){
 }
 function spawnImpact(scene,pos,color,elem){
   const geo=new THREE.SphereGeometry(0.5,14,12);
-  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.95});
+  const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false});
   const m=new THREE.Mesh(geo,mat);m.position.copy(pos);
-  const light=new THREE.PointLight(color,5,18);m.add(light);
+  const light=new THREE.PointLight(color,6,20);m.add(light);
   scene.add(m);impacts.push({mesh:m,mat,t:0});
+  // biały rdzen blysku
+  const coreM=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false});
+  const core=new THREE.Mesh(new THREE.SphereGeometry(0.22,10,8),coreM);core.position.copy(pos);
+  scene.add(core);impacts.push({mesh:core,mat:coreM,t:0});
+  // pierscien uderzeniowy (zawsze) - additive
+  const swM=new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const sw=new THREE.Mesh(new THREE.TorusGeometry(0.35,0.06,6,24),swM);sw.position.copy(pos);sw.rotation.x=Math.PI/2;
+  scene.add(sw);impacts.push({mesh:sw,mat:swM,t:0,isRing:true});
   _screenShake=0.2;
   const shardCount = elem==='fire' ? 18 : elem==='lightning' ? 15 : elem==='earth' ? 20 : 12;
   for(let k=0;k<shardCount;k++){
@@ -8702,20 +8713,31 @@ function spawnImpact(scene,pos,color,elem){
 function spawnCastEffect(sp){
   if(!_scene||!_camera)return;
   const elem=sp.elem||'arcane';
-  const col = elem==='fire'?0xff4400 : elem==='ice'?0x44aaff : elem==='lightning'?0xffff44 :
-              elem==='earth'?0x88774a : elem==='dark'?0x6622aa : elem==='blood'?0xaa0022 :
-              elem==='water'?0x2288ff : sp.light||0x8888ff;
-  for(let i=0;i<6;i++){
-    const g=new THREE.SphereGeometry(0.04+Math.random()*0.04,4,3);
-    const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.9});
-    const p=new THREE.Mesh(g,m);
-    const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
-    p.position.copy(_camera.position).addScaledVector(dir,0.5);
-    p.position.y-=0.4;
-    const a=Math.random()*Math.PI*2;
-    const spd=1.5+Math.random()*2;
-    const v=new THREE.Vector3(Math.cos(a)*spd*0.3, 0.5+Math.random()*1.5, Math.sin(a)*spd*0.3);
-    _scene.add(p);shards.push({mesh:p,mat:m,vel:v,life:0.3+Math.random()*0.2});
+  const col = elem==='fire'?0xff5511 : elem==='ice'?0x55bbff : elem==='lightning'?0xffff55 :
+              elem==='earth'?0x88774a : elem==='dark'||elem==='shadow'||elem==='necro'?0x9933ff : elem==='blood'?0xdd1133 :
+              elem==='water'?0x33aaff : elem==='holy'||elem==='light'?0xffee88 : sp.light||0x99aaff;
+  const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
+  const right=new THREE.Vector3().crossVectors(dir,_camera.up).normalize();
+  // wylot przy koncu rozdzki (prawy-dol)
+  const origin=_camera.position.clone().addScaledVector(dir,0.7).addScaledVector(right,0.2);origin.y-=0.32;
+  // BLYSK WYLOTU (additive) + swiatlo
+  const flashM=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false});
+  const flash=new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),flashM);flash.position.copy(origin);
+  const cl=new THREE.PointLight(col,5,9);flash.add(cl);
+  _scene.add(flash);impacts.push({mesh:flash,mat:flashM,t:0});
+  // pierscien energii rozchodzacy sie od wylotu
+  const rM=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.03,6,18),rM);ring.position.copy(origin);ring.quaternion.copy(_camera.quaternion);
+  _scene.add(ring);impacts.push({mesh:ring,mat:rM,t:0,isRing:true});
+  // iskry wylotu (additive)
+  for(let i=0;i<12;i++){
+    const g=new THREE.SphereGeometry(0.03+Math.random()*0.05,4,3);
+    const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false});
+    const p=new THREE.Mesh(g,m);p.position.copy(origin);
+    const sp2=2+Math.random()*3.5;
+    const v=dir.clone().multiplyScalar(sp2*0.6);
+    v.x+=(Math.random()-0.5)*sp2;v.y+=(Math.random()-0.3)*sp2*0.8;v.z+=(Math.random()-0.5)*sp2;
+    _scene.add(p);shards.push({mesh:p,mat:m,vel:v,life:0.25+Math.random()*0.2});
   }
 }
 function attemptCast(now){
