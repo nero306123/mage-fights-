@@ -2427,7 +2427,7 @@ function flameMat(cA,cB,half,speed,sway){
   var m=new THREE.ShaderMaterial({uniforms:{cA:{value:new THREE.Color(cA)},cB:{value:new THREE.Color(cB)},
      t:{value:0},hH:{value:half},spd:{value:speed||4.0},sway:{value:sway||0.0}},
    vertexShader:'uniform float t;uniform float hH;uniform float sway;varying float g;varying vec3 lp;void main(){lp=position;g=clamp((position.y+hH)/(2.0*hH),0.0,1.0);vec3 p=position;p.x+=sin(t*1.5+position.y*3.0)*sway*g;p.z+=cos(t*1.2+position.y*2.5)*sway*g;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
-   fragmentShader:'uniform vec3 cA;uniform vec3 cB;uniform float t;uniform float spd;varying float g;varying vec3 lp;float h(vec2 x){return fract(sin(dot(x,vec2(41.3,289.1)))*43758.5);}void main(){float fl=0.55+0.45*sin(lp.x*14.0+t*spd)*sin(lp.z*11.0+t*spd*0.8);float base=smoothstep(0.0,0.12,g);float tip=1.0-smoothstep(0.45,1.0,g);float a=base*tip*(0.32+0.34*fl);vec3 col=mix(cA,cB,g);gl_FragColor=vec4(col,a);}',
+   fragmentShader:'uniform vec3 cA;uniform vec3 cB;uniform float t;uniform float spd;varying float g;varying vec3 lp;float h(vec2 x){return fract(sin(dot(x,vec2(41.3,289.1)))*43758.5);}void main(){float fl=0.55+0.45*sin(lp.x*14.0+t*spd)*sin(lp.z*11.0+t*spd*0.8);float base=smoothstep(0.0,0.12,g);float tip=1.0-smoothstep(0.45,1.0,g);float a=base*tip*(0.27+0.3*fl);vec3 col=mix(cA,cB,g);gl_FragColor=vec4(col,a);}',
    transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,toneMapped:false});
   FLAMES.push(m);return m;
 }
@@ -2631,35 +2631,62 @@ function buildThief(m){var g=new THREE.Group();
   g.add(floorRune(m.accent,1.0));
   g.userData.height=2.0;g.userData.lightY=1.5;return g;}
 
-function buildShadow(m){var g=new THREE.Group();
-  // levitating: wispy flame lower body (no legs) - multiple tall flames
-  for(var i=0;i<9;i++){var a=i/9*6.283;var rr=0.08+Math.random()*0.18;var h=0.55+Math.random()*0.45;
-    var f=flame(0.07+Math.random()*0.04,h,m.accent2,m.accent,0.07,8);f.position.set(Math.cos(a)*rr,0.1+h/2,Math.sin(a)*rr);g.add(f);}
-  // torso of shadow (translucent dark) + fresnel
-  var torso=lathe([[0,0],[0.16,0.05],[0.28,0.3],[0.3,0.65],[0.24,0.95],[0.16,1.05],[0,1.08]],m.body,{roughness:.95,opacity:0.92,fold:0.07,runes:m.accent,runeI:0.8});torso.position.y=0.95;g.add(torso);
-  // chest core (the rune heart)
-  var core=ball(0.13,m.accent);core.material=glow(m.accent,4);core.position.y=1.45;g.add(core);
-  var coreRing=haloRing(m.accent2,0.2,0.015,2.6);coreRing.position.y=1.45;g.add(coreRing);
-  var coreRing2=haloRing(m.accent,0.27,0.01,2.2);coreRing2.position.y=1.45;coreRing2.rotation.y=Math.PI/3;g.add(coreRing2);
-  g.userData.spins=[{o:coreRing,sp:0.9,ax:'z'},{o:coreRing2,sp:-0.6,ax:'x'}];g.userData.pulse=[core];
-  // shoulders
-  [[0.28,-1],[-0.28,1]].forEach(function(s){var sh=ball(0.13,m.body,{roughness:.9,opacity:.85});sh.position.set(s[0],1.7,0);g.add(sh);});
-  // head wisp
-  var head=lathe([[0,0],[0.16,0.05],[0.18,0.22],[0.1,0.42],[0,0.5]],m.body,{roughness:.9,opacity:.85});head.position.y=1.86;g.add(head);
-  var eL=new THREE.Mesh(new THREE.SphereGeometry(0.03,10,10),glow(m.accent,5));eL.position.set(0.06,1.96,0.12);eL.scale.set(1.6,0.8,1);g.add(eL);
-  var eR=eL.clone();eR.position.x=-0.06;g.add(eR);
-  // crown of flame
-  for(var c=0;c<7;c++){var a2=(c-3)/7*2.2;var cf=flame(0.035,0.3,m.accent,0xd9b3ff,0.06,6);cf.position.set(Math.sin(a2)*0.16,2.18,Math.cos(a2)*0.16-0.02);cf.rotation.z=a2*0.3;g.add(cf);}
-  // flaming hands (arms of shadow ending in fire)
-  [[0.5,1],[-0.5,-1]].forEach(function(hh){
-    var arm=cap(0.07,0.5,m.body,{roughness:.9,opacity:.85});arm.position.set(hh[0]*0.7,1.35,0);arm.rotation.z=hh[1]*0.5;g.add(arm);
-    var fire=flame(0.09,0.32,m.accent,0xeed8ff,0.06,8);fire.position.set(hh[0],1.02,0.05);g.add(fire);
-    var hand=ball(0.07,m.accent);hand.material=glow(m.accent,1.8);hand.position.set(hh[0],1.05,0.05);g.add(hand);
+function buildShadow(m){var g=new THREE.Group();var BR=0xc7a3ff;
+  // ---- ground shadow portal ----
+  var portal=new THREE.Mesh(new THREE.RingGeometry(0.7,1.25,56),ringMat(m.accent,0.7));portal.rotation.x=-Math.PI/2;portal.position.y=0.05;g.add(portal);
+  var portalCore=new THREE.Mesh(new THREE.CircleGeometry(0.72,48),new THREE.MeshBasicMaterial({color:0x060010,transparent:true,opacity:0.85,depthWrite:false}));portalCore.rotation.x=-Math.PI/2;portalCore.position.y=0.045;g.add(portalCore);
+  var portalSwirl=new THREE.Mesh(new THREE.RingGeometry(0.15,0.7,48),ringMat(m.accent2,0.55));portalSwirl.rotation.x=-Math.PI/2;portalSwirl.position.y=0.06;g.add(portalSwirl);
+  // ---- levitating wispy flame lower body (no legs) ----
+  for(var i=0;i<9;i++){var a=i/9*6.283+Math.random()*0.3;var rr=0.06+Math.random()*0.24;var h=0.45+Math.random()*0.4;
+    var f=flame(0.06+Math.random()*0.04,h,m.accent2,m.accent,0.09,8);f.position.set(Math.cos(a)*rr,0.12+h/2,Math.sin(a)*rr);g.add(f);}
+  // a couple accent tongues
+  for(var i=0;i<2;i++){var a=i*3.14;var f2=flame(0.06,0.5,m.accent2,m.accent,0.08,8);f2.position.set(Math.cos(a)*0.08,0.4,Math.sin(a)*0.08);g.add(f2);}
+  // ---- shadow torso (dark translucent) + runes ----
+  var torso=lathe([[0,0],[0.16,0.05],[0.3,0.32],[0.32,0.66],[0.25,0.96],[0.17,1.06],[0,1.1]],m.body,{roughness:.96,opacity:0.95,fold:0.09,runes:m.accent,runeI:0.55});torso.position.y=0.92;g.add(torso);
+  // shadow-flame shells hugging the torso
+  var sf=flame(0.33,1.05,m.accent2,m.accent,0.05,16);sf.position.y=1.0;sf.material.uniforms.cA.value.multiplyScalar(0.6);sf.material.uniforms.cB.value.multiplyScalar(0.7);g.add(sf);
+  // purple fresnel aura on torso
+  var torsoShell=new THREE.Mesh(new THREE.SphereGeometry(0.42,18,20),shell(m.accent,0.4,2.8));torsoShell.scale.set(1,1.7,0.95);torsoShell.position.y=1.35;g.add(torsoShell);
+  // ---- shoulders + back tendrils ----
+  [[0.3,-1],[-0.3,1]].forEach(function(sp){var sh=ball(0.15,m.body,{roughness:.92,opacity:.9});sh.position.set(sp[0],1.78,0);g.add(sh);
+    var tf=flame(0.06,0.5,m.accent2,m.accent,0.07,7);tf.position.set(sp[0],2.05,-0.05);g.add(tf);});
+  for(var bt=0;bt<3;bt++){var btf=flame(0.05,0.6+bt*0.1,m.accent2,m.accent,0.08,6);btf.position.set((bt-1)*0.12,1.9,-0.22);btf.rotation.x=-0.3;g.add(btf);}
+  // ---- head ----
+  var head=lathe([[0,0],[0.17,0.06],[0.19,0.24],[0.1,0.44],[0,0.52]],m.body,{roughness:.92,opacity:.92});head.position.y=1.92;g.add(head);
+  var faceShell=new THREE.Mesh(new THREE.SphereGeometry(0.16,16,16),shell(m.accent,0.5,3.0));faceShell.position.y=2.06;faceShell.scale.set(1,1.25,0.9);g.add(faceShell);
+  var eL=new THREE.Mesh(new THREE.SphereGeometry(0.032,12,12),glow(m.accent,6));eL.position.set(0.07,2.06,0.13);eL.scale.set(1.8,0.7,1);eL.rotation.z=0.25;g.add(eL);
+  var eR=eL.clone();eR.position.x=-0.07;eR.rotation.z=-0.25;g.add(eR);
+  // ---- crown of purple flame ----
+  for(var c=0;c<9;c++){var a2=(c-4)/9*2.6;var ch=0.32+ (1-Math.abs(c-4)/5)*0.22;var cf=flame(0.04,ch,m.accent2,m.accent,0.06,6);cf.position.set(Math.sin(a2)*0.17,2.24,Math.cos(a2)*0.17-0.02);cf.rotation.z=a2*0.35;g.add(cf);}
+  // two horns
+  [[0.13,1],[-0.13,-1]].forEach(function(h){var hn=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.34,6),glow(m.accent,2.2));hn.position.set(h[0],2.34,-0.02);hn.rotation.z=h[1]*0.5;hn.rotation.x=-0.25;g.add(hn);});
+  // ---- chest core: orb + rotating rune rings + forward sigil ----
+  var core=ball(0.135,m.accent);core.material=glow(m.accent,4.2);core.position.y=1.46;g.add(core);
+  var coreGlow=new THREE.Mesh(new THREE.SphereGeometry(0.22,16,16),shell(BR,0.7,2.2));coreGlow.position.y=1.46;g.add(coreGlow);
+  var r1=haloRing(m.accent2,0.22,0.014,2.8);r1.position.y=1.46;g.add(r1);
+  var r2=haloRing(m.accent,0.29,0.011,2.4);r2.position.y=1.46;r2.rotation.y=Math.PI/3;g.add(r2);
+  var r3=haloRing(BR,0.35,0.008,2.0);r3.position.y=1.46;r3.rotation.x=Math.PI/3;g.add(r3);
+  var sigil=new THREE.Mesh(new THREE.PlaneGeometry(0.42,0.42),ringMat(m.accent,0.8));sigil.position.set(0,1.46,0.28);g.add(sigil);
+  g.userData.spins=[{o:r1,sp:0.9,ax:'z'},{o:r2,sp:-0.6,ax:'x'},{o:r3,sp:0.5,ax:'y'},{o:sigil,sp:0.4,ax:'z'},{o:portal,sp:0.2,ax:'z'},{o:portalSwirl,sp:-0.5,ax:'z'}];
+  g.userData.pulse=[core,eL,eR];
+  // ---- arms + flaming hands; right hand summons a shadow orb ----
+  [[0.52,1],[-0.52,-1]].forEach(function(hh,idx){
+    var arm=cap(0.07,0.5,m.body,{roughness:.92,opacity:.9});arm.position.set(hh[0]*0.7,1.4,0.04);arm.rotation.z=hh[1]*0.55;arm.rotation.x=-0.2;g.add(arm);
+    var fire=flame(0.1,0.34,m.accent,BR,0.07,8);fire.position.set(hh[0],1.06,0.08);g.add(fire);
+    var hand=ball(0.07,m.accent);hand.material=glow(m.accent,1.4);hand.position.set(hh[0],1.1,0.08);g.add(hand);
   });
-  // floating runes orbiting
-  var orbs=[];for(var i=0;i<8;i++){var gl=new THREE.Mesh(new THREE.PlaneGeometry(0.14,0.14),ringMat(m.accent,.9));orbs.push(orbit(gl,0.75,0.4+i*0.04,0.8+(i%4)*0.4,i/8*6.283,0.2));g.add(gl);}g.userData.orbiters=orbs;
-  g.add(floorRune(m.accent,1.15));
-  g.userData.height=2.3;g.userData.lightY=1.45;g.userData.levitate=true;return g;}
+  // shadow orb hovering above right hand
+  var orbDark=ball(0.13,0x05010c,{roughness:.4});orbDark.position.set(0.6,1.32,0.18);g.add(orbDark);
+  var orbShell=new THREE.Mesh(new THREE.SphereGeometry(0.16,16,16),shell(m.accent,0.85,2.4));orbShell.position.copy(orbDark.position);g.add(orbShell);
+  var orbRing=haloRing(m.accent,0.18,0.012,2.6);orbRing.position.copy(orbDark.position);g.add(orbRing);
+  g.userData.spins.push({o:orbRing,sp:1.4,ax:'y'});g.userData.pulse.push(orbDark);
+  // ---- floating runes orbiting ----
+  var orbs=[];for(var i=0;i<13;i++){var sz=0.1+Math.random()*0.08;var gl=new THREE.Mesh(new THREE.PlaneGeometry(sz,sz),ringMat(i%3===0?BR:m.accent,.9));orbs.push(orbit(gl,0.6+Math.random()*0.45,0.35+i*0.03,0.7+(i%5)*0.32,i/13*6.283,0.2));g.add(gl);}g.userData.orbiters=orbs;
+  // ---- extra dense embers ----
+  g.add(particles(m.accent,180,0.5,2.4,0.06,1.4));
+  g.add(particles(BR,70,0.35,2.2,0.045,1.7));
+  g.add(floorRune(m.accent,1.2));
+  g.userData.height=2.5;g.userData.lightY=1.46;g.userData.levitate=true;return g;}
 
 var BUILDERS={monk:buildMonk,wraith:buildWraith,beast:buildBeast,devourer:buildDevourer,knight:buildKnight,thief:buildThief,shadow:buildShadow};
 
@@ -2678,7 +2705,7 @@ function select(idx){if(idx===curIdx)return;curIdx=idx;var m=GODS[idx];
   coreLight.color.setHex(m.accent);coreLight.position.set(0,g.userData.lightY||1.3,(g.userData.lightZ!=null?g.userData.lightZ:0.4));
   groundGlow.material.color.setHex(m.accent);
   fillLight.color.setHex(m.accent2);
-  if(bloomPass){bloomPass.strength=(m.type==='knight'||m.type==='beast')?0.42:0.6;}
+  if(bloomPass){bloomPass.strength=m.type==='shadow'?0.5:((m.type==='knight'||m.type==='beast')?0.42:0.6);}
   infoCard.style.display='block';infoCard.style.setProperty('--gc',hex(m.accent));
   godNameEl.textContent=m.name;godDescEl.textContent=m.desc;godTagEl.textContent=m.tag;
   var ch=selectorEl.children;for(var i=0;i<ch.length;i++)ch[i].classList.toggle('active',i===idx);
