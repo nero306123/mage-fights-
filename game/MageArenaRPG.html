@@ -312,6 +312,9 @@
   #dmg-flash{position:absolute;inset:0;pointer-events:none;z-index:4;
     background:radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(180,20,20,.4));
     opacity:0;transition:opacity .1s ease}
+  /* blysk koloru zywiolu przy rzucaniu czaru */
+  #spell-flash{position:absolute;inset:0;pointer-events:none;z-index:4;
+    opacity:0;transition:opacity .18s ease;mix-blend-mode:screen}
   /* cinematyczna winieta */
   #vignette{position:absolute;inset:0;pointer-events:none;z-index:3;
     background:radial-gradient(ellipse at 50% 48%,transparent 55%,rgba(0,0,0,.42) 100%)}
@@ -1059,6 +1062,7 @@
     <div id="hotbar"></div>
   </div>
   <div id="dmg-flash"></div>
+  <div id="spell-flash"></div>
   <div id="item-tooltip"><div class="tt-name"></div><div class="tt-rarity"></div><div class="tt-stats"></div><div class="tt-desc"></div></div>
   <div id="vignette"></div>
   <div id="underwater-overlay"></div>
@@ -8710,12 +8714,20 @@ function spawnImpact(scene,pos,color,elem){
     scene.add(ring);impacts.push({mesh:ring,mat:ringMat,t:0,isRing:true});
   }
 }
+function spellScreenFlash(hex,strength){
+  const el=document.getElementById('spell-flash');if(!el)return;
+  const r=(hex>>16)&255,g=(hex>>8)&255,b=hex&255;
+  el.style.background=`radial-gradient(ellipse at 50% 62%,transparent 42%,rgba(${r},${g},${b},${strength||0.2}) 100%)`;
+  el.style.opacity='1';
+  clearTimeout(el._t);el._t=setTimeout(()=>{el.style.opacity='0';},90);
+}
 function spawnCastEffect(sp){
   if(!_scene||!_camera)return;
   const elem=sp.elem||'arcane';
   const col = elem==='fire'?0xff5511 : elem==='ice'?0x55bbff : elem==='lightning'?0xffff55 :
               elem==='earth'?0x88774a : elem==='dark'||elem==='shadow'||elem==='necro'?0x9933ff : elem==='blood'?0xdd1133 :
               elem==='water'?0x33aaff : elem==='holy'||elem==='light'?0xffee88 : sp.light||0x99aaff;
+  spellScreenFlash(col, (sp.dmg||0)>40?0.32:0.18);
   const dir=new THREE.Vector3();_camera.getWorldDirection(dir);
   const right=new THREE.Vector3().crossVectors(dir,_camera.up).normalize();
   // wylot przy koncu rozdzki (prawy-dol)
@@ -8729,8 +8741,9 @@ function spawnCastEffect(sp){
   const rM=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
   const ring=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.03,6,18),rM);ring.position.copy(origin);ring.quaternion.copy(_camera.quaternion);
   _scene.add(ring);impacts.push({mesh:ring,mat:rM,t:0,isRing:true});
-  // iskry wylotu (additive)
-  for(let i=0;i<12;i++){
+  // iskry wylotu (additive) - mniej na telefonie (wydajnosc)
+  const _muzzleN=isMobile?6:12;
+  for(let i=0;i<_muzzleN;i++){
     const g=new THREE.SphereGeometry(0.03+Math.random()*0.05,4,3);
     const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false});
     const p=new THREE.Mesh(g,m);p.position.copy(origin);
