@@ -1283,6 +1283,133 @@
 <script>
 ( function () {
 
+	/**
+ * https://github.com/google/model-viewer/blob/master/packages/model-viewer/src/three-components/EnvironmentScene.ts
+ */
+	class RoomEnvironment extends THREE.Scene {
+
+		constructor() {
+
+			super();
+			const geometry = new THREE.BoxGeometry();
+			geometry.deleteAttribute( 'uv' );
+			const roomMaterial = new THREE.MeshStandardMaterial( {
+				side: THREE.BackSide
+			} );
+			const boxMaterial = new THREE.MeshStandardMaterial();
+			const mainLight = new THREE.PointLight( 0xffffff, 5.0, 28, 2 );
+			mainLight.position.set( 0.418, 16.199, 0.300 );
+			this.add( mainLight );
+			const room = new THREE.Mesh( geometry, roomMaterial );
+			room.position.set( - 0.757, 13.219, 0.717 );
+			room.scale.set( 31.713, 28.305, 28.591 );
+			this.add( room );
+			const box1 = new THREE.Mesh( geometry, boxMaterial );
+			box1.position.set( - 10.906, 2.009, 1.846 );
+			box1.rotation.set( 0, - 0.195, 0 );
+			box1.scale.set( 2.328, 7.905, 4.651 );
+			this.add( box1 );
+			const box2 = new THREE.Mesh( geometry, boxMaterial );
+			box2.position.set( - 5.607, - 0.754, - 0.758 );
+			box2.rotation.set( 0, 0.994, 0 );
+			box2.scale.set( 1.970, 1.534, 3.955 );
+			this.add( box2 );
+			const box3 = new THREE.Mesh( geometry, boxMaterial );
+			box3.position.set( 6.167, 0.857, 7.803 );
+			box3.rotation.set( 0, 0.561, 0 );
+			box3.scale.set( 3.927, 6.285, 3.687 );
+			this.add( box3 );
+			const box4 = new THREE.Mesh( geometry, boxMaterial );
+			box4.position.set( - 2.017, 0.018, 6.124 );
+			box4.rotation.set( 0, 0.333, 0 );
+			box4.scale.set( 2.002, 4.566, 2.064 );
+			this.add( box4 );
+			const box5 = new THREE.Mesh( geometry, boxMaterial );
+			box5.position.set( 2.291, - 0.756, - 2.621 );
+			box5.rotation.set( 0, - 0.286, 0 );
+			box5.scale.set( 1.546, 1.552, 1.496 );
+			this.add( box5 );
+			const box6 = new THREE.Mesh( geometry, boxMaterial );
+			box6.position.set( - 2.193, - 0.369, - 5.547 );
+			box6.rotation.set( 0, 0.516, 0 );
+			box6.scale.set( 3.875, 3.487, 2.986 );
+			this.add( box6 );
+
+			// -x right
+			const light1 = new THREE.Mesh( geometry, createAreaLightMaterial( 50 ) );
+			light1.position.set( - 16.116, 14.37, 8.208 );
+			light1.scale.set( 0.1, 2.428, 2.739 );
+			this.add( light1 );
+
+			// -x left
+			const light2 = new THREE.Mesh( geometry, createAreaLightMaterial( 50 ) );
+			light2.position.set( - 16.109, 18.021, - 8.207 );
+			light2.scale.set( 0.1, 2.425, 2.751 );
+			this.add( light2 );
+
+			// +x
+			const light3 = new THREE.Mesh( geometry, createAreaLightMaterial( 17 ) );
+			light3.position.set( 14.904, 12.198, - 1.832 );
+			light3.scale.set( 0.15, 4.265, 6.331 );
+			this.add( light3 );
+
+			// +z
+			const light4 = new THREE.Mesh( geometry, createAreaLightMaterial( 43 ) );
+			light4.position.set( - 0.462, 8.89, 14.520 );
+			light4.scale.set( 4.38, 5.441, 0.088 );
+			this.add( light4 );
+
+			// -z
+			const light5 = new THREE.Mesh( geometry, createAreaLightMaterial( 20 ) );
+			light5.position.set( 3.235, 11.486, - 12.541 );
+			light5.scale.set( 2.5, 2.0, 0.1 );
+			this.add( light5 );
+
+			// +y
+			const light6 = new THREE.Mesh( geometry, createAreaLightMaterial( 100 ) );
+			light6.position.set( 0.0, 20.0, 0.0 );
+			light6.scale.set( 1.0, 0.1, 1.0 );
+			this.add( light6 );
+
+		}
+		dispose() {
+
+			const resources = new Set();
+			this.traverse( object => {
+
+				if ( object.isMesh ) {
+
+					resources.add( object.geometry );
+					resources.add( object.material );
+
+				}
+
+			} );
+			for ( const resource of resources ) {
+
+				resource.dispose();
+
+			}
+
+		}
+
+	}
+	function createAreaLightMaterial( intensity ) {
+
+		const material = new THREE.MeshBasicMaterial();
+		material.color.setScalar( intensity );
+		return material;
+
+	}
+
+	THREE.RoomEnvironment = RoomEnvironment;
+
+} )();
+
+</script>
+<script>
+( function () {
+
 	class EffectComposer {
 
 		constructor( renderer, renderTarget ) {
@@ -2189,7 +2316,7 @@ var GODS=[
   body:0x0e0820,trim:0x1c1230,accent:0xa24dff,accent2:0x6a2cff,type:'wraith'},
  {id:'abyssal-beast',name:'Abyssal Beast',tag:'Bestia · Otchłań',icon:'🐉',
   desc:'Bestia z otchłani owinięta złotym ogniem starożytnej furii.',
-  body:0x2a2014,trim:0x4a3a1e,accent:0xe7a83c,accent2:0x9b59ff,type:'beast'},
+  body:0x18110a,trim:0x3a2c16,accent:0xe7a83c,accent2:0x9b59ff,type:'beast'},
  {id:'rune-devourer',name:'Rune Devourer',tag:'Pożeracz · Runy',icon:'🕳️',
   desc:'Istota złożona z pochłoniętych run, wiecznie głodna mocy zaklęć.',
   body:0x16242a,trim:0x223a40,accent:0x3df0dc,accent2:0x18b6c8,type:'devourer'},
@@ -2226,19 +2353,23 @@ controls.minDistance=2.6;controls.maxDistance=8;controls.maxPolarAngle=Math.PI*0
 controls.autoRotate=false;controls.update();
 
 // lights
-scene.add(new THREE.HemisphereLight(0x4a3a66,0x05030a,0.55));
-scene.add(new THREE.AmbientLight(0x1a1228,0.4));
+scene.add(new THREE.HemisphereLight(0x4a3a66,0x05030a,0.32));
+scene.add(new THREE.AmbientLight(0x1a1228,0.22));
 var key=new THREE.DirectionalLight(0xfff0d8,0.7);key.position.set(3,5,3);scene.add(key);
 var rim=new THREE.DirectionalLight(0x6a7aff,0.5);rim.position.set(-3,2.5,-3);scene.add(rim);
 var coreLight=new THREE.PointLight(0xffffff,1.5,10,2);coreLight.position.set(0,1.4,0.4);scene.add(coreLight);
 var fillLight=new THREE.PointLight(0xffffff,0.45,8,2);fillLight.position.set(0,0.7,1.6);scene.add(fillLight);
+// environment reflections
+try{var pmrem=new THREE.PMREMGenerator(renderer);pmrem.compileEquirectangularShader();
+  var envTex=pmrem.fromScene(new THREE.RoomEnvironment(),0.04).texture;scene.environment=envTex;scene.environmentIntensity=0.6;}catch(e){console.warn('env',e);}
 
 // ground (reflective-ish dark)
 var ground=new THREE.Mesh(new THREE.CircleGeometry(8,64),
-  new THREE.MeshStandardMaterial({color:0x080510,roughness:0.5,metalness:0.55}));
+  new THREE.MeshStandardMaterial({color:0x060310,roughness:0.36,metalness:0.7}));
 ground.rotation.x=-Math.PI/2;scene.add(ground);
 var grid=new THREE.GridHelper(16,32,0x3a2a55,0x140d24);
 grid.position.y=0.004;grid.material.transparent=true;grid.material.opacity=0.28;scene.add(grid);
+var groundGlow=new THREE.Mesh(new THREE.CircleGeometry(1.9,48),new THREE.MeshBasicMaterial({color:0x9b59ff,map:dotTex,transparent:true,opacity:0.24,blending:THREE.AdditiveBlending,depthWrite:false}));groundGlow.rotation.x=-Math.PI/2;groundGlow.position.y=0.02;scene.add(groundGlow);
 
 // ---------- post-processing (bloom) ----------
 var composer=null,bloomPass=null,useComposer=false;
@@ -2266,14 +2397,20 @@ var crackTex=tex(function(x,s){x.fillStyle='#000';x.fillRect(0,0,s,s);x.strokeSt
     var nx=px+Math.cos(ang)*len,ny=py+Math.sin(ang)*len;x.lineTo(nx,ny);x.stroke();
     branch(nx,ny,ang+(Math.random()-.5)*1.1,len*.7,w*.7);if(Math.random()<.6)branch(nx,ny,ang+(Math.random()-.5)*1.4,len*.55,w*.6);}
   for(var i=0;i<7;i++){var a=Math.random()*6.283;branch(s/2+Math.cos(a)*30,s/2+Math.sin(a)*30,a,s*.16,5);}},256);
+function glyph(x,cx,cy,r){x.save();x.translate(cx,cy);var n=2+((cx+cy)|0)%3;x.beginPath();
+  for(var i=0;i<n;i++){var a=i*2.1+cx*0.13;x.moveTo(Math.cos(a)*r,Math.sin(a)*r*1.4);x.lineTo(Math.cos(a+1.3)*r*0.6,Math.sin(a+1.3)*r);} 
+  x.moveTo(0,-r*1.5);x.lineTo(0,r*1.5);x.stroke();x.restore();}
+var runeStripeTex=tex(function(x,s){x.fillStyle='#000';x.fillRect(0,0,s,s);x.strokeStyle='#fff';x.lineWidth=3;x.lineCap='round';x.globalAlpha=0.95;
+  for(var r=0;r<7;r++)for(var c=0;c<3;c++){if((r*3+c)%2===0)continue;glyph(x,(c+0.5)/3*s,(r+0.5)/7*s,s*0.035);}},256);
+runeStripeTex.wrapS=runeStripeTex.wrapT=THREE.RepeatWrapping;runeStripeTex.repeat.set(3,2);
 
 // ---------- materials ----------
-function mat(color,o){o=o||{};return new THREE.MeshStandardMaterial({color:color,
+function mat(color,o){o=o||{};var mm=new THREE.MeshStandardMaterial({color:color,
   roughness:o.roughness!=null?o.roughness:0.7,metalness:o.metalness!=null?o.metalness:0.15,
   emissive:o.emissive!=null?o.emissive:0x000000,emissiveIntensity:o.emissiveIntensity!=null?o.emissiveIntensity:1,
   emissiveMap:o.emissiveMap||null,map:o.map||null,
   transparent:o.opacity!=null,opacity:o.opacity!=null?o.opacity:1,side:o.side!=null?o.side:THREE.FrontSide,
-  flatShading:!!o.flat});}
+  flatShading:!!o.flat});mm.envMapIntensity=o.env!=null?o.env:0.35;return mm;}
 function glow(color,i){i=i==null?2:i;return new THREE.MeshStandardMaterial({color:color,emissive:color,emissiveIntensity:i,roughness:.35,metalness:.1,toneMapped:false});}
 function emitTex(color,t,i){return new THREE.MeshStandardMaterial({color:0x000000,emissive:color,emissiveMap:t,emissiveIntensity:i==null?2.2:i,roughness:.8,metalness:.2});}
 
@@ -2298,8 +2435,21 @@ function flame(rBot,h,cA,cB,sway,radial){var seg=radial||10;var geo=new THREE.Co
   var m=new THREE.Mesh(geo,flameMat(cA,cB,h/2,4+Math.random()*2,sway==null?0.04:sway));return m;}
 
 // smooth robe via lathe; profile: array of [radius,y]
-function lathe(profile,color,o){var pts=profile.map(function(p){return new THREE.Vector2(p[0],p[1]);});
-  var geo=new THREE.LatheGeometry(pts,40);return new THREE.Mesh(geo,mat(color,o));}
+function jitterLathe(geo,fold,hem){var pos=geo.attributes.position,minY=1e9,maxY=-1e9,i;
+  for(i=0;i<pos.count;i++){minY=Math.min(minY,pos.getY(i));maxY=Math.max(maxY,pos.getY(i));}
+  var span=Math.max(maxY-minY,1e-4);
+  for(i=0;i<pos.count;i++){var x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);var ang=Math.atan2(z,x),rad=Math.hypot(x,z);
+    if(fold>0){var f=1+Math.sin(ang*8.0)*fold*0.5+Math.sin(ang*13.0+1.7)*fold*0.3;rad*=f;}
+    var nx=Math.cos(ang)*rad,nz=Math.sin(ang)*rad;
+    if(hem>0&&(y-minY)<span*0.14){var t=Math.random();nx*=1+t*hem*0.7;nz*=1+t*hem*0.7;y-=Math.random()*hem*0.9;}
+    pos.setX(i,nx);pos.setZ(i,nz);pos.setY(i,y);}
+  pos.needsUpdate=true;geo.computeVertexNormals();}
+function lathe(profile,color,o){o=o||{};var pts=profile.map(function(p){return new THREE.Vector2(p[0],p[1]);});
+  var geo=new THREE.LatheGeometry(pts,o.seg||48);
+  if((o.fold||0)>0||(o.hem||0)>0)jitterLathe(geo,o.fold||0,o.hem||0);
+  var mesh=new THREE.Mesh(geo,mat(color,o));
+  if(o.runes){mesh.material.emissive=new THREE.Color(o.runes);mesh.material.emissiveMap=runeStripeTex;mesh.material.emissiveIntensity=o.runeI||0.6;}
+  return mesh;}
 function cap(r,len,color,o){return new THREE.Mesh(new THREE.CapsuleGeometry(r,len,6,14),mat(color,o));}
 function ball(r,color,o,seg){return new THREE.Mesh(new THREE.SphereGeometry(r,seg||20,seg||20),mat(color,o));}
 function ico(r,d,color,o){return new THREE.Mesh(new THREE.IcosahedronGeometry(r,d==null?1:d),mat(color,o));}
@@ -2333,7 +2483,7 @@ function addGlowShells(g,m){
 // ===================== builders =====================
 function buildMonk(m){var g=new THREE.Group();
   // cross-legged robe base (wide smooth mound) + body
-  g.add(lathe([[0,0],[0.42,0],[0.5,0.18],[0.46,0.45],[0.34,0.7],[0.3,0.95],[0.26,1.05],[0,1.08]],m.body,{roughness:0.85}));
+  g.add(lathe([[0,0],[0.42,0],[0.5,0.18],[0.46,0.45],[0.34,0.7],[0.3,0.95],[0.26,1.05],[0,1.08]],m.body,{roughness:0.85,fold:0.08,hem:0.1,runes:m.accent,runeI:0.5}));
   var torso=lathe([[0,0],[0.26,0.02],[0.28,0.3],[0.22,0.55],[0.14,0.62],[0,0.64]],m.body,{roughness:0.82});torso.position.y=1.05;g.add(torso);
   // sash trim
   var sash=new THREE.Mesh(new THREE.TorusGeometry(0.27,0.03,8,32),glow(m.trim,1.4));sash.position.y=1.2;sash.rotation.x=Math.PI/2;g.add(sash);
@@ -2355,8 +2505,8 @@ function buildMonk(m){var g=new THREE.Group();
 
 function buildWraith(m){var g=new THREE.Group();
   // tattered cloak (layered lathe shells + flame fringe)
-  g.add(lathe([[0,0],[0.1,0.02],[0.34,0.1],[0.4,0.4],[0.34,0.9],[0.3,1.3],[0.26,1.55],[0.2,1.7],[0,1.72]],m.body,{roughness:0.92,side:THREE.DoubleSide}));
-  var cloak2=lathe([[0,0.05],[0.36,0.1],[0.44,0.45],[0.38,1.0],[0.3,1.5],[0,1.6]],m.trim,{roughness:0.95,opacity:0.6,side:THREE.DoubleSide});g.add(cloak2);
+  g.add(lathe([[0,0],[0.1,0.02],[0.34,0.1],[0.4,0.4],[0.34,0.9],[0.3,1.3],[0.26,1.55],[0.2,1.7],[0,1.72]],m.body,{roughness:0.92,side:THREE.DoubleSide,fold:0.12,hem:0.16,runes:m.accent,runeI:0.45}));
+  var cloak2=lathe([[0,0.05],[0.36,0.1],[0.44,0.45],[0.38,1.0],[0.3,1.5],[0,1.6]],m.trim,{roughness:0.95,opacity:0.6,side:THREE.DoubleSide,fold:0.14,hem:0.12});g.add(cloak2);
   // smoke fringe at hem
   for(var i=0;i<10;i++){var a=i/10*6.283;var f=flame(0.09,0.5,m.accent2,m.accent,0.05);f.position.set(Math.cos(a)*0.34,0.18,Math.sin(a)*0.34);f.rotation.x=Math.PI;g.add(f);}
   var hood=lathe([[0,0],[0.18,0.0],[0.22,0.18],[0.17,0.4],[0.08,0.5],[0,0.5]],m.body,{roughness:0.9,side:THREE.DoubleSide});hood.position.y=1.45;g.add(hood);
@@ -2365,14 +2515,14 @@ function buildWraith(m){var g=new THREE.Group();
   var eR=eL.clone();eR.position.x=-0.06;g.add(eR);g.userData.pulse=[eL,eR];
   // arm + ethereal dagger
   var aR=cap(0.06,0.42,m.body);aR.position.set(-0.26,1.15,0.18);aR.rotation.z=-Math.PI/3.2;aR.rotation.x=-0.4;g.add(aR);
-  var blade=new THREE.Mesh(new THREE.ConeGeometry(0.04,0.5,4),glow(m.accent,1.7));blade.position.set(-0.46,0.95,0.4);blade.rotation.x=Math.PI*0.9;blade.rotation.z=0.3;g.add(blade);
+  var blade=new THREE.Mesh(new THREE.ConeGeometry(0.028,0.46,4),glow(m.accent,1.2));blade.position.set(-0.46,0.95,0.4);blade.rotation.x=Math.PI*0.9;blade.rotation.z=0.3;g.add(blade);
   var hilt=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.03,0.03),glow(m.accent2,2));hilt.position.set(-0.42,1.16,0.34);g.add(hilt);
   g.add(floorRune(m.accent,0.9));
   g.userData.height=2.1;g.userData.lightY=1.4;return g;}
 
 function buildBeast(m){var g=new THREE.Group();
   // body
-  var body=new THREE.Mesh(new THREE.SphereGeometry(0.46,18,16),mat(m.body,{roughness:0.6,metalness:0.3,flat:true}));
+  var body=new THREE.Mesh(new THREE.SphereGeometry(0.46,18,16),mat(m.body,{roughness:0.55,metalness:0.35,flat:true,emissive:m.accent,emissiveIntensity:0.7,emissiveMap:crackTex}));
   body.scale.set(1,0.9,1.7);body.position.set(0,0.7,0.1);g.add(body);
   var chest=new THREE.Mesh(new THREE.SphereGeometry(0.4,16,14),mat(m.body,{roughness:0.6,metalness:0.3,flat:true}));
   chest.scale.set(1,1,1.1);chest.position.set(0,0.78,-0.5);g.add(chest);
@@ -2388,13 +2538,13 @@ function buildBeast(m){var g=new THREE.Group();
   var jaw=new THREE.Mesh(new THREE.ConeGeometry(0.16,0.3,8),mat(m.body,{roughness:.6,flat:true}));jaw.position.set(0,1.1,-1.16);jaw.rotation.x=-Math.PI/2.2;g.add(jaw);
   // glowing maw
   var maw=new THREE.Mesh(new THREE.SphereGeometry(0.1,10,10),glow(m.accent2,2));maw.position.set(0,1.15,-1.25);maw.scale.set(1,0.6,1);g.add(maw);g.userData.pulse=[maw];
-  var eL=ball(0.04,m.accent);eL.material=glow(m.accent,5);eL.position.set(0.1,1.3,-1.18);g.add(eL);
-  var eR=eL.clone();eR.position.x=-0.1;g.add(eR);
+  var eL=ball(0.045,m.accent);eL.material=glow(m.accent,6);eL.position.set(0.1,1.32,-1.2);g.add(eL);
+  var eR=eL.clone();eR.position.x=-0.1;g.add(eR);g.userData.pulse=(g.userData.pulse||[]).concat([eL,eR]);
   // crystalline spine spikes (glowing edges)
   var spikePos=[];for(var s=0;s<8;s++)spikePos.push([0,0.95+ -s*0.0,0.5-s*0.22]);
   for(var s2=0;s2<9;s2++){var z=0.55-s2*0.2,sc=1-Math.abs(s2-3)/9;
-    var sp=new THREE.Mesh(new THREE.OctahedronGeometry(0.1+0.06*sc,0),mat(m.body,{roughness:.4,metalness:.4,emissive:m.accent,emissiveIntensity:0.5,flat:true}));
-    sp.position.set(0,1.0+0.18*sc,z);sp.scale.set(0.6,1.3,0.6);sp.rotation.y=0.4;g.add(sp);}
+    var sp=new THREE.Mesh(new THREE.OctahedronGeometry(0.13+0.08*sc,0),mat(0x241a0e,{roughness:.35,metalness:.5,emissive:m.accent,emissiveIntensity:1.1,flat:true}));
+    sp.position.set(0,1.02+0.22*sc,z);sp.scale.set(0.6,1.6,0.6);sp.rotation.y=0.4;g.add(sp);}
   // horns
   [[0.12,1],[-0.12,-1]].forEach(function(h){var horn=new THREE.Mesh(new THREE.ConeGeometry(0.04,0.3,6),mat(m.trim,{roughness:.4,metalness:.5,emissive:m.accent,emissiveIntensity:.6}));horn.position.set(h[0],1.42,-0.95);horn.rotation.z=h[1]*0.4;horn.rotation.x=-0.4;g.add(horn);});
   // tail
@@ -2405,7 +2555,7 @@ function buildBeast(m){var g=new THREE.Group();
 
 function buildDevourer(m){var g=new THREE.Group();
   // central dark silhouette
-  var core=lathe([[0,0],[0.12,0.02],[0.32,0.12],[0.36,0.5],[0.3,1.0],[0.26,1.4],[0,1.5]],0x0a1216,{roughness:0.9});g.add(core);
+  var core=lathe([[0,0],[0.12,0.02],[0.32,0.12],[0.36,0.5],[0.3,1.0],[0.26,1.4],[0,1.5]],0x0a1216,{roughness:0.9,fold:0.1,hem:0.12});g.add(core);
   // emissive cracks shell over body
   var crackBody=lathe([[0,0.02],[0.13,0.04],[0.33,0.13],[0.37,0.5],[0.31,1.0],[0.27,1.4],[0,1.48]],0x000000,{});
   crackBody.material=emitTex(m.accent,crackTex,2.0);crackBody.material.transparent=true;crackBody.material.opacity=0.9;g.add(crackBody);
@@ -2431,7 +2581,7 @@ function buildKnight(m){var g=new THREE.Group();
     var shin=cap(0.09,0.3,m.body,{roughness:.45,metalness:.55});shin.position.set(l[0],0.18,0.02);g.add(shin);
     var knee=ball(0.08,m.trim,{roughness:.4,metalness:.6,emissive:m.accent,emissiveIntensity:.5});knee.position.set(l[0],0.34,0.06);g.add(knee);});
   // torso plate
-  var torso=lathe([[0,0],[0.3,0.0],[0.34,0.15],[0.36,0.4],[0.3,0.62],[0.24,0.72],[0,0.74]],m.body,{roughness:.4,metalness:.6});torso.position.y=0.88;g.add(torso);
+  var torso=lathe([[0,0],[0.3,0.0],[0.34,0.15],[0.36,0.4],[0.3,0.62],[0.24,0.72],[0,0.74]],m.body,{roughness:.4,metalness:.6});torso.position.y=0.88;torso.material.envMapIntensity=0.9;g.add(torso);
   // molten seams (emissive lines via thin glowing torus + verticals)
   var seam=new THREE.Mesh(new THREE.TorusGeometry(0.33,0.012,6,32),glow(m.accent,2.4));seam.position.y=1.18;seam.rotation.x=Math.PI/2;g.add(seam);
   for(var i=0;i<5;i++){var a=(i-2)/5*1.6;var v=new THREE.Mesh(new THREE.BoxGeometry(0.015,0.5,0.01),glow(m.accent,2.2));v.position.set(Math.sin(a)*0.3,1.05,Math.cos(a)*0.3+0.02);v.rotation.y=-a;g.add(v);}
@@ -2443,7 +2593,7 @@ function buildKnight(m){var g=new THREE.Group();
   var aL=cap(0.08,0.42,m.body,{roughness:.45,metalness:.55});aL.position.set(0.38,0.95,0.02);g.add(aL);
   var aR=aL.clone();aR.position.x=-0.38;g.add(aR);
   // helm
-  var helm=new THREE.Mesh(new THREE.SphereGeometry(0.18,16,16),mat(m.body,{roughness:.35,metalness:.65,flat:true}));helm.position.y=1.6;helm.scale.set(1,1.15,1.05);g.add(helm);
+  var helm=new THREE.Mesh(new THREE.SphereGeometry(0.18,16,16),mat(m.body,{roughness:.35,metalness:.65,flat:true}));helm.position.y=1.6;helm.scale.set(1,1.15,1.05);helm.material.envMapIntensity=1.0;g.add(helm);
   var visor=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.04,0.06),glow(m.accent,3));visor.position.set(0,1.6,0.16);g.add(visor);
   [[0.1,1],[-0.1,-1]].forEach(function(h){var horn=new THREE.Mesh(new THREE.ConeGeometry(0.035,0.34,6),mat(m.trim,{roughness:.4,metalness:.6,emissive:m.accent,emissiveIntensity:.5}));horn.position.set(h[0],1.78,-0.02);horn.rotation.z=h[1]*0.6;horn.rotation.x=-0.3;g.add(horn);});
   // tattered cape with molten edge
@@ -2457,13 +2607,13 @@ function buildKnight(m){var g=new THREE.Group();
 
 function buildThief(m){var g=new THREE.Group();
   // ethereal lower body
-  g.add(lathe([[0,0],[0.1,0.03],[0.3,0.12],[0.34,0.5],[0.28,1.0],[0.22,1.2],[0,1.22]],m.body,{roughness:.9,side:THREE.DoubleSide}));
+  g.add(lathe([[0,0],[0.1,0.03],[0.3,0.12],[0.34,0.5],[0.28,1.0],[0.22,1.2],[0,1.22]],m.body,{roughness:.9,side:THREE.DoubleSide,fold:0.1,hem:0.14,runes:m.accent,runeI:0.5}));
   for(var i=0;i<8;i++){var a=i/8*6.283;var f=flame(0.07,0.4,m.accent2,m.accent,0.05);f.position.set(Math.cos(a)*0.26,0.12,Math.sin(a)*0.26);f.rotation.x=Math.PI;g.add(f);}
   var torso=lathe([[0,0],[0.22,0.02],[0.24,0.28],[0.18,0.45],[0,0.48]],m.body,{roughness:.85});torso.position.y=1.2;g.add(torso);
   // shoulders/collar
   var collar=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.04,8,24),mat(m.trim,{roughness:.5,metalness:.4}));collar.position.y=1.52;collar.rotation.x=Math.PI/2;g.add(collar);
   // silver mask
-  var mask=new THREE.Mesh(new THREE.SphereGeometry(0.16,18,18),mat(0x9d8fc0,{roughness:.55,metalness:.25,emissive:m.accent,emissiveIntensity:.12}));mask.position.y=1.74;mask.scale.set(1,1.2,0.85);g.add(mask);
+  var mask=new THREE.Mesh(new THREE.SphereGeometry(0.16,18,18),mat(0x9d8fc0,{roughness:.55,metalness:.25,emissive:m.accent,emissiveIntensity:.12}));mask.position.y=1.74;mask.scale.set(1,1.2,0.85);mask.material.envMapIntensity=1.0;g.add(mask);
   var third=new THREE.Mesh(new THREE.CircleGeometry(0.03,16),glow(m.accent,3));third.position.set(0,1.8,0.14);g.add(third);g.userData.pulse=[third];
   [0.06,-0.06].forEach(function(x){var e=new THREE.Mesh(new THREE.CircleGeometry(0.022,12),glow(m.accent2,2.5));e.position.set(x,1.74,0.135);g.add(e);});
   // arms outstretched holding scales
@@ -2486,7 +2636,7 @@ function buildShadow(m){var g=new THREE.Group();
   for(var i=0;i<9;i++){var a=i/9*6.283;var rr=0.08+Math.random()*0.18;var h=0.55+Math.random()*0.45;
     var f=flame(0.07+Math.random()*0.04,h,m.accent2,m.accent,0.07,8);f.position.set(Math.cos(a)*rr,0.1+h/2,Math.sin(a)*rr);g.add(f);}
   // torso of shadow (translucent dark) + fresnel
-  var torso=lathe([[0,0],[0.16,0.05],[0.28,0.3],[0.3,0.65],[0.24,0.95],[0.16,1.05],[0,1.08]],m.body,{roughness:.95,opacity:0.85});torso.position.y=0.95;g.add(torso);
+  var torso=lathe([[0,0],[0.16,0.05],[0.28,0.3],[0.3,0.65],[0.24,0.95],[0.16,1.05],[0,1.08]],m.body,{roughness:.95,opacity:0.92,fold:0.07,runes:m.accent,runeI:0.8});torso.position.y=0.95;g.add(torso);
   // chest core (the rune heart)
   var core=ball(0.13,m.accent);core.material=glow(m.accent,4);core.position.y=1.45;g.add(core);
   var coreRing=haloRing(m.accent2,0.2,0.015,2.6);coreRing.position.y=1.45;g.add(coreRing);
@@ -2526,6 +2676,7 @@ function select(idx){if(idx===curIdx)return;curIdx=idx;var m=GODS[idx];
   addGlowShells(g,m);
   scene.add(g);cur=g;
   coreLight.color.setHex(m.accent);coreLight.position.set(0,g.userData.lightY||1.3,(g.userData.lightZ!=null?g.userData.lightZ:0.4));
+  groundGlow.material.color.setHex(m.accent);
   fillLight.color.setHex(m.accent2);
   if(bloomPass){bloomPass.strength=(m.type==='knight'||m.type==='beast')?0.42:0.6;}
   infoCard.style.display='block';infoCard.style.setProperty('--gc',hex(m.accent));
