@@ -10413,6 +10413,10 @@ function buildMobMesh(type){
       }
     }
   }
+  // miekki cien kontaktowy pod mobem (grunt + jakosc, zwlaszcza na mobile bez realnych cieni)
+  {const shM=new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.22,depthWrite:false});
+   const sh=new THREE.Mesh(new THREE.CircleGeometry((type.height||1)*0.4,14),shM);
+   sh.rotation.x=-Math.PI/2;sh.position.y=0.04;g.add(sh);}
   return g;
 }
 function createMobHPBar(typeName){
