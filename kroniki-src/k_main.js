@@ -38,6 +38,13 @@ Game.showCreate=function(){
       selFac=fid;selHero=null;
       const hs=UI.el('heroSec');hs.classList.remove('hidden');
       const hr=UI.el('heroRow');hr.innerHTML='';
+      // portret 3D bohatera frakcji
+      let pv=UI.el('heroPreview');
+      if(!pv){pv=document.createElement('div');pv.id='heroPreview';pv.style.cssText='text-align:center;margin:6px 0;';hs.insertBefore(pv,hr);}
+      pv.innerHTML='<div style="color:#8a78ad;font-size:11px;">Ładowanie podglądu postaci…</div>';
+      W.portraitFor(fid,(url)=>{
+        if(url&&selFac===fid)pv.innerHTML='<img src="'+url+'" style="width:110px;height:110px;border-radius:16px;border:2px solid '+f.css+';box-shadow:0 0 18px -4px '+f.css+';"><div style="color:'+f.css+';font-size:10px;margin-top:3px;">Twoja postać w grze</div>';
+      });
       const heroes=D.UNIT_NAMES[fid].filter(u=>u[1]===1).slice(0,4);
       heroes.forEach(h=>{
         const hc=document.createElement('div');hc.className='heroCard';
@@ -74,6 +81,10 @@ Game.startGame=function(state){
 };
 Game._start2=function(){
   const state=Game.state;
+  // portret w HUD
+  W.portraitFor(state.faction,(url)=>{
+    if(url){const p=UI.el('portrait');p.style.backgroundImage='url('+url+')';p.style.backgroundSize='cover';p.firstChild.textContent='';}
+  });
   UI.el('boot').style.display='none';
   UI.el('hud').classList.remove('hidden');
   Game.makePlayer();
@@ -127,6 +138,7 @@ Game.travel=function(regionId,silent){
   if(def.godOnly&&!s.isGod){UI.toast('🔱 Tylko bogowie mogą wejść do tego wymiaru!','red');return;}
   if(regionId==='piekielna_otchlan'&&s.lvl<50&&!s.isGod){UI.toast('🔥 Piekielna Otchłań: wymagany poziom 50 lub boskość!','red');return;}
   Game.regionId=regionId;
+  Game.arena={active:false,wave:0,waveT:0};
   if(typeof SND!=='undefined')SND.portal();
   E.clear();C.clear();UI.hideBoss();Game.godFight=null;
   W.buildRegion(regionId);
@@ -180,11 +192,12 @@ Game.useAbility=function(i){
   if(a.cd>0||P.dead)return;
   const def=a.ab.def;
   if(a.ab.kind==='rune'){
-    if(P.mana<(def.mana||0)){UI.toast('Brak many!','red');return;}
-    P.mana-=(def.mana||0);
+    const mc=Math.round((def.mana||0)*(Sys.totalStats().manaCost||1));
+    if(P.mana<mc){UI.toast('Brak many!','red');return;}
+    P.mana-=mc;
     if(typeof SND!=='undefined')SND.cast();
     C.castSpell(def,D.spellPower(a.ab.rune),false);
-    a.cd=def.cd||1;a.maxCd=a.cd;
+    a.cd=(def.cd||1)*(1-(Sys.totalStats().cdr||0)/100);a.maxCd=a.cd;
   } else if(a.ab.kind==='god'){
     if(P.de<(def.de||0)){UI.toast('Brak Boskiej Energii!','red');return;}
     P.de-=(def.de||0);
@@ -231,6 +244,28 @@ Game.useSpecial=function(def){
 };
 
 // ---------- WALKA Z BOGIEM ----------
+
+Game.summonGod=function(godKey){
+  const s=Game.state;const god=D.GODS[godKey];
+  UI.banner(god.ic+' '+god.name+' ODPOWIADA NA WEZWANIE!',5000);
+  if(typeof SND!=='undefined')SND.godRoar();
+  const own=(god.fac===s.faction);
+  const hp=godKey==='fallen'? D.rndi(60000,100000) : D.rndi(15000,30000);
+  const dmg=godKey==='fallen'? 850 : 340;
+  const def={name:god.ic+' '+god.name,tier:5,lvl:45,fac:god.fac,hp:hp,dmg:dmg,xp:3500,gold:[1500,3000]};
+  const P=Game.player;
+  const e=E.spawnEnemy(def,P.pos.x+Math.sin(P.rot)*10,P.pos.z+Math.cos(P.rot)*10,{boss:true,scale:1.0});
+  W.loadGod(god.glb,(m)=>{
+    if(m&&e.grp.parent){e.grp.remove(e.model);e.model=m;e.grp.add(m);m.scale.setScalar(1.35);
+      const l=new THREE.PointLight(D.FACTIONS[god.fac].col,2,10,2);l.position.y=2;e.grp.add(l);
+      const ring=new THREE.Mesh(new THREE.RingGeometry(1.2,1.9,40),W.ringMat(D.FACTIONS[god.fac].col,0.6));
+      ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.userData.spin=0.3;e.grp.add(ring);}
+  });
+  e.speed=3.6;e.atkR=8;e.atkRate=1.1;e.isGodBoss=true;e.isFallen=(godKey==='fallen');e.godKey=godKey;e.ownGod=own;
+  e.castT=4; // bogowie rzucają zaklęcia
+  Game.godFight=e;
+  UI.setBoss(def.name,1);
+};
 Game.startGodFight=function(isFallen){
   const s=Game.state;
   const godKey=isFallen?'fallen':D.FACTIONS[s.faction].god;
@@ -254,7 +289,7 @@ Game.startGodFight=function(isFallen){
       ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.userData.spin=0.3;e.grp.add(ring);
     }
   });
-  e.speed=3.6; e.atkR=isFallen?9:8; e.atkRate=isFallen?0.9:1.2; e.isGodBoss=true; e.isFallen=!!isFallen;
+  e.speed=3.6; e.atkR=isFallen?9:8; e.atkRate=isFallen?0.9:1.2; e.isGodBoss=true; e.isFallen=!!isFallen; e.godKey=godKey; e.ownGod=!isFallen; e.castT=4;
   Game.godFight=e;
   UI.setBoss(def.name,1);
 };
@@ -276,12 +311,19 @@ Game.spawnFallenGod=function(){
 
 Game.onGodKilled=function(e){
   const s=Game.state;
+  if(e.godKey&&!e.ownGod&&!e.isFallen){
+    // OBCY bóg — łup i trofeum
+    UI.banner('🏆 '+e.def.name+' POKONANY! ŁUP BOGÓW!',6000);
+    Sys.grantGodLoot(e.godKey);
+    Game.godFight=null;Sys.save();return;
+  }
   if(e.isFallen){
     s.fallenSlain=true;Sys.questEvent('fallenSlain');
     UI.banner('🏆 UPADŁY BÓG POKONANY! ŚWIAT JEST BEZPIECZNY!',8000);
     UI.toast('Legendy będą opowiadać o tobie wieki.','gold');
     // nagroda: sekretna runa + unikat
     s.inv.push(D.makeRune('demon','secret'));
+    Sys.grantGodLoot('fallen');
     const u=D.pick(D.UNIQUES);s.inv.push(Object.assign({uid:'u'+(Math.random()*1e9|0),up:0,aff:[]},u));
   } else {
     s.godSlain=true;Sys.questEvent('godSlain');
@@ -293,6 +335,9 @@ Game.onGodKilled=function(e){
 
 Game.onAscend=function(){
   const s=Game.state;
+  W.godPortrait(D.FACTIONS[s.faction].god,(url)=>{
+    if(url){const p=UI.el('portrait');p.style.backgroundImage='url('+url+')';p.style.backgroundSize='cover';p.firstChild.textContent='';}
+  });
   UI.banner('🔱 PRZEMIANA! JESTEŚ BOGIEM!',7000);
   UI.toast('Twoi wyznawcy ('+s.followers+') wzmacniają twoją moc.','gold');
   UI.toast('Wymiar Bogów stoi otworem. Odblokowano drzewko boskie!','green');
@@ -302,6 +347,51 @@ Game.onAscend=function(){
   Sys.save();
 };
 
+
+// ---------- ARENA ----------
+Game.arena={active:false,wave:0,waveT:0};
+Game.startArena=function(){
+  Game.travel('otchlan_bestii',true); // arena na terenie otchłani
+  E.clear();C.clear();
+  Game.arena={active:true,wave:0,waveT:2};
+  UI.banner('🏟️ ARENA! Przetrwaj jak najwięcej fal!',4000);
+  UI.el('regionName').textContent='🏟️ Arena — fala 0';
+};
+Game.arenaNextWave=function(){
+  const s=Game.state;const A=Game.arena;
+  A.wave++;
+  UI.banner('🏟️ FALA '+A.wave+'!',2500);
+  UI.el('regionName').textContent='🏟️ Arena — fala '+A.wave;
+  const n=3+Math.min(9,A.wave);
+  const lvlMin=Math.max(1,s.lvl-2+A.wave), lvlMax=s.lvl+2+A.wave;
+  for(let i=0;i<n;i++){
+    const a=D.rnd(0,6.283),r=D.rnd(12,20);
+    const facs=D.FACTION_LIST.filter(f=>Sys.isHostileTo(f));
+    const u=E.rollUnit(D.pick(facs),[lvlMin,lvlMax]);
+    E.spawnEnemy(u,Game.player.pos.x+Math.cos(a)*r,Game.player.pos.z+Math.sin(a)*r);
+  }
+  if(A.wave%5===0){ // co 5 fal mini-boss
+    const bu=E.rollUnit('demony',[lvlMax,lvlMax+3]);bu.tier=4;bu.hp*=3;bu.name='⭐ Mistrz Areny';bu.gold=[bu.gold[0]*5,bu.gold[1]*5];
+    E.spawnEnemy(bu,Game.player.pos.x,Game.player.pos.z+15,{boss:true});
+  }
+};
+Game.arenaUpdate=function(dt){
+  const A=Game.arena;if(!A.active)return;
+  const alive=E.enemies.some(e=>Sys.isHostileTo(e.def.fac));
+  if(!alive){
+    A.waveT-=dt;
+    if(A.waveT<=0){
+      if(A.wave>0){
+        const s=Game.state;
+        const rew=60+A.wave*40;Sys.addGold(rew);Sys.addXp(30+A.wave*25);
+        if(A.wave%3===0)E.spawnPickup({x:Game.player.pos.x,z:Game.player.pos.z,y:0},'rune',D.makeRune(null,D.pick(['rare','epic','epic','mythic'])));
+        if(A.wave>(s.arenaBest||0)){s.arenaBest=A.wave;UI.toast('🏟️ Nowy rekord Areny: fala '+A.wave+'!','gold');}
+        Sys.checkAchievements();
+      }
+      A.waveT=3;Game.arenaNextWave();
+    }
+  }
+};
 // ---------- NAJAZD DEMONÓW ----------
 Game.startRaid=function(){
   if(Game.regionId!=='wioska')return;
@@ -464,13 +554,34 @@ Game.loop=function(){
   Game.checkInteract();
   UI.tickCooldowns(dt);
   Sys.tickMissions();
+  // combo
+  if(s.combo>0){s.comboT-=dt;if(s.comboT<=0){s.combo=0;UI.comboShow(0);}}
+  // auto-mikstura
+  if(s.autoPotion&&!P.dead&&P.hp<st.maxHp*0.3){
+    const pot=s.inv.find(i=>i.t==='potion'&&i.heal);
+    if(pot){Sys.usePotion(pot.uid);}
+  }
+  // wskaźnik niskiego HP
+  UI.lowHp(P.hp/st.maxHp);
   if((t*10|0)%2===0)UI.drawMinimap();
   UI.refreshTop();
 
+  // bóg boss: zaklęcia z telegrafem
+  if(Game.godFight&&Game.godFight.hp>0&&!P.dead){
+    const gf=Game.godFight;gf.castT-=dt;
+    if(gf.castT<=0){gf.castT=D.rnd(5,8);
+      const gx=P.pos.x,gz=P.pos.z;
+      C.telegraph(gx,gz,4,1.4,()=>{
+        const d=Math.hypot(P.pos.x-gx,P.pos.z-gz);
+        if(d<4)C.damagePlayer(gf.def.dmg*1.6,{n:gf.def.name,e:gf});
+      });
+    }
+  }
   // walka z bogiem — koniec
   if(Game.godFight&&Game.godFight.hp<=0){Game.onGodKilled(Game.godFight);}
   if(Game.godFight&&!E.enemies.includes(Game.godFight))Game.godFight=null;
 
+  Game.arenaUpdate(dt);
   // najazdy demonów
   if(Game.regionId==='wioska'&&!Game.raidActive){
     Game.raidT-=dt;

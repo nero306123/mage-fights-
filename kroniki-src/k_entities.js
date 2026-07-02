@@ -123,6 +123,16 @@ E.spawnEnemy=function(def,x,z,opts){
     atkCd:0, atkRate:1.6-def.tier*0.08, wanderT:0, home:{x:x,z:z},
     elite:def.tier>=3, boss:!!opts.boss, stun:0, slow:0, fear:0, dots:[], mark:0};
   if(opts.boss){e.aggro=50;grp.scale.setScalar(1.6);bar.visible=false;}
+  // afiksy elit (tier 2+, 25% szans; nie boss)
+  if(!opts.boss&&def.tier>=2&&D.chance(0.25)){
+    const af=D.pick(D.ELITE_AFFIXES);e.affix=af;
+    def.name=af.n+' '+def.name;
+    if(af.spd)e.speed*=af.spd;
+    if(af.hp){e.hp=Math.round(e.hp*af.hp);e.maxHp=e.hp;}
+    if(af.gold)def.gold=[def.gold[0]*af.gold,def.gold[1]*af.gold];
+    const glowM=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.03,6,22),W.glow(parseInt(af.col.slice(1),16),2));
+    glowM.rotation.x=Math.PI/2;glowM.position.y=0.15;grp.add(glowM);
+  }
   E.enemies.push(e);
   return e;
 };
@@ -141,6 +151,52 @@ E.populateRegion=function(id){
     if(Sys.isAllied(facId)&&D.chance(0.7)) facId=mainFac; // sojusznicy rzadziej
     const u=E.rollUnit(facId,def.lvl);
     E.spawnEnemy(u,x,z);
+  }
+  // Skarbnik (rzadki uciekający skarb, 25% szans na region)
+  if(D.chance(0.25)){
+    const sk=E.rollUnit(mainFac,def.lvl);
+    sk.name='💰 Skarbnik';sk.hp=Math.round(sk.hp*0.6);sk.gold=[sk.gold[0]*10,sk.gold[1]*15];sk.xp*=3;
+    const e=E.spawnEnemy(sk,D.rnd(-10,10),D.rnd(-10,10));
+    e.treasure=true;e.speed=5.2;e.aggro=0; // ucieka zamiast walczyć
+  }
+  // skrzynie skarbów (3-5 na region)
+  const nCh=D.rndi(3,5);
+  for(let ci=0;ci<nCh;ci++){
+    const a=D.rnd(0,6.283),r=D.rnd(12,half*0.9);
+    const x=Math.cos(a)*r,z=Math.sin(a)*r;
+    const chest=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.45,0.5),W.mat(0x6a4a20,{rough:0.8}));
+    body.position.y=0.22;chest.add(body);
+    const lid=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.2,0.52),W.mat(0x8a6230,{rough:0.75}));
+    lid.position.y=0.52;chest.add(lid);
+    const lock=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.14,0.06),W.glow(0xffd56b,1.6));
+    lock.position.set(0,0.4,0.27);chest.add(lock);
+    chest.position.set(x,W.groundH(x,z),z);
+    W.current.add(chest);
+    W.interactables.push({x:x,z:z,r:2,label:'Skrzynia Skarbów',icon:'🗝️',once:true,action:(self)=>{
+      Sys.addGold(D.rndi(40,140)+Game.state.lvl*8);
+      if(D.chance(0.5))E.spawnPickup(chest.position,'rune',D.makeRune(null,D.pick(['common','rare','rare','epic'])));
+      if(D.chance(0.4))E.spawnPickup(chest.position,'item',D.makeItem(D.pick(D.EQUIP_SLOTS),D.pick(['rare','rare','epic']),Game.state.lvl));
+      if(chest.parent)chest.parent.remove(chest);
+      if(typeof SND!=='undefined')SND.gold();
+    }});
+  }
+  // kapliczka błogosławieństw (1-2 na region)
+  for(let si=0;si<D.rndi(1,2);si++){
+    const a=D.rnd(0,6.283),r=D.rnd(14,half*0.8);
+    const x=Math.cos(a)*r,z=Math.sin(a)*r;
+    const sh=new THREE.Group();
+    const pil=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,1.6,7),W.mat(0x4a4258,{rough:0.8}));
+    pil.position.y=0.8;sh.add(pil);
+    const orb=new THREE.Mesh(new THREE.SphereGeometry(0.25,10,10),W.glow(0x7dffc7,2));
+    orb.position.y=1.9;orb.userData.bobber=true;sh.add(orb);
+    sh.position.set(x,W.groundH(x,z),z);W.current.add(sh);
+    W.interactables.push({x:x,z:z,r:2.2,label:'Kapliczka — dotknij po błogosławieństwo',icon:'✨',once:true,action:()=>{
+      const P=Game.player;const roll=D.pick(['dmg','spd','def','regen']);
+      P.buffs[roll]={t:90};UI.refreshBuffs();
+      UI.toast('✨ Błogosławieństwo kapliczki: '+({dmg:'MOC',spd:'SZYBKOŚĆ',def:'OBRONA',regen:'REGENERACJA'})[roll]+' (90 s)!','gold');
+      if(orb.parent)orb.parent.remove(orb);
+    }});
   }
   // boss regionu (elitarny strażnik)
   if(!def.godOnly&&!def.finalBoss){
@@ -165,6 +221,16 @@ E.updateEnemies=function(dt,t){
     const dist=Math.hypot(dx,dz);
     const hostile = Sys.isHostileTo(e.def.fac);
     let sp=e.speed*(e.slow>0?0.45:1); if(e.slow>0)e.slow-=dt;
+    if(e.treasure){
+      // Skarbnik: ucieka od gracza, znika po 25 s
+      e.runT=(e.runT||25)-dt;
+      if(e.runT<=0){C.deathBurst(e.grp.position,0xffd56b);if(e.grp.parent)e.grp.parent.remove(e.grp);E.enemies.splice(i,1);continue;}
+      if(dist<14){e.grp.position.x-=dx/dist*4.8*dt;e.grp.position.z-=dz/dist*4.8*dt;e.grp.rotation.y=Math.atan2(-dx,-dz);}
+      W.collide(e.grp.position,0.5);
+      e.grp.position.y=W.groundH(e.grp.position.x,e.grp.position.z);
+      E.updateHpBar(e.bar,e.hp/e.maxHp,'#ffd56b');
+      continue;
+    }
     if(e.fear>0){e.fear-=dt; // ucieczka
       e.grp.position.x-=dx/dist*sp*dt; e.grp.position.z-=dz/dist*sp*dt;
       e.grp.rotation.y=Math.atan2(-dx,-dz);
@@ -200,6 +266,12 @@ E.updateEnemies=function(dt,t){
 };
 
 E.killEnemy=function(e,idx){
+  // wybuchowy afiks
+  if(e.affix&&e.affix.explode){
+    C.ringFx(e.grp.position,0xff7a2b,3.5);
+    const P=Game.player;const d=Math.hypot(P.pos.x-e.grp.position.x,P.pos.z-e.grp.position.z);
+    if(d<3.5)C.damagePlayer(e.def.dmg*1.2,{n:'eksplozja',e:null});
+  }
   // nagrody
   const g=D.rndi(e.def.gold[0],e.def.gold[1]);
   Sys.addGold(g); Sys.addXp(e.def.xp);

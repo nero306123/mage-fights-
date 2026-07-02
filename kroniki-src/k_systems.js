@@ -19,6 +19,7 @@ Sys.newState=function(faction,heroName){
     godSlain:false, fallenSlain:false, followers:0,
     unlockedSlots:0, potBelt:{}, resBag:{},
     seenIntro:false, playT:0, lastDaily:0,
+    godTrophies:{}, achievements:{}, pity:0, combo:0, comboT:0, arenaBest:0, autoPotion:false, lastChest:0,
   };
 };
 Sys.S=null; // referencja ustawiana przez Game
@@ -73,6 +74,36 @@ Sys.totalStats=function(){
       if(k.startsWith('n_crit'))st.crit+=2;
     }
   }
+  // trofea bogów: +4% obrażeń i HP za każde
+  const trof=Object.keys(s.godTrophies||{}).length;
+  if(trof>0){st.dmg*=(1+trof*0.04);st.maxHp*=(1+trof*0.04);}
+  // zestawy frakcyjne
+  st.setBonus={};
+  const setCount={};
+  for(const k in s.equip){const it=s.equip[k];if(it&&it.set)setCount[it.set]=(setCount[it.set]||0)+1;}
+  for(const fac in setCount){
+    const n=setCount[fac];const def=D.SETS[fac];if(!def)continue;
+    if(n>=2){const b=def.s2;
+      if(b.dmg)st.dmg*=(1+b.dmg/100); if(b.mana)st.maxMana*=(1+b.mana/100); if(b.crit)st.crit+=b.crit;
+      if(b.hp)st.maxHp*=(1+b.hp/100); if(b.spell)st.spellPow=(st.spellPow||0)+b.spell; if(b.def)st.def+=b.def; if(b.xp)st.xpBonus=(st.xpBonus||0)+b.xp;
+      st.setBonus[fac]=2;}
+    if(n>=3){const b=def.s3;
+      if(b.dodge)st.dodge=(st.dodge||0)+b.dodge; if(b.cdr)st.cdr=(st.cdr||0)+b.cdr; if(b.heal)st.healBonus=(st.healBonus||0)+b.heal;
+      st.setBonus[fac]=3;}
+  }
+  // efekty reliktów
+  for(const k in s.equip){const it=s.equip[k];if(!it)continue;
+    if(it.fx==='void_calm')st.manaRegen*=1.8;
+    if(it.fx==='beast_heart')st.maxHp*=1.25;
+    if(it.fx==='rune_eye')st.manaCost=(st.manaCost||1)*0.75;
+    if(it.fx==='ash_plate')st.dmgReduce=(st.dmgReduce||0)+20;
+    if(it.fx==='crusade')st.dmg*=1.2;
+    if(it.fx==='soul_scale'){st.xpBonus=(st.xpBonus||0)+15;st.goldBonus=(st.goldBonus||0)+15;}
+    if(it.fx==='abyss_crown')st.dmg*=1.3;
+    if(it.fx==='fallen_heart')st.maxHp*=1.4;
+    if(it.fx==='phase')st.dodge=(st.dodge||0)+15;
+    if(it.fx==='dream_veil')st.dodge=(st.dodge||0)+10;
+  }
   // buffy chwilowe
   if(P&&P.buffs.spd)st.spd*=1.5;
   st.maxHp=Math.round(st.maxHp);st.maxMana=Math.round(st.maxMana);st.dmg=Math.round(st.dmg);st.def=Math.round(st.def);
@@ -81,10 +112,12 @@ Sys.totalStats=function(){
 Sys.weaponFx=function(){const w=Sys.S.equip.weapon;return w?w.fx:null;};
 
 // ---------- ZASOBY GRACZA ----------
-Sys.addGold=function(g){Sys.S.gold+=g;UI.refreshTop();if(g>0)UI.toast('🪙 +'+D.fmt(g),'gold');};
+Sys.addGold=function(g){if(g>0){const st=Game.player?Sys.totalStats():null;if(st&&st.goldBonus)g=Math.round(g*(1+st.goldBonus/100));}Sys.S.gold+=g;UI.refreshTop();if(g>0)UI.toast('🪙 +'+D.fmt(g),'gold');};
 Sys.spendGold=function(g){if(Sys.S.gold<g){UI.toast('Za mało złota!','red');return false;}Sys.S.gold-=g;UI.refreshTop();return true;};
 Sys.addXp=function(x){
   const s=Sys.S;
+  {const st=Game.player?Sys.totalStats():null;if(st&&st.xpBonus)x=Math.round(x*(1+st.xpBonus/100));}
+  if(s.combo>=5)x=Math.round(x*1.25);
   if(s.isGod){
     s.godXp+=x;
     while(s.godXp>=D.GOD_XP_FOR(s.godLvl)){s.godXp-=D.GOD_XP_FOR(s.godLvl);s.godLvl++;s.godPoints+=2;
@@ -330,6 +363,11 @@ Sys.claimQuest=function(uid){
 // ---------- ZABÓJSTWA ----------
 Sys.onKill=function(e){
   const s=Sys.S;s.stats.kills++;
+  s.pity=(s.pity||0)+1;
+  s.combo=(s.combo||0)+1;s.comboT=4;
+  if(s.combo>=3)UI.comboShow(s.combo);
+  if(s.pity>=12){s.pity=0;E.spawnPickup(e.grp.position,'rune',D.makeRune(D.FACTIONS[e.def.fac].runeCat||'cien',D.pick(['rare','rare','epic'])));}
+  Sys.checkAchievements();
   Sys.questEvent('kill');
   if(e.elite){s.stats.bossKills+=e.boss?1:0;Sys.questEvent('killElite');}
   Sys.questEvent('killFac',e.def.fac);
@@ -395,3 +433,64 @@ Sys.load=function(){
   try{const raw=localStorage.getItem('kroniki_save');if(!raw)return null;return JSON.parse(raw);}catch(e){return null;}
 };
 Sys.wipe=function(){try{localStorage.removeItem('kroniki_save');}catch(e){}};
+
+// ---------- OSIĄGNIĘCIA ----------
+Sys.checkAchievements=function(){
+  const s=Sys.S;if(!s)return;
+  for(const a of D.ACHIEVEMENTS){
+    if(s.achievements[a.id])continue;
+    if(a.need(s)){s.achievements[a.id]=true;s.gold+=a.gold;
+      UI.toast('🏆 Osiągnięcie: '+a.n+' (+'+a.gold+'🪙)','gold');
+      if(typeof SND!=='undefined')SND.lvl();}
+  }
+};
+// ---------- PIECZĘCIE / TROFEA ----------
+Sys.craftSeal=function(godKey){
+  const s=Sys.S;const seal=D.SEALS[godKey];
+  const resTotal=Object.values(s.resBag).reduce((a,b)=>a+b,0);
+  if(resTotal<seal.cost.res){UI.toast('Potrzeba '+seal.cost.res+' surowców.','red');return;}
+  if(!Sys.spendGold(seal.cost.gold))return;
+  let left=seal.cost.res;
+  for(const k in s.resBag){const take=Math.min(left,s.resBag[k]);s.resBag[k]-=take;left-=take;if(s.resBag[k]<=0)delete s.resBag[k];if(!left)break;}
+  s.inv.push({uid:'s'+(Math.random()*1e9|0),t:'seal',god:godKey,n:seal.n,d:seal.d});
+  Sys.save();UI.toast('✨ Wykuto: '+seal.n+'!','gold');
+};
+Sys.useSeal=function(uid){
+  const s=Sys.S;const idx=s.inv.findIndex(i=>i.uid===uid);if(idx<0)return;
+  const seal=s.inv[idx];
+  if(Game.godFight){UI.toast('Już trwa walka z bogiem!','red');return;}
+  s.inv.splice(idx,1);Sys.save();
+  UI.closePanel();
+  Game.summonGod(seal.god);
+};
+Sys.grantGodLoot=function(godKey){
+  const s=Sys.S;const god=D.GODS[godKey];
+  s.godTrophies=s.godTrophies||{};
+  const first=!s.godTrophies[godKey];
+  s.godTrophies[godKey]=true;
+  // relikty
+  const relics=D.GOD_RELICS[godKey]||[];
+  for(const r of relics){
+    if(first||D.chance(0.5)){
+      const it=Object.assign({uid:'gr'+(Math.random()*1e9|0),t:'item',rar:'secret',fac:god.fac,lvl:s.lvl,up:0,aff:[],price:8000},r);
+      s.inv.push(it);UI.toast('▓ RELIKT: '+r.n+'!','gold');
+    }
+  }
+  s.inv.push(D.makeRune(D.FACTIONS[god.fac].runeCat,'secret'));
+  UI.toast('🏆 Trofeum boga: '+god.name+' (+4% obrażeń i HP na stałe)','gold');
+  Sys.checkAchievements();Sys.save();
+};
+// ---------- KONSUMPCYJNE ----------
+Sys.useConsumable=function(uid){
+  const s=Sys.S;const idx=s.inv.findIndex(i=>i.uid===uid);if(idx<0)return;
+  const c=s.inv[idx];const P=Game.player;
+  if(c.kind==='bomb'){const pd=C.playerDmg(c.dmg);C.ringFx({x:P.pos.x,z:P.pos.z},0xff7a2b,c.r);
+    for(const e of E.enemies){const d=Math.hypot(e.grp.position.x-P.pos.x,e.grp.position.z-P.pos.z);
+      if(d<=c.r&&Sys.isHostileTo(e.def.fac))C.damageEnemy(e,pd.dmg,pd.crit);}}
+  else if(c.kind==='tp'){Game.travel('wioska');}
+  else if(c.kind==='revive'){P.buffs.phoenix={t:9999};UI.refreshBuffs();UI.toast('🪶 Pióro Feniksa aktywne!','gold');}
+  else if(c.kind==='food'){P.buffs.regen={t:c.dur||120};UI.refreshBuffs();}
+  else if(c.kind==='xp'){Sys.addXp(c.xp||300);}
+  else if(c.kind==='de'){if(!s.isGod){UI.toast('Tylko bóg może tego użyć!','red');return;}P.de=Math.min(Sys.totalStats().maxDE,P.de+(c.de||50));}
+  s.inv.splice(idx,1);Sys.save();UI.refreshTop();
+};

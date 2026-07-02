@@ -149,7 +149,7 @@ UI.renderPanel=function(id,tab){
   if(id==='eq'){
     T.textContent='🎒 Ekwipunek';
     tab=tab||'zalozone';
-    UI.setTabs([{id:'zalozone',n:'Założone'},{id:'przedmioty',n:'Przedmioty'},{id:'runy',n:'Runy'},{id:'mikstury',n:'Mikstury'},{id:'surowce',n:'Surowce'},{id:'staty',n:'Statystyki'}],tab,(t)=>UI.renderPanel('eq',t));
+    UI.setTabs([{id:'zalozone',n:'Założone'},{id:'przedmioty',n:'Przedmioty'},{id:'runy',n:'Runy'},{id:'mikstury',n:'Mikstury'},{id:'specjalne',n:'Specjalne'},{id:'surowce',n:'Surowce'},{id:'staty',n:'Statystyki'}],tab,(t)=>UI.renderPanel('eq',t));
     if(tab==='zalozone'){
       let h='<div class="equipGrid">';
       for(const slot of D.EQUIP_SLOTS){
@@ -198,6 +198,20 @@ UI.renderPanel=function(id,tab){
         row.innerHTML='<div class="ic">'+D.icoImg(p)+'</div><div class="info"><div class="nm">'+p.n+'</div><div class="ds">'+(p.heal?'Leczy '+p.heal+' HP':'')+(p.mana?'+'+p.mana+' many':'')+(p.buff?'Wzmocnienie na '+p.dur+'s':'')+'</div></div>'+
           '<div class="act"><button class="sbtn gold">Użyj</button></div>';
         row.querySelector('button').addEventListener('click',()=>{Sys.usePotion(p.uid);UI.renderPanel('eq','mikstury');UI.refreshTop();});
+        B.appendChild(row);
+      }
+    } else if(tab==='specjalne'){
+      const sp=s.inv.filter(i=>i.t==='seal'||i.kind);
+      B.innerHTML=sp.length?'':'<i>Brak przedmiotów specjalnych. Pieczęcie bogów wykuwasz w Świątyni, bomby i zwoje kupisz w sklepie.</i>';
+      for(const c of sp){
+        const row=document.createElement('div');row.className='rowItem';
+        const isSeal=c.t==='seal';
+        const icn=isSeal?D.iconFor('rune','secret',D.FACTIONS[D.GODS[c.god].fac].css):D.iconFor(c.kind==='bomb'?'gold':c.kind==='tp'?'scroll':c.kind==='revive'?'amulet':c.kind==='xp'?'scroll':'potion',null,'#ffb13b');
+        row.innerHTML='<div class="ic"><img src="'+icn+'" style="width:34px;height:34px;border-radius:8px;"></div><div class="info"><div class="nm">'+c.n+'</div><div class="ds">'+(c.d||'')+'</div></div>'+
+          '<div class="act"><button class="sbtn gold">Użyj</button></div>';
+        row.querySelector('button').addEventListener('click',()=>{
+          if(isSeal)Sys.useSeal(c.uid);else{Sys.useConsumable(c.uid);UI.renderPanel('eq','specjalne');}
+        });
         B.appendChild(row);
       }
     } else if(tab==='surowce'){
@@ -277,6 +291,11 @@ UI.renderPanel=function(id,tab){
       if(i>s.mainQuestIdx+1)return;
       h+='<div class="rowItem" style="'+(cur?'border-color:#ffd56b;':'')+'"><div class="ic">'+(done?'✅':cur?'⭐':'🔒')+'</div><div class="info"><div class="nm">'+mq.n+'</div><div class="ds">'+mq.d+(cur?' ('+(s.questProgress[mq.id]||0)+'/'+mq.count+')':'')+'</div></div></div>';
     });
+    h+='<div class="secH">Osiągnięcia ('+Object.keys(s.achievements||{}).length+'/'+D.ACHIEVEMENTS.length+')</div>';
+    for(const a of D.ACHIEVEMENTS){
+      const got=s.achievements&&s.achievements[a.id];
+      h+='<div class="rowItem" style="'+(got?'border-color:#7dffc7;':'opacity:.7;')+'"><div class="ic">'+(got?'🏆':'▫️')+'</div><div class="info"><div class="nm">'+a.n+'</div><div class="ds">'+a.d+' · '+a.gold+'🪙</div></div></div>';
+    }
     h+='<div class="secH">Zlecenia dzienne</div>';
     B.innerHTML=h;
     for(const q of s.quests){
@@ -294,6 +313,16 @@ UI.renderPanel=function(id,tab){
     T.textContent='🛒 Sklep — Kupiec Bartuś';
     const disc=Sys.repLevel(s.faction).shopDiscount;
     B.innerHTML='<div class="hint" style="color:#8a78ad;margin-bottom:8px;">Zniżka za reputację: '+disc+'%</div>';
+    for(const c of D.CONSUMABLES){
+      const row=document.createElement('div');row.className='rowItem';
+      const icn=D.iconFor(c.kind==='bomb'?'gold':c.kind==='tp'||c.kind==='xp'?'scroll':c.kind==='revive'?'amulet':'potion',null,'#ffb13b');
+      row.innerHTML='<div class="ic"><img src="'+icn+'" style="width:34px;height:34px;border-radius:8px;"></div><div class="info"><div class="nm">'+c.n+'</div><div class="ds">'+c.d+'</div></div>'+
+        '<div class="act"><button class="sbtn gold">'+c.price+'🪙</button></div>';
+      row.querySelector('button').addEventListener('click',()=>{
+        if(Sys.spendGold(c.price)){s.inv.push(Object.assign({},c,{uid:'c'+(Math.random()*1e9|0)}));Sys.save();UI.toast('✅ '+c.n,'green');}
+      });
+      B.appendChild(row);
+    }
     for(const st of D.SHOP_STOCK){
       let n,icurl,price,buy;
       if(st.t==='potion'){const p=D.POTIONS.find(x=>x.id===st.id);n=p.n;icurl=D.itemIconURL(Object.assign({t:'potion'},p));price=p.price;
@@ -381,36 +410,61 @@ UI.renderPanel=function(id,tab){
   // ===== ŚWIĄTYNIA =====
   else if(id==='swiatynia'){
     T.textContent='🔱 Świątynia Bogów';
-    const god=D.GODS[D.FACTIONS[s.faction].god];
-    let h='<div style="text-align:center;padding:6px;"><div style="font-size:44px;">'+god.ic+'</div>'+
-      '<div style="font-size:16px;font-weight:800;color:'+D.FACTIONS[s.faction].css+';">'+god.name+'</div>'+
-      '<div style="font-size:11px;color:#9d8fc0;margin:6px 0 12px;">'+god.lore+'</div></div>';
-    if(s.isGod){
-      h+='<div class="rowItem"><div class="ic">🔱</div><div class="info"><div class="nm">Jesteś bogiem.</div><div class="ds">Twoja domena czeka w Wymiarze Bogów. Wyznawcy: '+s.followers+'</div></div></div>';
-      B.innerHTML=h;return;
+    tab=tab||'bogowie';
+    UI.setTabs([{id:'bogowie',n:'Bogowie'},{id:'pieczecie',n:'Pieczęcie'},{id:'panteon',n:'Panteon (trofea)'}],tab,(t)=>UI.renderPanel('swiatynia',t));
+    const myGod=D.FACTIONS[s.faction].god;
+    if(tab==='bogowie'){
+      let h='';
+      if(s.isGod){h+='<div class="rowItem"><div class="ic">🔱</div><div class="info"><div class="nm">Jesteś bogiem.</div><div class="ds">Wyznawcy: '+s.followers+' · Pieczęciami możesz przywoływać INNYCH bogów po łup!</div></div></div>';}
+      else if(!s.godSlain){
+        h+='<div class="rowItem" style="border-color:#ffd56b;"><div class="ic">'+D.GODS[myGod].ic+'</div><div class="info"><div class="nm">Wyzwij SWOJEGO boga: '+D.GODS[myGod].name+'</div>'+
+          '<div class="ds">Pokonaj go, by zdobyć jego ducha i móc się przemienić. Zalecany poz. 25+.</div></div>'+
+          '<div class="act"><button class="sbtn red" id="challengeGod">WYZWIJ</button></div></div>';
+      } else {
+        h+='<div class="rowItem" style="border-color:#7dffc7;"><div class="ic">👻</div><div class="info"><div class="nm">Duch boga w twoim władaniu</div>'+
+          '<div class="ds">Poświęć postacie klanu ('+s.clan.length+') — staną się wyznawcami, a ty bogiem.</div></div>'+
+          '<div class="act"><button class="sbtn gold" id="ascendBtn">PRZEMIANA</button></div></div>';
+      }
+      h+='<div class="secH">Prawa boskiej wojny</div>'+
+        '<div class="rowItem"><div class="ic">⚖️</div><div class="info"><div class="ds">'+
+        '• Pokonanie <b>własnego</b> boga → jego duch → przemiana w boga.<br>'+
+        '• Pokonanie <b>obcego</b> boga (pieczęcią) → sekretne relikty, sekretna runa i trofeum (+4% obrażeń i HP na stałe).<br>'+
+        '• Pieczęcie wykuwa się w zakładce Pieczęcie (złoto + surowce).</div></div></div>';
+      h+='<div class="rowItem"><div class="ic">🙏</div><div class="info"><div class="ds">Ofiara 200🪙 — błogosławieństwo (+20% obrażeń na 5 min).</div></div>'+
+        '<div class="act"><button class="sbtn" id="blessBtn">Ofiaruj</button></div></div>';
+      B.innerHTML=h;
+      const cg=UI.el('challengeGod');
+      if(cg)cg.addEventListener('click',()=>{UI.closePanel();Game.startGodFight(false);});
+      const ab=UI.el('ascendBtn');
+      if(ab)ab.addEventListener('click',()=>{if(Sys.ascend()){UI.closePanel();Game.onAscend();}});
+      const bb=UI.el('blessBtn');
+      if(bb)bb.addEventListener('click',()=>{if(Sys.spendGold(200)){Game.player.buffs.dmg={t:300};UI.refreshBuffs();UI.toast('🙏 Błogosławieństwo!','gold');}});
+    } else if(tab==='pieczecie'){
+      B.innerHTML='<div class="hint" style="color:#8a78ad;margin-bottom:8px;">Pieczęć przywołuje boga do walki w dowolnym miejscu (użyj z Ekwipunek → Specjalne). Koszt: 1200🪙 + 3 surowce.</div>';
+      for(const gk of Object.keys(D.GODS)){
+        const g=D.GODS[gk];const fac=D.FACTIONS[g.fac];
+        const own=g.fac===s.faction;
+        const have=s.inv.filter(i=>i.t==='seal'&&i.god===gk).length;
+        const row=document.createElement('div');row.className='rowItem';
+        row.innerHTML='<div class="ic"><img src="'+D.iconFor('rune','secret',fac.css)+'" style="width:34px;height:34px;border-radius:8px;"></div>'+
+          '<div class="info"><div class="nm" style="color:'+fac.css+'">'+g.ic+' '+g.name+(own?' (twój bóg)':'')+(s.godTrophies&&s.godTrophies[gk]?' 🏆':'')+'</div>'+
+          '<div class="ds">'+g.lore+(have?' · Posiadasz: '+have:'')+'</div></div>'+
+          '<div class="act"><button class="sbtn gold">Wykuj 1200🪙+3⛏️</button></div>';
+        row.querySelector('button').addEventListener('click',()=>{Sys.craftSeal(gk);UI.renderPanel('swiatynia','pieczecie');});
+        B.appendChild(row);
+      }
+    } else if(tab==='panteon'){
+      const tr=s.godTrophies||{};const n=Object.keys(tr).length;
+      B.innerHTML='<div class="hint" style="color:#8a78ad;margin-bottom:8px;">Trofea bogów: <b style="color:#ffd56b">'+n+'/8</b> · Każde daje +4% obrażeń i HP na stałe.</div>';
+      for(const gk of Object.keys(D.GODS)){
+        const g=D.GODS[gk];const fac=D.FACTIONS[g.fac];const got=!!tr[gk];
+        const row=document.createElement('div');row.className='rowItem';
+        if(got)row.style.borderColor='#ffd56b';
+        row.innerHTML='<div class="ic">'+(got?'🏆':'❔')+'</div><div class="info"><div class="nm" style="color:'+(got?fac.css:'#5a4a70')+'">'+g.name+'</div>'+
+          '<div class="ds">'+(got?'Pokonany! Relikty: '+(D.GOD_RELICS[gk]||[]).map(r=>r.n).join(', '):'Jeszcze niepokonany — wykuj pieczęć i wyzwij go.')+'</div></div>';
+        B.appendChild(row);
+      }
     }
-    if(!s.godSlain){
-      h+='<div class="rowItem"><div class="ic">⚔️</div><div class="info"><div class="nm">Wyzwij boga swojej frakcji</div>'+
-        '<div class="ds">Bóg zstąpi w osłabionej formie ('+D.fmt(20000)+' HP). Pokonaj go, by zdobyć jego ducha. Zalecany poziom 25+.</div></div>'+
-        '<div class="act"><button class="sbtn red" id="challengeGod">WYZWIJ</button></div></div>';
-    } else {
-      h+='<div class="rowItem"><div class="ic">👻</div><div class="info"><div class="nm">Duch boga w twoim władaniu</div>'+
-        '<div class="ds">Poświęć WSZYSTKIE postacie z klanu ('+s.clan.length+') — staną się twoimi wyznawcami. Twoja postać przemieni się w boga.</div></div>'+
-        '<div class="act"><button class="sbtn gold" id="ascendBtn">PRZEMIANA</button></div></div>';
-    }
-    h+='<div class="secH">Łaska boga</div><div class="rowItem"><div class="ic">🙏</div><div class="info"><div class="ds">Ofiara 200🪙 — błogosławieństwo (+20% obrażeń na 5 min).</div></div>'+
-      '<div class="act"><button class="sbtn" id="blessBtn">Ofiaruj</button></div></div>';
-    B.innerHTML=h;
-    const cg=UI.el('challengeGod');
-    if(cg)cg.addEventListener('click',()=>{UI.closePanel();Game.startGodFight(false);});
-    const ab=UI.el('ascendBtn');
-    if(ab)ab.addEventListener('click',()=>{
-      if(Sys.ascend()){UI.closePanel();Game.onAscend();}
-    });
-    const bb=UI.el('blessBtn');
-    if(bb)bb.addEventListener('click',()=>{
-      if(Sys.spendGold(200)){Game.player.buffs.dmg={t:300};UI.refreshBuffs();UI.toast('🙏 Błogosławieństwo boga!','gold');}
-    });
   }
   // ===== BÓG (drzewko) =====
   else if(id==='bog'){
@@ -496,13 +550,17 @@ UI.renderPanel=function(id,tab){
     T.textContent='⚙️ Opcje';
     B.innerHTML='<div class="rowItem"><div class="ic">💾</div><div class="info"><div class="nm">Zapis gry</div><div class="ds">Gra zapisuje się automatycznie.</div></div><div class="act"><button class="sbtn gold" id="saveNow">Zapisz teraz</button></div></div>'+
       '<div class="rowItem"><div class="ic">✨</div><div class="info"><div class="nm">Bloom (poświata)</div></div><div class="act"><button class="sbtn" id="bloomTgl">'+(W.bloomOn!==false?'WŁ':'WYŁ')+'</button></div></div>'+
+      '<div class="rowItem"><div class="ic">🧪</div><div class="info"><div class="nm">Auto-mikstura</div><div class="ds">Pij miksturę HP automatycznie poniżej 30%</div></div><div class="act"><button class="sbtn" id="apTgl">'+(s.autoPotion?'WŁ':'WYŁ')+'</button></div></div>'+
       '<div class="rowItem"><div class="ic">🔊</div><div class="info"><div class="nm">Dźwięk</div></div><div class="act"><button class="sbtn" id="sndTgl">'+(typeof SND!=='undefined'&&SND.on?'WŁ':'WYŁ')+'</button></div></div>'+
+      '<div class="rowItem"><div class="ic">🎵</div><div class="info"><div class="nm">Muzyka</div></div><div class="act"><button class="sbtn" id="musTgl">'+(typeof SND!=='undefined'&&SND.music.on?'WŁ':'WYŁ')+'</button></div></div>'+
       '<div class="rowItem"><div class="ic">⛶</div><div class="info"><div class="nm">Pełny ekran</div></div><div class="act"><button class="sbtn" id="fsTgl">Przełącz</button></div></div>'+
       '<div class="rowItem"><div class="ic">🗑️</div><div class="info"><div class="nm">Nowa gra</div><div class="ds">Kasuje CAŁY postęp!</div></div><div class="act"><button class="sbtn red" id="wipeBtn">Resetuj</button></div></div>'+
       '<div class="hint" style="color:#6e5d8c;font-size:10px;margin-top:10px;">Kroniki Bogów — wersja robocza. Sterowanie: WASD/strzałki + myszka lub joystick + przyciski (mobile). Spacja/⚔️ = atak, 1–7 = zaklęcia, E = interakcja.</div>';
     UI.el('saveNow').addEventListener('click',()=>{Sys.save();UI.toast('💾 Zapisano!','green');});
     UI.el('bloomTgl').addEventListener('click',()=>{W.bloomOn=W.bloomOn===false?true:false;UI.renderPanel('opcje');});
     UI.el('sndTgl').addEventListener('click',()=>{if(typeof SND!=='undefined'){SND.on=!SND.on;}UI.renderPanel('opcje');});
+    UI.el('apTgl').addEventListener('click',()=>{s.autoPotion=!s.autoPotion;Sys.save();UI.renderPanel('opcje');});
+    UI.el('musTgl').addEventListener('click',()=>{if(typeof SND!=='undefined')SND.music.on=!SND.music.on;UI.renderPanel('opcje');});
     UI.el('fsTgl').addEventListener('click',()=>Game.toggleFullscreen());
     UI.el('wipeBtn').addEventListener('click',()=>{if(confirm('Na pewno skasować cały postęp?')){Sys.wipe();location.reload();}});
   }
@@ -538,6 +596,17 @@ UI.drawMinimap=function(){
   x.restore();
 };
 
+
+UI.comboShow=function(n){
+  const b=UI.el('comboBox');
+  if(!n||n<3){b.style.display='none';return;}
+  b.style.display='block';UI.el('comboN').textContent='×'+n;
+  b.style.transform='scale('+Math.min(1.5,1+n*0.04)+')';
+};
+UI.lowHp=function(frac){
+  const v=UI.el('lowHpVig');
+  v.style.opacity=frac<0.3?String(0.4+(0.3-frac)*2):'0';
+};
 // ---------- DIALOGI NPC ----------
 UI.dialog=function(name,text,opts){
   UI.el('dlgName').textContent=name;

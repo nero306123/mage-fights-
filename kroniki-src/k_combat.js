@@ -33,6 +33,13 @@ C.ringFx=function(pos,col,r){
   C.fx.push({m:m,t:0.4,type:'ring',maxR:r||4});
 };
 
+C.telegraph=function(x,z,r,delay,onHit){
+  const m=new THREE.Mesh(new THREE.CircleGeometry(r,32),new THREE.MeshBasicMaterial({color:0xff2a3c,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending,depthWrite:false}));
+  m.rotation.x=-Math.PI/2;m.position.set(x,W.groundH(x,z)+0.1,z);W.current.add(m);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(r-0.15,r,32),new THREE.MeshBasicMaterial({color:0xff2a3c,transparent:true,opacity:0.8,side:THREE.DoubleSide,depthWrite:false}));
+  ring.rotation.x=-Math.PI/2;ring.position.copy(m.position);W.current.add(ring);
+  C.fx.push({m:m,t:delay,type:'tele',ring:ring,onHit:onHit,r:r,x:x,z:z});
+};
 C.updateFx=function(dt){
   for(let i=C.fx.length-1;i>=0;i--){
     const f=C.fx[i];f.t-=dt;
@@ -41,6 +48,11 @@ C.updateFx=function(dt){
       for(let j=0;j<f.vel.length;j++){const v=f.vel[j];
         pos.setX(j,pos.getX(j)+v.x*dt);pos.setY(j,pos.getY(j)+v.y*dt);pos.setZ(j,pos.getZ(j)+v.z*dt);v.y-=9*dt;}
       pos.needsUpdate=true;f.m.material.opacity=f.t/0.7;
+    } else if(f.type==='tele'){
+      f.m.material.opacity=0.28+Math.sin(f.t*20)*0.1;
+      if(f.t<=0){C.ringFx({x:f.x,z:f.z},0xff2a3c,f.r);if(f.onHit)f.onHit();
+        if(f.ring.parent)f.ring.parent.remove(f.ring);f.ring.geometry.dispose();f.ring.material.dispose();
+        if(typeof SND!=='undefined')SND.noise(0.2,0.3,400);}
     } else if(f.type==='ring'){
       const k=1-(f.t/0.4);f.m.scale.setScalar(1+k*f.maxR*2);f.m.material.opacity=0.9*(1-k);
     }
@@ -75,6 +87,8 @@ C.damagePlayer=function(amount,srcName){
   const P=Game.player;if(P.dead)return;
   if(P.invuln>0)return;
   const S=Sys.totalStats();
+  if(S.dodge&&D.chance(S.dodge/100)){C.dmgNum(new THREE.Vector3(P.pos.x,0,P.pos.z),'UNIK!','#7dffc7');return;}
+  if(S.dmgReduce)amount*=(1-S.dmgReduce/100);
   let red=S.def/(S.def+120);
   amount=Math.round(amount*(1-red));
   if(P.buffs.def)amount=Math.round(amount*0.4);
@@ -126,6 +140,7 @@ C.findTarget=function(range,arc){
 C.castSpell=function(spell,power,isGod){
   const P=Game.player;const S=Sys.totalStats();
   power=power||1;
+  if(S.spellPow)power*=(1+S.spellPow/100);
   const col=isGod?D.FACTIONS[Game.state.faction].col:0x9b59ff;
   const t=spell.type;
   if(t==='proj'){
@@ -170,7 +185,7 @@ C.castSpell=function(spell,power,isGod){
     const pd=C.playerDmg(spell.dmg*power);
     C.clouds.push({m:m,x:cx,z:cz,r:spell.r||4,t:spell.dur||5,tick:0,dps:pd.dmg,slow:spell.slow});
   } else if(t==='heal'){
-    Sys.heal(Sys.totalStats().maxHp*(spell.heal*Math.min(power,1.8)));
+    {const hb=Sys.totalStats().healBonus||0;Sys.heal(Sys.totalStats().maxHp*(spell.heal*Math.min(power,1.8))*(1+hb/100));}
     C.ringFx({x:P.pos.x,z:P.pos.z},0x7dffc7,3);
   } else if(t==='shield'){
     P.shield=Math.round(Sys.totalStats().maxHp*spell.sh*Math.min(power,1.6));

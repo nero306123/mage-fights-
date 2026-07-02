@@ -151,6 +151,48 @@ W.charForFaction=function(fac,tier,hero){
   return W.makeChar(idx,h);
 };
 
+// ---------- PORTRETY 3D (offscreen render) ----------
+W._portCache={};
+W.renderPortrait=function(model3d,size,bgCol){
+  size=size||96;
+  const cv=document.createElement('canvas');cv.width=cv.height=size;
+  const rnd=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true,preserveDrawingBuffer:true});
+  rnd.setSize(size,size);if(THREE.sRGBEncoding!=null)rnd.outputEncoding=THREE.sRGBEncoding;
+  const sc=new THREE.Scene();
+  if(bgCol!=null)sc.background=new THREE.Color(bgCol);
+  sc.add(new THREE.HemisphereLight(0xffffff,0x444455,1.2));
+  const dl=new THREE.DirectionalLight(0xffffff,1.4);dl.position.set(2,3,4);sc.add(dl);
+  const g=new THREE.Group();g.add(model3d);sc.add(g);
+  const box=new THREE.Box3().setFromObject(g);const sz=new THREE.Vector3();box.getSize(sz);
+  const ctr=new THREE.Vector3();box.getCenter(ctr);
+  const cam=new THREE.PerspectiveCamera(34,1,0.01,100);
+  const R=Math.max(sz.x,sz.y,sz.z)*1.35;
+  cam.position.set(ctr.x+R*0.4,ctr.y+R*0.32,ctr.z+R*0.95);
+  cam.lookAt(ctr.x,ctr.y+sz.y*0.06,ctr.z);
+  rnd.render(sc,cam);
+  const url=cv.toDataURL();
+  rnd.dispose();
+  return url;
+};
+W.portraitFor=function(fac,cb){
+  const key='p_'+fac;
+  if(W._portCache[key]){cb(W._portCache[key]);return;}
+  W.loadSheet(()=>{
+    let model=W.charForFaction(fac,2,true);
+    if(!model)model=E.buildHumanoid(D.FACTIONS[fac].col,D.FACTIONS[fac].col2,2,1.0);
+    const url=W.renderPortrait(model,110,0x1a1230);
+    W._portCache[key]=url;cb(url);
+  });
+};
+W.godPortrait=function(godKey,cb){
+  const key='g_'+godKey;
+  if(W._portCache[key]){cb(W._portCache[key]);return;}
+  W.loadGod(D.GODS[godKey].glb,(m)=>{
+    if(!m){cb(null);return;}
+    const url=W.renderPortrait(m,110,0x120a22);
+    W._portCache[key]=url;cb(url);
+  });
+};
 // ---------- WIOSKA GLB: siatka wysokości + kolizje ----------
 W.grid=null; // {min, cell, n, walk:Float32Array, block:Uint8Array}
 W.walkY=function(x,z){
@@ -516,6 +558,7 @@ W._villageDecor=function(g){
     W.addPortal(g,x,z,fc,rd.icon+' '+rd.name+' (poz. '+rd.lvl[0]+'–'+rd.lvl[1]+')',()=>Game.travel(rid));
   });
   W.addPortal(g,-26,12,0x6a4a9f,'🔱 Wymiar Bogów (tylko bóg)',()=>Game.travel('wymiar_bogow'),true);
+  W.addPortal(g,0,26,0xffd56b,'🏟️ ARENA — fale wrogów, rosnące nagrody',()=>Game.startArena(),true);
   W.addPortal(g, 26,12,0xff2a3c,'🔥 Piekielna Otchłań (poz. 50+)',()=>Game.travel('piekielna_otchlan'),true);
   // świetliki + klimat
   W.addAmbientParticles(g,0xffd56b,90,30,6);

@@ -381,6 +381,10 @@ D.makeItem = function(slot, rar, lvl, fac){
   const pool=[['crit','+{v}% kryt.',2,7],['spd','+{v}% szybkość',3,8],['hp','+{v} HP',20,90],['mana','+{v} many',15,70],['leech','{v}% wampiryzm',2,6],['def','+{v} obrona',5,25]];
   for(let i=0;i<nAff;i++){const a=D.pick(pool); const v=Math.round(D.rnd(a[2],a[3])*(1+R.ord*0.3)); aff.push({k:a[0],v:v,txt:a[1].replace('{v}',v)});}
   it.aff=aff;
+  // części zestawów frakcyjnych (epic+, 22% szans)
+  if(R.ord>=2&&D.chance(0.22)&&D.SETS[facKey]&&slot!=='ring'&&slot!=='amulet'){
+    it.set=facKey;it.n=D.SETS[facKey].n+': '+(isW?wt.n:sm.n);
+  }
   it.price=Math.round(val*(6+R.ord*8));
   return it;
 };
@@ -398,3 +402,73 @@ D.rollSpell = function(rune){
 };
 // skala zaklęcia wg rzadkości runy i ulepszeń
 D.spellPower = (rune)=> D.RARITY[rune.rar].mul * (1+ (rune.up||0)*0.15);
+
+// ---------- PIECZĘCIE PRZYWOŁANIA BOGÓW ----------
+D.SEALS={};
+Object.keys(D.GODS).forEach(gk=>{
+  const g=D.GODS[gk];
+  D.SEALS[gk]={id:'seal_'+gk,god:gk,n:'Pieczęć: '+g.name,t:'seal',
+    cost:{gold:1200,res:3},d:'Przywołuje '+g.name+' do walki. Pokonaj własnego boga = przemiana. Obcego = potężny łup!'};
+});
+// relikty bogów (łup za pokonanie OBCEGO boga)
+D.GOD_RELICS={
+  shadow:  [{n:'Całun Cienia',slot:'chest',ic:'▓',def:180,fx:'shadow_veil',fxd:'Po zabójstwie: niewidzialność 2 s'},
+            {n:'Kosa Zmierzchu',slot:'weapon',ic:'▓',dmg:210,fx:'reap',fxd:'+30% obrażeń wobec wrogów <30% HP'}],
+  monk:    [{n:'Paciorki Pustki',slot:'amulet',ic:'▓',def:60,fx:'void_calm',fxd:'Regeneracja many +80%'},
+            {n:'Pięści Równowagi',slot:'gloves',ic:'▓',def:120,fx:'balance_fist',fxd:'Ataki leczą 3% maks. HP'}],
+  wraith:  [{n:'Płaszcz Widma',slot:'chest',ic:'▓',def:160,fx:'phase',fxd:'15% szans na unik każdego ataku'},
+            {n:'Kły Nocy',slot:'weapon',ic:'▓',dmg:190,fx:'nightfangs',fxd:'Krytyki zadają dodatkowe 50% jako DOT'}],
+  beast:   [{n:'Serce Bestii',slot:'amulet',ic:'▓',def:80,fx:'beast_heart',fxd:'+25% maks. HP'},
+            {n:'Łapa Otchłani',slot:'weapon',ic:'▓',dmg:200,fx:'maul',fxd:'Ataki odrzucają wrogów'}],
+  devourer:[{n:'Oko Run',slot:'helm',ic:'▓',def:140,fx:'rune_eye',fxd:'Zaklęcia kosztują 25% mniej many'},
+            {n:'Trzewia Chaosu',slot:'chest',ic:'▓',def:170,fx:'chaos_gut',fxd:'10% szans na darmowe zaklęcie'}],
+  knight:  [{n:'Pancerz Popiołów',slot:'chest',ic:'▓',def:220,fx:'ash_plate',fxd:'-20% otrzymywanych obrażeń'},
+            {n:'Ostrze Krucjaty',slot:'weapon',ic:'▓',dmg:230,fx:'crusade',fxd:'+20% obrażeń, ataki palą wrogów'}],
+  thief:   [{n:'Welon Snów',slot:'helm',ic:'▓',def:130,fx:'dream_veil',fxd:'Wrogowie czasem atakują iluzję (10%)'},
+            {n:'Srebrna Waga',slot:'amulet',ic:'▓',def:70,fx:'soul_scale',fxd:'+15% złota i XP'}],
+  fallen:  [{n:'Korona Otchłani',slot:'helm',ic:'▓',def:260,fx:'abyss_crown',fxd:'+30% obrażeń, demony tier 1-2 neutralne'},
+            {n:'Serce Upadłego',slot:'amulet',ic:'▓',def:120,fx:'fallen_heart',fxd:'+40% HP, aura strachu (wrogowie wolniejsi)'}],
+};
+// zestawy frakcyjne (2/3 części = bonusy)
+D.SETS={
+  cien:{n:'Zestaw Mroku',b2:'+10% obrażeń',b3:'Przywołania +50% mocy',s2:{dmg:10},s3:{summon:50}},
+  pustka:{n:'Zestaw Równowagi',b2:'+15% many',b3:'Leczenie +40%',s2:{mana:15},s3:{heal:40}},
+  ninja:{n:'Zestaw Nocy',b2:'+8% kryt.',b3:'Uniki +10%',s2:{crit:8},s3:{dodge:10}},
+  bestie:{n:'Zestaw Dziczy',b2:'+12% HP',b3:'Odrzucenie przy trafieniu',s2:{hp:12},s3:{knock:1}},
+  chaos:{n:'Zestaw Entropii',b2:'+10% mocy zaklęć',b3:'-20% cooldownów',s2:{spell:10},s3:{cdr:20}},
+  popiol:{n:'Zestaw Żaru',b2:'+15 obrony',b3:'Aura ognia',s2:{def:15},s3:{burn:1}},
+  sen:{n:'Zestaw Miraży',b2:'+10% XP',b3:'Sobowtór przy niskim HP',s2:{xp:10},s3:{decoy:1}},
+};
+// konsumpcyjne nowe
+D.CONSUMABLES=[
+  {id:'bomba',n:'Bomba Runiczna',kind:'bomb',dmg:3.0,r:5,price:120,d:'Rzuca bombę: potężne obrażenia obszarowe.'},
+  {id:'zwoj_tp',n:'Zwój Powrotu',kind:'tp',price:60,d:'Natychmiast wraca do wioski.'},
+  {id:'pioro',n:'Pióro Feniksa',kind:'revive',price:800,d:'Automatyczne wskrzeszenie przy śmierci (50% HP).'},
+  {id:'chleb',n:'Chleb Podróżnika',kind:'food',dur:120,price:45,d:'+50% regeneracji HP przez 2 min.'},
+  {id:'tom_xp',n:'Tom Wiedzy',kind:'xp',xp:300,price:400,d:'Natychmiast +300 XP.'},
+  {id:'elixir_boski',n:'Boski Eliksir',kind:'de',de:50,price:600,d:'+50 Boskiej Energii (tylko bóg).'},
+];
+// afiksy elit
+D.ELITE_AFFIXES=[
+  {id:'szybki',n:'Szybki',col:'#7dffc7',spd:1.6},
+  {id:'opancerzony',n:'Opancerzony',col:'#9aa6b2',hp:1.8},
+  {id:'wampiryczny',n:'Wampiryczny',col:'#ff4d6d',leech:1},
+  {id:'wybuchowy',n:'Wybuchowy',col:'#ff7a2b',explode:1},
+  {id:'zloty',n:'Złoty',col:'#ffd56b',gold:5},
+];
+// osiągnięcia
+D.ACHIEVEMENTS=[
+  {id:'a_kill10',n:'Pierwsza dziesiątka',d:'Pokonaj 10 wrogów',need:s=>s.stats.kills>=10,gold:100},
+  {id:'a_kill100',n:'Setka na koncie',d:'Pokonaj 100 wrogów',need:s=>s.stats.kills>=100,gold:500},
+  {id:'a_kill500',n:'Machina wojny',d:'Pokonaj 500 wrogów',need:s=>s.stats.kills>=500,gold:2000},
+  {id:'a_lvl10',n:'Weteran',d:'Osiągnij poziom 10',need:s=>s.lvl>=10||s.isGod,gold:200},
+  {id:'a_lvl25',n:'Mistrz',d:'Osiągnij poziom 25',need:s=>s.lvl>=25||s.isGod,gold:800},
+  {id:'a_clan5',n:'Przywódca',d:'Zbierz 5 postaci w klanie',need:s=>s.stats.recruited>=5,gold:300},
+  {id:'a_runes5',n:'Runoznawca',d:'Aktywuj 5 run',need:s=>s.stats.runesActivated>=5,gold:250},
+  {id:'a_boss3',n:'Pogromca',d:'Pokonaj 3 bossów',need:s=>s.stats.bossKills>=3,gold:600},
+  {id:'a_god',n:'Boskość',d:'Zostań bogiem',need:s=>s.isGod,gold:3000},
+  {id:'a_trophy3',n:'Kolekcjoner',d:'Zdobądź 3 trofea bogów',need:s=>Object.keys(s.godTrophies||{}).length>=3,gold:2500},
+  {id:'a_fallen',n:'Zbawca światów',d:'Pokonaj Upadłego Boga',need:s=>s.fallenSlain,gold:10000},
+  {id:'a_gold10k',n:'Bogacz',d:'Zbierz 10 000 złota',need:s=>s.gold>=10000,gold:1000},
+  {id:'a_arena10',n:'Gladiator',d:'Przetrwaj 10 fal na Arenie',need:s=>(s.arenaBest||0)>=10,gold:1500},
+];
