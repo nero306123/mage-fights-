@@ -437,6 +437,25 @@ UI.renderPanel=function(id,tab){
       B.appendChild(div);
     }
   }
+
+  // ===== MAPA ŚWIATA =====
+  else if(id==='mapa'){
+    T.textContent='🗺️ Mapa Świata';
+    B.innerHTML='<div class="hint" style="color:#8a78ad;margin-bottom:8px;">Wybierz region, aby podróżować. Poziomy wrogów rosną z regionem.</div>';
+    for(const rid of D.REGION_LIST){
+      const r=D.REGIONS[rid];const cur=Game.regionId===rid;
+      const locked=(r.godOnly&&!s.isGod)||(rid==='piekielna_otchlan'&&s.lvl<50&&!s.isGod);
+      const facCol=r.fac?D.FACTIONS[r.fac].css:'#ffd56b';
+      const row=document.createElement('div');row.className='rowItem';
+      if(cur)row.style.borderColor='#ffd56b';
+      row.innerHTML='<div class="ic">'+r.icon+'</div><div class="info"><div class="nm" style="color:'+facCol+'">'+r.name+(cur?' (jesteś tutaj)':'')+'</div>'+
+        '<div class="ds">'+r.desc+' · poz. '+r.lvl[0]+'–'+r.lvl[1]+(r.res?' · '+r.res.join(', '):'')+'</div></div>'+
+        '<div class="act">'+(cur?'':'<button class="sbtn gold" '+(locked?'disabled':'')+'>'+(locked?'🔒':'Podróżuj')+'</button>')+'</div>';
+      const btn=row.querySelector('button');
+      if(btn)btn.addEventListener('click',()=>{UI.closePanel();Game.travel(rid);});
+      B.appendChild(row);
+    }
+  }
   // ===== OPCJE =====
   else if(id==='opcje'){
     T.textContent='⚙️ Opcje';
@@ -450,6 +469,35 @@ UI.renderPanel=function(id,tab){
   }
 };
 
+
+// ---------- MINIMAPA ----------
+UI.drawMinimap=function(){
+  const cv=UI.el('minimap');if(!cv)return;
+  const x=cv.getContext('2d');const S=132, half=S/2;
+  x.clearRect(0,0,S,S);
+  const P=Game.player;if(!P)return;
+  const range=(Game.regionId==='wioska')?36:(W.regionSize/2+8);
+  const sc=(half-8)/range;
+  x.save();x.beginPath();x.arc(half,half,half-3,0,7);x.clip();
+  x.fillStyle='rgba(12,8,22,.85)';x.fillRect(0,0,S,S);
+  const w2m=(wx,wz)=>[half+(wx-P.pos.x)*sc, half+(wz-P.pos.z)*sc];
+  // interakcje (złote) / portale (turkus)
+  for(const it of W.interactables){
+    const [mx,my]=w2m(it.x,it.z);
+    x.fillStyle=it.icon==='🌀'?'#3df0dc':'#ffd56b';
+    x.beginPath();x.arc(mx,my,2.4,0,7);x.fill();
+  }
+  // wrogowie
+  for(const e of E.enemies){
+    const [mx,my]=w2m(e.grp.position.x,e.grp.position.z);
+    x.fillStyle=Sys.isHostileTo(e.def.fac)?(e.boss?'#ff2a3c':'#ff7a8a'):'#7dffc7';
+    x.beginPath();x.arc(mx,my,e.boss?3.4:2,0,7);x.fill();
+  }
+  // gracz — strzałka
+  x.translate(half,half);x.rotate(P.rot);
+  x.fillStyle='#fff';x.beginPath();x.moveTo(0,-5.5);x.lineTo(4,4.5);x.lineTo(-4,4.5);x.closePath();x.fill();
+  x.restore();
+};
 // ---------- INTERAKCJA ----------
 UI.showInteract=function(label,icon){
   const el=UI.el('interactHint');el.style.display='block';el.textContent=(icon||'')+' '+label+' — [E]';

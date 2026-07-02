@@ -83,15 +83,18 @@ E.rollUnit=function(facId,regionLvl){
   const lvl=D.rndi(regionLvl[0],regionLvl[1]);
   const lm=1+ (lvl-1)*0.09;
   return {name:pickN[0],tier:tier,lvl:lvl,fac:facId,
-    hp:Math.round(D.rnd(tt.hp[0],tt.hp[1])*lm), dmg:Math.round(D.rnd(tt.dmg[0],tt.dmg[1])*lm),
+    hp:Math.round(D.rnd(tt.hp[0],tt.hp[1])*lm*0.72), dmg:Math.round(D.rnd(tt.dmg[0],tt.dmg[1])*lm*0.82),
     xp:Math.round(tt.xp*lm), gold:[Math.round(tt.gold[0]*lm),Math.round(tt.gold[1]*lm)]};
 };
 
 E.spawnEnemy=function(def,x,z,opts){
   opts=opts||{};
   const fac=D.FACTIONS[def.fac];
-  let model;
-  if(def.fac==='bestie'&&D.chance(0.6)) model=E.buildBeastModel(fac.col,def.tier,opts.scale);
+  let model=W.charForFaction(def.fac,def.tier,false);
+  if(model){
+    if(def.tier>=3){const halo=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.016,6,20),W.glow(fac.col,2));halo.position.y=1.35+def.tier*0.16;halo.rotation.x=Math.PI/2;model.add(halo);}
+    const gl=new THREE.PointLight(fac.col,0.5,4,2);gl.position.y=1.2;model.add(gl);
+  } else if(def.fac==='bestie'&&D.chance(0.6)) model=E.buildBeastModel(fac.col,def.tier,opts.scale);
   else if(def.fac==='demony') model=E.buildDemonModel(def.tier,opts.scale);
   else model=E.buildHumanoid(fac.col,fac.col2,def.tier,opts.scale);
   const grp=new THREE.Group();grp.add(model);grp.position.set(x,0,z);
@@ -111,7 +114,7 @@ E.populateRegion=function(id){
   const def=D.REGIONS[id]; if(def.safe) return;
   const half=W.regionSize/2;
   const mainFac=def.fac||'demony';
-  const n = id==='piekielna_otchlan'?26 : id==='wymiar_bogow'?22 : 20;
+  const n = id==='piekielna_otchlan'?24 : id==='wymiar_bogow'?20 : 16;
   for(let i=0;i<n;i++){
     const a=D.rnd(0,6.283), r=D.rnd(10,half*0.95);
     const x=Math.cos(a)*r, z=Math.sin(a)*r;
@@ -170,6 +173,7 @@ E.updateEnemies=function(dt,t){
       }
     }
     W.collide(e.grp.position,0.5);
+    if(W.grid)e.grp.position.y=W.walkY(e.grp.position.x,e.grp.position.z);
     // bob animacja
     e.model.position.y=Math.abs(Math.sin(t*6+i))* (e.state==='chase'?0.09:0.03);
     // pasek HP do kamery
@@ -232,7 +236,7 @@ E.updatePickups=function(dt,t){
   const P=Game.player;if(!P)return;
   for(let i=E.pickups.length-1;i>=0;i--){
     const p=E.pickups[i];p.t+=dt;
-    p.m.rotation.y+=dt*2;p.m.position.y=0.5+Math.sin(t*3+i)*0.12;
+    p.m.rotation.y+=dt*2;p.m.position.y=(W.grid?W.walkY(p.m.position.x,p.m.position.z):0)+0.5+Math.sin(t*3+i)*0.12;
     const d=Math.hypot(P.pos.x-p.m.position.x,P.pos.z-p.m.position.z);
     if(d<1.6){ Sys.pickup(p); if(p.m.parent)p.m.parent.remove(p.m); E.pickups.splice(i,1); }
     else if(d<5){ // przyciąganie
@@ -274,5 +278,6 @@ E.updateAllies=function(dt,t){
       if(d>2.5){a.grp.position.x+=dx/d*a.speed*dt;a.grp.position.z+=dz/d*a.speed*dt;a.grp.rotation.y=Math.atan2(dx,dz);}
     }
     a.model.position.y=Math.abs(Math.sin(t*7+i))*0.07;
+    if(W.grid)a.grp.position.y=W.walkY(a.grp.position.x,a.grp.position.z);
   }
 };

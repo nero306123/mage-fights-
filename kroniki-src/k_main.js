@@ -63,6 +63,10 @@ Game.showCreate=function(){
 // ---------- START ----------
 Game.startGame=function(state){
   Game.state=state; Sys.S=state;
+  W.loadSheet(function(){Game._start2();});
+};
+Game._start2=function(){
+  const state=Game.state;
   UI.el('boot').style.display='none';
   UI.el('hud').classList.remove('hidden');
   Game.makePlayer();
@@ -87,8 +91,11 @@ Game.makePlayer=function(){
       }
     });
   } else {
-    model=E.buildHumanoid(fac.col,fac.col2,2,1.0);
-    const l=new THREE.PointLight(fac.col,0.8,5,2);l.position.y=1.6;model.add(l);
+    model=W.charForFaction(s.faction,2,true);
+    if(!model)model=E.buildHumanoid(fac.col,fac.col2,2,1.0);
+    const l=new THREE.PointLight(fac.col,0.9,5,2);l.position.y=1.6;model.add(l);
+    const ring=new THREE.Mesh(new THREE.RingGeometry(0.55,0.72,28),W.ringMat(fac.col,0.4));
+    ring.rotation.x=-Math.PI/2;ring.position.y=0.05;ring.userData.spin=0.3;model.add(ring);
   }
   grp.add(model);
   const st=Sys.totalStats();
@@ -116,7 +123,9 @@ Game.travel=function(regionId,silent){
   E.clear();C.clear();UI.hideBoss();Game.godFight=null;
   W.buildRegion(regionId);
   E.populateRegion(regionId);
-  const P=Game.player;P.pos.set(0,0,regionId==='wioska'?6:(-W.regionSize/2+8));
+  const P=Game.player;
+  if(regionId==='wioska'&&W.villageSpawn){P.pos.set(W.villageSpawn.x,0,W.villageSpawn.z);}
+  else P.pos.set(0,0,regionId==='wioska'?3:(-W.regionSize/2+8));
   W.camTarget.set(P.pos.x,0,P.pos.z);
   UI.el('regionName').textContent=def.icon+' '+def.name;
   if(!silent)UI.toast('🌀 '+def.name,'green');
@@ -384,7 +393,10 @@ Game.loop=function(){
       const wx=(mx*Math.cos(ca)-mz*Math.sin(ca));
       const wz=(-mx*Math.sin(ca)-mz*Math.cos(ca));
       const sp=st.spd*(P.buffs.spd?1.5:1);
-      P.pos.x+=wx*sp*dt;P.pos.z+=wz*sp*dt;
+      const nx=P.pos.x+wx*sp*dt, nz=P.pos.z+wz*sp*dt;
+      if(!W.grid||!W.blockedAt(nx,nz)){P.pos.x=nx;P.pos.z=nz;}
+      else if(!W.blockedAt(nx,P.pos.z)){P.pos.x=nx;}
+      else if(!W.blockedAt(P.pos.x,nz)){P.pos.z=nz;}
       P.rot=Math.atan2(wx,wz);
       P.grp.rotation.y=P.rot;
       W.collide(P.pos,0.5);
@@ -422,6 +434,7 @@ Game.loop=function(){
   Game.checkInteract();
   UI.tickCooldowns(dt);
   Sys.tickMissions();
+  if((t*10|0)%2===0)UI.drawMinimap();
   UI.refreshTop();
 
   // walka z bogiem — koniec
@@ -438,6 +451,7 @@ Game.loop=function(){
     Sys.addGold(150+s.lvl*10);Sys.addRep(s.faction,25);
   }
 
+  if(W.grid){P.pos.y+=(W.walkY(P.pos.x,P.pos.z)-P.pos.y)*Math.min(1,dt*10);}else P.pos.y=0;
   // kamera + render
   W.updateCamera(P.pos,dt);
   if(W.composer&&W.bloomOn!==false)W.composer.render();else W.renderer.render(W.scene,W.camera);

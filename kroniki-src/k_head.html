@@ -60,7 +60,7 @@ button{font-family:inherit;}
 #goldRow{position:absolute;top:calc(8px + env(safe-area-inset-top));right:10px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
 .pill{background:rgba(20,12,36,.85);border:1px solid #4a335f;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;pointer-events:auto;}
 #regionName{position:absolute;top:calc(66px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-size:13px;color:#cdbdee;background:rgba(20,12,36,.7);padding:4px 16px;border-radius:16px;border:1px solid #382651;letter-spacing:1px;}
-#questTrack{position:absolute;top:calc(100px + env(safe-area-inset-top));right:10px;max-width:210px;font-size:10.5px;color:#b8a8dc;background:rgba(16,10,30,.75);border:1px solid #382651;border-radius:10px;padding:7px 10px;line-height:1.5;}
+#questTrack{position:absolute;top:calc(208px + env(safe-area-inset-top));right:10px;max-width:210px;font-size:10.5px;color:#b8a8dc;background:rgba(16,10,30,.75);border:1px solid #382651;border-radius:10px;padding:7px 10px;line-height:1.5;}
 #buffRow{position:absolute;top:calc(66px + env(safe-area-inset-top));left:10px;display:flex;gap:4px;flex-wrap:wrap;max-width:170px;}
 .buffIco{width:26px;height:26px;border-radius:7px;background:rgba(30,18,54,.9);border:1px solid #6a4a9f;font-size:14px;display:flex;align-items:center;justify-content:center;position:relative;}
 .buffIco .bt{position:absolute;bottom:-3px;right:-3px;font-size:8px;background:#05030a;border-radius:5px;padding:0 3px;color:#ffd56b;}
@@ -194,6 +194,7 @@ button{font-family:inherit;}
       <div class="bar" id="xpBar"><div class="fill" id="xpF" style="width:0%"></div></div>
     </div>
   </div>
+  <canvas id="minimap" width="132" height="132" style="position:absolute;top:calc(64px + env(safe-area-inset-top));right:10px;border-radius:50%;border:2px solid #4a335f;background:rgba(10,6,18,.8);"></canvas>
   <div id="goldRow">
     <div class="pill" id="goldPill">🪙 0</div>
     <div class="pill" id="repPill" style="font-size:10px;">⭐ 0</div>
@@ -202,6 +203,7 @@ button{font-family:inherit;}
   <div id="buffRow"></div>
   <div id="questTrack"></div>
   <div id="menuRow">
+    <button class="mBtn" data-panel="mapa">🗺️</button>
     <button class="mBtn" data-panel="eq">🎒</button>
     <button class="mBtn" data-panel="klan">👥<div class="dot" id="klanDot"></div></button>
     <button class="mBtn" data-panel="misje">📜<div class="dot" id="misjeDot"></div></button>
