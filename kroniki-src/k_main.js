@@ -53,10 +53,17 @@ Game.showCreate=function(){
   UI.el('createGo').addEventListener('click',()=>{
     if(!selFac||!selHero)return;
     const st=Sys.newState(selFac,selHero);
+    // zestaw startowy
+    const wep=D.makeItem('weapon','common',1,selFac);st.equip.weapon=wep;
+    const rn=D.makeRune(D.FACTIONS[selFac].runeCat,'common');rn.t='rune';rn.active=true;rn.spell=D.rollSpell(rn);
+    st.inv.push(rn);st.activeRunes.push(rn.uid);
+    for(let i=0;i<2;i++)st.inv.push(Object.assign({},D.POTIONS[0],{t:'potion',uid:'p'+(Math.random()*1e9|0)}));
     scr.style.display='none';
     Game.startGame(st);
     UI.toast('⚔️ Witaj w Kronikach Bogów, '+selHero+'!','gold');
-    UI.toast('Porozmawiaj z NPC w wiosce i wejdź w portal na południu.','green');
+    setTimeout(()=>UI.toast('Masz startową broń, runę z zaklęciem [1] i 2 mikstury.','green'),1500);
+    setTimeout(()=>UI.toast('Idź do świecących filarów — to sklepy i usługi [E].','green'),4000);
+    setTimeout(()=>UI.toast('Portale na obrzeżach wioski prowadzą do regionów walki.','green'),7000);
   });
 };
 
@@ -120,6 +127,7 @@ Game.travel=function(regionId,silent){
   if(def.godOnly&&!s.isGod){UI.toast('🔱 Tylko bogowie mogą wejść do tego wymiaru!','red');return;}
   if(regionId==='piekielna_otchlan'&&s.lvl<50&&!s.isGod){UI.toast('🔥 Piekielna Otchłań: wymagany poziom 50 lub boskość!','red');return;}
   Game.regionId=regionId;
+  if(typeof SND!=='undefined')SND.portal();
   E.clear();C.clear();UI.hideBoss();Game.godFight=null;
   W.buildRegion(regionId);
   E.populateRegion(regionId);
@@ -174,6 +182,7 @@ Game.useAbility=function(i){
   if(a.ab.kind==='rune'){
     if(P.mana<(def.mana||0)){UI.toast('Brak many!','red');return;}
     P.mana-=(def.mana||0);
+    if(typeof SND!=='undefined')SND.cast();
     C.castSpell(def,D.spellPower(a.ab.rune),false);
     a.cd=def.cd||1;a.maxCd=a.cd;
   } else if(a.ab.kind==='god'){
@@ -228,6 +237,7 @@ Game.startGodFight=function(isFallen){
   const god=D.GODS[godKey];
   // arena — czyścimy wrogów wokół świątyni
   UI.banner(god.ic+' '+god.name+' ZSTĘPUJE!',5000);
+  if(typeof SND!=='undefined')SND.godRoar();
   const hp=isFallen? D.rndi(50000,100000) : D.rndi(15000,30000);
   const dmg=isFallen? 800 : 320;
   const def={name:god.ic+' '+god.name,tier:5,lvl:isFallen?70:40,fac:god.fac,hp:hp,dmg:dmg,xp:isFallen?9000:3000,gold:isFallen?[4000,8000]:[1200,2400]};
@@ -309,10 +319,11 @@ Game.startRaid=function(){
 // ---------- ŚMIERĆ ----------
 Game.onDeath=function(srcName){
   const P=Game.player;P.dead=true;
+  if(typeof SND!=='undefined')SND.die();
   Game.state.stats.deaths++;
   UI.el('deathScr').style.display='flex';
-  UI.el('deathInfo').textContent='Pokonał cię: '+srcName+'. Tracisz 10% złota.';
-  Game.state.gold=Math.floor(Game.state.gold*0.9);
+  UI.el('deathInfo').textContent='Pokonał cię: '+srcName+'. Tracisz 5% złota.';
+  Game.state.gold=Math.floor(Game.state.gold*0.95);
   Sys.save();
 };
 UI.el('btnRespawn').addEventListener('click',()=>{
@@ -345,29 +356,45 @@ Game.dash=function(){
   C.ringFx({x:P.pos.x,z:P.pos.z},0x7fd6ff,1.5);
 };
 
-// joystick mobilny
+// joystick mobilny — stała baza, zawsze widoczna
 (function(){
   const zone=UI.el('joyZone'),base=UI.el('joyBase'),knob=UI.el('joyKnob');
-  let active=false,cx=0,cy=0,pid=null;
+  base.style.display='block';knob.style.display='block';
+  let cx=0,cy=0,active=false,pid=null;
+  function placeBase(){
+    const r=zone.getBoundingClientRect();
+    cx=r.left+92; cy=innerHeight-112-  (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab'))||0);
+    base.style.left=(cx-60)+'px';base.style.top=(cy-60)+'px';
+    knob.style.left=(cx-26)+'px';knob.style.top=(cy-26)+'px';
+  }
+  placeBase();addEventListener('resize',placeBase);
+  function setKnob(dx,dy){knob.style.left=(cx+dx-26)+'px';knob.style.top=(cy+dy-26)+'px';}
   zone.addEventListener('pointerdown',(e)=>{
-    active=true;pid=e.pointerId;cx=e.clientX;cy=e.clientY;
-    base.style.display='block';knob.style.display='block';
-    base.style.left=(cx-55)+'px';base.style.top=(cy-55)+'px';
-    knob.style.left=(cx-24)+'px';knob.style.top=(cy-24)+'px';
-    zone.setPointerCapture(pid);
+    active=true;pid=e.pointerId;zone.setPointerCapture(pid);
+    // jeśli dotyk daleko od bazy — przenieś bazę pod palec
+    if(Math.hypot(e.clientX-cx,e.clientY-cy)>90){cx=e.clientX;cy=e.clientY;base.style.left=(cx-60)+'px';base.style.top=(cy-60)+'px';}
+    move(e);
   });
-  zone.addEventListener('pointermove',(e)=>{
+  function move(e){
     if(!active||e.pointerId!==pid)return;
     let dx=e.clientX-cx,dy=e.clientY-cy;
-    const d=Math.hypot(dx,dy),max=52;
+    const d=Math.hypot(dx,dy),max=54;
     if(d>max){dx*=max/d;dy*=max/d;}
-    knob.style.left=(cx+dx-24)+'px';knob.style.top=(cy+dy-24)+'px';
+    setKnob(dx,dy);
     Game.input.jx=dx/max;Game.input.jz=dy/max;
-  });
-  const end=(e)=>{if(e.pointerId!==pid)return;active=false;Game.input.jx=0;Game.input.jz=0;
-    base.style.display='none';knob.style.display='none';};
+  }
+  zone.addEventListener('pointermove',move);
+  const end=(e)=>{if(e.pointerId!==pid)return;active=false;Game.input.jx=0;Game.input.jz=0;placeBase();};
   zone.addEventListener('pointerup',end);zone.addEventListener('pointercancel',end);
 })();
+
+// pełny ekran
+Game.toggleFullscreen=function(){
+  const d=document;
+  if(!d.fullscreenElement){ (d.documentElement.requestFullscreen&&d.documentElement.requestFullscreen())||(d.documentElement.webkitRequestFullscreen&&d.documentElement.webkitRequestFullscreen()); }
+  else { (d.exitFullscreen&&d.exitFullscreen())||(d.webkitExitFullscreen&&d.webkitExitFullscreen()); }
+};
+(function(){const b=UI.el('fsBtn');if(b)b.addEventListener('click',()=>Game.toggleFullscreen());})();
 
 // ---------- PĘTLA ----------
 Game.clock=new THREE.Clock();
@@ -388,10 +415,12 @@ Game.loop=function(){
     if(Game.input.jx||Game.input.jz){mx=Game.input.jx;mz=Game.input.jz;}
     const ml=Math.hypot(mx,mz);
     if(ml>0.1){
-      // ruch względem kamery izometrycznej
+      // ruch względem kamery: przód = od kamery do celu, prawo = prostopadle
       const ca=W.camAngle;
-      const wx=(mx*Math.cos(ca)-mz*Math.sin(ca));
-      const wz=(-mx*Math.sin(ca)-mz*Math.cos(ca));
+      const fX=-Math.sin(ca), fZ=-Math.cos(ca);   // przód (ekran: góra)
+      const rX=-fZ, rZ=fX;                          // prawo (ekran: prawo)
+      const wx=rX*mx - fX*mz;
+      const wz=rZ*mx - fZ*mz;
       const sp=st.spd*(P.buffs.spd?1.5:1);
       const nx=P.pos.x+wx*sp*dt, nz=P.pos.z+wz*sp*dt;
       if(!W.grid||!W.blockedAt(nx,nz)){P.pos.x=nx;P.pos.z=nz;}
@@ -431,6 +460,7 @@ Game.loop=function(){
   E.updatePickups(dt,t);
   C.update(dt);
   W.animateScene(t,dt);
+  if(Game.regionId==='wioska')W.updateVillagers(dt,t);
   Game.checkInteract();
   UI.tickCooldowns(dt);
   Sys.tickMissions();
@@ -451,7 +481,7 @@ Game.loop=function(){
     Sys.addGold(150+s.lvl*10);Sys.addRep(s.faction,25);
   }
 
-  if(W.grid){P.pos.y+=(W.walkY(P.pos.x,P.pos.z)-P.pos.y)*Math.min(1,dt*10);}else P.pos.y=0;
+  P.pos.y+=(W.groundH(P.pos.x,P.pos.z)-P.pos.y)*Math.min(1,dt*10);
   // kamera + render
   W.updateCamera(P.pos,dt);
   if(W.composer&&W.bloomOn!==false)W.composer.render();else W.renderer.render(W.scene,W.camera);

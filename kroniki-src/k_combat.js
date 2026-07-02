@@ -60,6 +60,7 @@ C.playerDmg=function(mult){
 };
 C.damageEnemy=function(e,amount,crit,silent){
   if(e.hp<=0)return;
+  if(!silent&&typeof SND!=='undefined')SND.hit();
   if(e.mark>0)amount*=1.4;
   amount=Math.round(amount);
   e.hp-=amount;
@@ -80,6 +81,7 @@ C.damagePlayer=function(amount,srcName){
   if(P.shield>0){const abs=Math.min(P.shield,amount);P.shield-=abs;amount-=abs;}
   if(amount<=0)return;
   P.hp-=amount;
+  if(typeof SND!=='undefined')SND.hurt();
   C.dmgNum(new THREE.Vector3(P.pos.x,0,P.pos.z),'-'+D.fmt(amount),'#ff6a7a');
   // thorns
   if(S.thorns&&srcName&&srcName.e){C.damageEnemy(srcName.e,amount*0.15,false,true);}

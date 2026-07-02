@@ -86,6 +86,18 @@ W.godModels={}; W.loadGod=function(key,cb){
   },undefined,()=>cb(null));
 };
 
+// ---------- SZUM TERENU (regiony poza wioską) ----------
+W._nz=(function(){const p=[];for(let i=0;i<256;i++)p.push((Math.sin(i*127.1)*43758.5453)%1);
+  function h(x,z){const n=Math.sin(x*12.9898+z*78.233)*43758.5453;return n-Math.floor(n);}
+  function sm(x,z){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz;
+    const a=h(ix,iz),b=h(ix+1,iz),c=h(ix,iz+1),d=h(ix+1,iz+1);
+    const ux=fx*fx*(3-2*fx),uz=fz*fz*(3-2*fz);
+    return a*(1-ux)*(1-uz)+b*ux*(1-uz)+c*(1-ux)*uz+d*ux*uz;}
+  return function(x,z){return sm(x*0.05,z*0.05)*0.7+sm(x*0.13+7,z*0.13+3)*0.3;};
+})();
+W.terrainAmp=0; W.terrainY=function(x,z){return W.terrainAmp>0? (W._nz(x,z)-0.5)*2*W.terrainAmp : 0;};
+W.groundH=function(x,z){ if(W.grid)return W.walkY(x,z); return W.terrainY(x,z); };
+
 // ---------- POSTACIE Z ARKUSZA ----------
 W.charProtos=null; W.CHAR_YAW=Math.PI/2;
 W.loadSheet=function(cb){
@@ -197,7 +209,7 @@ W.buildHeightGrid=function(model,extent){
   for(let q=0;q<n*n;q++){
     if(hMin[q]>1e8){walk[q]=0;block[q]=1;continue;}
     walk[q]=hMin[q];
-    block[q]=(hMax[q]-hMin[q]>1.6)?1:0;
+    block[q]=(hMax[q]-hMin[q]>2.6)?1:0;
   }
   // wygładź walk (1 pass box blur) i dopisz blokady stromizn
   const w2=new Float32Array(walk);
@@ -207,7 +219,7 @@ W.buildHeightGrid=function(model,extent){
   for(let z=1;z<n-1;z++)for(let x=1;x<n-1;x++){
     const q=z*n+x;
     const mx=Math.max(Math.abs(w2[q]-w2[q-1]),Math.abs(w2[q]-w2[q+1]),Math.abs(w2[q]-w2[q-n]),Math.abs(w2[q]-w2[q+n]));
-    if(mx>0.85)block[q]=1;
+    if(mx>1.15)block[q]=1;
   }
   W.grid={min:min,cell:cell,n:n,walk:w2,block:block};
 };
@@ -216,7 +228,7 @@ W.buildHeightGrid=function(model,extent){
 W.current=null;          // grupa aktualnego regionu
 W.colliders=[];          // {x,z,r} przeszkody
 W.interactables=[];      // {x,z,r,label,action,icon}
-W.regionSize=60;
+W.regionSize=84;
 
 W.clearRegion=function(){
   if(W.current){W.scene.remove(W.current);
@@ -224,10 +236,22 @@ W.clearRegion=function(){
   W.current=null;W.colliders=[];W.interactables=[];
 };
 
+W.addSkyDome=function(g,topCol,botCol){
+  const geo=new THREE.SphereGeometry(160,24,16);
+  const mat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+    uniforms:{top:{value:new THREE.Color(topCol)},bot:{value:new THREE.Color(botCol)}},
+    vertexShader:'varying float vy;void main(){vy=normalize(position).y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 top;uniform vec3 bot;varying float vy;void main(){gl_FragColor=vec4(mix(bot,top,clamp(vy*1.4+0.35,0.0,1.0)),1.0);}'});
+  const m=new THREE.Mesh(geo,mat);g.add(m);
+};
 W.groundPlane=function(g,def,half){
-  const geo=new THREE.CircleGeometry(half*1.5,64);
+  const geo=new THREE.PlaneGeometry(half*3,half*3,72,72);
+  geo.rotateX(-Math.PI/2);
+  if(W.terrainAmp>0){const pos=geo.attributes.position;
+    for(let i=0;i<pos.count;i++){pos.setY(i,W.terrainY(pos.getX(i),pos.getZ(i)));}
+    pos.needsUpdate=true;geo.computeVertexNormals();}
   const m=new THREE.Mesh(geo,W.mat(def.ground,{rough:0.95}));
-  m.rotation.x=-Math.PI/2;g.add(m);
+  g.add(m);
   // siatka subtelna
   const grid=new THREE.GridHelper(half*2.4,Math.floor(half/1.5),0x3a2a55,0x18102a);
   grid.material.transparent=true;grid.material.opacity=0.16;grid.position.y=0.01;g.add(grid);
@@ -237,30 +261,30 @@ W.groundPlane=function(g,def,half){
 W.addTree=function(g,x,z,col,h){
   h=h||D.rnd(2.4,4.2);
   const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.22,h*0.5,6),W.mat(0x2a1c14,{rough:1}));
-  trunk.position.set(x,h*0.25,z);g.add(trunk);
+  const ty=W.terrainY(x,z);trunk.position.set(x,ty+h*0.25,z);g.add(trunk);
   const crown=new THREE.Mesh(new THREE.ConeGeometry(D.rnd(0.8,1.3),h*0.8,7),W.mat(col,{rough:0.95,flat:true}));
-  crown.position.set(x,h*0.5+h*0.35,z);crown.rotation.y=Math.random()*3;g.add(crown);
+  crown.position.set(x,(typeof ty!=='undefined'?ty:0)+h*0.5+h*0.35,z);crown.rotation.y=Math.random()*3;g.add(crown);
   W.colliders.push({x:x,z:z,r:0.5});
 };
 W.addRock=function(g,x,z,s,col){
   s=s||D.rnd(0.5,1.6);
   const r=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),W.mat(col||0x4a4456,{rough:0.9,flat:true}));
-  r.position.set(x,s*0.5,z);r.rotation.set(Math.random(),Math.random()*3,Math.random());g.add(r);
+  r.position.set(x,W.terrainY(x,z)+s*0.5,z);r.rotation.set(Math.random(),Math.random()*3,Math.random());g.add(r);
   W.colliders.push({x:x,z:z,r:s*0.8});
 };
 W.addCrystal=function(g,x,z,col){
   const c=new THREE.Mesh(new THREE.ConeGeometry(D.rnd(0.2,0.4),D.rnd(0.8,1.7),5),W.glow(col,1.4));
-  c.position.set(x,0.4,z);c.rotation.z=D.rnd(-0.25,0.25);g.add(c);
+  c.position.set(x,W.terrainY(x,z)+0.4,z);c.rotation.z=D.rnd(-0.25,0.25);g.add(c);
 };
 W.addRuinPillar=function(g,x,z){
   const h=D.rnd(1.5,3.5);
   const p=new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.42,h,8),W.mat(0x3a3648,{rough:0.9,flat:true}));
-  p.position.set(x,h/2,z);p.rotation.z=D.rnd(-0.12,0.12);g.add(p);
+  p.position.set(x,W.terrainY(x,z)+h/2,z);p.rotation.z=D.rnd(-0.12,0.12);g.add(p);
   W.colliders.push({x:x,z:z,r:0.6});
 };
 W.addEmberVent=function(g,x,z){
   const v=new THREE.Mesh(new THREE.CircleGeometry(D.rnd(0.5,1.1),12),W.glow(0xff5a1c,1.2));
-  v.rotation.x=-Math.PI/2;v.position.set(x,0.03,z);g.add(v);
+  v.rotation.x=-Math.PI/2;v.position.set(x,W.terrainY(x,z)+0.05,z);g.add(v);
 };
 
 // budynek wioski
@@ -387,7 +411,17 @@ W.buildVillage=function(g){
 // ---------- REGIONY BOJOWE ----------
 W.buildCombatRegion=function(g,def){
   const half=W.regionSize/2;
+  const hilly={gory_nocy:2.6,otchlan_bestii:1.4,krainy_popiolu:1.6,pustynia_pustki:1.1,las_cieni:0.8,ruiny_chaosu:0.9,krolestwo_snow:1.2,wymiar_bogow:1.5,piekielna_otchlan:1.8};
+  W.terrainAmp=hilly[def.id]||1.0;
   W.groundPlane(g,def,half);
+  W.addSkyDome(g,def.amb,def.fog);
+  // pierścień gór na granicy
+  for(let i=0;i<26;i++){const a=i/26*6.283+((i%3)*0.07);
+    const rr=half+D.rnd(4,10);const x=Math.cos(a)*rr,z=Math.sin(a)*rr;
+    const h=D.rnd(6,14);
+    const mt=new THREE.Mesh(new THREE.ConeGeometry(D.rnd(3,6),h,6),W.mat(def.ground,{rough:1,flat:true}));
+    mt.position.set(x,h*0.4+W.terrainY(x,z),z);mt.rotation.y=Math.random()*3;g.add(mt);
+  }
   const fc=def.fac?D.FACTIONS[def.fac].col:0x9b59ff;
   // props wg typu
   const P=def.props;
@@ -427,6 +461,8 @@ W.buildCombatRegion=function(g,def){
 // ---------- WIOSKA Z MODELU GLB ----------
 W.buildVillageGLB=function(g){
   const def=D.REGIONS.wioska;
+  W.terrainAmp=0;
+  W.addSkyDome(g,0x2a2444,0x08060e);
   // podkład
   const under=new THREE.Mesh(new THREE.CircleGeometry(80,48),W.mat(0x0a0f0a,{rough:1}));
   under.rotation.x=-Math.PI/2;under.position.y=-0.25;g.add(under);
@@ -452,6 +488,8 @@ W.buildVillageGLB=function(g){
   }
 };
 W._villageDecor=function(g){
+  W.villagers=[];
+  W.addVillagers(g);
   // znaczniki usług — świecące beacon'y wokół placu
   const services=[
     ['Sklep','🛒',0x4aa3ff,()=>UI.openPanel('sklep')],
@@ -497,6 +535,40 @@ W.addBeacon=function(g,x,z,col,label,icon,action,scale){
   W.interactables.push({x:x,z:z,r:2.6*scale,label:label,icon:icon,action:action,beaconY:orb});
 };
 
+
+// mieszkańcy wioski — wędrują i gadają
+W.villagers=[];
+W.addVillagers=function(g){
+  const lines=['Piękny wieczór, prawda?','Słyszałeś o demonach na południu?','Bogowie patrzą na nas z góry...','Kupiec Bartuś zawyża ceny!','Ostatnio widziałem cień na murach...','Runolog Vex znów coś wybuchł w pracowni.','Strzeż się nocą poza murami.','Mówią, że śmiertelnik może zostać bogiem...'];
+  const names=['Mieszkaniec Jarek','Mieszkanka Wanda','Strażnik Borys','Dziewczyna Ola','Starzec Miron','Handlarka Zofia'];
+  for(let i=0;i<6;i++){
+    const sp=W.findSpawn(D.rnd(-14,14),D.rnd(-10,16));
+    const cols=[0x6a4a2a,0x3a4a5f,0x5f3a4a,0x4a5f3a];
+    const grp=new THREE.Group();
+    const model=E.buildHumanoid(D.pick(cols),0x2a2030,1,0.92);
+    grp.add(model);grp.position.set(sp.x,W.walkY(sp.x,sp.z),sp.z);
+    g.add(grp);
+    const name=names[i%names.length];
+    W.villagers.push({grp:grp,model:model,t:D.rnd(1,4),dir:D.rnd(0,6.283),moving:false,speed:1.1});
+    W.interactables.push({x:sp.x,z:sp.z,r:2,label:name,icon:'💬',action:()=>{UI.dialog(name,D.pick(lines),[{t:'Do widzenia',fn:()=>UI.closeDialog()}]);},npcRef:W.villagers[W.villagers.length-1]});
+  }
+};
+W.updateVillagers=function(dt,t){
+  for(const v of W.villagers){
+    if(!v.grp.parent)continue;
+    v.t-=dt;
+    if(v.t<=0){v.t=D.rnd(2,6);v.moving=D.chance(0.6);v.dir=D.rnd(0,6.283);}
+    if(v.moving){
+      const nx=v.grp.position.x+Math.sin(v.dir)*v.speed*dt, nz=v.grp.position.z+Math.cos(v.dir)*v.speed*dt;
+      if(!W.blockedAt(nx,nz)&&Math.hypot(nx,nz)<26){v.grp.position.x=nx;v.grp.position.z=nz;v.grp.rotation.y=v.dir;
+        v.grp.position.y=W.walkY(nx,nz);
+        // aktualizuj pozycję interakcji
+        for(const it of W.interactables){if(it.npcRef===v){it.x=nx;it.z=nz;}}
+      } else v.t=0.3;
+      v.model.position.y=Math.abs(Math.sin(t*6))*0.05;
+    }
+  }
+};
 W.buildRegion=function(id){
   W.clearRegion();
   const def=D.REGIONS[id];

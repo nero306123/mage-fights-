@@ -6,22 +6,39 @@ E.enemies=[]; E.allies=[]; E.pickups=[];
 // ---------- budowa modelu humanoida (proceduralny, kolor frakcji) ----------
 E.buildHumanoid=function(col,col2,tier,scale){
   const g=new THREE.Group(); scale=scale||1;
-  const robe=new THREE.Mesh(new THREE.ConeGeometry(0.42,1.1,8,1),W.mat(col2,{rough:0.9,flat:true}));
-  robe.position.y=0.55;g.add(robe);
-  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(0.26,0.34,4,8),W.mat(col,{rough:0.8}));
-  torso.position.y=1.28;g.add(torso);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.2,10,10),W.mat(col,{rough:0.75}));
-  head.position.y=1.78;g.add(head);
-  const eL=new THREE.Mesh(new THREE.SphereGeometry(0.035,6,6),W.glow(0xffffff,2));eL.position.set(0.07,1.8,0.16);g.add(eL);
-  const eR=eL.clone();eR.position.x=-0.07;g.add(eR);
-  const aL=new THREE.Mesh(new THREE.CapsuleGeometry(0.07,0.4,4,6),W.mat(col,{rough:0.85}));
-  aL.position.set(0.34,1.24,0);aL.rotation.z=0.5;g.add(aL);
-  const aR=aL.clone();aR.position.x=-0.34;aR.rotation.z=-0.5;g.add(aR);
-  if(tier>=2){const sh=new THREE.Mesh(new THREE.ConeGeometry(0.12,0.26,5),W.glow(col,1.2));sh.position.set(0.32,1.56,0);g.add(sh);
-    const sh2=sh.clone();sh2.position.x=-0.32;g.add(sh2);}
-  if(tier>=3){const halo=new THREE.Mesh(new THREE.TorusGeometry(0.26,0.02,6,20),W.glow(col,2));halo.position.y=2.06;halo.rotation.x=Math.PI/2;g.add(halo);}
-  if(tier>=4){const crown=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.3,5),W.glow(0xffd56b,2.2));crown.position.y=2.1;g.add(crown);}
-  g.scale.setScalar(scale*(0.85+tier*0.09));
+  // nogi
+  [-0.12,0.12].forEach(lx=>{const leg=new THREE.Mesh(new THREE.CapsuleGeometry(0.075,0.42,4,7),W.mat(col2,{rough:0.9}));
+    leg.position.set(lx,0.36,0);g.add(leg);});
+  // tułów + pancerz
+  const torso=new THREE.Mesh(new THREE.CapsuleGeometry(0.24,0.4,4,10),W.mat(col,{rough:0.75}));
+  torso.position.y=0.95;g.add(torso);
+  const belt=new THREE.Mesh(new THREE.TorusGeometry(0.24,0.03,6,16),W.mat(0x2a2030,{rough:0.6,met:0.3}));
+  belt.position.y=0.74;belt.rotation.x=Math.PI/2;g.add(belt);
+  // peleryna
+  const cape=new THREE.Mesh(new THREE.PlaneGeometry(0.5,0.85,3,5),W.mat(col2,{rough:0.95,side:THREE.DoubleSide,op:0.95}));
+  cape.position.set(0,1.0,-0.2);cape.rotation.x=0.12;g.add(cape);
+  // głowa + kaptur
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.17,12,12),W.mat(0xc9b8a0,{rough:0.7}));
+  head.position.y=1.5;g.add(head);
+  const hood=new THREE.Mesh(new THREE.ConeGeometry(0.21,0.4,10,1,true),W.mat(col,{rough:0.9,side:THREE.DoubleSide}));
+  hood.position.y=1.62;g.add(hood);
+  const eL=new THREE.Mesh(new THREE.SphereGeometry(0.026,6,6),W.glow(0xffffff,2));eL.position.set(0.06,1.52,0.14);g.add(eL);
+  const eR=eL.clone();eR.position.x=-0.06;g.add(eR);
+  // ramiona
+  const aL=new THREE.Mesh(new THREE.CapsuleGeometry(0.06,0.36,4,7),W.mat(col,{rough:0.85}));
+  aL.position.set(0.3,1.02,0.03);aL.rotation.z=0.4;g.add(aL);
+  const aR=aL.clone();aR.position.x=-0.3;aR.rotation.z=-0.4;g.add(aR);
+  // broń w prawej ręce (kostur ze świecącą kulą)
+  const staff=new THREE.Group();
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.03,1.1,6),W.mat(0x4a2c14,{rough:1}));
+  staff.add(rod);
+  const orb=new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8),W.glow(col,2));orb.position.y=0.62;staff.add(orb);
+  staff.position.set(-0.38,0.95,0.12);staff.rotation.z=-0.12;g.add(staff);
+  // odznaki tieru
+  if(tier>=2){[-0.28,0.28].forEach(sx=>{const sh=new THREE.Mesh(new THREE.ConeGeometry(0.1,0.2,5),W.glow(col,1.2));sh.position.set(sx,1.3,0);g.add(sh);});}
+  if(tier>=3){const halo=new THREE.Mesh(new THREE.TorusGeometry(0.22,0.018,6,20),W.glow(col,2));halo.position.y=1.85;halo.rotation.x=Math.PI/2;g.add(halo);}
+  if(tier>=4){const crown=new THREE.Mesh(new THREE.ConeGeometry(0.15,0.26,5),W.glow(0xffd56b,2.2));crown.position.y=1.9;g.add(crown);}
+  g.scale.setScalar(scale*(0.88+tier*0.09));
   return g;
 };
 E.buildBeastModel=function(col,tier,scale){
@@ -97,7 +114,7 @@ E.spawnEnemy=function(def,x,z,opts){
   } else if(def.fac==='bestie'&&D.chance(0.6)) model=E.buildBeastModel(fac.col,def.tier,opts.scale);
   else if(def.fac==='demony') model=E.buildDemonModel(def.tier,opts.scale);
   else model=E.buildHumanoid(fac.col,fac.col2,def.tier,opts.scale);
-  const grp=new THREE.Group();grp.add(model);grp.position.set(x,0,z);
+  const grp=new THREE.Group();grp.add(model);grp.position.set(x,W.groundH(x,z),z);
   const bar=E.makeHpBar();bar.position.y=2.4*(opts.scale||1);grp.add(bar);E.updateHpBar(bar,1);
   W.current.add(grp);
   const e={grp:grp,model:model,bar:bar,def:def,hp:def.hp,maxHp:def.hp,
@@ -173,7 +190,7 @@ E.updateEnemies=function(dt,t){
       }
     }
     W.collide(e.grp.position,0.5);
-    if(W.grid)e.grp.position.y=W.walkY(e.grp.position.x,e.grp.position.z);
+    e.grp.position.y=W.groundH(e.grp.position.x,e.grp.position.z);
     // bob animacja
     e.model.position.y=Math.abs(Math.sin(t*6+i))* (e.state==='chase'?0.09:0.03);
     // pasek HP do kamery
@@ -188,6 +205,7 @@ E.killEnemy=function(e,idx){
   Sys.addGold(g); Sys.addXp(e.def.xp);
   Sys.onKill(e);
   C.deathBurst(e.grp.position, D.FACTIONS[e.def.fac].col);
+  if(typeof SND!=='undefined')SND.kill();
   // dropy
   E.dropLoot(e);
   if(e.boss)UI.hideBoss();
@@ -236,7 +254,7 @@ E.updatePickups=function(dt,t){
   const P=Game.player;if(!P)return;
   for(let i=E.pickups.length-1;i>=0;i--){
     const p=E.pickups[i];p.t+=dt;
-    p.m.rotation.y+=dt*2;p.m.position.y=(W.grid?W.walkY(p.m.position.x,p.m.position.z):0)+0.5+Math.sin(t*3+i)*0.12;
+    p.m.rotation.y+=dt*2;p.m.position.y=W.groundH(p.m.position.x,p.m.position.z)+0.5+Math.sin(t*3+i)*0.12;
     const d=Math.hypot(P.pos.x-p.m.position.x,P.pos.z-p.m.position.z);
     if(d<1.6){ Sys.pickup(p); if(p.m.parent)p.m.parent.remove(p.m); E.pickups.splice(i,1); }
     else if(d<5){ // przyciąganie
@@ -278,6 +296,6 @@ E.updateAllies=function(dt,t){
       if(d>2.5){a.grp.position.x+=dx/d*a.speed*dt;a.grp.position.z+=dz/d*a.speed*dt;a.grp.rotation.y=Math.atan2(dx,dz);}
     }
     a.model.position.y=Math.abs(Math.sin(t*7+i))*0.07;
-    if(W.grid)a.grp.position.y=W.walkY(a.grp.position.x,a.grp.position.z);
+    a.grp.position.y=W.groundH(a.grp.position.x,a.grp.position.z);
   }
 };

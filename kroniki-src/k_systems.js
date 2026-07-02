@@ -88,11 +88,11 @@ Sys.addXp=function(x){
   if(s.isGod){
     s.godXp+=x;
     while(s.godXp>=D.GOD_XP_FOR(s.godLvl)){s.godXp-=D.GOD_XP_FOR(s.godLvl);s.godLvl++;s.godPoints+=2;
-      UI.toast('🔱 Boski poziom '+s.godLvl+'! +2 pkt boskie','gold');Sys.healFull();}
+      UI.toast('🔱 Boski poziom '+s.godLvl+'! +2 pkt boskie','gold');Sys.healFull();if(typeof SND!=='undefined')SND.lvl();}
   } else {
     s.xp+=x;
     while(s.xp>=D.XP_FOR(s.lvl)){s.xp-=D.XP_FOR(s.lvl);s.lvl++;
-      UI.toast('⬆️ Poziom '+s.lvl+'!','gold');Sys.healFull();
+      UI.toast('⬆️ Poziom '+s.lvl+'!','gold');Sys.healFull();if(typeof SND!=='undefined')SND.lvl();
       if(s.lvl%10===0&&s.runeSlots<8){s.runeSlots++;UI.toast('✨ Nowy slot na runę! ('+s.runeSlots+')','green');}}
   }
   UI.refreshTop();
@@ -131,6 +131,7 @@ Sys.breakAlliance=function(){
 // ---------- EKWIPUNEK ----------
 Sys.pickup=function(p){
   const s=Sys.S;
+  if(typeof SND!=='undefined')SND.pickup();
   if(p.type==='rune'){s.inv.push(Object.assign(p.data,{t:'rune'}));UI.toast(p.data.ic+' Runa: '+p.data.n+' ('+D.RARITY[p.data.rar].name+')');}
   else if(p.type==='item'){s.inv.push(Object.assign(p.data,{t:'item'}));UI.toast(p.data.ic+' '+p.data.n);}
   else if(p.type==='potion'){s.inv.push(Object.assign(p.data,{t:'potion',uid:'p'+(Math.random()*1e9|0)}));UI.toast(p.data.ic+' '+p.data.n);}
